@@ -13,9 +13,8 @@ let DSPCR = 0;
 
 class PIA {
 
-    constructor(ioA, ioB) {
+    constructor(ioA) {
         this.ioA = ioA;
-        this.ioB = ioB;
     }
 
     keyIn(key) {

@@ -4,7 +4,7 @@ import RAM from '../core/RAM.js';
 import AddressSpaces from '../core/address_spaces.js';
 
 import PIA from './PIA.js';
-import Keyboard from './keyboard.js';
+import Keyboard from './shellKeyboard.js';
 import Display from './display.js';
 
 
