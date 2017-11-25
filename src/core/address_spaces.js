@@ -6,19 +6,16 @@ class AddressSpaces {
     }
 
     _findInstanceWithAddress(address) {
-        return this.addressMapArray.find((item) => {
-            return address >= item.addr[0] && address <= item.addr[1];
-        })
+        return this.addressMapArray.find( item => address >= item.addr[0] && address <= item.addr[1] );
     }
 
     read(address) {
-        let val = 0;
         const addrInstance = this._findInstanceWithAddress(address);
         if (addrInstance) {
-            val = addrInstance.instance.read(address - addrInstance.addr[0])
+            return addrInstance.instance.read(address - addrInstance.addr[0])
         }
 
-        return val;
+        return 0;
     }
 
     write(address, value) {

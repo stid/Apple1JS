@@ -3,6 +3,7 @@ const DEFAULT_RAM_BANK_SIZE = 4096;
 class RAM {
     constructor(byteSize = DEFAULT_RAM_BANK_SIZE) {
         this.data = new Array(byteSize);
+        this.data.fill(0)
     }
 
     read(address) {

@@ -530,9 +530,6 @@ class CPU6502 {
         this.A = this.Y;
         this.fnz(this.A);
     }
-
-
-
 }
 
 

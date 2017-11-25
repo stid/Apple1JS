@@ -7,17 +7,7 @@
         "jquery": true,
         "jest": true
     },
-    "globals": {
-        "chai": true,
-        "_": true,
-        "origami": true,
-        "Origami": true,
-        "d3": true,
-        "OrigamiReact": true,
-        "sinon": true,
-        "view": true,
-        "Backbone": true
-    },
+    "globals": {},
     "extends": "eslint:recommended",
     "parserOptions": {
         "sourceType": "module"

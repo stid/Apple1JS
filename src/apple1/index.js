@@ -10,7 +10,8 @@ import Display from './display.js';
 
 // ROM + Demo Program
 import woz_monitor from './progs/woz_monitor.js';
-import anniversary from './progs/anniversary.js';
+import prog from './progs/hello_world.js';
+import basic from './progs/basic.js';
 
 // $FF00-$FFFF 256 Bytes ROM
 const ROM_ADDR       = [0xFF00, 0xFFFF]; // ROM
@@ -32,7 +33,8 @@ const addressMapping = {
 }
 
 addressMapping.ROM.instance.bulkLoad(woz_monitor);
-addressMapping.RAM_A.instance.bulkLoad(anniversary);
+addressMapping.RAM_A.instance.bulkLoad(prog);
+addressMapping.RAM_B.instance.bulkLoad(basic);
 
 const addressSpaces = new AddressSpaces(addressMapping);
 const cpu = new CPU6502(addressSpaces);
