@@ -1,11 +1,10 @@
-import * as utils from '../utils.js';
+import * as utils from '../core/utils.js';
 
 // PIA MAPPING 6821
-const PIA_ADDR = 0xD000; // PIA 6821 ADDR BASE SPACE
-const KBD_ADDR = 0xD010; // Keyb Char - B7 High on keypress
-const KBDCR_ADDR = 0xD011; // Keyb Status - B7 High on keypress / Low when ready
-const DSP_ADDR = 0xD012; // DSP Char
-const DSPCR_ADDR = 0xD013; // DSP Status - B7 Low if VIDEO ready
+const KBD_ADDR = 0x0; // Keyb Char - B7 High on keypress
+const KBDCR_ADDR = 0x1; // Keyb Status - B7 High on keypress / Low when ready
+const DSP_ADDR = 0x2; // DSP Char
+const DSPCR_ADDR = 0x3; // DSP Status - B7 Low if VIDEO ready
 
 let KBD = 0;
 let KBDCR = 0;
@@ -14,8 +13,9 @@ let DSPCR = 0;
 
 class PIA {
 
-    constructor(display) {
-        this.display = display;
+    constructor(ioA, ioB) {
+        this.ioA = ioA;
+        this.ioB = ioB;
     }
 
     keyIn(key) {
@@ -25,13 +25,13 @@ class PIA {
     }
 
     read(address) {
-        let val;
+        let val=0;
         // PIA 6821
         switch (address) {
 
             case KBD_ADDR:
                 val = KBD;
-                // We'v read the char, clear B7
+                // Char read, clear B7
                 KBDCR = utils.bitClear(KBDCR, 7);
                 break;
 
@@ -45,10 +45,6 @@ class PIA {
 
             case DSPCR_ADDR:
                 val = DSPCR;
-                break;
-
-            default:
-                val = 0;
                 break;
         }
         return val;
@@ -69,7 +65,7 @@ class PIA {
             // Display
             case DSP_ADDR:
                 DSP = value;
-                this.display.write(DSP);
+                this.ioA.write(DSP);
                 DSP = utils.bitClear(DSP, 7);
                 break;
 

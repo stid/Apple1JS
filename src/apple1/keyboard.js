@@ -1,6 +1,5 @@
 import readline from 'readline';
 
-
 class Keyboard {
     constructor(pia) {
         this.pia = pia;
@@ -11,11 +10,12 @@ class Keyboard {
     }
 
     onKeyPressed(str, key) {
-        if(key.sequence === '\u0003') {
+        if (key.sequence === '\u0003') {
             process.exit();
         }
 
-        let tempKBD = str;
+        let tempKBD = key.sequence;
+
         switch (tempKBD) {
           case 0xA:
             // Not expected from KEYB
