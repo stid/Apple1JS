@@ -20,12 +20,12 @@ class CPU6502 {
     ////////////////////////////////////////////////////////////////////////////////
 
     reset() {
-            this.A = 0; this.X = 0; this.Y = 0; this.S = 0;
-            this.N = 0; this.Z = 1; this.C = 0; this.V = 0;
-            this.I = 0; this.D = 0;
+        this.A = 0; this.X = 0; this.Y = 0; this.S = 0;
+        this.N = 0; this.Z = 1; this.C = 0; this.V = 0;
+        this.I = 0; this.D = 0;
 
-            this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);
-        }
+        this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);
+    }
 
     step() {
         this.opcode = this.read( this.PC++ );

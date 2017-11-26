@@ -14,7 +14,6 @@ class AddressSpaces {
         if (addrInstance) {
             return addrInstance.instance.read(address - addrInstance.addr[0])
         }
-
         return 0;
     }
 

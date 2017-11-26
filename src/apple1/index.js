@@ -10,7 +10,7 @@ import Display from './display.js';
 
 // ROM + Demo Program
 import woz_monitor from './progs/woz_monitor.js';
-import prog from './progs/hello_world.js';
+import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
 
 // $FF00-$FFFF 256 Bytes ROM

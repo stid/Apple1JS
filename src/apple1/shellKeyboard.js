@@ -21,7 +21,7 @@ class Keyboard {
             this.pia.keyIn(tempKBD);
         } else {
             tempKBD = key.sequence;
-            this.pia.keyIn(tempKBD.charCodeAt(0));
+            this.pia.keyIn(tempKBD.toUpperCase().charCodeAt(0));
         }
     }
 }
