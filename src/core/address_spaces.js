@@ -24,6 +24,10 @@ class AddressSpaces {
         }
     }
 
+    toLog() {
+        console.log(this.addressMapping);
+    }
+
 }
 
 export default AddressSpaces;

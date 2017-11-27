@@ -1,7 +1,10 @@
+const DEFAULT_ROM_SIZE = 256;
+
 class ROM {
 
-    constructor() {
-        this.data = [];
+    constructor(byteSize=DEFAULT_ROM_SIZE) {
+        this.data = new Array(byteSize);
+        this.data.fill(0);
     }
 
     read(address) {

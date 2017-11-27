@@ -4,14 +4,16 @@ import RAM from '../core/RAM.js';
 import AddressSpaces from '../core/address_spaces.js';
 
 import PIA from '../core/PIA6820.js';
-import Keyboard from './shellKeyboard.js';
-import Display from './display.js';
+import Keyboard from './nodeKeyboard.js';
+import Display from './nodeDisplay.js';
 
 
 // ROM + Demo Program
 import woz_monitor from './progs/woz_monitor.js';
 import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
+
+const STEP_CHUNK = 10
 
 // $FF00-$FFFF 256 Bytes ROM
 const ROM_ADDR       = [0xFF00, 0xFFFF]; // ROM
@@ -49,7 +51,9 @@ const cpu = new CPU6502(addressSpaces);
 cpu.reset();
 
 function loop() {
-    cpu.step();
+    for(let a=0; a<STEP_CHUNK; a++) {
+        cpu.step();
+    }
     setTimeout(loop, 0);
 }
 loop();

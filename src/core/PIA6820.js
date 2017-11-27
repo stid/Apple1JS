@@ -1,11 +1,11 @@
 import * as utils from './utils.js';
 
 // PIA MAPPING 6821
-export const DATA_A_ADDR = 0x0;
-export const CRT_A_ADDR = 0x1;
+const DATA_A_ADDR = 0x0;
+const CRT_A_ADDR = 0x1;
 
-export const DATA_B_ADDR = 0x2;
-export const CRT_B_ADDR = 0x3;
+const DATA_B_ADDR = 0x2;
+const CRT_B_ADDR = 0x3;
 
 class PIA6820 {
 
@@ -65,11 +65,16 @@ class PIA6820 {
         this.setBitCtrB(7);
     }
 
-    // BUS Actions
-    set(address, value) {
-        this.data[address] = value;
+    // Wire Actions
+    setDataA(value) {
+        this.data[DATA_A_ADDR] = value;
     }
 
+    setDataB(value) {
+        this.data[DATA_B_ADDR] = value;
+    }
+
+    // BUS Actions
     read(address) {
         switch(address) {
             case DATA_A_ADDR:
@@ -95,6 +100,10 @@ class PIA6820 {
             if (this.ioB) {this.ioB.write(value)};
             break;
         }
+    }
+
+    toLog() {
+        console.log(this.data);
     }
 }
 
