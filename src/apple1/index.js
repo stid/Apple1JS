@@ -3,7 +3,7 @@ import ROM from '../core/ROM.js';
 import RAM from '../core/RAM.js';
 import AddressSpaces from '../core/address_spaces.js';
 
-import PIA from './PIA.js';
+import PIA from '../core/PIA6820.js';
 import Keyboard from './shellKeyboard.js';
 import Display from './display.js';
 
@@ -23,22 +23,27 @@ const RAM_BANK2_ADDR = [0xE000, 0xEFFF]; // EXTENDED RAM
 const PIA_ADDR = [0xD010, 0xD013]; // PIA 6821 ADDR BASE SPACE
 
 
-const pia = new PIA(new Display());
+// Wire PIA
+const pia = new PIA();
+const keyboard = new Keyboard(pia);
+const display = new Display(pia);
+pia.wireIOA(keyboard);
+pia.wireIOB(display);
 
+// Map components
 const addressMapping = {
     ROM: { addr: ROM_ADDR, instance: new ROM()},
     RAM_A: { addr: RAM_BANK1_ADDR, instance: new RAM()},
     RAM_B: { addr: RAM_BANK2_ADDR, instance: new RAM()},
     PIA: { addr: PIA_ADDR, instance: pia},
 }
-
 addressMapping.ROM.instance.bulkLoad(woz_monitor);
 addressMapping.RAM_A.instance.bulkLoad(prog);
 addressMapping.RAM_B.instance.bulkLoad(basic);
 
 const addressSpaces = new AddressSpaces(addressMapping);
+
 const cpu = new CPU6502(addressSpaces);
-const keyboard = new Keyboard(pia);
 
 // START MAIN LOOP
 cpu.reset();

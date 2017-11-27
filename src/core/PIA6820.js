@@ -1,11 +1,11 @@
-import * as utils from '../core/utils.js';
+import * as utils from './utils.js';
 
 // PIA MAPPING 6821
-export const DATA_A_ADDR = 0x0; // Keyb Char - B7 High on keypress
-export const CRT_A_ADDR = 0x1; // Keyb Status - B7 High on keypress / Low when ready
+export const DATA_A_ADDR = 0x0;
+export const CRT_A_ADDR = 0x1;
 
-export const DATA_B_ADDR = 0x2; // DSP Char
-export const CRT_B_ADDR = 0x3; // DSP Status - B7 Low if VIDEO ready
+export const DATA_B_ADDR = 0x2;
+export const CRT_B_ADDR = 0x3;
 
 class PIA6820 {
 
@@ -17,35 +17,67 @@ class PIA6820 {
         this.ioA = ioA;
     }
 
-
     wireIOB(ioB) {
         this.ioB = ioB;
     }
 
-    setBit_A_ADDR(bit) {
+    // Direct Bits A
+    setBitDataA(bit) {
         this.data[DATA_A_ADDR] = utils.bitSet(this.data[DATA_A_ADDR], bit);
     }
 
-    clearBitCTR_A(bit) {
+    clearBitDataA(bit) {
+        this.data[DATA_A_ADDR] = utils.bitClear(this.data[DATA_A_ADDR], bit);
+    }
+
+    setBitCtrA(bit) {
+        this.data[CRT_A_ADDR] = utils.bitSet(this.data[CRT_A_ADDR], bit);
+    }
+
+    clearBitCrtA(bit) {
         this.data[CRT_A_ADDR] = utils.bitClear(this.data[CRT_A_ADDR], bit);
     }
 
-    setBit_B_ADDR(bit) {
+    // Direct Bits B
+    setBitDataB(bit) {
         this.data[DATA_B_ADDR] = utils.bitSet(this.data[DATA_B_ADDR], bit);
     }
 
-    clearBitCTR_B(bit) {
+    clearBitDataB(bit) {
+        this.data[DATA_B_ADDR] = utils.bitClear(this.data[DATA_B_ADDR], bit);
+    }
+
+    setBitCtrB(bit) {
+        this.data[CRT_A_ADDR] = utils.bitSet(this.data[CRT_A_ADDR], bit);
+    }
+
+    clearBitCrtB(bit) {
         this.data[CRT_B_ADDR] = utils.bitClear(this.data[CRT_B_ADDR], bit);
+    }
+
+    // Interrupt CA1
+    raiseCA1() {
+        this.setBitCtrA(7);
+    }
+
+    // Interrupt CB1
+    raiseCB1() {
+        this.setBitCtrB(7);
+    }
+
+    // BUS Actions
+    set(address, value) {
+        this.data[address] = value;
     }
 
     read(address) {
         switch(address) {
             case DATA_A_ADDR:
-            if (this.ioA) {this.ioA.read(this.data[address])};
+            this.clearBitCrtA(7)
             break;
 
             case DATA_B_ADDR:
-            if (this.ioB) {this.ioB.read(this.data[address])};
+            this.clearBitCrtB(7)
             break;
         }
         return this.data[address];
