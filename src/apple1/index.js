@@ -13,7 +13,7 @@ import woz_monitor from './progs/woz_monitor.js';
 import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
 
-const STEP_CHUNK = 10
+const STEP_CHUNK = 10;
 
 // $FF00-$FFFF 256 Bytes ROM
 const ROM_ADDR       = [0xFF00, 0xFFFF]; // ROM
@@ -51,9 +51,11 @@ const cpu = new CPU6502(addressSpaces);
 cpu.reset();
 
 function loop() {
+
+    // Almost not needed as setImmediate is fast enough.
     for(let a=0; a<STEP_CHUNK; a++) {
         cpu.step();
     }
-    setTimeout(loop, 0);
+    setImmediate(loop);
 }
 loop();
