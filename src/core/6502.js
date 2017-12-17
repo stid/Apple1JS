@@ -1,7 +1,8 @@
 // @flow
 import type AddressSpaces from './AddressSpaces'
+import {Clockable} from '../core/flowTypes/clockable'
 
-class CPU6502 {
+class CPU6502 implements Clockable {
     addressSpace: AddressSpaces;
     PC: number;
     A: number;
@@ -60,6 +61,10 @@ class CPU6502 {
 
     write(address: number, value: number): void {
         this.addressSpace.write(address, value);
+    }
+
+    getCycles(): number {
+        return this.cycles;
     }
 
     log(): void {
@@ -551,6 +556,62 @@ class CPU6502 {
     tya(): void {
         this.A = this.Y;
         this.fnz(this.A);
+    }
+
+    // INCOMPLETE IMPLEMENTATION
+
+    isc(): void {
+    }
+
+    kil(): void {
+    }
+
+    anc(): void {
+    }
+
+    rla(): void {
+    }
+
+    sre(): void {
+    }
+
+    alr(): void {
+    }
+
+    rra(): void {
+    }
+
+    sax(): void {
+    }
+
+    lax(): void {
+    }
+
+    arr(): void {
+    }
+
+    tas(): void {
+    }
+
+    shy(): void {
+    }
+
+    axs(): void {
+    }
+
+    dcp(): void {
+    }
+
+    las(): void {
+    }
+
+    xaa(): void {
+    }
+
+    ahx(): void {
+    }
+
+    shx(): void {
     }
 }
 

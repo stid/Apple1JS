@@ -1,12 +1,14 @@
 // @flow
 
 import CPU6502 from '../core/6502.js';
+import PIA6820 from '../core/PIA6820.js';
+import Clock from '../core/Clock'
 import ROM from '../core/ROM.js';
 import RAM from '../core/RAM.js';
+
 import AddressSpaces from '../core/AddressSpaces.js';
 import {type AddressSpaceType, type IoAddressable} from '../core/flowTypes/IoAddressable'
 
-import PIA6820 from '../core/PIA6820.js';
 import Keyboard from './nodeKeyboard.js';
 import Display from './nodeDisplay.js';
 
@@ -26,6 +28,7 @@ const RAM_BANK2_ADDR: [number, number]  = [0xE000, 0xEFFF];
 // $D010-$D013 PIA (6821) [KBD & DSP]
 const PIA_ADDR: [number, number]        = [0xD010, 0xD013];
 
+const MHZ_CPU_SPEED: number = 1;
 
 // Wire PIA
 const pia: PIA6820 = new PIA6820();
@@ -50,15 +53,13 @@ ramBank2.bulkLoad(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 
-const cpu = new CPU6502(addressSpaces);
 
 // START MAIN LOOP
+const cpu = new CPU6502(addressSpaces);
+const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
 cpu.reset();
 
 (function loop() {
-    // Almost not needed as setImmediate is fast enough.
-    for(let a=0; a<STEP_CHUNK; a++) {
-        cpu.step();
-    }
+    clock.cycle();
     setImmediate(loop);
 })();

@@ -8,7 +8,7 @@ const BS: number      = 0xDF;  // Backspace key, arrow left key (B7 High)
 const ESC: number    = 0x9B;  // ESC key (B7 High)
 
 class Keyboard implements IoComponent {
-    pia: PIA6820;
+    +pia: PIA6820;
 
     constructor(pia: PIA6820) {
         this.pia = pia;

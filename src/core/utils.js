@@ -14,4 +14,3 @@ export function bitTest(num: number, bit: number): boolean{
 export function bit_toggle(num: number, bit: number): number{
     return bitTest(num, bit) ? bitClear(num, bit) : bitSet(num, bit);
 }
-
