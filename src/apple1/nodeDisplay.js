@@ -43,9 +43,21 @@ class Display implements IoComponent {
                 break;
         }
 
-        // Display Clear - CB1 will clear PB7
-        // Simulate Display UART I/O triggers
+        // NOTE: WOZ monitor will wait in a loop until DSP b7 is clear and another char
+        // is echoed.
+        // DISPLAY_DELAY will in fact slow down the effective execution as the
+        // flow hold until Display is Ready. As it was in the reality.
+        // This is unrelated to the effective CPU speed that was able to compute far more faster
+        // then the display video effective speed.
+        //
+        // ECHO           bit     DSP         .    ;DA bit (B7) cleared yet?
+        //                bmi     ECHO             ;No! Wait for display ready
+        //                sta     DSP              ;Output character. Sets DA
+        //                rts
+        //
         setTimeout( () => {
+            // Simulate Display UART I/O triggers.
+            // Display Clear - CB1 will clear PB7
             this.pia.clearBitDataB(7);
         }, DISPLAY_DELAY);
 

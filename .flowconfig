@@ -4,6 +4,7 @@
 [include]
 
 [libs]
+all=warn
 
 [lints]
 

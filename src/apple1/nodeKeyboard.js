@@ -4,7 +4,7 @@ import * as utils from '../core/utils.js';
 import type PIA6820 from '../core/PIA6820';
 import {type IoComponent} from '../core/flowTypes/IoComponent';
 
-const BS: number      = 0xDF;  // Backspace key, arrow left key (B7 High)
+const BS: number     = 0xDF;  // Backspace key, arrow left key (B7 High)
 const ESC: number    = 0x9B;  // ESC key (B7 High)
 
 class Keyboard implements IoComponent {
@@ -14,6 +14,8 @@ class Keyboard implements IoComponent {
         this.pia = pia;
 
         readline.emitKeypressEvents(process.stdin);
+
+        // $FlowFixMe
         process.stdin.setRawMode(true);
         process.stdin.on('keypress', this.onKeyPressed.bind(this));
 
@@ -32,12 +34,12 @@ class Keyboard implements IoComponent {
         this.pia.raiseCA1();
     }
 
-    onKeyPressed(str: any, key: Object) {
+    onKeyPressed(str: string, key: {sequence: string, name: string}) {
         if (key.sequence === '\u0003') {
             process.exit();
         }
 
-        if (key.name =='backspace') {
+        if (key.name == 'backspace') {
             this.write(BS);
         } else if (key.name =='escape') {
             this.write(ESC);

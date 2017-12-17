@@ -1,6 +1,6 @@
 // @flow
 import type AddressSpaces from './AddressSpaces';
-import {Clockable} from '../core/flowTypes/clockable';
+import {Clockable} from '../core/flowTypes/Clockable';
 
 class CPU6502 implements Clockable {
     addressSpace: AddressSpaces;

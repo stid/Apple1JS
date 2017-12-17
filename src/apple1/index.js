@@ -17,7 +17,9 @@ import woz_monitor from './progs/woz_monitor.js';
 import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
 
+
 const STEP_CHUNK: number = 10;
+const MHZ_CPU_SPEED: number = 1;
 
 // $FF00-$FFFF 256 Bytes ROM
 const ROM_ADDR: [number, number]        = [0xFF00, 0xFFFF];
@@ -27,8 +29,6 @@ const RAM_BANK1_ADDR: [number, number]  = [0x0000, 0x0FFF];
 const RAM_BANK2_ADDR: [number, number]  = [0xE000, 0xEFFF];
 // $D010-$D013 PIA (6821) [KBD & DSP]
 const PIA_ADDR: [number, number]        = [0xD010, 0xD013];
-
-const MHZ_CPU_SPEED: number = 1;
 
 // Wire PIA
 const pia: PIA6820 = new PIA6820();
@@ -47,12 +47,17 @@ const addressMapping: Array<AddressSpaceType> = [
     { addr: RAM_BANK2_ADDR, component: ramBank2},
     { addr: PIA_ADDR, component: pia},
 ];
+
 rom.bulkLoad(woz_monitor);
 ramBank1.bulkLoad(prog);
 ramBank2.bulkLoad(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 
+console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
+console.log(`CPU6520 :: ${MHZ_CPU_SPEED}Mhz`);
+console.log(addressMapping);
+console.log('::');
 
 // START MAIN LOOP
 const cpu: CPU6502 = new CPU6502(addressSpaces);

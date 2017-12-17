@@ -21,7 +21,7 @@ class RAM implements IoAddressable {
     bulkLoad(data: Array<number>): void {
         // LOAD A PROG
         const prg_addr: number = data[1] | data[0] << 8;
-        for (let i = 0; i < (data.length)-2 ; i++) {
+        for (let i: number = 0; i < (data.length)-2 ; i++) {
             this.data[prg_addr+i] = data[i+2];
         }
     }

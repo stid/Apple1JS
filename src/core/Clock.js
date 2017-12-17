@@ -1,7 +1,9 @@
 // @flow
-import {Clockable} from './flowTypes/clockable';
+import {Clockable} from './flowTypes/Clockable';
 
 const NS_PER_SEC: number = 1e9;
+const DEFAULT_MHZ: number = 1;
+const DEFAULT_STEP_CHUNK: number = 10;
 
 class Clock {
     +mhz: number;
@@ -11,7 +13,7 @@ class Clock {
     lastCycleCount: number;
     +cpu: Clockable;
 
-    constructor(cpu: Clockable, mhz: number = 1, stepChunk: number = 10) {
+    constructor(cpu: Clockable, mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_CHUNK) {
         this.mhz = mhz;
         this.stepChunk = stepChunk;
         this.lastCycleCount = 1;
@@ -26,7 +28,7 @@ class Clock {
             const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
 
             if (nanoDelta > this.nanoPerCycle * this.lastCycleCount) {
-                this.prevCycleTime = process.hrtime()
+                this.prevCycleTime = process.hrtime();
                 const startCycles: number = this.cpu.getCycles();
 
                 this.cpu.step();

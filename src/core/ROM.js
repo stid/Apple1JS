@@ -6,8 +6,7 @@ class ROM implements IoAddressable {
     +data: Array<number>
 
     constructor(byteSize: number=DEFAULT_ROM_SIZE) {
-        this.data = new Array(byteSize);
-        this.data.fill(0);
+        this.data = new Array(byteSize).fill(0);
     }
 
     read(address: number): number {
