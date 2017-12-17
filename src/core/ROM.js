@@ -1,25 +1,27 @@
+// @flow
 const DEFAULT_ROM_SIZE = 256;
+import {type IoAddressable} from './flowTypes/IoAddressable'
 
-class ROM {
+class ROM implements IoAddressable {
+    +data: Array<number>
 
-    constructor(byteSize=DEFAULT_ROM_SIZE) {
+    constructor(byteSize: number=DEFAULT_ROM_SIZE) {
         this.data = new Array(byteSize);
         this.data.fill(0);
     }
 
-    read(address) {
+    read(address: number): number {
         return this.data[address] || 0;
     }
 
-    write(address, value) {
+    write(address: number, value: number) {
     }
 
-    bulkLoad(data) {
+    bulkLoad(data: Array<number>) {
         for (let i = 0; i < data.length ; i++) {
             this.data[i] = data[i];
         }
     }
-
 }
 
 export default ROM;

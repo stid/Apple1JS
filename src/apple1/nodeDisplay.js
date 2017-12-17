@@ -1,13 +1,22 @@
+// @flow
+import type PIA6820 from '../core/PIA6820'
+import {type IoComponent} from '../core/flowTypes/IoComponent'
+
 const BS = 0xDF; // Backspace key, arrow left key (B7 High)
 const CR = 0x8D; // Carriage Return (B7 High)
 const ESC = 0x9B; // ESC key (B7 High)
 
-class Display {
-    constructor(pia) {
+class Display implements IoComponent {
+    pia: PIA6820;
+
+    constructor(pia: PIA6820) {
         this.pia = pia;
     }
 
-    write(char) {
+    read(address: number) {
+    }
+
+    write(char: number) {
         //console.log(char.toString(16) +':' + char)
         // CB2 is wired to PB7 - arise on display busy
         this.pia.setBitDataB(7);

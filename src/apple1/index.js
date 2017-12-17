@@ -1,61 +1,64 @@
+// @flow
+
 import CPU6502 from '../core/6502.js';
 import ROM from '../core/ROM.js';
 import RAM from '../core/RAM.js';
-import AddressSpaces from '../core/address_spaces.js';
+import AddressSpaces from '../core/AddressSpaces.js';
+import {type AddressSpaceType, type IoAddressable} from '../core/flowTypes/IoAddressable'
 
-import PIA from '../core/PIA6820.js';
+import PIA6820 from '../core/PIA6820.js';
 import Keyboard from './nodeKeyboard.js';
 import Display from './nodeDisplay.js';
-
 
 // ROM + Demo Program
 import woz_monitor from './progs/woz_monitor.js';
 import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
 
-const STEP_CHUNK = 10;
+const STEP_CHUNK: number = 10;
 
 // $FF00-$FFFF 256 Bytes ROM
-const ROM_ADDR       = [0xFF00, 0xFFFF]; // ROM
+const ROM_ADDR: [number, number]        = [0xFF00, 0xFFFF];
 // $0000-$0FFF 4KB Standard RAM
-const RAM_BANK1_ADDR = [0x0000, 0x0FFF]; // RAM
+const RAM_BANK1_ADDR: [number, number]  = [0x0000, 0x0FFF];
 // $E000-$EFFF 4KB Extended RAM
-const RAM_BANK2_ADDR = [0xE000, 0xEFFF]; // EXTENDED RAM
+const RAM_BANK2_ADDR: [number, number]  = [0xE000, 0xEFFF];
 // $D010-$D013 PIA (6821) [KBD & DSP]
-const PIA_ADDR = [0xD010, 0xD013]; // PIA 6821 ADDR BASE SPACE
+const PIA_ADDR: [number, number]        = [0xD010, 0xD013];
 
 
 // Wire PIA
-const pia = new PIA();
-const keyboard = new Keyboard(pia);
-const display = new Display(pia);
+const pia: PIA6820 = new PIA6820();
+const keyboard: Keyboard = new Keyboard(pia);
+const display: Display = new Display(pia);
 pia.wireIOA(keyboard);
 pia.wireIOB(display);
 
 // Map components
-const addressMapping = {
-    ROM: { addr: ROM_ADDR, instance: new ROM()},
-    RAM_A: { addr: RAM_BANK1_ADDR, instance: new RAM()},
-    RAM_B: { addr: RAM_BANK2_ADDR, instance: new RAM()},
-    PIA: { addr: PIA_ADDR, instance: pia},
-}
-addressMapping.ROM.instance.bulkLoad(woz_monitor);
-addressMapping.RAM_A.instance.bulkLoad(prog);
-addressMapping.RAM_B.instance.bulkLoad(basic);
+const rom: ROM = new ROM();
+const ramBank1: RAM = new RAM();
+const ramBank2: RAM = new RAM();
+const addressMapping: Array<AddressSpaceType> = [
+    { addr: ROM_ADDR, component: rom},
+    { addr: RAM_BANK1_ADDR, component: ramBank1},
+    { addr: RAM_BANK2_ADDR, component: ramBank2},
+    { addr: PIA_ADDR, component: pia},
+];
+rom.bulkLoad(woz_monitor);
+ramBank1.bulkLoad(prog);
+ramBank2.bulkLoad(basic);
 
-const addressSpaces = new AddressSpaces(addressMapping);
+const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 
 const cpu = new CPU6502(addressSpaces);
 
 // START MAIN LOOP
 cpu.reset();
 
-function loop() {
-
+(function loop() {
     // Almost not needed as setImmediate is fast enough.
     for(let a=0; a<STEP_CHUNK; a++) {
         cpu.step();
     }
     setImmediate(loop);
-}
-loop();
+})();
