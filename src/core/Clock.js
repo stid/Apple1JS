@@ -4,12 +4,12 @@ import {Clockable} from './flowTypes/clockable';
 const NS_PER_SEC: number = 1e9;
 
 class Clock {
-    mhz: number;
-    stepChunk: number;
+    +mhz: number;
+    +stepChunk: number;
     prevCycleTime: [number, number];
     nanoPerCycle: number;
     lastCycleCount: number;
-    cpu: Clockable;
+    +cpu: Clockable;
 
     constructor(cpu: Clockable, mhz: number = 1, stepChunk: number = 10) {
         this.mhz = mhz;

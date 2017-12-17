@@ -1,5 +1,5 @@
 // @flow
-import type {AddressSpaceType} from '../core/flowTypes/IoAddressable'
+import type {AddressSpaceType} from '../core/flowTypes/IoAddressable';
 
 class AddressSpaces {
     +addressMapping: Array<AddressSpaceType>;
@@ -15,7 +15,7 @@ class AddressSpaces {
     read(address: number): number {
         const addrInstance: AddressSpaceType | void = this._findInstanceWithAddress(address);
         if (addrInstance != null && addrInstance != undefined) {
-            return addrInstance.component.read(address - addrInstance.addr[0])
+            return addrInstance.component.read(address - addrInstance.addr[0]);
         }
         return 0;
     }

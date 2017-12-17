@@ -1,8 +1,8 @@
 // @flow
 import readline from 'readline';
 import * as utils from '../core/utils.js';
-import type PIA6820 from '../core/PIA6820'
-import {type IoComponent} from '../core/flowTypes/IoComponent'
+import type PIA6820 from '../core/PIA6820';
+import {type IoComponent} from '../core/flowTypes/IoComponent';
 
 const BS: number      = 0xDF;  // Backspace key, arrow left key (B7 High)
 const ESC: number    = 0x9B;  // ESC key (B7 High)
@@ -19,7 +19,9 @@ class Keyboard implements IoComponent {
 
     }
 
+    // eslint-disable-next-line no-unused-vars
     read(address: number) {
+        // Not implemented
     }
 
     write(key: number) {

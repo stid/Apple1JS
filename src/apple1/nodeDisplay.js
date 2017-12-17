@@ -1,12 +1,12 @@
 // @flow
-import type PIA6820 from '../core/PIA6820'
-import {type IoComponent} from '../core/flowTypes/IoComponent'
+import type PIA6820 from '../core/PIA6820';
+import {type IoComponent} from '../core/flowTypes/IoComponent';
 
-const BS = 0xDF; // Backspace key, arrow left key (B7 High)
-const CR = 0x8D; // Carriage Return (B7 High)
-const ESC = 0x9B; // ESC key (B7 High)
+const BS: number = 0xDF; // Backspace key, arrow left key (B7 High)
+const CR: number = 0x8D; // Carriage Return (B7 High)
+const ESC: number = 0x9B; // ESC key (B7 High)
 
-const DISPLAY_DELAY = 1;
+const DISPLAY_DELAY = 20;
 
 class Display implements IoComponent {
     pia: PIA6820;
@@ -15,6 +15,7 @@ class Display implements IoComponent {
         this.pia = pia;
     }
 
+    // eslint-disable-next-line no-unused-vars
     read(address: number) {
     }
 
@@ -31,11 +32,11 @@ class Display implements IoComponent {
             case ESC:
                 break;
             case CR:
-                process.stdout.write('\n')
+                process.stdout.write('\n');
                 break;
             //case 0xFF:
             case BS:
-                process.stdout.write('\b \b')
+                process.stdout.write('\b \b');
                 break;
             default:
                 process.stdout.write(String.fromCharCode(char & 0x7F));

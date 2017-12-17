@@ -1,5 +1,5 @@
 // @flow
-import {type IoAddressable} from './flowTypes/IoAddressable'
+import {type IoAddressable} from './flowTypes/IoAddressable';
 
 const DEFAULT_RAM_BANK_SIZE: number = 4096;
 

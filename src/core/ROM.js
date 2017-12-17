@@ -1,6 +1,6 @@
 // @flow
 const DEFAULT_ROM_SIZE = 256;
-import {type IoAddressable} from './flowTypes/IoAddressable'
+import {type IoAddressable} from './flowTypes/IoAddressable';
 
 class ROM implements IoAddressable {
     +data: Array<number>
@@ -14,6 +14,7 @@ class ROM implements IoAddressable {
         return this.data[address] || 0;
     }
 
+    // eslint-disable-next-line no-unused-vars
     write(address: number, value: number) {
     }
 

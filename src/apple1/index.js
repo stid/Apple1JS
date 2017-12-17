@@ -2,12 +2,12 @@
 
 import CPU6502 from '../core/6502.js';
 import PIA6820 from '../core/PIA6820.js';
-import Clock from '../core/Clock'
+import Clock from '../core/Clock';
 import ROM from '../core/ROM.js';
 import RAM from '../core/RAM.js';
 
 import AddressSpaces from '../core/AddressSpaces.js';
-import {type AddressSpaceType, type IoAddressable} from '../core/flowTypes/IoAddressable'
+import {type AddressSpaceType} from '../core/flowTypes/IoAddressable';
 
 import Keyboard from './nodeKeyboard.js';
 import Display from './nodeDisplay.js';
@@ -55,11 +55,11 @@ const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 
 
 // START MAIN LOOP
-const cpu = new CPU6502(addressSpaces);
+const cpu: CPU6502 = new CPU6502(addressSpaces);
 const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
 cpu.reset();
 
-(function loop() {
+(function loop(): void {
     clock.cycle();
     setImmediate(loop);
 })();

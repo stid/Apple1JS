@@ -1,7 +1,7 @@
 // @flow
 import * as utils from './utils.js';
-import {type IoAddressable} from './flowTypes/IoAddressable'
-import {type IoComponent} from './flowTypes/IoComponent'
+import {type IoAddressable} from './flowTypes/IoAddressable';
+import {type IoComponent} from './flowTypes/IoComponent';
 
 // PIA MAPPING 6821
 const DATA_A_ADDR: number = 0x0;
@@ -16,7 +16,7 @@ class PIA6820 implements IoAddressable {
     ioB: IoComponent;
 
     constructor() {
-        this.data = [0, 0, 0, 0]
+        this.data = [0, 0, 0, 0];
     }
 
     wireIOA(ioA: IoComponent): void {
@@ -84,11 +84,11 @@ class PIA6820 implements IoAddressable {
     read(address: number): number {
         switch(address) {
             case DATA_A_ADDR:
-            this.clearBitCrtA(7)
+            this.clearBitCrtA(7);
             break;
 
             case DATA_B_ADDR:
-            this.clearBitCrtB(7)
+            this.clearBitCrtB(7);
             break;
         }
         return this.data[address];
@@ -99,11 +99,11 @@ class PIA6820 implements IoAddressable {
 
         switch(address) {
             case DATA_A_ADDR:
-            if (this.ioA) {this.ioA.write(value)};
+            if (this.ioA) {this.ioA.write(value);}
             break;
 
             case DATA_B_ADDR:
-            if (this.ioB) {this.ioB.write(value)};
+            if (this.ioB) {this.ioB.write(value);}
             break;
         }
     }
@@ -112,8 +112,8 @@ class PIA6820 implements IoAddressable {
         console.log(this.data);
     }
 
+    // eslint-disable-next-line no-unused-vars
     bulkLoad(data: Array<number>): void {
-        // Not Implemented
     }
 
 }

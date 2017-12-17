@@ -15,14 +15,18 @@
     "parser": "babel-eslint",
     "plugins": [
         "react",
-        "lodash-fp"
+        "flowtype"
     ],
+    "settings": {
+        "flowtype": {
+          "onlyFilesWithFlowAnnotation": false
+        }
+      },
     "rules": {
         "no-restricted-imports" : ["error", {
             "patterns": ["deprecation/*"]
         }],
         "no-console": "off",
-        "lodash-fp/no-chain": "error",
         "react/no-danger-with-children": "error",
         "react/forbid-prop-types": [
             "error",

@@ -1,6 +1,6 @@
 // @flow
-import type AddressSpaces from './AddressSpaces'
-import {Clockable} from '../core/flowTypes/clockable'
+import type AddressSpaces from './AddressSpaces';
+import {Clockable} from '../core/flowTypes/clockable';
 
 class CPU6502 implements Clockable {
     addressSpace: AddressSpaces;
@@ -68,19 +68,19 @@ class CPU6502 implements Clockable {
     }
 
     log(): void {
-        let msg: string = "nPC=" + this.PC.toString(16);
-        msg += " cyc=" + this.cycles;
-        msg += " [" + this.opcode.toString(16) + "] ";
-        msg += ( this.C ? "C" : "-");
-        msg += ( this.N ? "N" : "-");
-        msg += ( this.Z ? "Z" : "-");
-        msg += ( this.V ? "V" : "-");
-        msg += ( this.D ? "D" : "-");
-        msg += ( this.I ? "I" : "-");
-        msg += " A=" + this.A.toString(16);
-        msg += " X=" + this.X.toString(16);
-        msg += " Y=" + this.Y.toString(16);
-        msg += " S=" + this.S.toString(16);
+        let msg: string = 'nPC=' + this.PC.toString(16);
+        msg += ' cyc=' + this.cycles;
+        msg += ' [' + this.opcode.toString(16) + '] ';
+        msg += ( this.C ? 'C' : '-');
+        msg += ( this.N ? 'N' : '-');
+        msg += ( this.Z ? 'Z' : '-');
+        msg += ( this.V ? 'V' : '-');
+        msg += ( this.D ? 'D' : '-');
+        msg += ( this.I ? 'I' : '-');
+        msg += ' A=' + this.A.toString(16);
+        msg += ' X=' + this.X.toString(16);
+        msg += ' Y=' + this.Y.toString(16);
+        msg += ' S=' + this.S.toString(16);
         console.log(msg);
     }
 
@@ -89,14 +89,14 @@ class CPU6502 implements Clockable {
     ////////////////////////////////////////////////////////////////////////////////
 
     izx(): void {
-        let a: number = (this.read(this.PC++) + this.X) & 0xFF;
+        const a: number = (this.read(this.PC++) + this.X) & 0xFF;
         this.addr = (this.read(a+1) << 8) | this.read(a);
         this.cycles += 6;
     }
 
     izy(): void {
-        let a: number = this.read(this.PC++);
-        let paddr: number = (this.read((a+1) & 0xFF) << 8) | this.read(a);
+        const a: number = this.read(this.PC++);
+        const paddr: number = (this.read((a+1) & 0xFF) << 8) | this.read(a);
         this.addr = (paddr + this.Y);
         if ( (paddr & 0x100) != (this.addr & 0x100) ) {
             this.cycles += 6;
@@ -217,9 +217,9 @@ class CPU6502 implements Clockable {
     // Subroutines - instructions
     ////////////////////////////////////////////////////////////////////////////////
     adc(): void {
-        let v: number = this.read(this.addr);
-        let c: number = this.C;
-        let r: number = this.A + v + c;
+        const v: number = this.read(this.addr);
+        const c: number = this.C;
+        const r: number = this.A + v + c;
         if (this.D) {
             let al: number = (this.A & 0x0F) + (v & 0x0F) + c;
             if (al > 9) al += 6;
@@ -482,9 +482,9 @@ class CPU6502 implements Clockable {
     }
 
     sbc(): void {
-        let v: number = this.read(this.addr);
-        let c: number = 1 - this.C;
-        let r: number = this.A - v - c;
+        const v: number = this.read(this.addr);
+        const c: number = 1 - this.C;
+        const r: number = this.A - v - c;
         if (this.D) {
             let al: number = (this.A & 0x0F) - (v & 0x0F) - c;
             if (al < 0) al -= 6;
@@ -621,7 +621,7 @@ class CPU6502 implements Clockable {
 // Opcode table
 ////////////////////////////////////////////////////////////////////////////////
 
-let CPU6502op: Array<Function> = [];
+const CPU6502op: Array<Function> = [];
 
 /*  BRK     */ CPU6502op[0x00] = (m: CPU6502) => { m.imp(); m.brk(); };
 /*  ORA izx */ CPU6502op[0x01] = (m: CPU6502) => { m.izx(); m.ora(); };
