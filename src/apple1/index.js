@@ -16,6 +16,7 @@ import Display from './nodeDisplay.js';
 import woz_monitor from './progs/woz_monitor.js';
 import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
+import woz_test from './progs/woz_test';
 
 
 const STEP_CHUNK: number = 10;
@@ -42,21 +43,22 @@ const rom: ROM = new ROM();
 const ramBank1: RAM = new RAM();
 const ramBank2: RAM = new RAM();
 const addressMapping: Array<AddressSpaceType> = [
-    { addr: ROM_ADDR, component: rom},
-    { addr: RAM_BANK1_ADDR, component: ramBank1},
-    { addr: RAM_BANK2_ADDR, component: ramBank2},
-    { addr: PIA_ADDR, component: pia},
+    { addr: ROM_ADDR, component: rom, name:'ROM'},
+    { addr: RAM_BANK1_ADDR, component: ramBank1, name:'RAM_BANK_1'},
+    { addr: RAM_BANK2_ADDR, component: ramBank2, name:'RAM_BANK_2'},
+    { addr: PIA_ADDR, component: pia, name:'PIA6820'},
 ];
 
 rom.bulkLoad(woz_monitor);
+ramBank1.bulkLoad(woz_test);
 ramBank1.bulkLoad(prog);
 ramBank2.bulkLoad(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 
 console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
-console.log(`CPU6520 :: ${MHZ_CPU_SPEED}Mhz`);
-console.log(addressMapping);
+console.log(`CPU6502 :: ${MHZ_CPU_SPEED}Mhz`);
+addressSpaces.toLog();
 console.log('::');
 
 // START MAIN LOOP

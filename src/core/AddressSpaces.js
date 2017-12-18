@@ -28,7 +28,12 @@ class AddressSpaces {
     }
 
     toLog(): void {
-        console.log(this.addressMapping);
+        this.addressMapping.forEach(element => {
+            const from: string = element.addr[0].toString(16).padStart(4, '0').toUpperCase();
+            const to: string = element.addr[1].toString(16).padStart(4, '0').toUpperCase();
+            const name: string = element.name || 'Unknown';
+            console.log(`[${from}]:[${to}] :: ${name}`);
+        });
     }
 
 }

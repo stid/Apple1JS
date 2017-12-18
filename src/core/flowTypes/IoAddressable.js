@@ -9,6 +9,7 @@ export interface IoAddressable {
 
 export type AddressSpaceType = {
     addr: [number, number],
-    component: IoAddressable
+    component: IoAddressable,
+    name?: string;
 }
 
