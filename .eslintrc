@@ -8,7 +8,10 @@
         "jest": true
     },
     "globals": {},
-    "extends": "eslint:recommended",
+    "extends": [
+        "eslint:recommended",
+        "plugin:flowtype/recommended"
+        ],
     "parserOptions": {
         "sourceType": "module"
     },

@@ -20,11 +20,14 @@ class RAM implements IoAddressable {
 
     bulkLoad(data: Array<number>): void {
         // LOAD A PROG
-        const prg_addr: number = data[1] | data[0] << 8;
-        for (let i: number = 0; i < (data.length)-2 ; i++) {
-            this.data[prg_addr+i] = data[i+2];
+        const [high_addr, low_addr, ...coreData] = data;
+        const prg_addr: number = high_addr | low_addr << 8;
+
+        for (let i: number = 0; i < (coreData.length) ; i++) {
+            this.data[prg_addr+i] = coreData[i];
         }
     }
+
 }
 
 export default RAM;

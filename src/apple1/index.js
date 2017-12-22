@@ -13,11 +13,9 @@ import Keyboard from './nodeKeyboard.js';
 import Display from './nodeDisplay.js';
 
 // ROM + Demo Program
-import woz_monitor from './progs/woz_monitor.js';
-import prog from './progs/anniversary.js';
 import basic from './progs/basic.js';
-import woz_test from './progs/woz_test';
 
+import {readBinary} from '../core/utils';
 
 const STEP_CHUNK: number = 10;
 const MHZ_CPU_SPEED: number = 1;
@@ -49,21 +47,22 @@ const addressMapping: Array<AddressSpaceType> = [
     { addr: PIA_ADDR, component: pia, name:'PIA6820'},
 ];
 
-rom.bulkLoad(woz_monitor);
-ramBank1.bulkLoad(woz_test);
-ramBank1.bulkLoad(prog);
+rom.bulkLoad(readBinary('src/apple1/progs/woz_monitor.o'));
+ramBank1.bulkLoad(readBinary('src/apple1/progs/hello_world.o'));
 ramBank2.bulkLoad(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
+const cpu: CPU6502 = new CPU6502(addressSpaces);
+keyboard.wireReset(cpu.reset.bind(cpu));
+
+const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
 
 console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
-console.log(`CPU6502 :: ${MHZ_CPU_SPEED}Mhz`);
+clock.toLog();
 addressSpaces.toLog();
-console.log('::');
+cpu.toLog();
 
-// START MAIN LOOP
-const cpu: CPU6502 = new CPU6502(addressSpaces);
-const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
+// START
 cpu.reset();
 
 (function loop(): void {

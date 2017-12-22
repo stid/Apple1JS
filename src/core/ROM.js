@@ -3,7 +3,7 @@ const DEFAULT_ROM_SIZE = 256;
 import {type IoAddressable} from './flowTypes/IoAddressable';
 
 class ROM implements IoAddressable {
-    +data: Array<number>
+    data: Array<number>
 
     constructor(byteSize: number=DEFAULT_ROM_SIZE) {
         this.data = new Array(byteSize).fill(0);
@@ -18,9 +18,7 @@ class ROM implements IoAddressable {
     }
 
     bulkLoad(data: Array<number>) {
-        for (let i = 0; i < data.length ; i++) {
-            this.data[i] = data[i];
-        }
+        this.data = data.splice(2);
     }
 }
 

@@ -12,6 +12,7 @@ const ESC: number    = 0x9B;  // ESC key (B7 High)
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
     +pia: PIA6820;
+    onReset: () => mixed
 
     constructor(pia: PIA6820) {
         this.pia = pia;
@@ -27,6 +28,10 @@ class Keyboard implements IoComponent {
         // Not implemented
     }
 
+    wireReset(onReset: () => mixed) {
+        this.onReset = onReset;
+    }
+
     write(key: number) {
         // PA7 is Always ON (+5v) set it no matter what
         this.pia.setDataA(utils.bitSet(key, 7));
@@ -35,18 +40,32 @@ class Keyboard implements IoComponent {
         this.pia.raiseCA1();
     }
 
-    onKeyPressed(str: string, key: {sequence: string, name: string}) {
-        if (key.sequence === '\u0003') {
-            process.exit();
+    onKeyPressed(str: string, key: {sequence: string, name: string}): void {
+
+        // Special Keys
+        switch (key.sequence) {
+            // EXIT
+            case '\u0003': // ctrl-c
+                process.exit();
+                break;
+            // RESET
+            case '\u0012':  // ctrl-r
+                if (this.onReset) {this.onReset();}
+                return;
         }
 
-        if (key.name == 'backspace') {
-            this.write(BS);
-        } else if (key.name =='escape') {
-            this.write(ESC);
-        } else {
-            this.write(key.sequence.toUpperCase().charCodeAt(0));
+        // Standard Keys
+        switch (key.name) {
+            case 'backspace':
+                this.write(BS);
+                break;
+            case 'escape':
+                this.write(ESC);
+                break;
+            default:
+                this.write(key.sequence.toUpperCase().charCodeAt(0));
         }
+
     }
 }
 

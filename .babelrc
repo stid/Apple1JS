@@ -4,7 +4,6 @@
         "tailcall-optimization",
         "minify-constant-folding",
         "babel-plugin-loop-optimizer",
-        "babel-plugin-loop-optimizer",
         "closure-elimination"
     ]
 }
