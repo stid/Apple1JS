@@ -22,12 +22,17 @@ class Clock {
         this.prevCycleTime = process.hrtime();
     }
 
+    toLog(): void {
+        const {mhz, stepChunk, lastCycleCount, nanoPerCycle} = this;
+        console.log(`CLOCK: ${mhz}Mhz :: stepChunk: ${stepChunk} :: lastCycleCount: ${lastCycleCount} :: nanoPerCycle: ${nanoPerCycle}`);
+    }
+
     cycle(): void {
         for (let a = 0; a < this.stepChunk; a++) {
             const diff: [number, number] = process.hrtime(this.prevCycleTime);
             const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
 
-            if (nanoDelta > this.nanoPerCycle * this.lastCycleCount) {
+            if (nanoDelta > (this.nanoPerCycle * this.lastCycleCount)) {
                 this.prevCycleTime = process.hrtime();
                 const startCycles: number = this.cpu.getCycles();
 
