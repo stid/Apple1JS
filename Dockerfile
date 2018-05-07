@@ -1,4 +1,4 @@
-FROM node:9.3.0-slim
+FROM node:9.11.1-slim
 
 RUN apt-get update -y
 RUN apt-get install apt-transport-https -y --no-install-recommends
@@ -15,6 +15,6 @@ COPY package.json ./
 RUN yarn install
 
 COPY . .
-RUN yarn run build
+RUN yarn build
 
 CMD [ "yarn", "start" ]
