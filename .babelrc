@@ -2,7 +2,6 @@
     "presets": ["env", "flow"],
     "plugins": [
         "tailcall-optimization",
-        "minify-constant-folding",
         "babel-plugin-loop-optimizer",
         "closure-elimination"
     ]

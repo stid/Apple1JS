@@ -13,7 +13,7 @@ import Keyboard from './nodeKeyboard.js';
 import Display from './nodeDisplay.js';
 
 // ROM + Demo Program
-import basic from './progs/basic.js';
+import anniversary from './progs/anniversary.js';
 
 import {readBinary} from '../core/utils';
 
@@ -48,8 +48,8 @@ const addressMapping: Array<AddressSpaceType> = [
 ];
 
 rom.bulkLoad(readBinary('src/apple1/progs/woz_monitor.o'));
-ramBank1.bulkLoad(readBinary('src/apple1/progs/hello_world.o'));
-ramBank2.bulkLoad(basic);
+//ramBank1.bulkLoad(readBinary('src/apple1/progs/hello_world.o'));
+ramBank1.bulkLoad(anniversary);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 const cpu: CPU6502 = new CPU6502(addressSpaces);
