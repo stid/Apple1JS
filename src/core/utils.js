@@ -13,7 +13,7 @@ export const bitTest = (num: number, bit: number): boolean => {
     return ((num>>bit) % 2 != 0);
 };
 
-export const bit_toggle = (num: number, bit: number): number => {
+export const bitToggle = (num: number, bit: number): number => {
     return bitTest(num, bit) ? bitClear(num, bit) : bitSet(num, bit);
 };
 

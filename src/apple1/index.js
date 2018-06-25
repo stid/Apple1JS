@@ -14,6 +14,7 @@ import Display from './nodeDisplay.js';
 
 // ROM + Demo Program
 import anniversary from './progs/anniversary.js';
+import basic from './progs/basic.js';
 
 import {readBinary} from '../core/utils';
 
@@ -50,6 +51,7 @@ const addressMapping: Array<AddressSpaceType> = [
 rom.bulkLoad(readBinary('src/apple1/progs/woz_monitor.o'));
 //ramBank1.bulkLoad(readBinary('src/apple1/progs/hello_world.o'));
 ramBank1.bulkLoad(anniversary);
+ramBank2.bulkLoad(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 const cpu: CPU6502 = new CPU6502(addressSpaces);
