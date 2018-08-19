@@ -48,10 +48,10 @@ const addressMapping: Array<AddressSpaceType> = [
     { addr: PIA_ADDR, component: pia, name:'PIA6820'},
 ];
 
-rom.bulkLoad(readBinary('src/apple1/progs/woz_monitor.o'));
-//ramBank1.bulkLoad(readBinary('src/apple1/progs/hello_world.o'));
-ramBank1.bulkLoad(anniversary);
-ramBank2.bulkLoad(basic);
+rom.flash(readBinary('src/apple1/progs/woz_monitor.o'));
+//ramBank1.flash(readBinary('src/apple1/progs/hello_world.o'));
+ramBank1.flash(anniversary);
+ramBank2.flash(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 const cpu: CPU6502 = new CPU6502(addressSpaces);

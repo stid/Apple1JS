@@ -18,7 +18,7 @@ class RAM implements IoAddressable {
         this.data[address] = value;
     }
 
-    bulkLoad(data: Array<number>): void {
+    flash(data: Array<number>): void {
         // LOAD A PROG
         const [high_addr, low_addr, ...coreData] = data;
         const prg_addr: number = high_addr | low_addr << 8;

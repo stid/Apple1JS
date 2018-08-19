@@ -10,7 +10,7 @@ describe('RAM', () => {
 
     test('Should bulk load & read', () => {
         // Should load at 0x0280
-        testRam.bulkLoad([0x80, 0x02, 1, 2, 3]);
+        testRam.flash([0x80, 0x02, 1, 2, 3]);
         expect(testRam.read(0x00)).toBe(0x00);
         expect(testRam.read(0x280)).toBe(0x01);
         expect(testRam.read(0x281)).toBe(0x02);

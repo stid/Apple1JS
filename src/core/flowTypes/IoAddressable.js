@@ -4,7 +4,7 @@ export interface IoAddressable {
 
     read(address: number): number;
     write(address: number, value: number): void;
-    bulkLoad(data: Array<number>): void;
+    flash(data: Array<number>): void;
 }
 
 export type AddressSpaceType = {

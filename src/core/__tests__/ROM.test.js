@@ -9,7 +9,7 @@ describe('ROM', () => {
     });
 
     test('Should bulk load', () => {
-        testRom.bulkLoad([1,2,3,4,5]);
+        testRom.flash([1,2,3,4,5]);
         expect(testRom.read(0x00)).toBe(0x03);
         expect(testRom.read(0x01)).toBe(0x04);
         expect(testRom.read(0x02)).toBe(0x05);

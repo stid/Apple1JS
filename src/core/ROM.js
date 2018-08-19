@@ -17,9 +17,14 @@ class ROM implements IoAddressable {
     write(address: number, value: number) {
     }
 
-    bulkLoad(data: Array<number>) {
+    flash(data: Array<number>) {
         this.data = data.splice(2);
     }
+
+    burn(data: Array<number>) {
+        this.flash(data);
+    }
+
 }
 
 export default ROM;
