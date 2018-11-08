@@ -83,11 +83,11 @@ class PIA6820 implements IoAddressable {
     // BUS Actions
     read(address: number): number {
         switch(address) {
-            case DATA_A_ADDR:
+        case DATA_A_ADDR:
             this.clearBitCrtA(7);
             break;
 
-            case DATA_B_ADDR:
+        case DATA_B_ADDR:
             this.clearBitCrtB(7);
             break;
         }
@@ -98,11 +98,11 @@ class PIA6820 implements IoAddressable {
         this.data[address] = value;
 
         switch(address) {
-            case DATA_A_ADDR:
+        case DATA_A_ADDR:
             if (this.ioA) {this.ioA.write(value);}
             break;
 
-            case DATA_B_ADDR:
+        case DATA_B_ADDR:
             if (this.ioB) {this.ioB.write(value);}
             break;
         }

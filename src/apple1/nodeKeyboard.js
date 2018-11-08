@@ -44,26 +44,26 @@ class Keyboard implements IoComponent {
 
         // Special Keys
         switch (key.sequence) {
-            // EXIT
-            case '\u0003': // ctrl-c
-                process.exit();
-                break;
+        // EXIT
+        case '\u0003': // ctrl-c
+            process.exit();
+            break;
             // RESET
-            case '\u0012':  // ctrl-r
-                if (this.onReset) {this.onReset();}
-                return;
+        case '\u0012':  // ctrl-r
+            if (this.onReset) {this.onReset();}
+            return;
         }
 
         // Standard Keys
         switch (key.name) {
-            case 'backspace':
-                this.write(BS);
-                break;
-            case 'escape':
-                this.write(ESC);
-                break;
-            default:
-                this.write(key.sequence.toUpperCase().charCodeAt(0));
+        case 'backspace':
+            this.write(BS);
+            break;
+        case 'escape':
+            this.write(ESC);
+            break;
+        default:
+            this.write(key.sequence.toUpperCase().charCodeAt(0));
         }
 
     }

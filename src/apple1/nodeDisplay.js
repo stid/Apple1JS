@@ -65,25 +65,25 @@ class Display implements IoComponent {
         // CB2 is wired to PB7 - arise on display busy
         this.pia.setBitDataB(7);
 
-         // Clear screen
+        // Clear screen
         if ((char & 0x7F) === 12) {
             this.clearScreen();
             return;
         }
 
         switch (char) {
-            case ESC:
-                break;
-            case CR:
-                process.stdout.write('\n');
-                break;
-            //case 0xFF:
-            case BS:
-                process.stdout.write('\b \b');
-                break;
-            default:
-                process.stdout.write(String.fromCharCode(char & 0x7F));
-                break;
+        case ESC:
+            break;
+        case CR:
+            process.stdout.write('\n');
+            break;
+        //case 0xFF:
+        case BS:
+            process.stdout.write('\b \b');
+            break;
+        default:
+            process.stdout.write(String.fromCharCode(char & 0x7F));
+            break;
         }
 
         this.clearB7();
