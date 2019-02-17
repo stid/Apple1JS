@@ -1,7 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-//const MinifyPlugin = require('babel-minify-webpack-plugin');
+const MinifyPlugin = require('babel-minify-webpack-plugin');
 
 module.exports = {
     entry: './src/apple1/index.js',
@@ -26,7 +26,7 @@ module.exports = {
     },
     plugins: [
         new webpack.optimize.ModuleConcatenationPlugin(),
-        //new MinifyPlugin(),
+        new MinifyPlugin(),
         new CleanWebpackPlugin(['dist']),
         new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify('production')

@@ -50,9 +50,11 @@ class CPU6502 implements Clockable {
         this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);
     }
 
-    step(): void {
+    step(): number {
+        const startCycles = this.cycles;
         this.opcode = this.read( this.PC++ );
         CPU6502op[ this.opcode ]( this );
+        return this.cycles - startCycles;
     }
 
     read(address: number): number {

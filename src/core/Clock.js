@@ -1,5 +1,7 @@
+
 // @flow
 import {Clockable} from './flowTypes/Clockable';
+import hrtime from 'browser-process-hrtime';
 
 const NS_PER_SEC: number = 1e9;
 const DEFAULT_MHZ: number = 1;
@@ -19,7 +21,7 @@ class Clock {
         this.lastCycleCount = 1;
         this.nanoPerCycle = 1000 / this.mhz;
         this.cpu = cpu;
-        this.prevCycleTime = process.hrtime();
+        this.prevCycleTime = hrtime();
     }
 
     toLog(): void {
@@ -28,7 +30,7 @@ class Clock {
     }
 
     _nanoDiff(): number {
-        const diff: [number, number] = process.hrtime(this.prevCycleTime);
+        const diff: [number, number] = hrtime(this.prevCycleTime);
         const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
 
         return nanoDelta;
@@ -39,13 +41,8 @@ class Clock {
             const nanoDelta: number = this._nanoDiff();
 
             if (nanoDelta > (this.nanoPerCycle * this.lastCycleCount)) {
-                this.prevCycleTime = process.hrtime();
-                const startCycles: number = this.cpu.getCycles();
-
-                this.cpu.step();
-
-                const endCycles: number = this.cpu.getCycles();
-                this.lastCycleCount = endCycles - startCycles;
+                this.prevCycleTime = hrtime();
+                this.lastCycleCount = this.cpu.step();
             }
         }
     }
