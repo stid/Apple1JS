@@ -9,8 +9,9 @@ import RAM from '../core/RAM.js';
 import AddressSpaces from '../core/AddressSpaces.js';
 import {type AddressSpaceType} from '../core/flowTypes/IoAddressable';
 
-import Keyboard from './nodeKeyboard.js';
-import Display from './nodeDisplay.js';
+import Keyboard from './NodeKeyboard.js';
+import DisplayLogic from './DisplayLogic.js';
+import NodeCRTVideo from './NodeCRTVideo.js';
 
 // ROM + Demo Program
 import anniversary from './progs/anniversary.js';
@@ -33,7 +34,8 @@ const PIA_ADDR: [number, number]        = [0xD010, 0xD013];
 // Wire PIA
 const pia: PIA6820 = new PIA6820();
 const keyboard: Keyboard = new Keyboard(pia);
-const display: Display = new Display(pia);
+const video: NodeCRTVideo = new NodeCRTVideo();
+const display: DisplayLogic = new DisplayLogic(pia, video);
 pia.wireIOA(keyboard);
 pia.wireIOB(display);
 
@@ -55,7 +57,7 @@ ramBank2.flash(basic);
 
 const addressSpaces: AddressSpaces = new AddressSpaces(addressMapping);
 const cpu: CPU6502 = new CPU6502(addressSpaces);
-keyboard.wireReset(cpu.reset.bind(cpu));
+keyboard.wireReset(() => cpu.reset());
 
 const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
 

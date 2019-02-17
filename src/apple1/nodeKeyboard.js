@@ -12,7 +12,7 @@ const ESC: number    = 0x9B;  // ESC key (B7 High)
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
     +pia: PIA6820;
-    onReset: () => mixed
+    onReset: () => void
 
     constructor(pia: PIA6820) {
         this.pia = pia;
@@ -24,15 +24,15 @@ class Keyboard implements IoComponent {
     }
 
     // eslint-disable-next-line no-unused-vars
-    read(address: number) {
+    async read(address: number) {
         // Not implemented
     }
 
-    wireReset(onReset: () => mixed) {
+    wireReset(onReset: () => void) {
         this.onReset = onReset;
     }
 
-    write(key: number) {
+    async write(key: number) {
         // PA7 is Always ON (+5v) set it no matter what
         this.pia.setDataA(utils.bitSet(key, 7));
         // Keyboard Strobe - raise CA1 on key pressed
