@@ -9,6 +9,7 @@ import RAM from '../core/RAM.js';
 import AddressSpaces from '../core/AddressSpaces.js';
 import {type AddressSpaceType} from '../core/flowTypes/IoAddressable';
 
+import KeyboardLogic from './KeyboardLogic.js';
 import Keyboard from './NodeKeyboard.js';
 import DisplayLogic from './DisplayLogic.js';
 import NodeCRTVideo from './NodeCRTVideo.js';
@@ -16,8 +17,9 @@ import NodeCRTVideo from './NodeCRTVideo.js';
 // ROM + Demo Program
 import anniversary from './progs/anniversary.js';
 import basic from './progs/basic.js';
+import woz_monitor from './progs/woz_monitor.js';
 
-import {readBinary} from '../core/utils';
+import {isBrowser} from '../core/utils';
 
 const STEP_CHUNK: number = 10;
 const MHZ_CPU_SPEED: number = 1;
@@ -33,7 +35,8 @@ const PIA_ADDR: [number, number]        = [0xD010, 0xD013];
 
 // Wire PIA
 const pia: PIA6820 = new PIA6820();
-const keyboard: Keyboard = new Keyboard(pia);
+const keyboardLogic = new KeyboardLogic(pia);
+const keyboard: Keyboard = new Keyboard(pia, keyboardLogic);
 const video: NodeCRTVideo = new NodeCRTVideo();
 const display: DisplayLogic = new DisplayLogic(pia, video);
 pia.wireIOA(keyboard);
@@ -50,8 +53,7 @@ const addressMapping: Array<AddressSpaceType> = [
     { addr: PIA_ADDR, component: pia, name:'PIA6820'},
 ];
 
-rom.flash(readBinary('src/apple1/progs/woz_monitor.o'));
-//ramBank1.flash(readBinary('src/apple1/progs/hello_world.o'));
+rom.flash(woz_monitor);
 ramBank1.flash(anniversary);
 ramBank2.flash(basic);
 
@@ -61,7 +63,12 @@ keyboard.wireReset(() => cpu.reset());
 
 const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
 
-console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
+if (isBrowser()) {
+    console.log('Apple 1 :: Browser Mode');
+} else {
+    console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
+}
+
 clock.toLog();
 addressSpaces.toLog();
 cpu.toLog();
@@ -71,5 +78,10 @@ cpu.reset();
 
 (function loop(): void {
     clock.cycle();
-    setImmediate(loop);
+
+    if (isBrowser()) {
+        setTimeout(loop, 0);
+    } else {
+        setImmediate(loop);
+    }
 })();

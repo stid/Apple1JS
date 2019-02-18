@@ -1,8 +1,8 @@
 {
   "name": "6502js",
   "version": "1.0.5",
-  "description": "NodeJS Apple 1 Emulator, include initial abstraction of 6820 and other core components.",
-  "main": "6502.js",
+  "description": "NodeJS Apple 1 Emulator, include basic 6820 abstraction and other core components.",
+  "main": "index.js",
   "scripts": {
     "test": "run-s flow eslint jest",
     "build": "webpack",
@@ -30,6 +30,7 @@
     "babel-jest": "^24.1.0",
     "babel-loader": "8.0.5",
     "babel-minify-webpack-plugin": "^0.3.1",
+    "babel-plugin-inline-import": "^3.0.0",
     "clean-webpack-plugin": "1.0.1",
     "eslint": "5.14.0",
     "eslint-plugin-flowtype": "3.4.2",

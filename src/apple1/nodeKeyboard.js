@@ -1,6 +1,5 @@
 // @flow
 import readline from 'readline';
-import * as utils from '../core/utils.js';
 import type PIA6820 from '../core/PIA6820';
 import {type IoComponent} from '../core/flowTypes/IoComponent';
 
@@ -12,10 +11,12 @@ const ESC: number    = 0x9B;  // ESC key (B7 High)
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
     +pia: PIA6820;
+    +keyboardLogic: IoComponent;
     onReset: () => void
 
-    constructor(pia: PIA6820) {
+    constructor(pia: PIA6820, keyboardLogic: IoComponent) {
         this.pia = pia;
+        this.keyboardLogic = keyboardLogic;
         readline.emitKeypressEvents(process.stdin);
 
         // $FlowFixMe
@@ -28,16 +29,13 @@ class Keyboard implements IoComponent {
         // Not implemented
     }
 
-    wireReset(onReset: () => void) {
-        this.onReset = onReset;
+    // eslint-disable-next-line no-unused-vars
+    async write(address: number) {
+        // Not implemented
     }
 
-    async write(key: number) {
-        // PA7 is Always ON (+5v) set it no matter what
-        this.pia.setDataA(utils.bitSet(key, 7));
-        // Keyboard Strobe - raise CA1 on key pressed
-        // CA1 raise - PIA will raise CTRL A bit 7
-        this.pia.raiseCA1();
+    wireReset(onReset: () => void) {
+        this.onReset = onReset;
     }
 
     onKeyPressed(str: string, key: {sequence: string, name: string}): void {
@@ -57,13 +55,13 @@ class Keyboard implements IoComponent {
         // Standard Keys
         switch (key.name) {
         case 'backspace':
-            this.write(BS);
+            this.keyboardLogic.write(BS);
             break;
         case 'escape':
-            this.write(ESC);
+            this.keyboardLogic.write(ESC);
             break;
         default:
-            this.write(key.sequence.toUpperCase().charCodeAt(0));
+            this.keyboardLogic.write(key.sequence.toUpperCase().charCodeAt(0));
         }
 
     }

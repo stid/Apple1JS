@@ -18,13 +18,12 @@ class ROM implements IoAddressable {
     }
 
     flash(data: Array<number>) {
-        this.data = data.splice(2);
+        this.data = [...data].splice(2);
     }
 
     burn(data: Array<number>) {
         this.flash(data);
     }
-
 }
 
 export default ROM;
