@@ -3,13 +3,7 @@ const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
 
-module.exports = {
-    entry: './src/index.js',
-    target: 'node',
-    output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist')
-    },
+const commonConfig = {
     module: {
         rules: [
             {
@@ -26,11 +20,34 @@ module.exports = {
     },
     plugins: [
         new webpack.optimize.ModuleConcatenationPlugin(),
-        new MinifyPlugin(),
+        //new MinifyPlugin(),
         new CleanWebpackPlugin(),
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('production')
+            //'process.env.NODE_ENV': JSON.stringify('production')
         })
     ],
-    mode: 'production'
+    mode: 'development'
 };
+
+const webConfig = {
+    entry: './src/index.js',
+    target: 'node',
+    output: {
+        filename: 'bundle.js',
+        path: path.resolve(__dirname, 'dist')
+    },
+    ...commonConfig
+};
+
+const nodeConfig = {
+    entry: './src/web.js',
+    target: 'web',
+    output: {
+        filename: 'bundle.js',
+        path: path.resolve(__dirname, 'build')
+    },
+    ...commonConfig
+};
+
+
+module.exports = [nodeConfig, webConfig];
