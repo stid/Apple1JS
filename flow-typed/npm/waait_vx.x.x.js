@@ -14,7 +14,7 @@
  */
 
 declare module 'waait' {
-  declare module.exports: any;
+  declare module.exports: (number) => Promise<void>;
 }
 
 /**
