@@ -1,10 +1,11 @@
 // @flow
 import type PIA6820 from '../core/PIA6820';
+import {type IoLogic} from '../core/flowTypes/IoLogic';
 import {type IoComponent} from '../core/flowTypes/IoComponent';
 
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high
-class DisplayLogic implements IoComponent {
+class DisplayLogic implements IoLogic {
     +pia: PIA6820;
     +video: IoComponent;
 
@@ -23,6 +24,9 @@ class DisplayLogic implements IoComponent {
         this.pia.setBitDataB(7);
         await this.video.write(char);
         this.pia.clearBitDataB(7);
+    }
+
+    wire() {
     }
 }
 

@@ -1,2 +1,2 @@
 require('@babel/register');
-require('./src/apple1/index.js');
+require('./src/index.js');

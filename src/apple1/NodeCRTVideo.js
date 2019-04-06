@@ -42,6 +42,9 @@ class CRTVideo implements IoComponent {
         // Not implemented
     }
 
+    wire() {
+    }
+
     async write(char: number) {
         // Clear screen
         if ((char & 0x7F) === 12) {

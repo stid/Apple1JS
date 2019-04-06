@@ -1,27 +1,26 @@
 // @flow
 import readline from 'readline';
-import type PIA6820 from '../core/PIA6820';
 import {type IoComponent} from '../core/flowTypes/IoComponent';
 
 const BS: number     = 0xDF;  // Backspace key, arrow left key (B7 High)
 const ESC: number    = 0x9B;  // ESC key (B7 High)
-
+const RESET_CODE = -255;
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
-    +pia: PIA6820;
-    +keyboardLogic: IoComponent;
-    onReset: () => void
+    logicWrite: ?(value: number) => Promise<void>;
 
-    constructor(pia: PIA6820, keyboardLogic: IoComponent) {
-        this.pia = pia;
-        this.keyboardLogic = keyboardLogic;
+    constructor() {
         readline.emitKeypressEvents(process.stdin);
 
         // $FlowFixMe
         process.stdin.setRawMode(true);
         process.stdin.on('keypress', this.onKeyPressed.bind(this));
+    }
+
+    wire({logicWrite}: {logicWrite?: (value: number) => Promise<void>}) {
+        this.logicWrite=logicWrite;
     }
 
     // eslint-disable-next-line no-unused-vars
@@ -34,11 +33,8 @@ class Keyboard implements IoComponent {
         // Not implemented
     }
 
-    wireReset(onReset: () => void) {
-        this.onReset = onReset;
-    }
-
     onKeyPressed(str: string, key: {sequence: string, name: string}): void {
+        const logicWrite = this.logicWrite;
 
         // Special Keys
         switch (key.sequence) {
@@ -48,20 +44,22 @@ class Keyboard implements IoComponent {
             break;
             // RESET
         case '\u0012':  // ctrl-r
-            if (this.onReset) {this.onReset();}
+            if (logicWrite) { logicWrite(RESET_CODE); }
             return;
         }
 
-        // Standard Keys
-        switch (key.name) {
-        case 'backspace':
-            this.keyboardLogic.write(BS);
-            break;
-        case 'escape':
-            this.keyboardLogic.write(ESC);
-            break;
-        default:
-            this.keyboardLogic.write(key.sequence.toUpperCase().charCodeAt(0));
+        if (logicWrite) {
+            // Standard Keys
+            switch (key.name) {
+            case 'backspace':
+                logicWrite(BS);
+                break;
+            case 'escape':
+                logicWrite(ESC);
+                break;
+            default:
+                logicWrite(key.sequence.toUpperCase().charCodeAt(0));
+            }
         }
 
     }

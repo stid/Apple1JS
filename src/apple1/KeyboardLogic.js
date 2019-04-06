@@ -1,9 +1,9 @@
 // @flow
 import type PIA6820 from '../core/PIA6820';
-import {type IoComponent} from '../core/flowTypes/IoComponent';
+import {type IoLogic} from '../core/flowTypes/IoLogic';
 import * as utils from '../core/utils.js';
 
-class DisplayLogic implements IoComponent {
+class KeyboardLogic implements IoLogic {
     +pia: PIA6820;
 
     constructor(pia: PIA6820) {
@@ -23,6 +23,9 @@ class DisplayLogic implements IoComponent {
         this.pia.raiseCA1();
     }
 
+    wire() {
+    }
+
 }
 
-export default DisplayLogic;
+export default KeyboardLogic;
