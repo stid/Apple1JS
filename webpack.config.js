@@ -20,13 +20,13 @@ const commonConfig = {
     },
     plugins: [
         new webpack.optimize.ModuleConcatenationPlugin(),
-        //new MinifyPlugin(),
+        new MinifyPlugin(),
         new CleanWebpackPlugin(),
         new webpack.DefinePlugin({
-            //'process.env.NODE_ENV': JSON.stringify('production')
+            'process.env.NODE_ENV': JSON.stringify('production')
         })
     ],
-    mode: 'development'
+    mode: 'production'
 };
 
 const webConfig = {

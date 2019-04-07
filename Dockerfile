@@ -12,6 +12,7 @@ RUN apt-get install yarn -y --no-install-recommends
 WORKDIR /usr/src/6502
 
 COPY package.json ./
+COPY yarn.lock ./
 RUN yarn install
 
 COPY . .
