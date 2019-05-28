@@ -29,7 +29,7 @@ const commonConfig = {
     mode: 'production'
 };
 
-const webConfig = {
+const nodeConfig = {
     entry: './src/index.js',
     target: 'node',
     output: {
@@ -39,12 +39,12 @@ const webConfig = {
     ...commonConfig
 };
 
-const nodeConfig = {
-    entry: './src/web.js',
+const webConfig = {
+    entry: './src/index-web.js',
     target: 'web',
     output: {
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'build')
+        path: path.resolve(__dirname, 'dist-web')
     },
     ...commonConfig
 };

@@ -1,6 +1,7 @@
 // @flow
 import {type IoComponent} from '../core/flowTypes/IoComponent';
 import wait from 'waait';
+import produce from 'immer';
 
 
 const BS: number = 0xDF; // Backspace key, arrow left key (B7 High)
@@ -8,6 +9,9 @@ const CR: number = 0x8D; // Carriage Return (B7 High)
 const ESC: number = 0x9B; // ESC key (B7 High)
 
 const DISPLAY_DELAY = 17;
+
+const NUM_COLUMNS = 40;
+const NUM_ROWS = 24;
 
 // NOTE: WOZ monitor will wait in a loop until DSP b7 is clear and another char
 // was echoed.
@@ -22,20 +26,84 @@ const DISPLAY_DELAY = 17;
 //                rts
 //
 
-class CRTVideo implements IoComponent {
 
-    async clearScreen() {
-        let i: number=0;
-        const clearLoop = async () => {
-            await wait(DISPLAY_DELAY);
-            if (i < 24) {
-                console.log('\n');
-                i++;
-                clearLoop();
-            }
-        };
-        clearLoop();
+export type VideoOut = {
+    onChange: Array<Array<string>> => void
+}
+
+export type VideoBuffer = Array<Array<string>>
+
+class CRTVideo implements IoComponent {
+    row: number
+    column: number
+    buffer: VideoBuffer
+    subscribers: Array<VideoOut>
+
+    constructor () {
+        this.row = 0;
+        this.column = 0;
+        this.buffer = Array(NUM_ROWS);
+        this.subscribers = [];
+        this.onClear();
+
     }
+
+    onClear () {
+        this._updateBuffer(draftBuffer => {
+            for (let i = 0; i < this.buffer.length; i++) {
+                draftBuffer[i] = Array(NUM_COLUMNS).fill('');
+            }
+        });
+    }
+
+    subscribe(videoOut: VideoOut) {
+        this.subscribers.push(videoOut);
+        videoOut.onChange(this.buffer);
+    }
+
+    unsubscribe(videoOut: VideoOut) {
+        this.subscribers = this.subscribers.filter( subscriber => subscriber !== videoOut );
+    }
+
+    _notifySubscribers() {
+        this.subscribers.forEach( subscriber => subscriber.onChange(this.buffer) );
+    }
+
+    onChar (char: string) {
+        this._updateBuffer( draftBuffer => {
+
+            // NEW LINE
+            if (char === '\n') {
+                this.row += 1;
+                this.column = 0;
+            // BACKSPACE
+            } else if (char === '\b') {
+                if (this.column >= 0) {
+                    this.column -= 1;
+                    draftBuffer[this.row][this.column] = '';
+                }
+            } else {
+                // STANDARD SUPPORTED ASCII
+                if (char.charCodeAt(0) >=32 && char.charCodeAt(0) <=126) {
+                    draftBuffer[this.row][this.column] = char;
+                    this.column += 1;
+                }
+            }
+
+            // End of line
+            if (this.column > NUM_COLUMNS) {
+                this.row +=1;
+                this.column = 0;
+            }
+
+            // End of Screen - shift up
+            if (this.row > NUM_ROWS) {
+                draftBuffer.shift();
+                draftBuffer.push(Array(NUM_COLUMNS).fill('.'));
+            }
+        });
+    }
+
 
     // eslint-disable-next-line no-unused-vars
     async read(address: number) {
@@ -48,26 +116,34 @@ class CRTVideo implements IoComponent {
     async write(char: number) {
         // Clear screen
         if ((char & 0x7F) === 12) {
-            return this.clearScreen();
+            return this.onClear();
         }
 
         switch (char) {
         case ESC:
             break;
         case CR:
-            console.log('\n');
+            this.onChar('\n');
             break;
         //case 0xFF:
         case BS:
-            console.log('\b \b');
+            this.onChar('\b');
             break;
         default:
-            console.log(String.fromCharCode(char & 0x7F));
+            this.onChar(String.fromCharCode(char & 0x7F));
             break;
         }
-
         await wait(DISPLAY_DELAY);
     }
+
+    _updateBuffer( updateFunction: (draftBuffer: VideoBuffer) => void ) {
+        const newBuffer = produce(this.buffer, draftBuffer => updateFunction(draftBuffer) );
+        if ((newBuffer !== this.buffer)) {
+            this.buffer = newBuffer;
+            this._notifySubscribers();
+        }
+    }
+
 }
 
 export default CRTVideo;
