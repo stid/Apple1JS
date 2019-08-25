@@ -4,3 +4,4 @@ dist
 *.lst
 *.sym
 build
+.DS_Store
