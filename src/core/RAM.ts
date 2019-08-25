@@ -1,10 +1,7 @@
-// @flow
-import {type IoAddressable} from './flowTypes/IoAddressable';
-
 const DEFAULT_RAM_BANK_SIZE: number = 4096;
 
 class RAM implements IoAddressable {
-    +data: Array<number>;
+    data: Array<number>;
 
     constructor(byteSize: number = DEFAULT_RAM_BANK_SIZE) {
         this.data = new Array(byteSize).fill(0);

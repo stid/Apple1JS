@@ -1,7 +1,4 @@
-// @flow
-import {type IoComponent} from '../core/flowTypes/IoComponent';
 import wait from 'waait';
-
 
 const BS: number = 0xDF; // Backspace key, arrow left key (B7 High)
 const CR: number = 0x8D; // Carriage Return (B7 High)

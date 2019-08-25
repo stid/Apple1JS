@@ -1,8 +1,5 @@
-// @flow
-import type {AddressSpaceType} from '../core/flowTypes/IoAddressable';
-
 class AddressSpaces {
-    +addressMapping: Array<AddressSpaceType>;
+    addressMapping: Array<AddressSpaceType>;
 
     constructor(addressMapping: Array<AddressSpaceType>) {
         this.addressMapping = addressMapping;

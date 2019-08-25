@@ -1,5 +1,4 @@
-// @flow
-export interface Clockable {
+declare interface Clockable {
     getCycles(): number;
     step(): number;
 }

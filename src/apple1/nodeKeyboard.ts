@@ -1,6 +1,4 @@
-// @flow
 import readline from 'readline';
-import {type IoComponent} from '../core/flowTypes/IoComponent';
 
 const BS: number     = 0xDF;  // Backspace key, arrow left key (B7 High)
 const ESC: number    = 0x9B;  // ESC key (B7 High)
@@ -9,14 +7,16 @@ const RESET_CODE = -255;
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
-    logicWrite: ?(value: number) => Promise<void>;
+    logicWrite?: (value: number) => Promise<void>;
 
     constructor() {
         readline.emitKeypressEvents(process.stdin);
 
-        // $FlowFixMe
-        process.stdin.setRawMode(true);
+        if (process.stdin.setRawMode) {
+            process.stdin.setRawMode(true);
+        }
         process.stdin.on('keypress', this.onKeyPressed.bind(this));
+
     }
 
     wire({logicWrite}: {logicWrite?: (value: number) => Promise<void>}) {

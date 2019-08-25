@@ -1,4 +1,3 @@
-// @flow
 // Apple 1 Key sequence original manual test
 const PROG = Object.freeze([
     0x00, 0x00, // RAM ADDR

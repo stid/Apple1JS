@@ -1,4 +1,3 @@
-// @flow
 import ROM from '../ROM.js';
 
 describe('ROM', () => {

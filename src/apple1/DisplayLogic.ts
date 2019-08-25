@@ -1,13 +1,10 @@
-// @flow
-import type PIA6820 from '../core/PIA6820';
-import {type IoLogic} from '../core/flowTypes/IoLogic';
-import {type IoComponent} from '../core/flowTypes/IoComponent';
+import PIA6820 from '../core/PIA6820';
 
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high
 class DisplayLogic implements IoLogic {
-    +pia: PIA6820;
-    +video: IoComponent;
+    pia: PIA6820;
+    video: IoComponent;
 
     constructor(pia: PIA6820, video: IoComponent) {
         this.pia = pia;

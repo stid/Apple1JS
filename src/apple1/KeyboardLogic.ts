@@ -1,10 +1,8 @@
-// @flow
-import type PIA6820 from '../core/PIA6820';
-import {type IoLogic} from '../core/flowTypes/IoLogic';
-import * as utils from '../core/utils.js';
+import PIA6820 from '../core/PIA6820';
+import * as utils from '../core/utils';
 
 class KeyboardLogic implements IoLogic {
-    +pia: PIA6820;
+    pia: PIA6820;
 
     constructor(pia: PIA6820) {
         this.pia = pia;

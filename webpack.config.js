@@ -18,6 +18,9 @@ const commonConfig = {
             }
         ]
     },
+    resolve: {
+        extensions: [".ts", ".js"]
+      },
     plugins: [
         new webpack.optimize.ModuleConcatenationPlugin(),
         new MinifyPlugin(),

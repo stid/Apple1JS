@@ -15,7 +15,6 @@ while(convertedBuffer.length) {
 }
 
 const result = `
-// @flow
 export default Object.freeze([
     ${spliceBuffer.join(',\n    ')}
 ]);

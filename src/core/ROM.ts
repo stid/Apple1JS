@@ -1,6 +1,4 @@
-// @flow
 const DEFAULT_ROM_SIZE = 256;
-import {type IoAddressable} from './flowTypes/IoAddressable';
 
 class ROM implements IoAddressable {
     data: Array<number>

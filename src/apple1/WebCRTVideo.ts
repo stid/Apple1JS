@@ -1,5 +1,3 @@
-// @flow
-import {type IoComponent} from '../core/flowTypes/IoComponent';
 import wait from 'waait';
 import produce from 'immer';
 

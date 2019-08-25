@@ -1,7 +1,4 @@
-// @flow
-import * as utils from './utils.js';
-import {type IoAddressable} from './flowTypes/IoAddressable';
-import {type IoComponent} from './flowTypes/IoComponent';
+import * as utils from './utils';
 
 // PIA MAPPING 6821
 const DATA_A_ADDR: number = 0x0;
@@ -11,9 +8,9 @@ const DATA_B_ADDR: number = 0x2;
 const CRT_B_ADDR: number = 0x3;
 
 class PIA6820 implements IoAddressable {
-    +data: Array<number>;
-    ioA: IoComponent;
-    ioB: IoComponent;
+    data: Array<number>;
+    ioA?: IoComponent;
+    ioB?: IoComponent;
 
     constructor() {
         this.data = [0, 0, 0, 0];

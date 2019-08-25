@@ -1,5 +1,3 @@
-// @flow
-
 export const bitClear = (num: number, bit: number): number => {
     return num & ~(1<<bit);
 };

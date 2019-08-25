@@ -1,22 +1,18 @@
-// @flow
-
-import CPU6502 from '../core/6502.js';
-import PIA6820 from '../core/PIA6820.js';
+import CPU6502 from '../core/6502';
+import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
-import ROM from '../core/ROM.js';
-import RAM from '../core/RAM.js';
+import ROM from '../core/ROM';
+import RAM from '../core/RAM';
 
-import AddressSpaces from '../core/AddressSpaces.js';
-import {type AddressSpaceType} from '../core/flowTypes/IoAddressable';
-import {type IoComponent} from '../core/flowTypes/IoComponent';
+import AddressSpaces from '../core/AddressSpaces';
 
-import KeyboardLogic from './KeyboardLogic.js';
-import DisplayLogic from './DisplayLogic.js';
+import KeyboardLogic from './KeyboardLogic';
+import DisplayLogic from './DisplayLogic';
 
 // ROM + Demo Program
-import anniversary from './progs/anniversary.js';
-import basic from './progs/basic.js';
-import woz_monitor from './progs/woz_monitor.js';
+import anniversary from './progs/anniversary';
+import basic from './progs/basic';
+import woz_monitor from './progs/woz_monitor';
 import {isBrowser} from '../core/utils';
 
 const RESET_CODE = -255;

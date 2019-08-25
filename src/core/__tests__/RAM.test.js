@@ -1,4 +1,3 @@
-// @flow
 import RAM from '../RAM.js';
 
 describe('RAM', () => {

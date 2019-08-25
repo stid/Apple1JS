@@ -1,7 +1,6 @@
-// @flow
-import Apple1 from './Apple1';
-import WebKeyboard from './Apple1/WebKeyboard.js';
-import WebCRTVideo from './Apple1/WebCRTVideo.js';
+import Apple1 from './apple1';
+import WebKeyboard from './Apple1/WebKeyboard';
+import WebCRTVideo from './Apple1/WebCRTVideo';
 
 
 export const video = new WebCRTVideo();
