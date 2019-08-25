@@ -1,11 +1,11 @@
 import * as utils from './utils';
 
 // PIA MAPPING 6821
-const DATA_A_ADDR: number = 0x0;
-const CRT_A_ADDR: number = 0x1;
+const DATA_A_ADDR = 0x0;
+const CRT_A_ADDR = 0x1;
 
-const DATA_B_ADDR: number = 0x2;
-const CRT_B_ADDR: number = 0x3;
+const DATA_B_ADDR = 0x2;
+const CRT_B_ADDR = 0x3;
 
 class PIA6820 implements IoAddressable {
     data: Array<number>;
@@ -111,6 +111,7 @@ class PIA6820 implements IoAddressable {
 
     // eslint-disable-next-line no-unused-vars
     flash(data: Array<number>): void {
+        return;
     }
 
 }

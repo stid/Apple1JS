@@ -12,14 +12,14 @@ import DisplayLogic from './DisplayLogic';
 // ROM + Demo Program
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
-import woz_monitor from './progs/woz_monitor';
+import wozMonitor from './progs/woz_monitor';
 import {isBrowser} from '../core/utils';
 
 const RESET_CODE = -255;
 
-const Apple1 = ({video, keyboard}: {video: IoComponent,  keyboard: IoComponent}) => {
-    const STEP_CHUNK: number = 10;
-    const MHZ_CPU_SPEED: number = 1;
+const Apple1 = ({video, keyboard}: {video: IoComponent;  keyboard: IoComponent}) => {
+    const STEP_CHUNK = 10;
+    const MHZ_CPU_SPEED = 1;
 
     // $FF00-$FFFF 256 Bytes ROM
     const ROM_ADDR: [number, number]        = [0xFF00, 0xFFFF];
@@ -48,7 +48,7 @@ const Apple1 = ({video, keyboard}: {video: IoComponent,  keyboard: IoComponent})
         { addr: PIA_ADDR, component: pia, name:'PIA6820'},
     ];
 
-    rom.flash(woz_monitor);
+    rom.flash(wozMonitor);
     ramBank1.flash(anniversary);
     ramBank2.flash(basic);
 

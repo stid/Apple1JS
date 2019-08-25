@@ -1,5 +1,5 @@
-const BS: number     = 0xDF;  // Backspace key, arrow left key (B7 High)
-const ESC: number    = 0x9B;  // ESC key (B7 High)
+const BS = 0xDF;  // Backspace key, arrow left key (B7 High)
+const ESC = 0x9B;  // ESC key (B7 High)
 //const RESET_CODE = -255;
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
@@ -9,7 +9,7 @@ class Keyboard implements IoComponent {
 
     constructor() {
         // eslint-disable-next-line no-undef
-        (window: HTMLElement).addEventListener('keydown', (e: KeyboardEvent) => {
+        window.addEventListener('keydown', (e: KeyboardEvent) => {
             this.onKeyPressed(e);
         });
     }

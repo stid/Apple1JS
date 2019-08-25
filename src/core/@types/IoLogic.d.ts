@@ -1,6 +1,6 @@
 interface IoLogicWireOptions {
     componentWrite?: (value: number) => Promise<void>;
-    componentRead?: (address: number) => Promise<number>
+    componentRead?: (address: number) => Promise<number>;
 }
 
 declare interface IoLogic {

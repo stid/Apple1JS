@@ -1,4 +1,4 @@
-import ROM from '../ROM.js';
+import ROM from '../ROM';
 
 describe('ROM', () => {
     let testRom;

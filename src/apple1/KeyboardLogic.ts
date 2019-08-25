@@ -11,6 +11,7 @@ class KeyboardLogic implements IoLogic {
     // eslint-disable-next-line no-unused-vars
     async read(address: number) {
         // Not implemented
+        return;
     }
 
     async write(char: number) {
@@ -22,6 +23,7 @@ class KeyboardLogic implements IoLogic {
     }
 
     wire() {
+        return;
     }
 
 }

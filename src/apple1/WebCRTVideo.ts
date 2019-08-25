@@ -2,9 +2,9 @@ import wait from 'waait';
 import produce from 'immer';
 
 
-const BS: number = 0xDF; // Backspace key, arrow left key (B7 High)
-const CR: number = 0x8D; // Carriage Return (B7 High)
-const ESC: number = 0x9B; // ESC key (B7 High)
+const BS = 0xDF; // Backspace key, arrow left key (B7 High)
+const CR = 0x8D; // Carriage Return (B7 High)
+const ESC = 0x9B; // ESC key (B7 High)
 
 const DISPLAY_DELAY = 17;
 
@@ -25,11 +25,11 @@ const NUM_ROWS = 24;
 //
 
 
-export type VideoOut = {
-    onChange: Array<Array<string>> => void
+interface VideoOut {
+    onChange: (buffer: Array<Array<string>>) => void;
 }
 
-export type VideoBuffer = Array<Array<string>>
+type VideoBuffer = Array<Array<string>>
 
 class CRTVideo implements IoComponent {
     row: number
@@ -109,6 +109,7 @@ class CRTVideo implements IoComponent {
     }
 
     wire() {
+        return;
     }
 
     async write(char: number) {

@@ -2,8 +2,7 @@
     "compilerOptions": {
       "allowJs": false,
       "allowSyntheticDefaultImports": true,
-      "jsx": "preserve",
-      "lib": ["es2017"],
+      "lib": ["es5", "es6", "dom"],
       "moduleResolution": "node",
       "noEmit": true,
       "noUnusedLocals": true,
@@ -16,7 +15,8 @@
       "target": "esnext",
       "baseUrl": ".",
       "types": [
-        "node"
+        "dom",
+        "node",
       ],
       "typeRoots": [
         "core/@types",

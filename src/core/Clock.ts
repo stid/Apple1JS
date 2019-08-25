@@ -1,17 +1,17 @@
 
 import hrtime from 'browser-process-hrtime';
 
-const NS_PER_SEC: number = 1e9;
-const DEFAULT_MHZ: number = 1;
-const DEFAULT_STEP_CHUNK: number = 10;
+const NS_PER_SEC = 1e9;
+const DEFAULT_MHZ = 1;
+const DEFAULT_STEP_CHUNK = 10;
 
 class Clock {
-    mhz: number;
-    stepChunk: number;
-    prevCycleTime: [number, number];
-    nanoPerCycle: number;
-    lastCycleCount: number;
-    cpu: Clockable;
+    private mhz: number;
+    private stepChunk: number;
+    private prevCycleTime: [number, number];
+    private nanoPerCycle: number;
+    private lastCycleCount: number;
+    private cpu: Clockable;
 
     constructor(cpu: Clockable, mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_CHUNK) {
         this.mhz = mhz;

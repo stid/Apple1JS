@@ -1,4 +1,4 @@
-import RAM from '../RAM.js';
+import RAM from '../RAM';
 
 describe('RAM', () => {
     let testRam;

@@ -1,4 +1,4 @@
-const DEFAULT_RAM_BANK_SIZE: number = 4096;
+const DEFAULT_RAM_BANK_SIZE = 4096;
 
 class RAM implements IoAddressable {
     data: Array<number>;
@@ -17,11 +17,11 @@ class RAM implements IoAddressable {
 
     flash(data: Array<number>): void {
         // LOAD A PROG
-        const [high_addr, low_addr, ...coreData] = data;
-        const prg_addr: number = high_addr | low_addr << 8;
+        const [highAddr, lowAddr, ...coreData] = data;
+        const prgAddr: number = highAddr | lowAddr << 8;
 
-        for (let i: number = 0; i < (coreData.length) ; i++) {
-            this.data[prg_addr+i] = coreData[i];
+        for (let i = 0; i < (coreData.length) ; i++) {
+            this.data[prgAddr+i] = coreData[i];
         }
     }
 
