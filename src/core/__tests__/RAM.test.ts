@@ -1,12 +1,11 @@
 import RAM from '../RAM';
 
 describe('RAM', () => {
-    let testRam;
+    let testRam: RAM;
 
     beforeEach(() => {
         testRam = new RAM();
     });
-
     test('Should bulk load & read', () => {
         // Should load at 0x0280
         testRam.flash([0x80, 0x02, 1, 2, 3]);

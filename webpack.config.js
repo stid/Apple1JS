@@ -1,13 +1,13 @@
 const path = require('path');
 const webpack = require('webpack');
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin }  = require('clean-webpack-plugin');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
 
 const commonConfig = {
     module: {
         rules: [
             {
-                test: /\.js$/,
+                test: /\.(ts|js)x?$/,
                 exclude: /(node_modules)/,
                 use: {
                     loader: 'babel-loader',
@@ -19,8 +19,12 @@ const commonConfig = {
         ]
     },
     resolve: {
-        extensions: [".ts", ".js"]
-      },
+        extensions: ['.ts', '.js'],
+        modules: [
+            path.resolve(__dirname, 'node_modules'),
+            path.resolve(__dirname, './src'),
+        ]
+    },
     plugins: [
         new webpack.optimize.ModuleConcatenationPlugin(),
         new MinifyPlugin(),
@@ -33,7 +37,7 @@ const commonConfig = {
 };
 
 const nodeConfig = {
-    entry: './src/index.js',
+    entry: './src/index',
     target: 'node',
     output: {
         filename: 'bundle.js',
@@ -43,7 +47,7 @@ const nodeConfig = {
 };
 
 const webConfig = {
-    entry: './src/index-web.js',
+    entry: './src/index-web',
     target: 'web',
     output: {
         filename: 'bundle.js',

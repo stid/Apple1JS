@@ -1,7 +1,7 @@
 import ROM from '../ROM';
 
 describe('ROM', () => {
-    let testRom;
+    let testRom: ROM;
 
     beforeEach(() => {
         testRom = new ROM();

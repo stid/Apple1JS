@@ -9,10 +9,10 @@ export const keyboard = new WebKeyboard();
 export default Apple1;
 
 
-//webCRTVideo.subscribe( {
-//    onChange: newBuffer => {
-//        console.log(newBuffer);
-//    }}
-//);
+video.subscribe( {
+    onChange: newBuffer => {
+        console.log(newBuffer);
+    }}
+);
 
 //Apple1({video: webCRTVideo, keyboard: webKeyboard});

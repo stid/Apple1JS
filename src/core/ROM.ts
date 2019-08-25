@@ -1,7 +1,7 @@
 const DEFAULT_ROM_SIZE = 256;
 
 class ROM implements IoAddressable {
-    data: Array<number>
+    private data: Array<number>
 
     constructor(byteSize: number=DEFAULT_ROM_SIZE) {
         this.data = new Array(byteSize).fill(0);

@@ -1,7 +1,7 @@
 const DEFAULT_RAM_BANK_SIZE = 4096;
 
 class RAM implements IoAddressable {
-    data: Array<number>;
+    private data: Array<number>;
 
     constructor(byteSize: number = DEFAULT_RAM_BANK_SIZE) {
         this.data = new Array(byteSize).fill(0);

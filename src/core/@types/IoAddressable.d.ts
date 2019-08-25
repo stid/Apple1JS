@@ -1,6 +1,4 @@
 declare interface IoAddressable {
-    data: Array<number>;
-
     read(address: number): number;
     write(address: number, value: number): void;
     flash(data: Array<number>): void;

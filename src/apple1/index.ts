@@ -1,10 +1,10 @@
-import CPU6502 from '../core/6502';
-import PIA6820 from '../core/PIA6820';
-import Clock from '../core/Clock';
-import ROM from '../core/ROM';
-import RAM from '../core/RAM';
+import CPU6502 from 'core/6502';
+import PIA6820 from 'core/PIA6820';
+import Clock from 'core/Clock';
+import ROM from 'core/ROM';
+import RAM from 'core/RAM';
 
-import AddressSpaces from '../core/AddressSpaces';
+import AddressSpaces from 'core/AddressSpaces';
 
 import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
@@ -13,7 +13,7 @@ import DisplayLogic from './DisplayLogic';
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
-import {isBrowser} from '../core/utils';
+import {isBrowser} from 'core/utils';
 
 const RESET_CODE = -255;
 

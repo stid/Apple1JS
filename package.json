@@ -11,7 +11,8 @@
     "raw_start": "node index.js",
     "eslint": "eslint src --ext .ts",
     "profile": "node --prof dist/bundle.js",
-    "jest": "jest"
+    "jest": "jest",
+    "type-check": "tsc --noEmit"
   },
   "repository": "git+https://github.com/stid/Apple1JS.git",
   "author": "Stefano Furiosi",
@@ -25,6 +26,7 @@
     "@babel/preset-typescript": "^7.3.3",
     "@babel/register": "7.5.5",
     "@types/jest": "^24.0.18",
+    "@types/mocha": "^5.2.7",
     "@types/node": "^12.7.2",
     "@types/webpack-env": "^1.14.0",
     "@typescript-eslint/eslint-plugin": "^2.0.0",

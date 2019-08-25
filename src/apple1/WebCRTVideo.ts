@@ -7,7 +7,6 @@ const CR = 0x8D; // Carriage Return (B7 High)
 const ESC = 0x9B; // ESC key (B7 High)
 
 const DISPLAY_DELAY = 17;
-
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
 

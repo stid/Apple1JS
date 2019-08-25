@@ -17,6 +17,8 @@
       "types": [
         "dom",
         "node",
+        "jest",
+        "mocha"
       ],
       "typeRoots": [
         "core/@types",

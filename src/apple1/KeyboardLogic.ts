@@ -1,5 +1,5 @@
-import PIA6820 from '../core/PIA6820';
-import * as utils from '../core/utils';
+import PIA6820 from 'core/PIA6820';
+import * as utils from 'core/utils';
 
 class KeyboardLogic implements IoLogic {
     pia: PIA6820;

@@ -1,4 +1,4 @@
-FROM node:11.10.0-slim
+FROM node:12.9.0-slim
 
 RUN apt-get update -y
 RUN apt-get install apt-transport-https -y --no-install-recommends
