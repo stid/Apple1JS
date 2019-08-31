@@ -1,14 +1,18 @@
-import Apple1 from './apple1';
-import WebWorkerKeyboard from './apple1/WebWorkerKeyboard';
-import WebCRTVideo from './apple1/WebCRTVideo';
+import Apple1 from '.';
+import WebWorkerKeyboard from './WebWorkerKeyboard';
+import WebCRTVideo from './WebCRTVideo';
 
 export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();
 
-// TO VIDEO
+export enum WORKER_MESSAGES {
+    VIDEO_BUFFER,
+    KEY_DOWN,
+}
+
 video.subscribe({
     onChange: newBuffer => {
-        postMessage({ data: newBuffer, type: 'VideoBuffer' });
+        postMessage({ data: newBuffer, type: WORKER_MESSAGES.VIDEO_BUFFER });
     },
 });
 
@@ -16,7 +20,7 @@ onmessage = function(e) {
     const { data, type } = e.data;
 
     switch (type) {
-        case 'keyDown':
+        case WORKER_MESSAGES.KEY_DOWN:
             keyboard.write(data);
             break;
     }
