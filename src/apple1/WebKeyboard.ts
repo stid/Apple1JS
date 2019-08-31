@@ -1,5 +1,6 @@
 const BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const ESC = 0x9b; // ESC key (B7 High)
+const CR = 13;
 //const RESET_CODE = -255;
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
@@ -40,7 +41,7 @@ class Keyboard implements IoComponent {
                     logicWrite(ESC);
                     break;
                 case 'Enter':
-                    logicWrite(13);
+                    logicWrite(CR);
                     break;
                 default: {
                     const key = event.key;
