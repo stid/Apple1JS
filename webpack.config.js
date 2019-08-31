@@ -44,11 +44,11 @@ const nodeConfig = {
 };
 
 const webConfig = {
-    entry: './src/index-web',
+    entry: { bundle: './src/index-web', AppleWorker: './src/AppleWorker' },
     target: 'web',
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist-web'),
+        filename: '[name].js',
+        path: path.resolve(__dirname, 'public/js'),
     },
     ...commonConfig,
 };

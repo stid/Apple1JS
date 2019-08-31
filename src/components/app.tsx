@@ -1,19 +1,23 @@
 import React from 'react';
-import WebCRTVideo from 'apple1/WebCRTVideo';
 
 type Props = {
-    video: WebCRTVideo;
+    worker?: Worker;
 };
 
-export default ({ video }: Props) => {
+export default ({ worker }: Props) => {
     const [videoBuffer, setVideoBuffer] = React.useState([['']]);
 
     React.useEffect(() => {
-        video.subscribe({
-            onChange: newBuffer => {
-                setVideoBuffer(newBuffer);
-            },
-        });
+        if (worker) {
+            worker.addEventListener('message', e => {
+                const { data, type } = e.data;
+                switch (type) {
+                    case 'VideoBuffer':
+                        setVideoBuffer(data);
+                        break;
+                }
+            });
+        }
     }, []);
 
     return (
