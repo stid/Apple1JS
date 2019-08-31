@@ -91,7 +91,6 @@ class CRTVideo implements IoComponent {
 
             // End of Screen - shift up
             if (this.row >= NUM_ROWS) {
-                console.log('SHIFTING' + NUM_ROWS);
                 draftBuffer.shift();
                 draftBuffer.push(Array(NUM_COLUMNS).fill(' '));
                 this.row -= 1;
