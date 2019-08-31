@@ -39,8 +39,15 @@ class Keyboard implements IoComponent {
                 case 'Escape':
                     logicWrite(ESC);
                     break;
-                default:
-                    logicWrite(event.keyCode);
+                case 'Enter':
+                    logicWrite(13);
+                    break;
+                default: {
+                    const key = event.key;
+                    if (key.length === 1) {
+                        logicWrite(key.toUpperCase().charCodeAt(0));
+                    }
+                }
             }
         }
     }
