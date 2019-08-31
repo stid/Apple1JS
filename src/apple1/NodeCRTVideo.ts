@@ -1,8 +1,8 @@
 import wait from 'waait';
 
-const BS = 0xDF; // Backspace key, arrow left key (B7 High)
-const CR = 0x8D; // Carriage Return (B7 High)
-const ESC = 0x9B; // ESC key (B7 High)
+const BS = 0xdf; // Backspace key, arrow left key (B7 High)
+const CR = 0x8d; // Carriage Return (B7 High)
+const ESC = 0x9b; // ESC key (B7 High)
 
 const DISPLAY_DELAY = 17;
 
@@ -20,7 +20,6 @@ const DISPLAY_DELAY = 17;
 //
 
 class CRTVideo implements IoComponent {
-
     async clearScreen() {
         let i = 0;
         const clearLoop = async () => {
@@ -45,23 +44,23 @@ class CRTVideo implements IoComponent {
 
     async write(char: number) {
         // Clear screen
-        if ((char & 0x7F) === 12) {
+        if ((char & 0x7f) === 12) {
             return this.clearScreen();
         }
 
         switch (char) {
-        case ESC:
-            break;
-        case CR:
-            process.stdout.write('\n');
-            break;
-        //case 0xFF:
-        case BS:
-            process.stdout.write('\b \b');
-            break;
-        default:
-            process.stdout.write(String.fromCharCode(char & 0x7F));
-            break;
+            case ESC:
+                break;
+            case CR:
+                process.stdout.write('\n');
+                break;
+            //case 0xFF:
+            case BS:
+                process.stdout.write('\b \b');
+                break;
+            default:
+                process.stdout.write(String.fromCharCode(char & 0x7f));
+                break;
         }
 
         await wait(DISPLAY_DELAY);

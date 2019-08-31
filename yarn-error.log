@@ -1,5 +1,5 @@
 Arguments: 
-  /Users/sfuriosi/.nvm/versions/node/v10.16.3/bin/node /usr/local/Cellar/yarn/1.17.3/libexec/bin/yarn.js add @types/mocha --dev
+  /Users/sfuriosi/.nvm/versions/node/v10.16.3/bin/node /usr/local/Cellar/yarn/1.17.3/libexec/bin/yarn.js add eslint-config-prettier --dev
 
 PATH: 
   /usr/local/lib/ruby/gems/2.6.0/bin:/usr/local/opt/sbt@0.13/bin:/usr/local/opt/ruby/bin:/Users/sfuriosi/.nvm/versions/node/v10.16.3/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/lib/ruby/gems/2.6.0/bin:/usr/local/opt/sbt@0.13/bin:/usr/local/opt/ruby/bin:/Users/sfuriosi/.nvm/versions/node/v10.16.3/bin:/usr/local/sbin
@@ -14,7 +14,7 @@ Platform:
   darwin x64
 
 Trace: 
-  Error: https://registry.npmjs.intuit.com/@types%2fmocha: Request "https://registry.npmjs.intuit.com/@types%2fmocha" returned a 403
+  Error: https://registry.npmjs.intuit.com/eslint-config-prettier: Request "https://registry.npmjs.intuit.com/eslint-config-prettier" returned a 403
       at Request.params.callback [as _callback] (/usr/local/Cellar/yarn/1.17.3/libexec/lib/cli.js:66839:18)
       at Request.self.callback (/usr/local/Cellar/yarn/1.17.3/libexec/lib/cli.js:140464:22)
       at Request.emit (events.js:198:13)
@@ -40,7 +40,8 @@ npm manifest:
       "raw_start": "node index.js",
       "eslint": "eslint src --ext .ts",
       "profile": "node --prof dist/bundle.js",
-      "jest": "jest"
+      "jest": "jest",
+      "type-check": "tsc --noEmit"
     },
     "repository": "git+https://github.com/stid/Apple1JS.git",
     "author": "Stefano Furiosi",
@@ -66,7 +67,9 @@ npm manifest:
       "babel-plugin-inline-import": "^3.0.0",
       "clean-webpack-plugin": "3.0.0",
       "eslint": "6.2.2",
+      "eslint-config-prettier": "^6.1.0",
       "eslint-import-resolver-typescript": "^1.1.1",
+      "eslint-plugin-prettier": "^3.1.0",
       "jest": "24.9.0",
       "npm-run-all": "^4.1.5",
       "typescript": "^3.5.3",
@@ -80,6 +83,7 @@ npm manifest:
       "browser-process-hrtime": "^1.0.0",
       "core-js": "3.2.1",
       "immer": "^3.2.0",
+      "prettier": "^1.18.2",
       "waait": "^1.0.5"
     },
     "bugs": {
@@ -3241,6 +3245,13 @@ Lockfile:
     optionalDependencies:
       source-map "~0.6.1"
   
+  eslint-config-prettier@^6.1.0:
+    version "6.1.0"
+    resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/eslint-config-prettier/-/eslint-config-prettier-6.1.0.tgz#e6f678ba367fbd1273998d5510f76f004e9dce7b"
+    integrity sha1-5vZ4ujZ/vRJzmY1VEPdvAE6dzns=
+    dependencies:
+      get-stdin "^6.0.0"
+  
   eslint-import-resolver-typescript@^1.1.1:
     version "1.1.1"
     resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/eslint-import-resolver-typescript/-/eslint-import-resolver-typescript-1.1.1.tgz#e6d42172b95144ef16610fe104ef38340edea591"
@@ -3249,6 +3260,13 @@ Lockfile:
       debug "^4.0.1"
       resolve "^1.4.0"
       tsconfig-paths "^3.6.0"
+  
+  eslint-plugin-prettier@^3.1.0:
+    version "3.1.0"
+    resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/eslint-plugin-prettier/-/eslint-plugin-prettier-3.1.0.tgz#8695188f95daa93b0dc54b249347ca3b79c4686d"
+    integrity sha1-hpUYj5XaqTsNxUskk0fKO3nEaG0=
+    dependencies:
+      prettier-linter-helpers "^1.0.0"
   
   eslint-scope@3.7.1:
     version "3.7.1"
@@ -3508,6 +3526,11 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz#7b05218ddf9667bf7f370bf7fdb2cb15fdd0aa49"
     integrity sha1-ewUhjd+WZ79/Nwv3/bLLFf3Qqkk=
   
+  fast-diff@^1.1.2:
+    version "1.2.0"
+    resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/fast-diff/-/fast-diff-1.2.0.tgz#73ee11982d86caaf7959828d519cfe927fac5f03"
+    integrity sha1-c+4RmC2Gyq95WYKNUZz+kn+sXwM=
+  
   fast-json-stable-stringify@^2.0.0:
     version "2.0.0"
     resolved "https://registry.yarnpkg.com/fast-json-stable-stringify/-/fast-json-stable-stringify-2.0.0.tgz#d5142c0caee6b1189f87d3a76111064f86c8bbf2"
@@ -3716,6 +3739,11 @@ Lockfile:
     version "2.0.5"
     resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/get-caller-file/-/get-caller-file-2.0.5.tgz#4f94412a82db32f36e3b0b9741f8a97feb031f7e"
     integrity sha1-T5RBKoLbMvNuOwuXQfipf+sDH34=
+  
+  get-stdin@^6.0.0:
+    version "6.0.0"
+    resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/get-stdin/-/get-stdin-6.0.0.tgz#9e09bf712b360ab9225e812048f71fde9c89657b"
+    integrity sha1-ngm/cSs2CrkiXoEgSPcf3pyJZXs=
   
   get-stream@^4.0.0:
     version "4.1.0"
@@ -5878,6 +5906,18 @@ Lockfile:
     version "1.1.2"
     resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.1.2.tgz#21932a549f5e52ffd9a827f570e04be62a97da54"
     integrity sha1-IZMqVJ9eUv/ZqCf1cOBL5iqX2lQ=
+  
+  prettier-linter-helpers@^1.0.0:
+    version "1.0.0"
+    resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/prettier-linter-helpers/-/prettier-linter-helpers-1.0.0.tgz#d23d41fe1375646de2d0104d3454a3008802cf7b"
+    integrity sha1-0j1B/hN1ZG3i0BBNNFSjAIgCz3s=
+    dependencies:
+      fast-diff "^1.1.2"
+  
+  prettier@^1.18.2:
+    version "1.18.2"
+    resolved "https://registry.npmjs.intuit.com:443/artifactory/api/npm/npm-intuit/prettier/-/prettier-1.18.2.tgz#6823e7c5900017b4bd3acf46fe9ac4b4d7bda9ea"
+    integrity sha1-aCPnxZAAF7S9Os9G/prEtNe9qeo=
   
   pretty-format@^24.9.0:
     version "24.9.0"

@@ -9,4 +9,3 @@ declare interface AddressSpaceType {
     component: IoAddressable;
     name?: string;
 }
-

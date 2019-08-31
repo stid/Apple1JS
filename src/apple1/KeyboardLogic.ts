@@ -25,7 +25,6 @@ class KeyboardLogic implements IoLogic {
     wire() {
         return;
     }
-
 }
 
 export default KeyboardLogic;

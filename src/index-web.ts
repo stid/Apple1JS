@@ -15,4 +15,4 @@ video.subscribe( {
     }}
 );
 
-//Apple1({video: webCRTVideo, keyboard: webKeyboard});
+Apple1({video: video, keyboard: keyboard});

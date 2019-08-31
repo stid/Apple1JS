@@ -13,22 +13,22 @@ import DisplayLogic from './DisplayLogic';
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
-import {isBrowser} from 'core/utils';
+import { isBrowser } from 'core/utils';
 
 const RESET_CODE = -255;
 
-const Apple1 = ({video, keyboard}: {video: IoComponent;  keyboard: IoComponent}) => {
+const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent }) => {
     const STEP_CHUNK = 10;
     const MHZ_CPU_SPEED = 1;
 
     // $FF00-$FFFF 256 Bytes ROM
-    const ROM_ADDR: [number, number]        = [0xFF00, 0xFFFF];
+    const ROM_ADDR: [number, number] = [0xff00, 0xffff];
     // $0000-$0FFF 4KB Standard RAM
-    const RAM_BANK1_ADDR: [number, number]  = [0x0000, 0x0FFF];
+    const RAM_BANK1_ADDR: [number, number] = [0x0000, 0x0fff];
     // $E000-$EFFF 4KB Extended RAM
-    const RAM_BANK2_ADDR: [number, number]  = [0xE000, 0xEFFF];
+    const RAM_BANK2_ADDR: [number, number] = [0xe000, 0xefff];
     // $D010-$D013 PIA (6821) [KBD & DSP]
-    const PIA_ADDR: [number, number]        = [0xD010, 0xD013];
+    const PIA_ADDR: [number, number] = [0xd010, 0xd013];
 
     // Wire PIA
     const pia: PIA6820 = new PIA6820();
@@ -42,10 +42,10 @@ const Apple1 = ({video, keyboard}: {video: IoComponent;  keyboard: IoComponent})
     const ramBank1: RAM = new RAM();
     const ramBank2: RAM = new RAM();
     const addressMapping: Array<AddressSpaceType> = [
-        { addr: ROM_ADDR, component: rom, name:'ROM'},
-        { addr: RAM_BANK1_ADDR, component: ramBank1, name:'RAM_BANK_1'},
-        { addr: RAM_BANK2_ADDR, component: ramBank2, name:'RAM_BANK_2'},
-        { addr: PIA_ADDR, component: pia, name:'PIA6820'},
+        { addr: ROM_ADDR, component: rom, name: 'ROM' },
+        { addr: RAM_BANK1_ADDR, component: ramBank1, name: 'RAM_BANK_1' },
+        { addr: RAM_BANK2_ADDR, component: ramBank2, name: 'RAM_BANK_2' },
+        { addr: PIA_ADDR, component: pia, name: 'PIA6820' },
     ];
 
     rom.flash(wozMonitor);
@@ -56,13 +56,13 @@ const Apple1 = ({video, keyboard}: {video: IoComponent;  keyboard: IoComponent})
     const cpu: CPU6502 = new CPU6502(addressSpaces);
 
     keyboard.wire({
-        logicWrite: async (value) => {
+        logicWrite: async value => {
             if (value === RESET_CODE) {
                 cpu.reset();
             } else {
                 return keyboardLogic.write(value);
             }
-        }
+        },
     });
 
     const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);

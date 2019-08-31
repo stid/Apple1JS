@@ -1,6 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
-const { CleanWebpackPlugin }  = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
 
 const commonConfig = {
@@ -12,28 +12,25 @@ const commonConfig = {
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        babelrc: true
-                    }
-                }
-            }
-        ]
+                        babelrc: true,
+                    },
+                },
+            },
+        ],
     },
     resolve: {
         extensions: ['.ts', '.js'],
-        modules: [
-            path.resolve(__dirname, 'node_modules'),
-            path.resolve(__dirname, './src'),
-        ]
+        modules: [path.resolve(__dirname, 'node_modules'), path.resolve(__dirname, './src')],
     },
     plugins: [
         new webpack.optimize.ModuleConcatenationPlugin(),
         new MinifyPlugin(),
         new CleanWebpackPlugin(),
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('production')
-        })
+            'process.env.NODE_ENV': JSON.stringify('production'),
+        }),
     ],
-    mode: 'production'
+    mode: 'production',
 };
 
 const nodeConfig = {
@@ -41,9 +38,9 @@ const nodeConfig = {
     target: 'node',
     output: {
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist')
+        path: path.resolve(__dirname, 'dist'),
     },
-    ...commonConfig
+    ...commonConfig,
 };
 
 const webConfig = {
@@ -51,10 +48,9 @@ const webConfig = {
     target: 'web',
     output: {
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist-web')
+        path: path.resolve(__dirname, 'dist-web'),
     },
-    ...commonConfig
+    ...commonConfig,
 };
-
 
 module.exports = [nodeConfig, webConfig];

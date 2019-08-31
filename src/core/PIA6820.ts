@@ -20,73 +20,73 @@ class PIA6820 implements IoAddressable {
         this.ioA = ioA;
     }
 
-    wireIOB(ioB: IoComponent): void  {
+    wireIOB(ioB: IoComponent): void {
         this.ioB = ioB;
     }
 
     // Direct Bits A
-    setBitDataA(bit: number): void  {
+    setBitDataA(bit: number): void {
         this.data[DATA_A_ADDR] = utils.bitSet(this.data[DATA_A_ADDR], bit);
     }
 
-    clearBitDataA(bit: number): void  {
+    clearBitDataA(bit: number): void {
         this.data[DATA_A_ADDR] = utils.bitClear(this.data[DATA_A_ADDR], bit);
     }
 
-    setBitCtrA(bit: number): void  {
+    setBitCtrA(bit: number): void {
         this.data[CRT_A_ADDR] = utils.bitSet(this.data[CRT_A_ADDR], bit);
     }
 
-    clearBitCrtA(bit: number): void  {
+    clearBitCrtA(bit: number): void {
         this.data[CRT_A_ADDR] = utils.bitClear(this.data[CRT_A_ADDR], bit);
     }
 
     // Direct Bits B
-    setBitDataB(bit: number): void  {
+    setBitDataB(bit: number): void {
         this.data[DATA_B_ADDR] = utils.bitSet(this.data[DATA_B_ADDR], bit);
     }
 
-    clearBitDataB(bit: number): void  {
+    clearBitDataB(bit: number): void {
         this.data[DATA_B_ADDR] = utils.bitClear(this.data[DATA_B_ADDR], bit);
     }
 
-    setBitCtrB(bit: number): void  {
+    setBitCtrB(bit: number): void {
         this.data[CRT_A_ADDR] = utils.bitSet(this.data[CRT_A_ADDR], bit);
     }
 
-    clearBitCrtB(bit: number): void  {
+    clearBitCrtB(bit: number): void {
         this.data[CRT_B_ADDR] = utils.bitClear(this.data[CRT_B_ADDR], bit);
     }
 
     // Interrupt CA1
-    raiseCA1(): void  {
+    raiseCA1(): void {
         this.setBitCtrA(7);
     }
 
     // Interrupt CB1
-    raiseCB1(): void  {
+    raiseCB1(): void {
         this.setBitCtrB(7);
     }
 
     // Wire Actions
-    setDataA(value: number): void  {
+    setDataA(value: number): void {
         this.data[DATA_A_ADDR] = value;
     }
 
-    setDataB(value: number): void  {
+    setDataB(value: number): void {
         this.data[DATA_B_ADDR] = value;
     }
 
     // BUS Actions
     read(address: number): number {
-        switch(address) {
-        case DATA_A_ADDR:
-            this.clearBitCrtA(7);
-            break;
+        switch (address) {
+            case DATA_A_ADDR:
+                this.clearBitCrtA(7);
+                break;
 
-        case DATA_B_ADDR:
-            this.clearBitCrtB(7);
-            break;
+            case DATA_B_ADDR:
+                this.clearBitCrtB(7);
+                break;
         }
         return this.data[address];
     }
@@ -94,18 +94,22 @@ class PIA6820 implements IoAddressable {
     write(address: number, value: number): void {
         this.data[address] = value;
 
-        switch(address) {
-        case DATA_A_ADDR:
-            if (this.ioA) {this.ioA.write(value);}
-            break;
+        switch (address) {
+            case DATA_A_ADDR:
+                if (this.ioA) {
+                    this.ioA.write(value);
+                }
+                break;
 
-        case DATA_B_ADDR:
-            if (this.ioB) {this.ioB.write(value);}
-            break;
+            case DATA_B_ADDR:
+                if (this.ioB) {
+                    this.ioB.write(value);
+                }
+                break;
         }
     }
 
-    toLog(): void  {
+    toLog(): void {
         console.log(this.data);
     }
 
@@ -113,7 +117,6 @@ class PIA6820 implements IoAddressable {
     flash(data: Array<number>): void {
         return;
     }
-
 }
 
 export default PIA6820;

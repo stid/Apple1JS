@@ -1,4 +1,3 @@
-
 import hrtime from 'browser-process-hrtime';
 
 const NS_PER_SEC = 1e9;
@@ -23,8 +22,10 @@ class Clock {
     }
 
     toLog(): void {
-        const {mhz, stepChunk, lastCycleCount, nanoPerCycle} = this;
-        console.log(`CLOCK: ${mhz}Mhz :: stepChunk: ${stepChunk} :: lastCycleCount: ${lastCycleCount} :: nanoPerCycle: ${nanoPerCycle}`);
+        const { mhz, stepChunk, lastCycleCount, nanoPerCycle } = this;
+        console.log(
+            `CLOCK: ${mhz}Mhz :: stepChunk: ${stepChunk} :: lastCycleCount: ${lastCycleCount} :: nanoPerCycle: ${nanoPerCycle}`,
+        );
     }
 
     _nanoDiff(): number {
@@ -38,7 +39,7 @@ class Clock {
         for (let a = 0; a < this.stepChunk; a++) {
             const nanoDelta: number = this._nanoDiff();
 
-            if (nanoDelta > (this.nanoPerCycle * this.lastCycleCount)) {
+            if (nanoDelta > this.nanoPerCycle * this.lastCycleCount) {
                 this.prevCycleTime = hrtime();
                 this.lastCycleCount = this.cpu.step();
             }

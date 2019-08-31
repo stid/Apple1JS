@@ -1,5 +1,5 @@
-const BS = 0xDF;  // Backspace key, arrow left key (B7 High)
-const ESC = 0x9B;  // ESC key (B7 High)
+const BS = 0xdf; // Backspace key, arrow left key (B7 High)
+const ESC = 0x9b; // ESC key (B7 High)
 //const RESET_CODE = -255;
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
@@ -14,8 +14,8 @@ class Keyboard implements IoComponent {
         });
     }
 
-    wire(conf: {logicWrite?: (value: number) => Promise<void>}) {
-        this.logicWrite=conf.logicWrite;
+    wire(conf: { logicWrite?: (value: number) => Promise<void> }) {
+        this.logicWrite = conf.logicWrite;
     }
 
     // eslint-disable-next-line no-unused-vars
@@ -33,14 +33,14 @@ class Keyboard implements IoComponent {
         if (logicWrite) {
             // Standard Keys
             switch (event.key) {
-            case 'Backspace':
-                logicWrite(BS);
-                break;
-            case 'Escape':
-                logicWrite(ESC);
-                break;
-            default:
-                logicWrite(event.keyCode);
+                case 'Backspace':
+                    logicWrite(BS);
+                    break;
+                case 'Escape':
+                    logicWrite(ESC);
+                    break;
+                default:
+                    logicWrite(event.keyCode);
             }
         }
     }

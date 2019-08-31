@@ -1,10 +1,9 @@
 import wait from 'waait';
 import produce from 'immer';
 
-
-const BS = 0xDF; // Backspace key, arrow left key (B7 High)
-const CR = 0x8D; // Carriage Return (B7 High)
-const ESC = 0x9B; // ESC key (B7 High)
+const BS = 0xdf; // Backspace key, arrow left key (B7 High)
+const CR = 0x8d; // Carriage Return (B7 High)
+const ESC = 0x9b; // ESC key (B7 High)
 
 const DISPLAY_DELAY = 17;
 const NUM_COLUMNS = 40;
@@ -23,29 +22,27 @@ const NUM_ROWS = 24;
 //                rts
 //
 
-
 interface VideoOut {
     onChange: (buffer: Array<Array<string>>) => void;
 }
 
-type VideoBuffer = Array<Array<string>>
+type VideoBuffer = Array<Array<string>>;
 
 class CRTVideo implements IoComponent {
-    row: number
-    column: number
-    buffer: VideoBuffer
-    subscribers: Array<VideoOut>
+    row: number;
+    column: number;
+    buffer: VideoBuffer;
+    subscribers: Array<VideoOut>;
 
-    constructor () {
+    constructor() {
         this.row = 0;
         this.column = 0;
         this.buffer = Array(NUM_ROWS);
         this.subscribers = [];
         this.onClear();
-
     }
 
-    onClear () {
+    onClear() {
         this._updateBuffer(draftBuffer => {
             for (let i = 0; i < this.buffer.length; i++) {
                 draftBuffer[i] = Array(NUM_COLUMNS).fill('');
@@ -59,21 +56,20 @@ class CRTVideo implements IoComponent {
     }
 
     unsubscribe(videoOut: VideoOut) {
-        this.subscribers = this.subscribers.filter( subscriber => subscriber !== videoOut );
+        this.subscribers = this.subscribers.filter(subscriber => subscriber !== videoOut);
     }
 
     _notifySubscribers() {
-        this.subscribers.forEach( subscriber => subscriber.onChange(this.buffer) );
+        this.subscribers.forEach(subscriber => subscriber.onChange(this.buffer));
     }
 
-    onChar (char: string) {
-        this._updateBuffer( draftBuffer => {
-
+    onChar(char: string) {
+        this._updateBuffer(draftBuffer => {
             // NEW LINE
             if (char === '\n') {
                 this.row += 1;
                 this.column = 0;
-            // BACKSPACE
+                // BACKSPACE
             } else if (char === '\b') {
                 if (this.column >= 0) {
                     this.column -= 1;
@@ -81,7 +77,7 @@ class CRTVideo implements IoComponent {
                 }
             } else {
                 // STANDARD SUPPORTED ASCII
-                if (char.charCodeAt(0) >=32 && char.charCodeAt(0) <=126) {
+                if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
                     draftBuffer[this.row][this.column] = char;
                     this.column += 1;
                 }
@@ -89,7 +85,7 @@ class CRTVideo implements IoComponent {
 
             // End of line
             if (this.column > NUM_COLUMNS) {
-                this.row +=1;
+                this.row += 1;
                 this.column = 0;
             }
 
@@ -100,7 +96,6 @@ class CRTVideo implements IoComponent {
             }
         });
     }
-
 
     // eslint-disable-next-line no-unused-vars
     async read(address: number) {
@@ -113,35 +108,34 @@ class CRTVideo implements IoComponent {
 
     async write(char: number) {
         // Clear screen
-        if ((char & 0x7F) === 12) {
+        if ((char & 0x7f) === 12) {
             return this.onClear();
         }
 
         switch (char) {
-        case ESC:
-            break;
-        case CR:
-            this.onChar('\n');
-            break;
-        //case 0xFF:
-        case BS:
-            this.onChar('\b');
-            break;
-        default:
-            this.onChar(String.fromCharCode(char & 0x7F));
-            break;
+            case ESC:
+                break;
+            case CR:
+                this.onChar('\n');
+                break;
+            //case 0xFF:
+            case BS:
+                this.onChar('\b');
+                break;
+            default:
+                this.onChar(String.fromCharCode(char & 0x7f));
+                break;
         }
         await wait(DISPLAY_DELAY);
     }
 
-    _updateBuffer( updateFunction: (draftBuffer: VideoBuffer) => void ) {
-        const newBuffer = produce(this.buffer, draftBuffer => updateFunction(draftBuffer) );
-        if ((newBuffer !== this.buffer)) {
+    _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
+        const newBuffer = produce(this.buffer, draftBuffer => updateFunction(draftBuffer));
+        if (newBuffer !== this.buffer) {
             this.buffer = newBuffer;
             this._notifySubscribers();
         }
     }
-
 }
 
 export default CRTVideo;

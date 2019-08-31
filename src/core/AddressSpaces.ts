@@ -6,7 +6,7 @@ class AddressSpaces {
     }
 
     _findInstanceWithAddress(address: number): AddressSpaceType | void {
-        return this.addressMapping.find( (item: AddressSpaceType) => address >= item.addr[0] && address <= item.addr[1] );
+        return this.addressMapping.find((item: AddressSpaceType) => address >= item.addr[0] && address <= item.addr[1]);
     }
 
     read(address: number): number {
@@ -26,13 +26,18 @@ class AddressSpaces {
 
     toLog(): void {
         this.addressMapping.forEach(element => {
-            const from: string = element.addr[0].toString(16).padStart(4, '0').toUpperCase();
-            const to: string = element.addr[1].toString(16).padStart(4, '0').toUpperCase();
+            const from: string = element.addr[0]
+                .toString(16)
+                .padStart(4, '0')
+                .toUpperCase();
+            const to: string = element.addr[1]
+                .toString(16)
+                .padStart(4, '0')
+                .toUpperCase();
             const name: string = element.name || 'Unknown';
             console.log(`[${from}]:[${to}] :: ${name}`);
         });
     }
-
 }
 
 export default AddressSpaces;

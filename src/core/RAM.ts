@@ -18,13 +18,12 @@ class RAM implements IoAddressable {
     flash(data: Array<number>): void {
         // LOAD A PROG
         const [highAddr, lowAddr, ...coreData] = data;
-        const prgAddr: number = highAddr | lowAddr << 8;
+        const prgAddr: number = highAddr | (lowAddr << 8);
 
-        for (let i = 0; i < (coreData.length) ; i++) {
-            this.data[prgAddr+i] = coreData[i];
+        for (let i = 0; i < coreData.length; i++) {
+            this.data[prgAddr + i] = coreData[i];
         }
     }
-
 }
 
 export default RAM;
