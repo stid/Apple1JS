@@ -5,7 +5,7 @@
   "main": "dist-web/bundle.js",
   "module": "src/index-web.js",
   "scripts": {
-    "test": "run-s eslint jest",
+    "test": "run-s eslint type-check jest",
     "build": "webpack",
     "start": "node dist/bundle.js",
     "raw_start": "node index.js",
