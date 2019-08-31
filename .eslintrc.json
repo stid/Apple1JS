@@ -1,36 +1,28 @@
 {
-    "parser": "babel-eslint",
-    "env": {
-        "node": true,
-        "es6": true,
-        "jest": true
-    },
-    "plugins": [
-        "flowtype"
-    ],
-    "extends": ["eslint:recommended", "plugin:flowtype/recommended"],
-    "parserOptions": {
-        "ecmaVersion": 2018,
-        "sourceType": "module"
-    },
-    "rules": {
-        "process-env": "off",
-        "no-console": "off",
-        "indent": [
-            "error",
-            4
-        ],
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "quotes": [
-            "error",
-            "single"
-        ],
-        "semi": [
-            "error",
-            "always"
-        ]
-    }
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended",
+    "plugin:mocha/recommended"
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "jest": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint/eslint-plugin",
+    "mocha",
+    "prettier"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "prettier/prettier": "error"
+  }
 }
