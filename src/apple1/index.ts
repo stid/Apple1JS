@@ -13,12 +13,14 @@ import DisplayLogic from './DisplayLogic';
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
-import { isBrowser } from 'core/utils';
+import { isBrowser as isBrowserFunc } from 'core/utils';
 
 const RESET_CODE = -255;
 
+const isBrowser = isBrowserFunc();
+
 const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent }) => {
-    const STEP_CHUNK = 10000;
+    const STEP_CHUNK = 100;
     const MHZ_CPU_SPEED = 1;
 
     // $FF00-$FFFF 256 Bytes ROM
@@ -67,7 +69,7 @@ const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent
 
     const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
 
-    if (isBrowser()) {
+    if (isBrowser) {
         console.log('Apple 1 :: Browser Mode');
     } else {
         console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
@@ -82,11 +84,7 @@ const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent
 
     (function loop(): void {
         clock.cycle();
-        if (isBrowser()) {
-            setTimeout(loop, 0);
-        } else {
-            setImmediate(loop);
-        }
+        setImmediate(loop);
     })();
 };
 
