@@ -1,4 +1,7 @@
 {
+    "exclude": [
+        "**/*.test.ts"
+    ],
     "compilerOptions": {
       "allowJs": false,
       "allowSyntheticDefaultImports": true,
