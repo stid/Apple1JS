@@ -1,5 +1,5 @@
 Arguments: 
-  /Users/sfuriosi/.nvm/versions/node/v10.16.3/bin/node /usr/local/Cellar/yarn/1.17.3/libexec/bin/yarn.js add eslint-config-prettier --dev
+  /Users/sfuriosi/.nvm/versions/node/v10.16.3/bin/node /usr/local/Cellar/yarn/1.17.3/libexec/bin/yarn.js add babel-plugin-module-resolver --dev
 
 PATH: 
   /usr/local/lib/ruby/gems/2.6.0/bin:/usr/local/opt/sbt@0.13/bin:/usr/local/opt/ruby/bin:/Users/sfuriosi/.nvm/versions/node/v10.16.3/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/lib/ruby/gems/2.6.0/bin:/usr/local/opt/sbt@0.13/bin:/usr/local/opt/ruby/bin:/Users/sfuriosi/.nvm/versions/node/v10.16.3/bin:/usr/local/sbin
@@ -14,7 +14,7 @@ Platform:
   darwin x64
 
 Trace: 
-  Error: https://registry.npmjs.intuit.com/eslint-config-prettier: Request "https://registry.npmjs.intuit.com/eslint-config-prettier" returned a 403
+  Error: https://registry.npmjs.intuit.com/babel-plugin-module-resolver: Request "https://registry.npmjs.intuit.com/babel-plugin-module-resolver" returned a 403
       at Request.params.callback [as _callback] (/usr/local/Cellar/yarn/1.17.3/libexec/lib/cli.js:66839:18)
       at Request.self.callback (/usr/local/Cellar/yarn/1.17.3/libexec/lib/cli.js:140464:22)
       at Request.emit (events.js:198:13)
@@ -38,7 +38,7 @@ npm manifest:
       "build": "webpack",
       "start": "node dist/bundle.js",
       "raw_start": "node index.js",
-      "eslint": "eslint src --ext .ts",
+      "eslint": "eslint src/**/*.ts",
       "profile": "node --prof dist/bundle.js",
       "jest": "jest",
       "type-check": "tsc --noEmit"

@@ -98,7 +98,7 @@ class CRTVideo implements IoComponent {
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(address: number) {
+    async read(_address: number) {
         // Not implemented
     }
 

@@ -23,16 +23,16 @@ class Keyboard implements IoComponent {
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(address: number) {
+    async read(_address: number) {
         // Not implemented
     }
 
     // eslint-disable-next-line no-unused-vars
-    async write(address: number) {
+    async write(_address: number) {
         // Not implemented
     }
 
-    onKeyPressed(str: string, key: { sequence: string; name: string }): void {
+    onKeyPressed(_str: string, key: { sequence: string; name: string }): void {
         const logicWrite = this.logicWrite;
 
         // Special Keys

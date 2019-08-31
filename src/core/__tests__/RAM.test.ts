@@ -1,12 +1,12 @@
 import RAM from '../RAM';
 
-describe('RAM', () => {
+describe('RAM', function() {
     let testRam: RAM;
 
-    beforeEach(() => {
+    beforeEach(function() {
         testRam = new RAM();
     });
-    test('Should bulk load & read', () => {
+    test('Should bulk load & read', function() {
         // Should load at 0x0280
         testRam.flash([0x80, 0x02, 1, 2, 3]);
         expect(testRam.read(0x00)).toBe(0x00);
@@ -15,9 +15,8 @@ describe('RAM', () => {
         expect(testRam.read(0x282)).toBe(0x03);
     });
 
-    test('Should write & read', () => {
-        testRam.write(0x0A, 0xAB); // This will just be ignored
-        expect(testRam.read(0x0A)).toBe(0xAB);
+    test('Should write & read', function() {
+        testRam.write(0x0a, 0xab); // This will just be ignored
+        expect(testRam.read(0x0a)).toBe(0xab);
     });
-
 });

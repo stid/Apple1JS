@@ -4,6 +4,15 @@ module.exports = function(api) {
     const presets = [['@babel/preset-env', { useBuiltIns: 'usage', corejs: 3 }], '@babel/typescript'];
 
     const plugins = [
+        [
+            require.resolve('babel-plugin-module-resolver'),
+            {
+                root: ['./src'],
+                alias: {
+                    core: './src/core',
+                },
+            },
+        ],
         '@babel/transform-async-to-generator',
         [
             '@babel/transform-runtime',

@@ -12,7 +12,7 @@ class ROM implements IoAddressable {
     }
 
     // eslint-disable-next-line no-unused-vars
-    write(address: number, value: number) {
+    write(_address: number, _value: number) {
         return;
     }
 
