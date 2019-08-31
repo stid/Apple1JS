@@ -9,9 +9,8 @@ class Keyboard implements IoComponent {
     private logicWrite?: (value: number) => Promise<void>;
 
     constructor() {
-        // eslint-disable-next-line no-undef
         window.addEventListener('keydown', (e: KeyboardEvent) => {
-            this._onKeyPressed(e);
+            this.write(e.key);
         });
     }
 
@@ -19,34 +18,27 @@ class Keyboard implements IoComponent {
         this.logicWrite = conf.logicWrite;
     }
 
-    // eslint-disable-next-line no-unused-vars
     async read(_address: number) {
         // Not implemented
     }
 
-    // eslint-disable-next-line no-unused-vars
-    async write(_address: number) {
-        // Not implemented
-    }
-
-    private _onKeyPressed(event: KeyboardEvent): void {
+    async write(key: string) {
         const logicWrite = this.logicWrite;
         if (logicWrite) {
             // Standard Keys
-            switch (event.key) {
+            switch (key) {
                 case 'Backspace':
-                    logicWrite(BS);
+                    await logicWrite(BS);
                     break;
                 case 'Escape':
-                    logicWrite(ESC);
+                    await logicWrite(ESC);
                     break;
                 case 'Enter':
-                    logicWrite(CR);
+                    await logicWrite(CR);
                     break;
                 default: {
-                    const key = event.key;
                     if (key.length === 1) {
-                        logicWrite(key.toUpperCase().charCodeAt(0));
+                        await logicWrite(key.toUpperCase().charCodeAt(0));
                     }
                 }
             }

@@ -2,7 +2,7 @@ module.exports = function(api) {
     api.cache(true);
 
     const presets = [
-        ['@babel/preset-env', { useBuiltIns: 'usage', corejs: 3 }],
+        ['@babel/preset-env', { useBuiltIns: 'usage', corejs: 3, targets: { chrome: '76', node: '10' } }],
         '@babel/typescript',
         '@babel/preset-react',
     ];
@@ -32,6 +32,11 @@ module.exports = function(api) {
             },
         ],
     ];
+
+    const targets = {
+        chrome: '58',
+        ie: '11',
+    };
 
     return {
         presets,
