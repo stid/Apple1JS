@@ -3,6 +3,8 @@
         "**/*.test.ts"
     ],
     "compilerOptions": {
+      "preserve": "jsx",
+      "jsx": "react",
       "allowJs": false,
       "allowSyntheticDefaultImports": true,
       "lib": ["es5", "es6", "dom"],

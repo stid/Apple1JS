@@ -19,7 +19,7 @@ const commonConfig = {
         ],
     },
     resolve: {
-        extensions: ['.ts', '.js'],
+        extensions: ['.ts', '.js', '.tsx'],
         modules: [path.resolve(__dirname, 'node_modules'), path.resolve(__dirname, './src')],
     },
     plugins: [

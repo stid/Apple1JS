@@ -84,15 +84,17 @@ class CRTVideo implements IoComponent {
             }
 
             // End of line
-            if (this.column > NUM_COLUMNS) {
+            if (this.column >= NUM_COLUMNS) {
                 this.row += 1;
                 this.column = 0;
             }
 
             // End of Screen - shift up
-            if (this.row > NUM_ROWS) {
+            if (this.row >= NUM_ROWS) {
+                console.log('SHIFTING' + NUM_ROWS);
                 draftBuffer.shift();
-                draftBuffer.push(Array(NUM_COLUMNS).fill('.'));
+                draftBuffer.push(Array(NUM_COLUMNS).fill(' '));
+                this.row -= 1;
             }
         });
     }
