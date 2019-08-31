@@ -1,24 +1,26 @@
 import React from 'react';
-import WebCRTVideo from 'apple1/WebCRTVideo';
+import { WORKER_MESSAGES } from 'apple1/AppleWorker';
+import CRT from './CRT';
 
 type Props = {
-    video: WebCRTVideo;
+    worker?: Worker;
 };
 
-export default ({ video }: Props) => {
+export default ({ worker }: Props) => {
     const [videoBuffer, setVideoBuffer] = React.useState([['']]);
 
     React.useEffect(() => {
-        video.subscribe({
-            onChange: newBuffer => {
-                setVideoBuffer(newBuffer);
-            },
-        });
+        if (worker) {
+            worker.addEventListener('message', e => {
+                const { data, type } = e.data;
+                switch (type) {
+                    case WORKER_MESSAGES.VIDEO_BUFFER:
+                        setVideoBuffer(data);
+                        break;
+                }
+            });
+        }
     }, []);
 
-    return (
-        <pre style={{ font: '"Courier New", Courier, monospace' }}>
-            {videoBuffer.map(line => `${line.join('')}\n`)}{' '}
-        </pre>
-    );
+    return <CRT videoBuffer={videoBuffer} />;
 };

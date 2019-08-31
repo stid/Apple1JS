@@ -6,7 +6,7 @@
       "jsx": "react",
       "allowJs": false,
       "allowSyntheticDefaultImports": true,
-      "lib": ["es5", "es6", "dom"],
+      "lib": ["es5", "es6", "dom", "webworker"],
       "moduleResolution": "node",
       "noEmit": true,
       "noUnusedLocals": true,

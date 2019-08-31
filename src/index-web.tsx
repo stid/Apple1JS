@@ -1,13 +1,12 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
-import Apple1 from './apple1';
-import WebKeyboard from './apple1/WebKeyboard';
-import WebCRTVideo from './apple1/WebCRTVideo';
 import App from 'components/app';
+import { WORKER_MESSAGES } from 'apple1/AppleWorker';
 
-export const video = new WebCRTVideo();
-export const keyboard = new WebKeyboard();
+const appleWorker = new Worker('js/AppleWorker.js');
 
-ReactDOM.render(<App video={video} />, document.getElementById('app'));
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+    appleWorker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });
+});
 
-Apple1({ video: video, keyboard: keyboard });
+ReactDOM.render(<App worker={appleWorker} />, document.getElementById('app'));
