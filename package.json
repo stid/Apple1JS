@@ -9,7 +9,7 @@
     "build": "webpack",
     "start": "node dist/bundle.js",
     "raw_start": "node index.js",
-    "eslint": "eslint src/**/*.ts",
+    "eslint": "eslint src --ext .ts --ext .tsx",
     "profile": "node --prof dist/bundle.js",
     "jest": "jest",
     "type-check": "tsc --build ./src/tsconfig.json"

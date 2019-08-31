@@ -8,4 +8,3 @@ declare interface IoLogic {
     write(value: number): Promise<void>;
     wire(options: IoLogicWireOptions): void;
 }
-

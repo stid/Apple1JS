@@ -8,5 +8,3 @@ declare interface IoComponent {
     write(value: number): Promise<void>;
     wire(options: IoComponentWireOptions): void;
 }
-
-

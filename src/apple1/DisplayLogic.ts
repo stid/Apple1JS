@@ -3,8 +3,8 @@ import PIA6820 from '../core/PIA6820';
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high
 class DisplayLogic implements IoLogic {
-    pia: PIA6820;
-    video: IoComponent;
+    private pia: PIA6820;
+    private video: IoComponent;
 
     constructor(pia: PIA6820, video: IoComponent) {
         this.pia = pia;

@@ -7,7 +7,7 @@ const RESET_CODE = -255;
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
-    logicWrite?: (value: number) => Promise<void>;
+    private logicWrite?: (value: number) => Promise<void>;
 
     constructor() {
         readline.emitKeypressEvents(process.stdin);

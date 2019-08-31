@@ -5,12 +5,12 @@ const ESC = 0x9b; // ESC key (B7 High)
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
-    logicWrite?: (value: number) => Promise<void>;
+    private logicWrite?: (value: number) => Promise<void>;
 
     constructor() {
         // eslint-disable-next-line no-undef
         window.addEventListener('keydown', (e: KeyboardEvent) => {
-            this.onKeyPressed(e);
+            this._onKeyPressed(e);
         });
     }
 
@@ -28,7 +28,7 @@ class Keyboard implements IoComponent {
         // Not implemented
     }
 
-    onKeyPressed(event: KeyboardEvent): void {
+    private _onKeyPressed(event: KeyboardEvent): void {
         const logicWrite = this.logicWrite;
         if (logicWrite) {
             // Standard Keys

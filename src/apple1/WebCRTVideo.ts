@@ -31,8 +31,8 @@ type VideoBuffer = Array<Array<string>>;
 class CRTVideo implements IoComponent {
     row: number;
     column: number;
-    buffer: VideoBuffer;
-    subscribers: Array<VideoOut>;
+    private buffer: VideoBuffer;
+    private subscribers: Array<VideoOut>;
 
     constructor() {
         this.row = 0;
@@ -59,11 +59,11 @@ class CRTVideo implements IoComponent {
         this.subscribers = this.subscribers.filter(subscriber => subscriber !== videoOut);
     }
 
-    _notifySubscribers() {
+    private _notifySubscribers() {
         this.subscribers.forEach(subscriber => subscriber.onChange(this.buffer));
     }
 
-    onChar(char: string) {
+    private _onChar(char: string) {
         this._updateBuffer(draftBuffer => {
             // NEW LINE
             if (char === '\n') {
@@ -116,20 +116,20 @@ class CRTVideo implements IoComponent {
             case ESC:
                 break;
             case CR:
-                this.onChar('\n');
+                this._onChar('\n');
                 break;
             //case 0xFF:
             case BS:
-                this.onChar('\b');
+                this._onChar('\b');
                 break;
             default:
-                this.onChar(String.fromCharCode(char & 0x7f));
+                this._onChar(String.fromCharCode(char & 0x7f));
                 break;
         }
         await wait(DISPLAY_DELAY);
     }
 
-    _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
+    private _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
         const newBuffer = produce(this.buffer, draftBuffer => updateFunction(draftBuffer));
         if (newBuffer !== this.buffer) {
             this.buffer = newBuffer;

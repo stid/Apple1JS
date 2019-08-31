@@ -1,11 +1,11 @@
 class AddressSpaces {
-    addressMapping: Array<AddressSpaceType>;
+    private addressMapping: Array<AddressSpaceType>;
 
     constructor(addressMapping: Array<AddressSpaceType>) {
         this.addressMapping = addressMapping;
     }
 
-    _findInstanceWithAddress(address: number): AddressSpaceType | void {
+    private _findInstanceWithAddress(address: number): AddressSpaceType | void {
         return this.addressMapping.find((item: AddressSpaceType) => address >= item.addr[0] && address <= item.addr[1]);
     }
 
