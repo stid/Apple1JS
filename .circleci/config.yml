@@ -24,10 +24,3 @@ jobs: # a collection of steps
       - run: # run tests
           name: test
           command: yarn test
-      - store_artifacts: # special step to save test results as as artifact
-          # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: test-results.xml
-          prefix: tests
-      - store_test_results: # for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-          path: test-results.xml
-      # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
