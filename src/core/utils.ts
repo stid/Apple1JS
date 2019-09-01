@@ -13,5 +13,3 @@ export const bitTest = (num: number, bit: number): boolean => {
 export const bitToggle = (num: number, bit: number): number => {
     return bitTest(num, bit) ? bitClear(num, bit) : bitSet(num, bit);
 };
-
-export const isBrowser = () => typeof window !== 'undefined';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { WORKER_MESSAGES } from 'apple1/AppleWorker';
+import { WORKER_MESSAGES } from 'apple1/constants';
 import CRT from './CRT';
 
 type Props = {

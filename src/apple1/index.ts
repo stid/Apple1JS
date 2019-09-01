@@ -13,11 +13,8 @@ import DisplayLogic from './DisplayLogic';
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
-import { isBrowser as isBrowserFunc } from 'core/utils';
 
 const RESET_CODE = -255;
-
-const isBrowser = isBrowserFunc();
 
 const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent }) => {
     const STEP_CHUNK = 10;
@@ -68,12 +65,7 @@ const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent
     });
 
     const clock: Clock = new Clock(cpu, MHZ_CPU_SPEED, STEP_CHUNK);
-
-    if (isBrowser) {
-        console.log('Apple 1 :: Browser Mode');
-    } else {
-        console.log(`Apple 1 :: Node: ${process.version} :: ${process.platform}`);
-    }
+    console.log(`Apple 1 :: ${process.title} :: ${process.version}`);
 
     clock.toLog();
     addressSpaces.toLog();

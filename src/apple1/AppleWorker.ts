@@ -1,14 +1,10 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebWorkerKeyboard';
 import WebCRTVideo from './WebCRTVideo';
+import { WORKER_MESSAGES } from './constants';
 
 export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();
-
-export enum WORKER_MESSAGES {
-    VIDEO_BUFFER,
-    KEY_DOWN,
-}
 
 video.subscribe({
     onChange: newBuffer => {
