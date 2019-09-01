@@ -1,14 +1,23 @@
 import React from 'react';
+import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from 'apple1/TSTypes';
 
 type Props = {
-    videoBuffer: Array<[number, string[]]>;
+    videoBuffer: VideoBuffer;
 };
 
 const CRT = ({ videoBuffer }: Props) => (
-    <div style={{ backgroundColor: '#193549', width: '337px' }}>
-        <pre style={{ fontSize: '14px', font: '"Courier New", Courier, monospace', color: '#a5ff90' }}>
+    <div style={{ backgroundColor: '#193549', width: '517px' }}>
+        <pre
+            style={{
+                fontSize: '12px',
+                fontFamily: '"Press Start 2P", cursive',
+                color: '#a5ff90',
+                lineHeight: '14px',
+                letterSpacing: '1px',
+            }}
+        >
             {videoBuffer.map(line => (
-                <Row line={line[1]} key={line[0]} />
+                <Row line={line[WEB_VIDEO_BUFFER_ROW.DATA]} key={line[WEB_VIDEO_BUFFER_ROW.KEY]} />
             ))}
         </pre>
     </div>

@@ -1,5 +1,6 @@
 import wait from 'waait';
 import produce from 'immer';
+import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from './TSTypes';
 
 const BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const CR = 0x8d; // Carriage Return (B7 High)
@@ -21,8 +22,6 @@ const NUM_ROWS = 24;
 //                sta     DSP              ;Output character. Sets DA
 //                rts
 //
-
-type VideoBuffer = Array<[number, string[]]>;
 
 interface VideoOut {
     onChange: (buffer: VideoBuffer) => void;
@@ -79,12 +78,12 @@ class CRTVideo implements IoComponent {
             } else if (char === '\b') {
                 if (this.column >= 0) {
                     this.column -= 1;
-                    draftBuffer[this.row][1][this.column] = '';
+                    draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = '';
                 }
             } else {
                 // STANDARD SUPPORTED ASCII
                 if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
-                    draftBuffer[this.row][1][this.column] = char;
+                    draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = char;
                     this.column += 1;
                 }
             }

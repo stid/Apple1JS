@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
 import App from 'components/app';
-import { WORKER_MESSAGES } from 'apple1/constants';
+import { WORKER_MESSAGES } from 'apple1/TSTypes';
 
 const appleWorker = new Worker('js/Apple.worker.js');
 

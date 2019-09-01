@@ -1,7 +1,7 @@
 import Apple1 from '.';
-import WebWorkerKeyboard from './WebWorkerKeyboard';
+import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
-import { WORKER_MESSAGES } from './constants';
+import { WORKER_MESSAGES } from './TSTypes';
 
 export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();

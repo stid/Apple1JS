@@ -17,7 +17,7 @@ import wozMonitor from './progs/woz_monitor';
 const RESET_CODE = -255;
 
 const Apple1 = ({ video, keyboard }: { video: IoComponent; keyboard: IoComponent }) => {
-    const STEP_CHUNK = 10;
+    const STEP_CHUNK = 100;
     const MHZ_CPU_SPEED = 1;
 
     // $FF00-$FFFF 256 Bytes ROM
