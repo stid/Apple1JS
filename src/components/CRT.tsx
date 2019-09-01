@@ -44,11 +44,11 @@ type RowProps = {
 };
 const Row = React.memo(({ line, rowIndex }: RowProps) => {
     return (
-        <div>
+        <>
             {line.split('').map((char, index) => (
                 <Char char={char} x={index} y={rowIndex} key={index} />
             ))}
-        </div>
+        </>
     );
 });
 

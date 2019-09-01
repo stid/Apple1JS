@@ -1,4 +1,4 @@
-# Apple 1 NodeJS Emulator
+# Apple 1 Javascript Emulator
 
 NodeJS/Javascript Apple 1 Emulator, include initial abstraction of 6820 and other core components.
 
