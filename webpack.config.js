@@ -27,10 +27,10 @@ const commonConfig = {
         new MinifyPlugin(),
         new CleanWebpackPlugin(),
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('production'),
+            'process.env.NODE_ENV': JSON.stringify('development'),
         }),
     ],
-    mode: 'production',
+    mode: 'development',
 };
 
 const nodeConfig = {

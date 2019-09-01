@@ -9,3 +9,9 @@ export enum WEB_VIDEO_BUFFER_ROW {
 }
 
 export type VideoBuffer = Array<[number, string[]]>;
+
+export type VideoData = {
+    buffer: VideoBuffer;
+    row: number;
+    column: number;
+};

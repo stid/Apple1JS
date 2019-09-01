@@ -7,8 +7,8 @@ export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();
 
 video.subscribe({
-    onChange: newBuffer => {
-        postMessage({ data: newBuffer, type: WORKER_MESSAGES.VIDEO_BUFFER });
+    onChange: (newBuffer, row, column) => {
+        postMessage({ data: { buffer: newBuffer, row: row, column: column }, type: WORKER_MESSAGES.VIDEO_BUFFER });
     },
 });
 

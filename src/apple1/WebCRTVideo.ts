@@ -24,7 +24,7 @@ const NUM_ROWS = 24;
 //
 
 interface VideoOut {
-    onChange: (buffer: VideoBuffer) => void;
+    onChange: (buffer: VideoBuffer, row: number, column: number) => void;
 }
 
 class CRTVideo implements IoComponent {
@@ -53,7 +53,7 @@ class CRTVideo implements IoComponent {
 
     subscribe(videoOut: VideoOut) {
         this.subscribers.push(videoOut);
-        videoOut.onChange(this.buffer);
+        videoOut.onChange(this.buffer, this.row, this.column);
     }
 
     unsubscribe(videoOut: VideoOut) {
@@ -61,7 +61,7 @@ class CRTVideo implements IoComponent {
     }
 
     private _notifySubscribers() {
-        this.subscribers.forEach(subscriber => subscriber.onChange(this.buffer));
+        this.subscribers.forEach(subscriber => subscriber.onChange(this.buffer, this.row, this.column));
     }
 
     private _newLine() {
@@ -76,9 +76,9 @@ class CRTVideo implements IoComponent {
                 this._newLine();
                 // BACKSPACE
             } else if (char === '\b') {
-                if (this.column >= 0) {
+                if (this.column > 0) {
                     this.column -= 1;
-                    draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = '';
+                    draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = ' ';
                 }
             } else {
                 // STANDARD SUPPORTED ASCII
@@ -139,8 +139,8 @@ class CRTVideo implements IoComponent {
         const newBuffer = produce(this.buffer, draftBuffer => updateFunction(draftBuffer));
         if (newBuffer !== this.buffer) {
             this.buffer = newBuffer;
-            this._notifySubscribers();
         }
+        this._notifySubscribers();
     }
 }
 

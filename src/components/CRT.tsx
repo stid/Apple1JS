@@ -1,5 +1,5 @@
 import React from 'react';
-import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from 'apple1/TSTypes';
+import { WEB_VIDEO_BUFFER_ROW, VideoData } from 'apple1/TSTypes';
 import styled from 'styled-components';
 
 const TOP_PADDING = 10;
@@ -24,12 +24,13 @@ const CRTPreContainer = styled.div`
 `;
 
 type Props = {
-    videoBuffer: VideoBuffer;
+    videoData: VideoData;
 };
-const CRT = ({ videoBuffer }: Props) => (
+const CRT = ({ videoData }: Props) => (
     <CRTContainer>
         <CRTPreContainer>
-            {videoBuffer.map((line, index) => (
+            <Cursor row={videoData.row} column={videoData.column} />
+            {videoData.buffer.map((line, index) => (
                 <Row
                     rowIndex={index}
                     line={line[WEB_VIDEO_BUFFER_ROW.DATA].join('')}
@@ -70,6 +71,40 @@ type CharProps = {
 };
 const Char = React.memo(({ char, x }: CharProps) => {
     return <CharContainer style={{ left: `${x * FONT_RECT + LEFT_PADDING}px` }}>{char}</CharContainer>;
+});
+
+const CursorContainer = styled.div`
+    width: 12px;
+    height: 12px;
+    position: absolute;
+`;
+type CursorProp = {
+    row: number;
+    column: number;
+};
+const Cursor = React.memo(({ row, column }: CursorProp) => {
+    const [visible, setVisible] = React.useState(true);
+
+    React.useEffect(() => {
+        setTimeout(() => {
+            setVisible(!visible);
+        }, 400);
+    }, [visible]);
+
+    return (
+        <>
+            {visible && (
+                <CursorContainer
+                    style={{
+                        left: `${column * FONT_RECT + LEFT_PADDING}px`,
+                        top: `${row * FONT_RECT + TOP_PADDING}px`,
+                    }}
+                >
+                    @
+                </CursorContainer>
+            )}
+        </>
+    );
 });
 
 export default CRT;
