@@ -6,7 +6,7 @@ const BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const CR = 0x8d; // Carriage Return (B7 High)
 const ESC = 0x9b; // ESC key (B7 High)
 
-const DISPLAY_DELAY = 17;
+const DISPLAY_DELAY = 12;
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
 
@@ -46,7 +46,7 @@ class CRTVideo implements IoComponent {
     onClear() {
         this._updateBuffer(draftBuffer => {
             for (let i = 0; i < this.buffer.length; i++) {
-                draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill('')];
+                draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill(' ')];
             }
         });
     }

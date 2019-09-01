@@ -2,6 +2,14 @@ import React from 'react';
 import { WORKER_MESSAGES, VideoBuffer } from 'apple1/TSTypes';
 import CRT from './CRT';
 
+import { createGlobalStyle } from 'styled-components';
+
+const GlobalStyle = createGlobalStyle`
+  body {
+    background-color:black;
+  }
+`;
+
 type Props = {
     worker?: Worker;
 };
@@ -22,5 +30,10 @@ export default ({ worker }: Props) => {
         }
     }, []);
 
-    return <CRT videoBuffer={videoBuffer} />;
+    return (
+        <>
+            <GlobalStyle />
+            <CRT videoBuffer={videoBuffer} />
+        </>
+    );
 };

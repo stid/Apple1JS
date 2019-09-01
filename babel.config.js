@@ -9,6 +9,12 @@ module.exports = function(api) {
 
     const plugins = [
         [
+            'babel-plugin-styled-components',
+            {
+                pure: true,
+            },
+        ],
+        [
             require.resolve('babel-plugin-module-resolver'),
             {
                 root: ['./src'],
