@@ -3,7 +3,7 @@ import React from 'react';
 import App from 'components/app';
 import { WORKER_MESSAGES } from 'apple1/constants';
 
-const appleWorker = new Worker('js/AppleWorker.js');
+const appleWorker = new Worker('js/Apple.worker.js');
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
     appleWorker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });

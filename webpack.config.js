@@ -44,7 +44,7 @@ const nodeConfig = {
 };
 
 const webConfig = {
-    entry: { bundle: './src/index-web', AppleWorker: './src/apple1/AppleWorker' },
+    entry: { bundle: './src/index-web', 'Apple.worker': './src/apple1/Apple.worker' },
     target: 'web',
     output: {
         filename: '[name].js',

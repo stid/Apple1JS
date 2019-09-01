@@ -22,21 +22,23 @@ const NUM_ROWS = 24;
 //                rts
 //
 
-interface VideoOut {
-    onChange: (buffer: Array<Array<string>>) => void;
-}
+type VideoBuffer = Array<[number, string[]]>;
 
-type VideoBuffer = Array<Array<string>>;
+interface VideoOut {
+    onChange: (buffer: VideoBuffer) => void;
+}
 
 class CRTVideo implements IoComponent {
     row: number;
     column: number;
     private buffer: VideoBuffer;
     private subscribers: Array<VideoOut>;
+    private rowShift: number;
 
     constructor() {
         this.row = 0;
         this.column = 0;
+        this.rowShift = 0;
         this.buffer = Array(NUM_ROWS);
         this.subscribers = [];
         this.onClear();
@@ -45,7 +47,7 @@ class CRTVideo implements IoComponent {
     onClear() {
         this._updateBuffer(draftBuffer => {
             for (let i = 0; i < this.buffer.length; i++) {
-                draftBuffer[i] = Array(NUM_COLUMNS).fill('');
+                draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill('')];
             }
         });
     }
@@ -63,36 +65,40 @@ class CRTVideo implements IoComponent {
         this.subscribers.forEach(subscriber => subscriber.onChange(this.buffer));
     }
 
+    private _newLine() {
+        this.row += 1;
+        this.column = 0;
+    }
+
     private _onChar(char: string) {
         this._updateBuffer(draftBuffer => {
             // NEW LINE
             if (char === '\n') {
-                this.row += 1;
-                this.column = 0;
+                this._newLine();
                 // BACKSPACE
             } else if (char === '\b') {
                 if (this.column >= 0) {
                     this.column -= 1;
-                    draftBuffer[this.row][this.column] = '';
+                    draftBuffer[this.row][1][this.column] = '';
                 }
             } else {
                 // STANDARD SUPPORTED ASCII
                 if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
-                    draftBuffer[this.row][this.column] = char;
+                    draftBuffer[this.row][1][this.column] = char;
                     this.column += 1;
                 }
             }
 
             // End of line
             if (this.column >= NUM_COLUMNS) {
-                this.row += 1;
-                this.column = 0;
+                this._newLine();
             }
 
             // End of Screen - shift up
             if (this.row >= NUM_ROWS) {
+                this.rowShift += 1;
                 draftBuffer.shift();
-                draftBuffer.push(Array(NUM_COLUMNS).fill(' '));
+                draftBuffer.push([this.rowShift + this.row, Array(NUM_COLUMNS).fill(' ')]);
                 this.row -= 1;
             }
         });
