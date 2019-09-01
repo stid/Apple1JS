@@ -113,7 +113,6 @@ class PIA6820 implements IoAddressable {
         console.log(this.data);
     }
 
-    // eslint-disable-next-line no-unused-vars
     flash(_data: Array<number>): void {
         return;
     }
