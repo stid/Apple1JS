@@ -8,21 +8,19 @@ const Debugger = ({ worker }: { worker: Worker }) => {
     React.useEffect(() => {
         setTimeout(() => {
             worker.postMessage({ data: {}, type: WORKER_MESSAGES.DEBUG_INFO });
-        }, 1000);
+        }, 500);
     });
 
     React.useEffect(() => {
-        if (worker) {
-            worker.addEventListener('message', e => {
-                const { data, type }: { data: DebugData; type: WORKER_MESSAGES } = e.data;
-                switch (type) {
-                    case WORKER_MESSAGES.DEBUG_INFO:
-                        setDebugInfo(data as DebugData);
-                        break;
-                }
-            });
-        }
-    }, []);
+        worker.addEventListener('message', e => {
+            const { data, type }: { data: DebugData; type: WORKER_MESSAGES } = e.data;
+            switch (type) {
+                case WORKER_MESSAGES.DEBUG_INFO:
+                    setDebugInfo(data as DebugData);
+                    break;
+            }
+        });
+    }, [worker]);
 
     return (
         <div>

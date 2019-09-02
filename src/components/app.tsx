@@ -40,17 +40,15 @@ const CRTWorker = ({ worker }: CRTWorkerProps) => {
     });
 
     React.useEffect(() => {
-        if (worker) {
-            worker.addEventListener('message', e => {
-                const { data, type }: { data: VideoData; type: WORKER_MESSAGES } = e.data;
-                switch (type) {
-                    case WORKER_MESSAGES.VIDEO_BUFFER:
-                        setVideoData(data as VideoData);
-                        break;
-                }
-            });
-        }
-    }, []);
+        worker.addEventListener('message', e => {
+            const { data, type }: { data: VideoData; type: WORKER_MESSAGES } = e.data;
+            switch (type) {
+                case WORKER_MESSAGES.VIDEO_BUFFER:
+                    setVideoData(data as VideoData);
+                    break;
+            }
+        });
+    }, [worker]);
 
     return (
         <>

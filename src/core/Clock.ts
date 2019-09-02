@@ -27,7 +27,7 @@ class Clock {
 
     toDebug() {
         const { mhz, stepChunk, lastCycleCount, nanoPerCycle } = this;
-        return { mhz, stepChunk, lastCycleCount, nanoPerCycle };
+        return { mhz, stepChunk, lastCycleCount, nanoPerCycle, prevCycleTime: this.prevCycleTime.join(':') };
     }
 
     _nanoDiff(): number {

@@ -3,7 +3,7 @@ const webpack = require('webpack');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
 
-const MODE = 'development';
+const MODE = 'production';
 
 const commonConfig = {
     module: {

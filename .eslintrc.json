@@ -3,7 +3,9 @@
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended",
-    "plugin:mocha/recommended"
+    "plugin:mocha/recommended",
+    "plugin:react/recommended"
+
   ],
   "env": {
     "browser": true,
@@ -18,12 +20,17 @@
   "plugins": [
     "@typescript-eslint/eslint-plugin",
     "mocha",
-    "prettier"
+    "prettier",
+    "react-hooks"
+
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
-    "prettier/prettier": "error"
+    "prettier/prettier": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/display-name": 0
   },
   "settings":  {
     "react":  {
