@@ -1,20 +1,38 @@
 import React from 'react';
 import { WORKER_MESSAGES, VideoData } from 'apple1/TSTypes';
 import CRT from './CRT';
+import Debugger from './Debugger';
 
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
   body {
     background-color:black;
+    color: #EEE;
+    font-size: 12px;
+    font-family: Menlo, Monaco, "Courier New", monospace;
   }
 `;
 
 type Props = {
-    worker?: Worker;
+    worker: Worker;
 };
 
 export default ({ worker }: Props) => {
+    return (
+        <>
+            <GlobalStyle />
+            <CRTWorker worker={worker} />
+            <Debugger worker={worker} />
+        </>
+    );
+};
+
+type CRTWorkerProps = {
+    worker: Worker;
+};
+
+const CRTWorker = ({ worker }: CRTWorkerProps) => {
     const [videoData, setVideoData] = React.useState<VideoData>({
         buffer: [[0, ['']]],
         row: 0,
@@ -36,7 +54,7 @@ export default ({ worker }: Props) => {
 
     return (
         <>
-            <GlobalStyle />
+            <h3>Apple 1 :: JS Emulator - by =stid=</h3>
             <CRT videoData={videoData} />
         </>
     );

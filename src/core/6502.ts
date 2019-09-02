@@ -1196,6 +1196,10 @@ class CPU6502 implements Clockable {
     }
 
     toLog(): void {
+        console.log(this.toDebug());
+    }
+
+    toDebug() {
         let msg: string = 'nPC=' + this.PC.toString(16);
         msg += ' cyc=' + this.cycles;
         msg += ' [' + this.opcode.toString(16) + '] ';
@@ -1209,7 +1213,7 @@ class CPU6502 implements Clockable {
         msg += ' X=' + this.X.toString(16);
         msg += ' Y=' + this.Y.toString(16);
         msg += ' S=' + this.S.toString(16);
-        console.log(msg);
+        return { REG: msg };
     }
 
     ////////////////////////////////////////////////////////////////////////////////

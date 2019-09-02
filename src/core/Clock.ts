@@ -22,10 +22,12 @@ class Clock {
     }
 
     toLog(): void {
+        console.log(this.toDebug());
+    }
+
+    toDebug() {
         const { mhz, stepChunk, lastCycleCount, nanoPerCycle } = this;
-        console.log(
-            `CLOCK: ${mhz}Mhz :: stepChunk: ${stepChunk} :: lastCycleCount: ${lastCycleCount} :: nanoPerCycle: ${nanoPerCycle}`,
-        );
+        return { mhz, stepChunk, lastCycleCount, nanoPerCycle };
     }
 
     _nanoDiff(): number {

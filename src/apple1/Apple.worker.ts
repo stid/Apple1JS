@@ -12,6 +12,8 @@ video.subscribe({
     },
 });
 
+const apple1 = new Apple1({ video: video, keyboard: keyboard });
+
 onmessage = function(e) {
     const { data, type } = e.data;
 
@@ -19,7 +21,17 @@ onmessage = function(e) {
         case WORKER_MESSAGES.KEY_DOWN:
             keyboard.write(data);
             break;
+        case WORKER_MESSAGES.DEBUG_INFO:
+            postMessage({
+                data: {
+                    clock: apple1.clock.toDebug(),
+                    cpu: apple1.cpu.toDebug(),
+                    Spaces: apple1.addressSpaces.toDebug(),
+                },
+                type: WORKER_MESSAGES.DEBUG_INFO,
+            });
+            break;
     }
 };
 
-Apple1({ video: video, keyboard: keyboard });
+apple1.loop();

@@ -7,4 +7,6 @@ export const keyboard = new NodeKeyboard();
 
 export default Apple1;
 
-Apple1({ video: video, keyboard: keyboard });
+const apple1 = new Apple1({ video: video, keyboard: keyboard });
+
+apple1.loop();

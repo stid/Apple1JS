@@ -3,6 +3,8 @@ const webpack = require('webpack');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
 
+const MODE = 'development';
+
 const commonConfig = {
     module: {
         rules: [
@@ -27,10 +29,10 @@ const commonConfig = {
         new MinifyPlugin(),
         new CleanWebpackPlugin(),
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('development'),
+            'process.env.NODE_ENV': JSON.stringify(MODE),
         }),
     ],
-    mode: 'development',
+    mode: MODE,
 };
 
 const nodeConfig = {

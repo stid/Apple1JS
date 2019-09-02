@@ -86,23 +86,25 @@ const Cursor = React.memo(({ row, column }: CursorProp) => {
     const [visible, setVisible] = React.useState(true);
 
     React.useEffect(() => {
-        setTimeout(() => {
-            setVisible(!visible);
-        }, 400);
+        setTimeout(
+            () => {
+                setVisible(!visible);
+            },
+            visible ? 600 : 400,
+        );
     }, [visible]);
 
     return (
         <>
-            {visible && (
-                <CursorContainer
-                    style={{
-                        left: `${column * FONT_RECT + LEFT_PADDING}px`,
-                        top: `${row * FONT_RECT + TOP_PADDING}px`,
-                    }}
-                >
-                    @
-                </CursorContainer>
-            )}
+            <CursorContainer
+                style={{
+                    left: `${column * FONT_RECT + LEFT_PADDING}px`,
+                    top: `${row * FONT_RECT + TOP_PADDING}px`,
+                    display: `${visible ? 'none' : 'block'}`,
+                }}
+            >
+                @
+            </CursorContainer>
         </>
     );
 });
