@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 const TOP_PADDING = 10;
 const LEFT_PADDING = 10;
-const FONT_RECT = 13;
+const FONT_RECT = 15;
 const MONITOR_WIDTH = FONT_RECT * 40 + LEFT_PADDING * 2;
 const MONITOR_HEIGHT = FONT_RECT * 24 + TOP_PADDING * 2;
 
@@ -16,7 +16,7 @@ const CRTContainer = styled.div`
 `;
 
 const CRTPreContainer = styled.div`
-    font-size: 12px;
+    font-size: 13px;
     font-family: 'Press Start 2P', cursive;
     color: #a5ff90;
     letter-spacing: 0px;
@@ -43,7 +43,7 @@ const CRT = ({ videoData }: Props) => (
 
 const RowContainer = styled.div`
     position: absolute;
-    height: 12px;
+    height: 13px;
 `;
 type RowProps = {
     line: string;
@@ -60,8 +60,8 @@ const Row = React.memo(({ line, rowIndex }: RowProps) => {
 });
 
 const CharContainer = styled.div`
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
     position: absolute;
 `;
 

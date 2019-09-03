@@ -2,6 +2,11 @@ import React from 'react';
 import styled from 'styled-components';
 import { WORKER_MESSAGES, DebugData } from 'apple1/TSTypes';
 
+const DebuggerContainer = styled.div`
+    padding-top: 20px;
+    font-size: 14px;
+`;
+
 const Debugger = ({ worker }: { worker: Worker }) => {
     const [debugInfo, setDebugInfo] = React.useState<DebugData>({});
 
@@ -23,11 +28,11 @@ const Debugger = ({ worker }: { worker: Worker }) => {
     }, [worker]);
 
     return (
-        <div>
+        <DebuggerContainer>
             {Object.keys(debugInfo).map(key => (
                 <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />
             ))}
-        </div>
+        </DebuggerContainer>
     );
 };
 

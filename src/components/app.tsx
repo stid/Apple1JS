@@ -2,28 +2,44 @@ import React from 'react';
 import { WORKER_MESSAGES, VideoData } from 'apple1/TSTypes';
 import CRT from './CRT';
 import Debugger from './Debugger';
+import Info from './Info';
 
-import { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
   body {
     background-color:black;
-    color: #EEE;
-    font-size: 12px;
+    color: #BBB;
+    font-size: 14px;
     font-family: Menlo, Monaco, "Courier New", monospace;
   }
+`;
+
+const LayoutRow = styled.div`
+    display: flex;
+`;
+
+const LayoutColumn = styled.div`
+    flex: 50%;
+    padding: 20px;
 `;
 
 type Props = {
     worker: Worker;
 };
-
 export default ({ worker }: Props) => {
     return (
         <>
             <GlobalStyle />
-            <CRTWorker worker={worker} />
-            <Debugger worker={worker} />
+            <LayoutRow>
+                <LayoutColumn>
+                    <CRTWorker worker={worker} />
+                    <Debugger worker={worker} />
+                </LayoutColumn>
+                <LayoutColumn>
+                    <Info />
+                </LayoutColumn>
+            </LayoutRow>
         </>
     );
 };
