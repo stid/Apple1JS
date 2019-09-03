@@ -18,9 +18,9 @@ while (convertedBuffer.length) {
 }
 
 const result = `
-export default Object.freeze([
+export default [
     ${spliceBuffer.join(',\n    ')}
-]);
+];
 `;
 
 console.log(result);

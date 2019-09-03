@@ -1,0 +1,8 @@
+--- Symbol List (sorted by symbol)
+BEGIN                    0280                  
+DONE                     0290              (R )
+ECHO                     ffef              (R )
+MONITOR                  ff00              (R )
+PRINT                    0282              (R )
+STRING                   0293              (R )
+--- End of Symbol List.

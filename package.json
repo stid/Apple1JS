@@ -1,6 +1,6 @@
 {
-  "name": "6502js",
-  "version": "1.0.6",
+  "name": "apple1js",
+  "version": "1.1.0",
   "description": "NodeJS Apple 1 Emulator, include basic 6820 abstraction and other core components.",
   "main": "dist-web/bundle.js",
   "module": "src/index-web.js",
@@ -13,7 +13,8 @@
     "eslint": "eslint src --ext .ts --ext .tsx",
     "profile": "node --prof dist/bundle.js",
     "jest": "jest",
-    "type-check": "tsc --build ./src/tsconfig.json"
+    "type-check": "tsc --build ./src/tsconfig.json",
+    "deploy": "gh-pages -d public"
   },
   "repository": "git+https://github.com/stid/Apple1JS.git",
   "author": "Stefano Furiosi",
@@ -51,6 +52,7 @@
     "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-react": "^7.14.3",
     "eslint-plugin-react-hooks": "^2.0.1",
+    "gh-pages": "^2.1.1",
     "http-server": "^0.11.1",
     "jest": "24.9.0",
     "npm-run-all": "^4.1.5",
@@ -79,6 +81,7 @@
     "node",
     "emulator",
     "6502",
-    "js"
+    "js",
+    "apple1"
   ]
 }
