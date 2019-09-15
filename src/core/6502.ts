@@ -1119,14 +1119,14 @@ class CPU6502 implements Clockable {
     X: number;
     Y: number;
     S: number;
-    N: number;
-    Z: number;
-    C: number;
-    V: number;
-    I: number;
-    D: number;
-    irq: number;
-    nmi: number;
+    N: boolean;
+    Z: boolean;
+    C: boolean;
+    V: boolean;
+    I: boolean;
+    D: boolean;
+    irq: boolean;
+    nmi: boolean;
     tmp: number;
     addr: number;
     opcode: number;
@@ -1141,15 +1141,15 @@ class CPU6502 implements Clockable {
         this.X = 0;
         this.Y = 0;
         this.S = 0; // Registers
-        this.N = 0;
-        this.Z = 1;
-        this.C = 0;
-        this.V = 0; // ALU flags
-        this.I = 0;
-        this.D = 0; // Other flags
+        this.N = false;
+        this.Z = false;
+        this.C = false;
+        this.V = false; // ALU flags
+        this.I = false;
+        this.D = false; // Other flags
 
-        this.irq = 0;
-        this.nmi = 0; // IRQ lines
+        this.irq = false;
+        this.nmi = false; // IRQ lines
 
         this.tmp = 0;
         this.addr = 0; // Temporary registers
@@ -1166,12 +1166,12 @@ class CPU6502 implements Clockable {
         this.X = 0;
         this.Y = 0;
         this.S = 0;
-        this.N = 0;
-        this.Z = 1;
-        this.C = 0;
-        this.V = 0;
-        this.I = 0;
-        this.D = 0;
+        this.N = false;
+        this.Z = true;
+        this.C = false;
+        this.V = false;
+        this.I = false;
+        this.D = false;
 
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
     }
@@ -1316,26 +1316,26 @@ class CPU6502 implements Clockable {
     ////////////////////////////////////////////////////////////////////////////////
 
     fnz(v: number): void {
-        this.Z = (v & 0xff) == 0 ? 1 : 0;
-        this.N = (v & 0x80) != 0 ? 1 : 0;
+        this.Z = (v & 0xff) == 0;
+        this.N = (v & 0x80) != 0;
     }
 
     // Borrow
     fnzb(v: number): void {
-        this.Z = (v & 0xff) == 0 ? 1 : 0;
-        this.N = (v & 0x80) != 0 ? 1 : 0;
-        this.C = (v & 0x100) != 0 ? 0 : 1;
+        this.Z = (v & 0xff) == 0;
+        this.N = (v & 0x80) != 0;
+        this.C = (v & 0x100) == 0;
     }
 
     // Carry
     fnzc(v: number): void {
-        this.Z = (v & 0xff) == 0 ? 1 : 0;
-        this.N = (v & 0x80) != 0 ? 1 : 0;
-        this.C = (v & 0x100) != 0 ? 1 : 0;
+        this.Z = (v & 0xff) == 0;
+        this.N = (v & 0x80) != 0;
+        this.C = (v & 0x100) != 0;
     }
 
-    branch(v: number): void {
-        if (v) {
+    branch(taken: boolean): void {
+        if (taken) {
             if ((this.addr & 0x100) != (this.PC & 0x100)) {
                 this.cycles += 2;
             } else {
@@ -1350,23 +1350,23 @@ class CPU6502 implements Clockable {
     ////////////////////////////////////////////////////////////////////////////////
     adc(): void {
         const v: number = this.read(this.addr);
-        const c: number = this.C;
+        const c: number = this.C ? 1 : 0;
         const r: number = this.A + v + c;
         if (this.D) {
             let al: number = (this.A & 0x0f) + (v & 0x0f) + c;
             if (al > 9) al += 6;
             let ah: number = (this.A >> 4) + (v >> 4) + (al > 15 ? 1 : 0);
-            this.Z = (r & 0xff) == 0 ? 1 : 0;
-            this.N = (ah & 8) != 0 ? 1 : 0;
-            this.V = (~(this.A ^ v) & (this.A ^ (ah << 4)) & 0x80) != 0 ? 1 : 0;
+            this.Z = (r & 0xff) == 0;
+            this.N = (ah & 8) != 0;
+            this.V = (~(this.A ^ v) & (this.A ^ (ah << 4)) & 0x80) != 0;
             if (ah > 9) ah += 6;
-            this.C = ah > 15 ? 1 : 0;
+            this.C = ah > 15;
             this.A = ((ah << 4) | (al & 15)) & 0xff;
         } else {
-            this.Z = (r & 0xff) == 0 ? 1 : 0;
-            this.N = (r & 0x80) != 0 ? 1 : 0;
-            this.V = (~(this.A ^ v) & (this.A ^ r) & 0x80) != 0 ? 1 : 0;
-            this.C = (r & 0x100) != 0 ? 1 : 0;
+            this.Z = (r & 0xff) == 0;
+            this.N = (r & 0x80) != 0;
+            this.V = (~(this.A ^ v) & (this.A ^ r) & 0x80) != 0;
+            this.C = (r & 0x100) != 0;
             this.A = r & 0xff;
         }
     }
@@ -1389,9 +1389,9 @@ class CPU6502 implements Clockable {
 
     bit(): void {
         this.tmp = this.read(this.addr);
-        this.N = (this.tmp & 0x80) != 0 ? 1 : 0;
-        this.V = (this.tmp & 0x40) != 0 ? 1 : 0;
-        this.Z = (this.tmp & this.A) == 0 ? 1 : 0;
+        this.N = (this.tmp & 0x80) != 0;
+        this.V = (this.tmp & 0x40) != 0;
+        this.Z = (this.tmp & this.A) == 0;
     }
 
     brk(): void {
@@ -1400,57 +1400,57 @@ class CPU6502 implements Clockable {
         this.S = (this.S - 1) & 0xff;
         this.write(this.S + 0x100, this.PC & 0xff);
         this.S = (this.S - 1) & 0xff;
-        let v: number = this.N << 7;
-        v |= this.V << 6;
+        let v: number = this.N ? 1 << 7 : 0;
+        v |= this.V ? 1 << 6 : 0;
         v |= 3 << 4;
-        v |= this.D << 3;
-        v |= this.I << 2;
-        v |= this.Z << 1;
-        v |= this.C;
+        v |= this.D ? 1 << 3 : 0;
+        v |= this.I ? 1 << 2 : 0;
+        v |= this.Z ? 1 << 1 : 0;
+        v |= this.C ? 1 : 0;
         this.write(this.S + 0x100, v);
         this.S = (this.S - 1) & 0xff;
-        this.I = 1;
-        this.D = 0;
+        this.I = true;
+        this.D = false;
         this.PC = (this.read(0xffff) << 8) | this.read(0xfffe);
         this.cycles += 5;
     }
 
     bcc(): void {
-        this.branch(this.C == 0 ? 1 : 0);
+        this.branch(!this.C);
     }
     bcs(): void {
-        this.branch(this.C == 1 ? 1 : 0);
+        this.branch(this.C);
     }
     beq(): void {
-        this.branch(this.Z == 1 ? 1 : 0);
+        this.branch(this.Z);
     }
     bne(): void {
-        this.branch(this.Z == 0 ? 1 : 0);
+        this.branch(!this.Z);
     }
     bmi(): void {
-        this.branch(this.N == 1 ? 1 : 0);
+        this.branch(this.N);
     }
     bpl(): void {
-        this.branch(this.N == 0 ? 1 : 0);
+        this.branch(!this.N);
     }
     bvc(): void {
-        this.branch(this.V == 0 ? 1 : 0);
+        this.branch(!this.V);
     }
     bvs(): void {
-        this.branch(this.V == 1 ? 1 : 0);
+        this.branch(this.V);
     }
 
     clc(): void {
-        this.C = 0;
+        this.C = false;
     }
     cld(): void {
-        this.D = 0;
+        this.D = false;
     }
     cli(): void {
-        this.I = 0;
+        this.I = false;
     }
     clv(): void {
-        this.V = 0;
+        this.V = false;
     }
 
     cmp(): void {
@@ -1535,24 +1535,24 @@ class CPU6502 implements Clockable {
     }
 
     rol(): void {
-        this.tmp = (this.read(this.addr) << 1) | this.C;
+        this.tmp = (this.read(this.addr) << 1) | (this.C ? 1 : 0);
         this.fnzc(this.tmp);
         this.tmp &= 0xff;
     }
     rola(): void {
-        this.tmp = (this.A << 1) | this.C;
+        this.tmp = (this.A << 1) | (this.C ? 1 : 0);
         this.fnzc(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
     ror(): void {
         this.tmp = this.read(this.addr);
-        this.tmp = ((this.tmp & 1) << 8) | (this.C << 7) | (this.tmp >> 1);
+        this.tmp = ((this.tmp & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.tmp >> 1);
         this.fnzc(this.tmp);
         this.tmp &= 0xff;
     }
     rora(): void {
-        this.tmp = ((this.A & 1) << 8) | (this.C << 7) | (this.A >> 1);
+        this.tmp = ((this.A & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.A >> 1);
         this.fnzc(this.tmp);
         this.A = this.tmp & 0xff;
     }
@@ -1580,13 +1580,13 @@ class CPU6502 implements Clockable {
     }
 
     php(): void {
-        let v: number = this.N << 7;
-        v |= this.V << 6;
+        let v: number = this.N ? 1 << 7 : 0;
+        v |= this.V ? 1 << 6 : 0;
         v |= 3 << 4;
-        v |= this.D << 3;
-        v |= this.I << 2;
-        v |= this.Z << 1;
-        v |= this.C;
+        v |= this.D ? 1 << 3 : 0;
+        v |= this.I ? 1 << 2 : 0;
+        v |= this.Z ? 1 << 1 : 0;
+        v |= this.C ? 1 : 0;
         this.write(this.S + 0x100, v);
         this.S = (this.S - 1) & 0xff;
         this.cycles++;
@@ -1602,24 +1602,24 @@ class CPU6502 implements Clockable {
     plp(): void {
         this.S = (this.S + 1) & 0xff;
         this.tmp = this.read(this.S + 0x100);
-        this.N = (this.tmp & 0x80) != 0 ? 1 : 0;
-        this.V = (this.tmp & 0x40) != 0 ? 1 : 0;
-        this.D = (this.tmp & 0x08) != 0 ? 1 : 0;
-        this.I = (this.tmp & 0x04) != 0 ? 1 : 0;
-        this.Z = (this.tmp & 0x02) != 0 ? 1 : 0;
-        this.C = (this.tmp & 0x01) != 0 ? 1 : 0;
+        this.N = (this.tmp & 0x80) != 0;
+        this.V = (this.tmp & 0x40) != 0;
+        this.D = (this.tmp & 0x08) != 0;
+        this.I = (this.tmp & 0x04) != 0;
+        this.Z = (this.tmp & 0x02) != 0;
+        this.C = (this.tmp & 0x01) != 0;
         this.cycles += 2;
     }
 
     rti(): void {
         this.S = (this.S + 1) & 0xff;
         this.tmp = this.read(this.S + 0x100);
-        this.N = (this.tmp & 0x80) != 0 ? 1 : 0;
-        this.V = (this.tmp & 0x40) != 0 ? 1 : 0;
-        this.D = (this.tmp & 0x08) != 0 ? 1 : 0;
-        this.I = (this.tmp & 0x04) != 0 ? 1 : 0;
-        this.Z = (this.tmp & 0x02) != 0 ? 1 : 0;
-        this.C = (this.tmp & 0x01) != 0 ? 1 : 0;
+        this.N = (this.tmp & 0x80) != 0;
+        this.V = (this.tmp & 0x40) != 0;
+        this.D = (this.tmp & 0x08) != 0;
+        this.I = (this.tmp & 0x04) != 0;
+        this.Z = (this.tmp & 0x02) != 0;
+        this.C = (this.tmp & 0x01) != 0;
         this.S = (this.S + 1) & 0xff;
         this.PC = this.read(this.S + 0x100);
         this.S = (this.S + 1) & 0xff;
@@ -1638,35 +1638,35 @@ class CPU6502 implements Clockable {
 
     sbc(): void {
         const v: number = this.read(this.addr);
-        const c: number = 1 - this.C;
+        const c: number = 1 - (this.C ? 1 : 0);
         const r: number = this.A - v - c;
         if (this.D) {
             let al: number = (this.A & 0x0f) - (v & 0x0f) - c;
             if (al < 0) al -= 6;
             let ah: number = (this.A >> 4) - (v >> 4) - (al < 0 ? 1 : 0);
-            this.Z = (r & 0xff) == 0 ? 1 : 0;
-            this.N = (r & 0x80) != 0 ? 1 : 0;
-            this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) != 0 ? 1 : 0;
-            this.C = (r & 0x100) != 0 ? 0 : 1;
+            this.Z = (r & 0xff) == 0;
+            this.N = (r & 0x80) != 0;
+            this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) != 0;
+            this.C = !!((r & 0x100) != 0 ? 0 : 1);
             if (ah < 0) ah -= 6;
             this.A = ((ah << 4) | (al & 15)) & 0xff;
         } else {
-            this.Z = (r & 0xff) == 0 ? 1 : 0;
-            this.N = (r & 0x80) != 0 ? 1 : 0;
-            this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) != 0 ? 1 : 0;
-            this.C = (r & 0x100) != 0 ? 0 : 1;
+            this.Z = (r & 0xff) == 0;
+            this.N = (r & 0x80) != 0;
+            this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) != 0;
+            this.C = !!((r & 0x100) != 0 ? 0 : 1);
             this.A = r & 0xff;
         }
     }
 
     sec(): void {
-        this.C = 1;
+        this.C = true;
     }
     sed(): void {
-        this.D = 1;
+        this.D = true;
     }
     sei(): void {
-        this.I = 1;
+        this.I = true;
     }
 
     slo(): void {
@@ -1717,45 +1717,121 @@ class CPU6502 implements Clockable {
         this.fnz(this.A);
     }
 
-    // INCOMPLETE IMPLEMENTATION
-
     isc(): void {
-        return;
-    }
-
-    kil(): void {
-        return;
+        const v = (this.read(this.addr) + 1) & 0xff;
+        const c = 1 - (this.C ? 1 : 0);
+        const r = this.A - v - c;
+        if (this.D) {
+            let al = (this.A & 0x0f) - (v & 0x0f) - c;
+            if (al > 0x80) al -= 6;
+            let ah = (this.A >> 4) - (v >> 4) - (al > 0x80 ? 1 : 0);
+            this.Z = (r & 0xff) == 0;
+            this.N = (r & 0x80) != 0;
+            this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) != 0;
+            this.C = !!((r & 0x100) != 0 ? 0 : 1);
+            if (ah > 0x80) ah -= 6;
+            this.A = ((ah << 4) | (al & 15)) & 0xff;
+        } else {
+            this.Z = (r & 0xff) == 0;
+            this.N = (r & 0x80) != 0;
+            this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) != 0;
+            this.C = !!((r & 0x100) != 0 ? 0 : 1);
+            this.A = r & 0xff;
+        }
     }
 
     anc(): void {
-        return;
+        this.tmp = this.read(this.addr);
+        this.tmp |= (this.tmp & 0x80 & (this.A & 0x80)) << 1;
+        this.fnzc(this.tmp);
+        this.A = this.tmp & 0xff;
     }
 
     rla(): void {
-        return;
+        this.tmp = (this.A << 1) | (this.C ? 1 : 0);
+        this.fnzc(this.tmp);
+        this.A = this.tmp & 0xff;
     }
 
     sre(): void {
-        return;
+        const v = this.read(this.addr);
+        this.tmp = ((v & 1) << 8) | (v >> 1);
+        this.tmp ^= this.A;
+        this.fnzc(this.tmp);
+        this.A = this.tmp & 0xff;
     }
 
     alr(): void {
-        return;
+        this.tmp = this.read(this.addr) & this.A;
+        this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
+        this.fnzc(this.tmp);
+        this.A = this.tmp & 0xff;
     }
 
     rra(): void {
-        return;
+        this.tmp = ((this.A & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.A >> 1);
+        this.fnzc(this.tmp);
+        this.A = this.tmp & 0xff;
     }
 
     sax(): void {
-        return;
+        this.write(this.addr, this.A & this.X);
     }
 
     lax(): void {
-        return;
+        this.X = this.A = this.read(this.addr);
+        this.fnz(this.A);
     }
 
     arr(): void {
+        this.tmp = this.read(this.addr) & this.A;
+        this.C = (this.tmp & 0x80) != 0;
+        this.V = (((this.tmp >> 7) & 1) ^ ((this.tmp >> 6) & 1)) != 0;
+        if (this.D) {
+            let al = (this.tmp & 0x0f) + (this.tmp & 1);
+            if (al > 5) al += 6;
+            const ah = ((this.tmp >> 4) & 0x0f) + ((this.tmp >> 4) & 1);
+            if (ah > 5) {
+                al += 6;
+                this.C = true;
+            } else {
+                this.C = false;
+            }
+            this.tmp = (ah << 4) | al;
+        }
+        this.fnz(this.tmp);
+        this.A = this.tmp & 0xff;
+    }
+
+    shy(): void {
+        this.tmp = ((this.addr >> 8) + 1) & this.Y;
+        this.write(this.addr, this.tmp & 0xff);
+    }
+
+    dcp(): void {
+        this.tmp = (this.read(this.addr) - 1) & 0xff;
+        this.tmp = this.A - this.tmp;
+        this.fnzb(this.tmp);
+    }
+
+    las(): void {
+        this.S = this.X = this.A = this.read(this.addr) & this.S;
+        this.fnz(this.A);
+    }
+
+    ahx(): void {
+        this.tmp = ((this.addr >> 8) + 1) & this.A & this.X;
+        this.write(this.addr, this.tmp & 0xff);
+    }
+
+    shx(): void {
+        this.tmp = ((this.addr >> 8) + 1) & this.X;
+        this.write(this.addr, this.tmp & 0xff);
+    }
+
+    // INCOMPLETE IMPLEMENTATION
+
+    kil(): void {
         return;
     }
 
@@ -1763,31 +1839,11 @@ class CPU6502 implements Clockable {
         return;
     }
 
-    shy(): void {
-        return;
-    }
-
     axs(): void {
         return;
     }
 
-    dcp(): void {
-        return;
-    }
-
-    las(): void {
-        return;
-    }
-
     xaa(): void {
-        return;
-    }
-
-    ahx(): void {
-        return;
-    }
-
-    shx(): void {
         return;
     }
 }
