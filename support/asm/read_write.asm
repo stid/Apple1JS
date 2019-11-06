@@ -1,4 +1,7 @@
 
+; dasm read_write.asm -oread_write.o -lread_write.lst -sread_write.sym
+
+
 	; TEST ADDRESSING MODES
 	; $FFFC and $FFFD - RESET PROGRAM COUNTER
 
