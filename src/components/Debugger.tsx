@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { WORKER_MESSAGES, DebugData } from 'apple1/TSTypes';
+import produce from 'immer';
 
 const DebuggerContainer = styled.div`
     padding-top: 20px;
@@ -52,10 +53,14 @@ const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
         <DebugDomainTitle>{domainKey}</DebugDomainTitle>
         <DebugDomainInfo>
             {Object.keys(domainData).map(key => (
-                <div key={key}>{`${key}: ${domainData[key]}`}</div>
+                <DebugDomainItem key={key} label={key} value={domainData[key]} />
             ))}
         </DebugDomainInfo>
     </>
 );
+
+const DebugDomainItem = React.memo(({ label, value }: { label: string; value: string | number | boolean }) => {
+    return <div>{`${label}: ${value}`}</div>;
+});
 
 export default Debugger;

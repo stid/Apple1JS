@@ -21,6 +21,10 @@ const commonConfig = {
         ],
     },
     resolve: {
+        alias: {
+            'react-dom$': 'react-dom/profiling',
+            'scheduler/tracing': 'scheduler/tracing-profiling',
+        },
         extensions: ['.ts', '.js', '.tsx'],
         modules: [path.resolve(__dirname, 'node_modules'), path.resolve(__dirname, './src')],
     },
