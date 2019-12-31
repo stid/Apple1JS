@@ -36,7 +36,8 @@ describe('CPU6502', function() {
         const romData = Array(255).fill(0xff + 2);
         romData[2 + 0xfd] = 0xff;
         romData[2 + 0xfc] = 0x00;
-        romData.splice(0, 8, ...[0x00, 0xff, 0xea, 0xea, 0xea, 0x4c, 0x02, 0xff]);
+        const prog = [0x00, 0xff, 0xea, 0xea, 0xea, 0x4c, 0x02, 0xff];
+        romData.splice(0, prog.length, ...prog);
 
         romInstance.flash(romData);
 
@@ -63,5 +64,106 @@ describe('CPU6502', function() {
         expect(cpu.PC).toBe(0xff02);
         expect(cpu.getCycles()).toBe(9);
         expect(stepRes).toBe(3);
+    });
+    test('Write Steps', function() {
+        const romData = Array(255).fill(0xff + 2);
+        romData[2 + 0xfd] = 0xff;
+        romData[2 + 0xfc] = 0x00;
+        const prog = [
+            0x00,
+            0x00,
+            0xad,
+            0x13,
+            0xff,
+            0x85,
+            0x0a,
+            0xad,
+            0x14,
+            0xff,
+            0x85,
+            0x0b,
+            0xa9,
+            0xcc,
+            0xa2,
+            0x01,
+            0x95,
+            0x0b,
+            0x4c,
+            0x00,
+            0xff,
+            0xaa,
+            0xbb,
+        ];
+
+        /*
+            * = $ff00 "Main"
+            start:
+                lda mem
+                sta 10
+                lda mem+1
+                sta 11
+                lda #$CC
+                ldx #1
+                sta 11, x
+                jmp start
+            mem:
+            .byte $AA, $BB
+        */
+
+        romData.splice(0, prog.length, ...prog);
+
+        romInstance.flash(romData);
+
+        cpu.reset();
+        expect(cpu.PC).toBe(0xff00);
+        expect(cpu.getCycles()).toBe(0x00);
+
+        // lda mem
+        let stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff03);
+        expect(cpu.A).toBe(0xaa);
+        expect(cpu.getCycles()).toBe(4);
+        expect(stepRes).toBe(4);
+
+        // sta 10
+        stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff05);
+        expect(ramInstance.read(10)).toBe(0xaa);
+        expect(cpu.getCycles()).toBe(7);
+        expect(stepRes).toBe(3);
+
+        // lda mem+1
+        stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff08);
+        expect(cpu.A).toBe(0xbb);
+        expect(cpu.getCycles()).toBe(11);
+        expect(stepRes).toBe(4);
+
+        // sta 11
+        stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff0a);
+        expect(ramInstance.read(11)).toBe(0xbb);
+        expect(cpu.getCycles()).toBe(14);
+        expect(stepRes).toBe(3);
+
+        // lda #$CC
+        stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff0c);
+        expect(cpu.A).toBe(0xcc);
+        expect(cpu.getCycles()).toBe(16);
+        expect(stepRes).toBe(2);
+
+        // ldx #1
+        stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff0e);
+        expect(cpu.X).toBe(0x01);
+
+        // sta 11, x
+        stepRes = cpu.step();
+        expect(ramInstance.read(12)).toBe(0xcc);
+
+        // jmp start
+        stepRes = cpu.step();
+        expect(cpu.PC).toBe(0xff00);
     });
 });
