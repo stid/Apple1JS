@@ -33,6 +33,7 @@ export default ({ worker }: Props) => {
             <GlobalStyle />
             <LayoutRow>
                 <LayoutColumn>
+                    <Title />
                     <CRTWorker worker={worker} />
                     <Debugger worker={worker} />
                 </LayoutColumn>
@@ -68,8 +69,9 @@ const CRTWorker = ({ worker }: CRTWorkerProps) => {
 
     return (
         <>
-            <h3>Apple 1 :: JS Emulator - by =stid=</h3>
             <CRT videoData={videoData} />
         </>
     );
 };
+
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid=</h3>;
