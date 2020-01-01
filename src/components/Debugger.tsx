@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 import { WORKER_MESSAGES, DebugData } from 'apple1/TSTypes';
-import produce from 'immer';
 
 const DebuggerContainer = styled.div`
     padding-top: 20px;
