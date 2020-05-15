@@ -3,12 +3,12 @@ import ROM from '../ROM';
 import RAM from '../RAM';
 import AddressSpaces from '../AddressSpaces';
 
-describe('CPU6502', function() {
+describe('CPU6502', function () {
     let cpu: CPU6502;
     let ramInstance: RAM;
     let romInstance: ROM;
 
-    beforeEach(function() {
+    beforeEach(function () {
         romInstance = new ROM();
         ramInstance = new RAM();
         const addressMapping = [
@@ -18,13 +18,13 @@ describe('CPU6502', function() {
         const addressSpaces = new AddressSpaces(addressMapping);
         cpu = new CPU6502(addressSpaces);
     });
-    test('Initial state', function() {
+    test('Initial state', function () {
         expect(cpu.getCycles()).toBe(0x00);
         const cycles = cpu.step();
         expect(cycles).toBe(0x07);
         expect(cpu.PC).toBe(0);
     });
-    test('Reset', function() {
+    test('Reset', function () {
         const romData = Array(255).fill(0xff + 2);
         romData[2 + 0xfd] = 0x0a;
         romData[2 + 0xfc] = 0x0b;
@@ -32,7 +32,7 @@ describe('CPU6502', function() {
         cpu.reset();
         expect(cpu.PC).toBe(0x0a0b);
     });
-    test('Read Steps', function() {
+    test('Read Steps', function () {
         const romData = Array(255).fill(0xff + 2);
         romData[2 + 0xfd] = 0xff;
         romData[2 + 0xfc] = 0x00;
@@ -65,7 +65,7 @@ describe('CPU6502', function() {
         expect(cpu.getCycles()).toBe(9);
         expect(stepRes).toBe(3);
     });
-    test('Write Steps', function() {
+    test('Write Steps', function () {
         const romData = Array(255).fill(0xff + 2);
         romData[2 + 0xfd] = 0xff;
         romData[2 + 0xfc] = 0x00;

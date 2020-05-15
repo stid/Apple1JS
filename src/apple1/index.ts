@@ -73,7 +73,7 @@ class Apple1 {
         this.cpu = new CPU6502(this.addressSpaces);
 
         this.keyboard.wire({
-            logicWrite: async value => {
+            logicWrite: async (value) => {
                 if (value === RESET_CODE) {
                     this.cpu.reset();
                 } else {

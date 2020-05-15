@@ -44,7 +44,7 @@ class CRTVideo implements IoComponent {
     }
 
     onClear() {
-        this._updateBuffer(draftBuffer => {
+        this._updateBuffer((draftBuffer) => {
             for (let i = 0; i < this.buffer.length; i++) {
                 draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill(' ')];
             }
@@ -57,11 +57,11 @@ class CRTVideo implements IoComponent {
     }
 
     unsubscribe(videoOut: VideoOut) {
-        this.subscribers = this.subscribers.filter(subscriber => subscriber !== videoOut);
+        this.subscribers = this.subscribers.filter((subscriber) => subscriber !== videoOut);
     }
 
     private _notifySubscribers() {
-        this.subscribers.forEach(subscriber => subscriber.onChange(this.buffer, this.row, this.column));
+        this.subscribers.forEach((subscriber) => subscriber.onChange(this.buffer, this.row, this.column));
     }
 
     private _newLine() {
@@ -70,7 +70,7 @@ class CRTVideo implements IoComponent {
     }
 
     private _onChar(char: string) {
-        this._updateBuffer(draftBuffer => {
+        this._updateBuffer((draftBuffer) => {
             // NEW LINE
             if (char === '\n') {
                 this._newLine();
@@ -136,7 +136,7 @@ class CRTVideo implements IoComponent {
     }
 
     private _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
-        const newBuffer = produce(this.buffer, draftBuffer => updateFunction(draftBuffer));
+        const newBuffer = produce(this.buffer, (draftBuffer) => updateFunction(draftBuffer));
         if (newBuffer !== this.buffer) {
             this.buffer = newBuffer;
         }

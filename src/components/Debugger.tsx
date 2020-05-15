@@ -17,7 +17,7 @@ const Debugger = ({ worker }: { worker: Worker }) => {
     });
 
     React.useEffect(() => {
-        worker.addEventListener('message', e => {
+        worker.addEventListener('message', (e) => {
             const { data, type }: { data: DebugData; type: WORKER_MESSAGES } = e.data;
             switch (type) {
                 case WORKER_MESSAGES.DEBUG_INFO:
@@ -29,7 +29,7 @@ const Debugger = ({ worker }: { worker: Worker }) => {
 
     return (
         <DebuggerContainer>
-            {Object.keys(debugInfo).map(key => (
+            {Object.keys(debugInfo).map((key) => (
                 <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />
             ))}
         </DebuggerContainer>
@@ -51,7 +51,7 @@ const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
     <>
         <DebugDomainTitle>{domainKey}</DebugDomainTitle>
         <DebugDomainInfo>
-            {Object.keys(domainData).map(key => (
+            {Object.keys(domainData).map((key) => (
                 <DebugDomainItem key={key} label={key} value={domainData[key]} />
             ))}
         </DebugDomainInfo>
