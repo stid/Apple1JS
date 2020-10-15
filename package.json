@@ -1,6 +1,6 @@
 {
   "name": "apple1js",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "NodeJS Apple 1 Emulator, include basic 6820 abstraction and other core components.",
   "main": "dist-web/bundle.js",
   "module": "src/index-web.js",
