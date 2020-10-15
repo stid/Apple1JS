@@ -59,4 +59,4 @@ const webConfig = {
     ...commonConfig,
 };
 
-module.exports = [nodeConfig, webConfig];
+module.exports = [webConfig];
