@@ -83,7 +83,7 @@ class Apple1 {
         });
 
         this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_CHUNK);
-        console.log(`Apple 1 :: ${process.title} :: ${process.version}`);
+        console.log(`Apple 1`);
 
         this.reset();
 

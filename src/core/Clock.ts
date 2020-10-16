@@ -1,5 +1,3 @@
-import hrtime from 'browser-process-hrtime';
-
 const NS_PER_SEC = 1e9;
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_CHUNK = 10;
@@ -18,7 +16,7 @@ class Clock {
         this.lastCycleCount = 1;
         this.nanoPerCycle = 1000 / this.mhz;
         this.cpu = cpu;
-        this.prevCycleTime = hrtime();
+        this.prevCycleTime = this.hrtime();
     }
 
     toLog(): void {
@@ -31,7 +29,7 @@ class Clock {
     }
 
     _nanoDiff(): number {
-        const diff: [number, number] = hrtime(this.prevCycleTime);
+        const diff: [number, number] = this.hrtime(this.prevCycleTime);
         const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
 
         return nanoDelta;
@@ -42,10 +40,34 @@ class Clock {
             const nanoDelta: number = this._nanoDiff();
 
             if (nanoDelta > this.nanoPerCycle * this.lastCycleCount) {
-                this.prevCycleTime = hrtime();
+                this.prevCycleTime = this.hrtime();
                 this.lastCycleCount = this.cpu.step();
             }
         }
+    }
+
+    // Extracted from: https://github.com/kumavis/browser-process-hrtime
+    hrtime(previousTimestamp?: [number, number]): [number, number] {
+        const performance = global.performance || {};
+
+        const performanceNow =
+            performance.now ||
+            function () {
+                return new Date().getTime();
+            };
+
+        const clocktime = performanceNow.call(performance) * 1e-3;
+        let seconds = Math.floor(clocktime);
+        let nanoseconds = Math.floor((clocktime % 1) * 1e9);
+        if (previousTimestamp) {
+            seconds = seconds - previousTimestamp[0];
+            nanoseconds = nanoseconds - previousTimestamp[1];
+            if (nanoseconds < 0) {
+                seconds--;
+                nanoseconds += 1e9;
+            }
+        }
+        return [seconds, nanoseconds];
     }
 }
 
