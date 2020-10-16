@@ -43,20 +43,20 @@ class CRTVideo implements IoComponent {
         this.onClear();
     }
 
-    onClear() {
-        this._updateBuffer((draftBuffer) => {
+    onClear(): void {
+        this._updateBuffer((draftBuffer): void => {
             for (let i = 0; i < this.buffer.length; i++) {
                 draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill(' ')];
             }
         });
     }
 
-    subscribe(videoOut: VideoOut) {
+    subscribe(videoOut: VideoOut): void {
         this.subscribers.push(videoOut);
         videoOut.onChange(this.buffer, this.row, this.column);
     }
 
-    unsubscribe(videoOut: VideoOut) {
+    unsubscribe(videoOut: VideoOut): void {
         this.subscribers = this.subscribers.filter((subscriber) => subscriber !== videoOut);
     }
 
@@ -104,15 +104,15 @@ class CRTVideo implements IoComponent {
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(_address: number) {
+    async read(_address: number): Promise<void> {
         // Not implemented
     }
 
-    wire() {
+    wire(): void {
         return;
     }
 
-    async write(char: number) {
+    async write(char: number): Promise<void> {
         // Clear screen
         if ((char & 0x7f) === 12) {
             return this.onClear();

@@ -25,7 +25,7 @@ class Clock {
         console.log(this.toDebug());
     }
 
-    toDebug() {
+    toDebug(): { [key: string]: number | string } {
         const { mhz, stepChunk, lastCycleCount, nanoPerCycle } = this;
         return { mhz, stepChunk, lastCycleCount, nanoPerCycle, prevCycleTime: this.prevCycleTime.join(':') };
     }

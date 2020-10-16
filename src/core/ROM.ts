@@ -12,15 +12,15 @@ class ROM implements IoAddressable {
     }
 
     // eslint-disable-next-line no-unused-vars
-    write(_address: number, _value: number) {
+    write(_address: number, _value: number): void {
         return;
     }
 
-    flash(data: Array<number>) {
+    flash(data: Array<number>): void {
         this.data = [...data].splice(2);
     }
 
-    burn(data: Array<number>) {
+    burn(data: Array<number>): void {
         this.flash(data);
     }
 }

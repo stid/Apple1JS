@@ -12,19 +12,19 @@ class DisplayLogic implements IoLogic {
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(_address: number) {
+    async read(_address: number): Promise<void> {
         // Not implemented
         return;
     }
 
-    async write(char: number) {
+    async write(char: number): Promise<void> {
         // CB2 is wired to PB7 - arise on display busy
         this.pia.setBitDataB(7);
         await this.video.write(char);
         this.pia.clearBitDataB(7);
     }
 
-    wire() {
+    wire(): void {
         return;
     }
 }

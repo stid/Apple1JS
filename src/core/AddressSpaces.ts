@@ -27,7 +27,7 @@ class AddressSpaces {
     toLog(): void {
         console.log(this.toDebug());
     }
-    toDebug() {
+    toDebug(): { [key: string]: string } {
         const result: { [key: string]: string } = {};
         this.addressMapping.forEach((element) => {
             const from: string = element.addr[0].toString(16).padStart(4, '0').toUpperCase();

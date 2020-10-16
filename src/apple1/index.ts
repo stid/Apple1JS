@@ -92,11 +92,11 @@ class Apple1 {
         this.cpu.toLog();
     }
 
-    reset() {
+    reset(): void {
         this.cpu.reset();
     }
 
-    loop() {
+    loop(): void {
         this.clock.cycle();
         setImmediate(this.loop.bind(this));
     }

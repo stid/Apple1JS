@@ -9,12 +9,12 @@ class KeyboardLogic implements IoLogic {
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(_address: number) {
+    async read(_address: number): Promise<void> {
         // Not implemented
         return;
     }
 
-    async write(char: number) {
+    async write(char: number): Promise<void> {
         // PA7 is Always ON (+5v) set it no matter what
         this.pia.setDataA(utils.bitSet(char, 7));
         // Keyboard Strobe - raise CA1 on key pressed
@@ -22,7 +22,7 @@ class KeyboardLogic implements IoLogic {
         this.pia.raiseCA1();
     }
 
-    wire() {
+    wire(): void {
         return;
     }
 }

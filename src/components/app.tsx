@@ -27,7 +27,7 @@ const LayoutColumn = styled.div`
 type Props = {
     worker: Worker;
 };
-export default ({ worker }: Props) => {
+export default ({ worker }: Props): JSX.Element => {
     return (
         <>
             <GlobalStyle />

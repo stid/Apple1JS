@@ -18,17 +18,17 @@ class Keyboard implements IoComponent {
         process.stdin.on('keypress', this.onKeyPressed.bind(this));
     }
 
-    wire({ logicWrite }: { logicWrite?: (value: number) => Promise<void> }) {
+    wire({ logicWrite }: { logicWrite?: (value: number) => Promise<void> }): void {
         this.logicWrite = logicWrite;
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(_address: number) {
+    async read(_address: number): Promise<void> {
         // Not implemented
     }
 
     // eslint-disable-next-line no-unused-vars
-    async write(_address: number) {
+    async write(_address: number): Promise<void> {
         // Not implemented
     }
 
