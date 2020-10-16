@@ -20,7 +20,7 @@ const DISPLAY_DELAY = 17;
 //
 
 class CRTVideo implements IoComponent {
-    async clearScreen() {
+    async clearScreen(): Promise<void> {
         let i = 0;
         const clearLoop = async () => {
             await wait(DISPLAY_DELAY);
@@ -34,15 +34,15 @@ class CRTVideo implements IoComponent {
     }
 
     // eslint-disable-next-line no-unused-vars
-    async read(_address: number) {
+    async read(_address: number): Promise<number> {
         return 0;
     }
 
-    wire() {
+    wire(): void {
         return;
     }
 
-    async write(char: number) {
+    async write(char: number): Promise<void> {
         // Clear screen
         if ((char & 0x7f) === 12) {
             return this.clearScreen();

@@ -26,7 +26,7 @@ const CRTPreContainer = styled.div`
 type Props = {
     videoData: VideoData;
 };
-const CRT = ({ videoData }: Props) => (
+const CRT = ({ videoData }: Props): JSX.Element => (
     <CRTContainer>
         <CRTPreContainer>
             <Cursor row={videoData.row} column={videoData.column} />

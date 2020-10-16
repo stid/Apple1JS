@@ -4,7 +4,7 @@ import AddressSpaces from 'core/AddressSpaces';
 // Opcode table
 ////////////////////////////////////////////////////////////////////////////////
 
-const CPU6502op: Array<Function> = [];
+const CPU6502op: Array<(m: CPU6502) => void> = [];
 
 /*  BRK     */ CPU6502op[0x00] = (m: CPU6502) => {
     m.imp();
@@ -1199,7 +1199,7 @@ class CPU6502 implements Clockable {
         console.log(this.toDebug());
     }
 
-    toDebug() {
+    toDebug(): { REG: string } {
         let msg: string = 'nPC=' + this.PC.toString(16);
         msg += ' cyc=' + this.cycles;
         msg += ' [' + this.opcode.toString(16) + '] ';
@@ -1490,7 +1490,7 @@ class CPU6502 implements Clockable {
         this.fnz(this.tmp);
     }
 
-    inx() {
+    inx(): void {
         this.X = (this.X + 1) & 0xff;
         this.fnz(this.X);
     }

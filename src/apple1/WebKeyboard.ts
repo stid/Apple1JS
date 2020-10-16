@@ -8,15 +8,15 @@ const CR = 13;
 class Keyboard implements IoComponent {
     private logicWrite?: (value: number) => Promise<void>;
 
-    wire(conf: { logicWrite?: (value: number) => Promise<void> }) {
+    wire(conf: { logicWrite?: (value: number) => Promise<void> }): void {
         this.logicWrite = conf.logicWrite;
     }
 
-    async read(_address: number) {
+    async read(_address: number): Promise<void> {
         // Not implemented
     }
 
-    async write(key: string) {
+    async write(key: string): Promise<void> {
         const logicWrite = this.logicWrite;
         if (logicWrite) {
             // Standard Keys

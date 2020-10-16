@@ -28,7 +28,7 @@ const InfoContainer = styled.div`
     }
 `;
 
-const Info = () => (
+const Info = (): JSX.Element => (
     <InfoContainer>
         <h3>TEST PROGRAM</h3>
         <p>
