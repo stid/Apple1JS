@@ -30,7 +30,7 @@
     "@babel/register": "7.13.8",
     "@types/jest": "26.0.20",
     "@types/mocha": "8.2.1",
-    "@types/node": "14.11.8",
+    "@types/node": "14.14.34",
     "@types/react": "16.9.52",
     "@types/react-dom": "16.9.8",
     "@types/styled-components": "5.1.4",
@@ -68,8 +68,8 @@
     "@babel/runtime-corejs3": "7.13.10",
     "core-js": "3.9.1",
     "immer": "7.0.9",
-    "react": "16.14.0",
-    "react-dom": "16.14.0",
+    "react": "17.0.1",
+    "react-dom": "17.0.1",
     "waait": "1.0.5"
   },
   "bugs": {
