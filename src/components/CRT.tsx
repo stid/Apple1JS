@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, useEffect, useState } from 'react';
 import { WEB_VIDEO_BUFFER_ROW, VideoData } from 'apple1/TSTypes';
 import styled from 'styled-components';
 
@@ -49,7 +49,7 @@ type RowProps = {
     line: string;
     rowIndex: number;
 };
-const Row = React.memo(({ line, rowIndex }: RowProps) => {
+const Row = memo(({ line, rowIndex }: RowProps) => {
     return (
         <RowContainer style={{ top: `${rowIndex * FONT_RECT + TOP_PADDING}px` }}>
             {line.split('').map((char, index) => (
@@ -69,7 +69,7 @@ type CharProps = {
     char: string;
     x: number;
 };
-const Char = React.memo(({ char, x }: CharProps) => {
+const Char = memo(({ char, x }: CharProps) => {
     return <CharContainer style={{ left: `${x * FONT_RECT + LEFT_PADDING}px` }}>{char}</CharContainer>;
 });
 
@@ -82,10 +82,10 @@ type CursorProp = {
     row: number;
     column: number;
 };
-const Cursor = React.memo(({ row, column }: CursorProp) => {
-    const [visible, setVisible] = React.useState(true);
+const Cursor = memo(({ row, column }: CursorProp) => {
+    const [visible, setVisible] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setTimeout(
             () => {
                 setVisible(!visible);

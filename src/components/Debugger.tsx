@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState, memo } from 'react';
 import styled from 'styled-components';
 import { WORKER_MESSAGES, DebugData } from 'apple1/TSTypes';
 
@@ -8,15 +8,15 @@ const DebuggerContainer = styled.div`
 `;
 
 const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
-    const [debugInfo, setDebugInfo] = React.useState<DebugData>({});
+    const [debugInfo, setDebugInfo] = useState<DebugData>({});
 
-    React.useEffect(() => {
+    useEffect(() => {
         setTimeout(() => {
             worker.postMessage({ data: {}, type: WORKER_MESSAGES.DEBUG_INFO });
         }, 500);
     });
 
-    React.useEffect(() => {
+    useEffect(() => {
         worker.addEventListener('message', (e) => {
             const { data, type }: { data: DebugData; type: WORKER_MESSAGES } = e.data;
             switch (type) {
@@ -58,7 +58,7 @@ const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
     </>
 );
 
-const DebugDomainItem = React.memo(({ label, value }: { label: string; value: string | number | boolean }) => {
+const DebugDomainItem = memo(({ label, value }: { label: string; value: string | number | boolean }) => {
     return <div>{`${label}: ${value}`}</div>;
 });
 

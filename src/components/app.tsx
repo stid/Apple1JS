@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { WORKER_MESSAGES, VideoData } from 'apple1/TSTypes';
 import CRT from './CRT';
 import Debugger from './Debugger';
@@ -50,13 +50,13 @@ type CRTWorkerProps = {
 };
 
 const CRTWorker = ({ worker }: CRTWorkerProps) => {
-    const [videoData, setVideoData] = React.useState<VideoData>({
+    const [videoData, setVideoData] = useState<VideoData>({
         buffer: [[0, ['']]],
         row: 0,
         column: 0,
     });
 
-    React.useEffect(() => {
+    useEffect(() => {
         worker.addEventListener('message', (e) => {
             const { data, type }: { data: VideoData; type: WORKER_MESSAGES } = e.data;
             switch (type) {
