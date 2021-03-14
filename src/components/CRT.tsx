@@ -1,17 +1,13 @@
-import { memo, useEffect, useState } from 'react';
 import { WEB_VIDEO_BUFFER_ROW, VideoData } from 'apple1/TSTypes';
 import styled from 'styled-components';
-
-const TOP_PADDING = 10;
-const LEFT_PADDING = 10;
-const FONT_RECT = 15;
-const MONITOR_WIDTH = FONT_RECT * 40 + LEFT_PADDING * 2;
-const MONITOR_HEIGHT = FONT_RECT * 24 + TOP_PADDING * 2;
+import CRTCursor from './CRTCursor';
+import CRTRow from './CRTRow';
+import * as CRTConstants from './CRTConstants';
 
 const CRTContainer = styled.div`
     background-color: #193549;
-    width: ${MONITOR_WIDTH}px;
-    height: ${MONITOR_HEIGHT}px;
+    width: ${CRTConstants.MONITOR_WIDTH}px;
+    height: ${CRTConstants.MONITOR_HEIGHT}px;
     position: relative;
 `;
 
@@ -29,9 +25,9 @@ type Props = {
 const CRT = ({ videoData }: Props): JSX.Element => (
     <CRTContainer>
         <CRTPreContainer>
-            <Cursor row={videoData.row} column={videoData.column} />
+            <CRTCursor row={videoData.row} column={videoData.column} />
             {videoData.buffer.map((line, index) => (
-                <Row
+                <CRTRow
                     rowIndex={index}
                     line={line[WEB_VIDEO_BUFFER_ROW.DATA].join('')}
                     key={line[WEB_VIDEO_BUFFER_ROW.KEY]}
@@ -40,73 +36,5 @@ const CRT = ({ videoData }: Props): JSX.Element => (
         </CRTPreContainer>
     </CRTContainer>
 );
-
-const RowContainer = styled.div`
-    position: absolute;
-    height: 13px;
-`;
-type RowProps = {
-    line: string;
-    rowIndex: number;
-};
-const Row = memo(({ line, rowIndex }: RowProps) => {
-    return (
-        <RowContainer style={{ top: `${rowIndex * FONT_RECT + TOP_PADDING}px` }}>
-            {line.split('').map((char, index) => (
-                <Char char={char} x={index} key={index} />
-            ))}
-        </RowContainer>
-    );
-});
-
-const CharContainer = styled.div`
-    width: 13px;
-    height: 13px;
-    position: absolute;
-`;
-
-type CharProps = {
-    char: string;
-    x: number;
-};
-const Char = memo(({ char, x }: CharProps) => {
-    return <CharContainer style={{ left: `${x * FONT_RECT + LEFT_PADDING}px` }}>{char}</CharContainer>;
-});
-
-const CursorContainer = styled.div`
-    width: 12px;
-    height: 12px;
-    position: absolute;
-`;
-type CursorProp = {
-    row: number;
-    column: number;
-};
-const Cursor = memo(({ row, column }: CursorProp) => {
-    const [visible, setVisible] = useState(true);
-
-    useEffect(() => {
-        setTimeout(
-            () => {
-                setVisible(!visible);
-            },
-            visible ? 600 : 400,
-        );
-    }, [visible]);
-
-    return (
-        <>
-            <CursorContainer
-                style={{
-                    left: `${column * FONT_RECT + LEFT_PADDING}px`,
-                    top: `${row * FONT_RECT + TOP_PADDING}px`,
-                    display: `${visible ? 'none' : 'block'}`,
-                }}
-            >
-                @
-            </CursorContainer>
-        </>
-    );
-});
 
 export default CRT;

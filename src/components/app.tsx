@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
-import { WORKER_MESSAGES, VideoData } from 'apple1/TSTypes';
-import CRT from './CRT';
 import Debugger from './Debugger';
 import Info from './Info';
 import ErrorBoundary from './Error';
+import CRTWorker from './CRTWorker';
 
 import styled, { createGlobalStyle } from 'styled-components';
 
@@ -25,6 +23,8 @@ const LayoutColumn = styled.div`
     padding: 20px;
 `;
 
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.6.3</h3>;
+
 type Props = {
     worker: Worker;
 };
@@ -45,34 +45,3 @@ export default ({ worker }: Props): JSX.Element => {
         </ErrorBoundary>
     );
 };
-
-type CRTWorkerProps = {
-    worker: Worker;
-};
-
-const CRTWorker = ({ worker }: CRTWorkerProps) => {
-    const [videoData, setVideoData] = useState<VideoData>({
-        buffer: [[0, ['']]],
-        row: 0,
-        column: 0,
-    });
-
-    useEffect(() => {
-        worker.addEventListener('message', (e) => {
-            const { data, type }: { data: VideoData; type: WORKER_MESSAGES } = e.data;
-            switch (type) {
-                case WORKER_MESSAGES.VIDEO_BUFFER:
-                    setVideoData(data as VideoData);
-                    break;
-            }
-        });
-    }, [worker]);
-
-    return (
-        <>
-            <CRT videoData={videoData} />
-        </>
-    );
-};
-
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.6.2</h3>;
