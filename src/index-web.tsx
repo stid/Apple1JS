@@ -9,3 +9,6 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 ReactDOM.render(<App worker={appleWorker} />, document.getElementById('app'));
+
+// React Concurrent Mode
+// ReactDOM.unstable_createRoot( document.getElementById('app')).render(<App worker={appleWorker} />);

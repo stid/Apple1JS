@@ -74,4 +74,4 @@ const CRTWorker = ({ worker }: CRTWorkerProps) => {
     );
 };
 
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid=</h3>;
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.6.1</h3>;
