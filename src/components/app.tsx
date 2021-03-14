@@ -3,6 +3,7 @@ import { WORKER_MESSAGES, VideoData } from 'apple1/TSTypes';
 import CRT from './CRT';
 import Debugger from './Debugger';
 import Info from './Info';
+import ErrorBoundary from './Error';
 
 import styled, { createGlobalStyle } from 'styled-components';
 
@@ -29,7 +30,7 @@ type Props = {
 };
 export default ({ worker }: Props): JSX.Element => {
     return (
-        <>
+        <ErrorBoundary>
             <GlobalStyle />
             <LayoutRow>
                 <LayoutColumn>
@@ -41,7 +42,7 @@ export default ({ worker }: Props): JSX.Element => {
                     <Info />
                 </LayoutColumn>
             </LayoutRow>
-        </>
+        </ErrorBoundary>
     );
 };
 
@@ -74,4 +75,4 @@ const CRTWorker = ({ worker }: CRTWorkerProps) => {
     );
 };
 
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.6.1</h3>;
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.6.2</h3>;
