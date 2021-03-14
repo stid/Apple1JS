@@ -5,6 +5,7 @@ module.exports = function(api) {
         ['@babel/preset-env', { useBuiltIns: 'usage', corejs: 3, targets: { chrome: '76', node: '12' } }],
         '@babel/typescript',
         '@babel/preset-react',
+        { runtime: 'automatic' },
     ];
 
     const plugins = [
@@ -40,7 +41,7 @@ module.exports = function(api) {
     ];
 
     const targets = {
-        chrome: '58',
+        chrome: '89',
         ie: '11',
     };
 

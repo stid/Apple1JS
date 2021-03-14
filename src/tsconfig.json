@@ -3,7 +3,7 @@
         "**/*.test.ts"
     ],
     "compilerOptions": {
-      "jsx": "react",
+      "jsx": "react-jsx",
       "allowJs": false,
       "allowSyntheticDefaultImports": true,
       "lib": ["es5", "es6", "dom", "webworker"],
