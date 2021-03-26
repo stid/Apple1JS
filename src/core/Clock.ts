@@ -48,6 +48,10 @@ class Clock {
 
     // Extracted from: https://github.com/kumavis/browser-process-hrtime
     hrtime(previousTimestamp?: [number, number]): [number, number] {
+        if (typeof process !== 'undefined' && process.hrtime) {
+            return process.hrtime();
+        }
+
         const performance = global.performance || {};
 
         const performanceNow =

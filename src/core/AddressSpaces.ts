@@ -27,6 +27,7 @@ class AddressSpaces {
     toLog(): void {
         console.log(this.toDebug());
     }
+
     toDebug(): { [key: string]: string } {
         const result: { [key: string]: string } = {};
         this.addressMapping.forEach((element) => {
