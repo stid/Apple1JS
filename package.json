@@ -7,6 +7,7 @@
   "scripts": {
     "test": "run-s eslint type-check jest",
     "build": "webpack",
+    "build-node": "webpack --config webpack-node.config.js",
     "start": "node dist/bundle.js",
     "raw-start": "node index.js",
     "server-start": "http-server ./public",

@@ -4,10 +4,12 @@ const InfoContainer = styled.div`
     h3 {
         margin: 20px 0 0 0;
     }
+
     p {
         margin-top: 6px;
         color: #607d8b;
     }
+
     a:link {
         color: green;
     }

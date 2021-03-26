@@ -1,12 +1,13 @@
 # Apple 1 Javascript Emulator
-*https://stid.github.io/Apple1JS/*
+
+*<https://stid.github.io/Apple1JS/>*
 
 NodeJS/Javascript Apple 1 Emulator, include initial abstraction of 6820 and other core components.
 
-Project was build to sketch the hybrid HW version published here: https://github.com/stid/APPLE-1-ReplicaDue
+Project was build to sketch the hybrid HW version published here: <https://github.com/stid/APPLE-1-ReplicaDue>
 
 6502.js is based on:
-https://github.com/Torlus/6502.js
+<https://github.com/Torlus/6502.js>
 
 I use this project as some sort of on the edge sandbox/playground. It give me an excuse to play with the latest technologies as I improve the emulator itself.
 
@@ -19,6 +20,11 @@ Under this repository root:
 1. Install required packages via: `yarn install`
 2. Start in dev mode via: `yarn raw_start`
 
+If you want to build the node version:
+
+1. Build node package via: `yarn build-node`
+2. Execute node package via: `yarn start`
+
 ## BROWSER
 
 You can build & execute a web version visible inside your browser. This use a simple server behind, Web Workers to execute the core and a simple React component to render the monitor.
@@ -28,7 +34,7 @@ Under this repository root:
 1. Install required packages via: `yarn install`
 2. Build via `yarn build`
 3. Start the simple web server via: `yarn server-start`
-4. Follow the info and load the related app on your browser (usually http://127.0.0.1:8080)
+4. Follow the info and load the related app on your browser (usually <http://127.0.0.1:8080>)
 
 ## WOZ MONITOR TEST PROGRAM
 

@@ -36,9 +36,9 @@ describe('CPU6502', function () {
         const romData = Array(255).fill(0xff + 2);
         romData[2 + 0xfd] = 0xff;
         romData[2 + 0xfc] = 0x00;
+
         const prog = [0x00, 0xff, 0xea, 0xea, 0xea, 0x4c, 0x02, 0xff];
         romData.splice(0, prog.length, ...prog);
-
         romInstance.flash(romData);
 
         cpu.reset();
@@ -111,7 +111,6 @@ describe('CPU6502', function () {
         */
 
         romData.splice(0, prog.length, ...prog);
-
         romInstance.flash(romData);
 
         cpu.reset();
