@@ -1,33 +1,31 @@
-import styled from 'styled-components';
+import { styled } from '@stitches/react';
 
-const InfoContainer = styled.div`
-    h3 {
-        margin: 20px 0 0 0;
-    }
+const InfoContainer = styled('div', {
+    h3: {
+        margin: '20px 0 0 0',
+    },
 
-    p {
-        margin-top: 6px;
-        color: #607d8b;
-    }
+    p: {
+        marginTop: '6px',
+        color: ' #607d8b',
+    },
 
-    a:link {
-        color: green;
-    }
+    'a:link': {
+        color: 'green',
+    },
 
-    a:visited {
-        color: green;
-    }
+    'a:visited': {
+        color: 'green',
+    },
 
-    /* mouse over link */
-    a:hover {
-        color: #a5ff90;
-    }
+    'a:hover': {
+        color: '#a5ff90',
+    },
 
-    /* selected link */
-    a:active {
-        color: blue;
-    }
-`;
+    'a:active': {
+        color: 'blue',
+    },
+});
 
 const Info = (): JSX.Element => (
     <InfoContainer>

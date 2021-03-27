@@ -1,12 +1,13 @@
 import { memo } from 'react';
-import styled from 'styled-components';
 import * as CRTConstants from './CRTConstants';
 import CRTRowChar from './CRTRowChar';
+import { styled } from '@stitches/react';
 
-const CRTRowContainer = styled.div`
-    position: absolute;
-    height: 13px;
-`;
+const CRTRowContainer = styled('div', {
+    position: 'absolute',
+    height: '13px',
+});
+
 type CRTRowProps = {
     line: string;
     rowIndex: number;

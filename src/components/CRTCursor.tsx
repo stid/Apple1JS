@@ -1,12 +1,13 @@
-import styled from 'styled-components';
+import { styled } from '@stitches/react';
 import { memo, useEffect, useState } from 'react';
 import * as CRTConstants from './CRTConstants';
 
-const CursorContainer = styled.div`
-    width: 12px;
-    height: 12px;
-    position: absolute;
-`;
+const CursorContainer = styled('div', {
+    width: '12px',
+    height: '12px',
+    position: 'absolute',
+});
+
 type CursorProp = {
     row: number;
     column: number;

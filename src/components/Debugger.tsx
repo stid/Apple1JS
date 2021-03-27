@@ -1,11 +1,11 @@
 import { useEffect, useState, memo } from 'react';
-import styled from 'styled-components';
+import { styled } from '@stitches/react';
 import { WORKER_MESSAGES, DebugData } from 'apple1/TSTypes';
 
-const DebuggerContainer = styled.div`
-    padding-top: 20px;
-    font-size: 14px;
-`;
+const DebuggerContainer = styled('div', {
+    paddingTop: '20px',
+    fontSize: '14px',
+});
 
 const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
@@ -36,13 +36,13 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     );
 };
 
-const DebugDomainTitle = styled.h4`
-    margin-bottom: 5px;
-    color: #aaa;
-`;
-const DebugDomainInfo = styled.div`
-    color: #607d8b;
-`;
+const DebugDomainTitle = styled('h4', {
+    marginBottom: '5px',
+    color: '#aaa',
+});
+const DebugDomainInfo = styled('div', {
+    color: '#607d8b',
+});
 interface DebugDomainProps {
     domainKey: string;
     domainData: { [key: string]: string | number | boolean };

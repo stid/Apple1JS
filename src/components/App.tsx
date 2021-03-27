@@ -3,25 +3,26 @@ import Info from './Info';
 import ErrorBoundary from './Error';
 import CRTWorker from './CRTWorker';
 
-import styled, { createGlobalStyle } from 'styled-components';
+//import styled, { createGlobalStyle } from 'styled-components';
+import { global, styled } from '@stitches/react';
 
-const GlobalStyle = createGlobalStyle`
-  body {
-    background-color:black;
-    color: #BBB;
-    font-size: 14px;
-    font-family: Menlo, Monaco, "Courier New", monospace;
-  }
-`;
+const GlobalStyle = global({
+    body: {
+        backgroundColor: 'black',
+        color: '#BBB',
+        fontSize: '14px',
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    },
+});
 
-const LayoutRow = styled.div`
-    display: flex;
-`;
+const LayoutRow = styled('div', {
+    display: 'flex',
+});
 
-const LayoutColumn = styled.div`
-    flex: 50%;
-    padding: 20px;
-`;
+const LayoutColumn = styled('div', {
+    flex: '50%',
+    padding: '20px',
+});
 
 const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.6.3</h3>;
 
@@ -29,9 +30,9 @@ type Props = {
     worker: Worker;
 };
 export default ({ worker }: Props): JSX.Element => {
+    GlobalStyle();
     return (
         <ErrorBoundary>
-            <GlobalStyle />
             <LayoutRow>
                 <LayoutColumn>
                     <Title />

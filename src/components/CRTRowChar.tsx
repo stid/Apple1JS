@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import styled from 'styled-components';
+import { styled } from '@stitches/react';
 import * as CRTConstants from './CRTConstants';
 
-const CRTRowCharContainer = styled.div`
-    width: 13px;
-    height: 13px;
-    position: absolute;
-`;
+const CRTRowCharContainer = styled('div', {
+    width: '13px',
+    height: '13px',
+    position: 'absolute',
+});
 
 type CRTRowCharProps = {
     char: string;
