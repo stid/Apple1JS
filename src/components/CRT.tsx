@@ -6,8 +6,8 @@ import * as CRTConstants from './CRTConstants';
 
 const CRTContainer = styled('div', {
     backgroundColor: '#193549',
-    width: `${CRTConstants.MONITOR_WIDTH}px`,
-    height: `${CRTConstants.MONITOR_HEIGHT}px`,
+    width: CRTConstants.MONITOR_WIDTH,
+    height: CRTConstants.MONITOR_HEIGHT,
     position: 'relative',
 });
 
