@@ -1,11 +1,10 @@
 import * as utils from './utils';
 
-// PIA MAPPING 6821
-const DATA_A_ADDR = 0x0;
-const CRT_A_ADDR = 0x1;
-
-const DATA_B_ADDR = 0x2;
-const CRT_B_ADDR = 0x3;
+// PIA MAPPING 682
+const A_KBD = 0x0; // PIA.A keyboard input
+const A_KBDCR = 0x1; // PIA.A keyboard control register
+const B_DSP = 0x2; // PIA.B display output register
+const B_DSPCR = 0x3; // PIA.B display control register
 
 class PIA6820 implements IoAddressable {
     data: Array<number>;
@@ -26,36 +25,36 @@ class PIA6820 implements IoAddressable {
 
     // Direct Bits A
     setBitDataA(bit: number): void {
-        this.data[DATA_A_ADDR] = utils.bitSet(this.data[DATA_A_ADDR], bit);
+        this.data[A_KBD] = utils.bitSet(this.data[A_KBD], bit);
     }
 
     clearBitDataA(bit: number): void {
-        this.data[DATA_A_ADDR] = utils.bitClear(this.data[DATA_A_ADDR], bit);
+        this.data[A_KBD] = utils.bitClear(this.data[A_KBD], bit);
     }
 
     setBitCtrA(bit: number): void {
-        this.data[CRT_A_ADDR] = utils.bitSet(this.data[CRT_A_ADDR], bit);
+        this.data[A_KBDCR] = utils.bitSet(this.data[A_KBDCR], bit);
     }
 
     clearBitCrtA(bit: number): void {
-        this.data[CRT_A_ADDR] = utils.bitClear(this.data[CRT_A_ADDR], bit);
+        this.data[A_KBDCR] = utils.bitClear(this.data[A_KBDCR], bit);
     }
 
     // Direct Bits B
     setBitDataB(bit: number): void {
-        this.data[DATA_B_ADDR] = utils.bitSet(this.data[DATA_B_ADDR], bit);
+        this.data[B_DSP] = utils.bitSet(this.data[B_DSP], bit);
     }
 
     clearBitDataB(bit: number): void {
-        this.data[DATA_B_ADDR] = utils.bitClear(this.data[DATA_B_ADDR], bit);
+        this.data[B_DSP] = utils.bitClear(this.data[B_DSP], bit);
     }
 
     setBitCtrB(bit: number): void {
-        this.data[CRT_A_ADDR] = utils.bitSet(this.data[CRT_A_ADDR], bit);
+        this.data[A_KBDCR] = utils.bitSet(this.data[A_KBDCR], bit);
     }
 
     clearBitCrtB(bit: number): void {
-        this.data[CRT_B_ADDR] = utils.bitClear(this.data[CRT_B_ADDR], bit);
+        this.data[B_DSPCR] = utils.bitClear(this.data[B_DSPCR], bit);
     }
 
     // Interrupt CA1
@@ -70,21 +69,21 @@ class PIA6820 implements IoAddressable {
 
     // Wire Actions
     setDataA(value: number): void {
-        this.data[DATA_A_ADDR] = value;
+        this.data[A_KBD] = value;
     }
 
     setDataB(value: number): void {
-        this.data[DATA_B_ADDR] = value;
+        this.data[B_DSP] = value;
     }
 
     // BUS Actions
     read(address: number): number {
         switch (address) {
-            case DATA_A_ADDR:
+            case A_KBD:
                 this.clearBitCrtA(7);
                 break;
 
-            case DATA_B_ADDR:
+            case B_DSP:
                 this.clearBitCrtB(7);
                 break;
         }
@@ -95,13 +94,13 @@ class PIA6820 implements IoAddressable {
         this.data[address] = value;
 
         switch (address) {
-            case DATA_A_ADDR:
+            case A_KBD:
                 if (this.ioA) {
                     this.ioA.write(value);
                 }
                 break;
 
-            case DATA_B_ADDR:
+            case B_DSP:
                 if (this.ioB) {
                     this.ioB.write(value);
                 }
@@ -115,10 +114,10 @@ class PIA6820 implements IoAddressable {
 
     toDebug(): { [key: string]: string } {
         return {
-            R1: this.data[0].toString(16).padStart(2, '0').toUpperCase(),
-            R2: this.data[1].toString(16).padStart(2, '0').toUpperCase(),
-            R3: this.data[2].toString(16).padStart(2, '0').toUpperCase(),
-            R4: this.data[3].toString(16).padStart(2, '0').toUpperCase(),
+            A_KBD: this.data[0].toString(16).padStart(2, '0').toUpperCase(),
+            A_KBDCR: this.data[1].toString(16).padStart(2, '0').toUpperCase(),
+            B_DSP: this.data[2].toString(16).padStart(2, '0').toUpperCase(),
+            B_DSPCR: this.data[3].toString(16).padStart(2, '0').toUpperCase(),
         };
     }
 
