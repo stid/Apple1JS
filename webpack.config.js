@@ -14,6 +14,10 @@ const webConfig = {
         minimize: true,
         minimizer: [new TerserPlugin()],
     },
+    devServer: {
+        publicPath: '/js/',
+        contentBase: './public/',
+    },
     ...commonConfig,
 };
 

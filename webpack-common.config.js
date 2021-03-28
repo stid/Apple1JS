@@ -2,8 +2,6 @@ const path = require('path'); // eslint-disable-line @typescript-eslint/no-var-r
 const webpack = require('webpack'); // eslint-disable-line @typescript-eslint/no-var-requires
 const { CleanWebpackPlugin } = require('clean-webpack-plugin'); // eslint-disable-line @typescript-eslint/no-var-requires
 
-const MODE = 'production';
-
 const commonConfig = {
     module: {
         rules: [
@@ -27,15 +25,7 @@ const commonConfig = {
         extensions: ['.ts', '.js', '.tsx'],
         modules: [path.resolve(__dirname, 'node_modules'), path.resolve(__dirname, './src')],
     },
-    plugins: [
-        new webpack.optimize.ModuleConcatenationPlugin(),
-        new CleanWebpackPlugin(),
-        new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify(MODE),
-        }),
-    ],
-
-    mode: MODE,
+    plugins: [new webpack.optimize.ModuleConcatenationPlugin(), new CleanWebpackPlugin()],
 };
 
 module.exports = commonConfig;
