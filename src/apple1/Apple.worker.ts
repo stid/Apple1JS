@@ -26,6 +26,7 @@ onmessage = function (e) {
                 data: {
                     clock: apple1.clock.toDebug(),
                     cpu: apple1.cpu.toDebug(),
+                    pia: apple1.pia.toDebug(),
                     Spaces: apple1.addressSpaces.toDebug(),
                 },
                 type: WORKER_MESSAGES.DEBUG_INFO,

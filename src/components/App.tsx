@@ -24,7 +24,7 @@ const LayoutColumn = styled('div', {
     padding: '20px',
 });
 
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.7.1</h3>;
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.8.0</h3>;
 
 type Props = {
     worker: Worker;
@@ -37,11 +37,13 @@ export default ({ worker }: Props): JSX.Element => {
                 <LayoutColumn>
                     <Title />
                     <CRTWorker worker={worker} />
-                    <Debugger worker={worker} />
                 </LayoutColumn>
                 <LayoutColumn>
                     <Info />
                 </LayoutColumn>
+            </LayoutRow>
+            <LayoutRow>
+                <Debugger worker={worker} />
             </LayoutRow>
         </ErrorBoundary>
     );

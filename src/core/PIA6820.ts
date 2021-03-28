@@ -113,6 +113,15 @@ class PIA6820 implements IoAddressable {
         console.log(this.data);
     }
 
+    toDebug(): { [key: string]: string } {
+        return {
+            R1: this.data[0].toString(16).padStart(2, '0').toUpperCase(),
+            R2: this.data[1].toString(16).padStart(2, '0').toUpperCase(),
+            R3: this.data[2].toString(16).padStart(2, '0').toUpperCase(),
+            R4: this.data[3].toString(16).padStart(2, '0').toUpperCase(),
+        };
+    }
+
     flash(_data: Array<number>): void {
         return;
     }

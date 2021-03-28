@@ -3,8 +3,8 @@ import { styled } from '@stitches/react';
 import { WORKER_MESSAGES, DebugData } from 'apple1/TSTypes';
 
 const DebuggerContainer = styled('div', {
-    paddingTop: '20px',
     fontSize: '14px',
+    display: 'flex',
 });
 
 const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
@@ -13,7 +13,7 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     useEffect(() => {
         setTimeout(() => {
             worker.postMessage({ data: {}, type: WORKER_MESSAGES.DEBUG_INFO });
-        }, 500);
+        }, 250);
     });
 
     useEffect(() => {
@@ -47,15 +47,21 @@ interface DebugDomainProps {
     domainKey: string;
     domainData: { [key: string]: string | number | boolean };
 }
+
+const DebugDomainContainer = styled('div', {
+    width: '240px',
+    padding: '20px',
+});
+
 const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
-    <>
+    <DebugDomainContainer>
         <DebugDomainTitle>{domainKey}</DebugDomainTitle>
         <DebugDomainInfo>
             {Object.keys(domainData).map((key) => (
                 <DebugDomainItem key={key} label={key} value={domainData[key]} />
             ))}
         </DebugDomainInfo>
-    </>
+    </DebugDomainContainer>
 );
 
 const DebugDomainItem = memo(({ label, value }: { label: string; value: string | number | boolean }) => {

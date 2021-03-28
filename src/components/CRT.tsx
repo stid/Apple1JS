@@ -5,7 +5,7 @@ import CRTRow from './CRTRow';
 import * as CRTConstants from './CRTConstants';
 
 const CRTContainer = styled('div', {
-    backgroundColor: '#193549',
+    backgroundColor: '#153838',
     width: CRTConstants.MONITOR_WIDTH,
     height: CRTConstants.MONITOR_HEIGHT,
     position: 'relative',
