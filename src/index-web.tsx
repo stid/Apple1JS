@@ -6,6 +6,7 @@ const appleWorker = new Worker('js/Apple.worker.js');
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
     appleWorker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });
+    e.preventDefault();
 });
 
 ReactDOM.render(<App worker={appleWorker} />, document.getElementById('app'));
