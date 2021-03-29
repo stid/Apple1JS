@@ -2,20 +2,27 @@ const path = require('path'); // eslint-disable-line @typescript-eslint/no-var-r
 const commonConfig = require('./webpack-common.config.js'); // eslint-disable-line @typescript-eslint/no-var-requires
 const TerserPlugin = require('terser-webpack-plugin'); // eslint-disable-line @typescript-eslint/no-var-requires
 const webpack = require('webpack'); // eslint-disable-line @typescript-eslint/no-var-requires
+const HtmlWebpackPlugin = require('html-webpack-plugin'); // eslint-disable-line @typescript-eslint/no-var-requires
+
+commonConfig.plugins.push(
+    new HtmlWebpackPlugin({
+        template: 'src/index.html',
+    }),
+);
 
 const webConfig = {
+    devtool: 'source-map',
     entry: { bundle: './src/index-web', 'Apple.worker': './src/apple1/Apple.worker' },
     target: 'web',
     output: {
         filename: '[name].js',
-        path: path.resolve(__dirname, 'public/js'),
+        path: path.resolve(__dirname, 'public'),
     },
     optimization: {
-        minimize: true,
         minimizer: [new TerserPlugin()],
     },
     devServer: {
-        publicPath: '/js/',
+        //publicPath: '/js/',
         contentBase: './public/',
     },
     ...commonConfig,

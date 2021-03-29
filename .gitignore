@@ -16,7 +16,7 @@ results
 tmp
 
 # Build
-public/js/**/*
+public/
 
 # Coverage reports
 coverage
