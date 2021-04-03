@@ -7,6 +7,7 @@ commonConfig.plugins.push(
     new HtmlWebpackPlugin({
         template: 'src/index.html',
         favicon: 'src/assets/favicon.ico',
+        excludeChunks: ['Apple.worker'],
     }),
 );
 
