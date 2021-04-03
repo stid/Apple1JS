@@ -1,12 +1,12 @@
 const path = require('path'); // eslint-disable-line @typescript-eslint/no-var-requires
 const commonConfig = require('./webpack-common.config.js'); // eslint-disable-line @typescript-eslint/no-var-requires
 const TerserPlugin = require('terser-webpack-plugin'); // eslint-disable-line @typescript-eslint/no-var-requires
-const webpack = require('webpack'); // eslint-disable-line @typescript-eslint/no-var-requires
 const HtmlWebpackPlugin = require('html-webpack-plugin'); // eslint-disable-line @typescript-eslint/no-var-requires
 
 commonConfig.plugins.push(
     new HtmlWebpackPlugin({
         template: 'src/index.html',
+        favicon: 'src/assets/favicon.ico',
     }),
 );
 
