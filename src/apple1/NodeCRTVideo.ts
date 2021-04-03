@@ -1,10 +1,5 @@
 import wait from 'waait';
-
-const BS = 0xdf; // Backspace key, arrow left key (B7 High)
-const CR = 0x8d; // Carriage Return (B7 High)
-const ESC = 0x9b; // ESC key (B7 High)
-
-const DISPLAY_DELAY = 17;
+import * as appleConstants from './const';
 
 // NOTE: WOZ monitor will wait in a loop until DSP b7 is clear and another char
 // was echoed.
@@ -23,7 +18,7 @@ class CRTVideo implements IoComponent {
     async clearScreen(): Promise<void> {
         let i = 0;
         const clearLoop = async () => {
-            await wait(DISPLAY_DELAY);
+            await wait(appleConstants.DISPLAY_DELAY);
             if (i < 24) {
                 process.stdout.write('\n');
                 i++;
@@ -43,27 +38,26 @@ class CRTVideo implements IoComponent {
     }
 
     async write(char: number): Promise<void> {
-        // Clear screen
-        if ((char & 0x7f) === 12) {
-            return this.clearScreen();
-        }
+        const bitChar = char & appleConstants.B7;
 
-        switch (char) {
-            case ESC:
+        switch (bitChar) {
+            case appleConstants.ESC:
                 break;
-            case CR:
+            case appleConstants.CR:
                 process.stdout.write('\n');
                 break;
             //case 0xFF:
-            case BS:
+            case appleConstants.BS:
                 process.stdout.write('\b \b');
                 break;
+            case appleConstants.CLEAR:
+                return this.clearScreen();
             default:
-                process.stdout.write(String.fromCharCode(char & 0x7f));
+                process.stdout.write(String.fromCharCode(bitChar));
                 break;
         }
 
-        await wait(DISPLAY_DELAY);
+        await wait(appleConstants.DISPLAY_DELAY);
     }
 }
 

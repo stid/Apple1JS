@@ -1,12 +1,8 @@
 import wait from 'waait';
 import produce from 'immer';
 import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from './TSTypes';
+import * as appleConstants from './const';
 
-const BS = 0xdf; // Backspace key, arrow left key (B7 High)
-const CR = 0x8d; // Carriage Return (B7 High)
-const ESC = 0x9b; // ESC key (B7 High)
-
-const DISPLAY_DELAY = 17;
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
 
@@ -113,26 +109,24 @@ class CRTVideo implements IoComponent {
     }
 
     async write(char: number): Promise<void> {
-        // Clear screen
-        if ((char & 0x7f) === 12) {
-            return this.onClear();
-        }
+        const bitChar = char & appleConstants.B7;
 
-        switch (char) {
-            case ESC:
+        switch (bitChar) {
+            case appleConstants.ESC:
                 break;
-            case CR:
+            case appleConstants.CR:
                 this._onChar('\n');
                 break;
-            //case 0xFF:
-            case BS:
+            case appleConstants.BS:
                 this._onChar('\b');
                 break;
+            case appleConstants.CLEAR:
+                return this.onClear();
             default:
-                this._onChar(String.fromCharCode(char & 0x7f));
+                this._onChar(String.fromCharCode(bitChar));
                 break;
         }
-        await wait(DISPLAY_DELAY);
+        await wait(appleConstants.DISPLAY_DELAY);
     }
 
     private _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
