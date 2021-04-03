@@ -14,7 +14,7 @@ video.subscribe({
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
 
-onmessage = function (e) {
+onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) {
     const { data, type } = e.data;
 
     switch (type) {

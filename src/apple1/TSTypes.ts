@@ -20,3 +20,5 @@ export interface VideoData {
 export interface DebugData {
     [key: string]: { [key: string]: string | number };
 }
+
+export type MessageDataTypes = DebugData | VideoData;

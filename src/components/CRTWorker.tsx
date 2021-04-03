@@ -14,14 +14,17 @@ const CRTWorker = ({ worker }: CRTWorkerProps): JSX.Element => {
     });
 
     useEffect(() => {
-        worker.addEventListener('message', (e) => {
-            const { data, type }: { data: VideoData; type: WORKER_MESSAGES } = e.data;
+        const handler = (e: MessageEvent<{ data: VideoData; type: WORKER_MESSAGES }>) => {
+            const { data, type } = e.data;
             switch (type) {
                 case WORKER_MESSAGES.VIDEO_BUFFER:
-                    setVideoData(data as VideoData);
+                    setVideoData(data);
                     break;
             }
-        });
+        };
+        worker.addEventListener('message', handler);
+
+        return () => worker.removeEventListener('message', handler);
     }, [worker]);
 
     return <CRT videoData={videoData} />;

@@ -12,19 +12,22 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
 
     useEffect(() => {
         setTimeout(() => {
-            worker.postMessage({ data: {}, type: WORKER_MESSAGES.DEBUG_INFO });
+            worker.postMessage({ data: '', type: WORKER_MESSAGES.DEBUG_INFO });
         }, 250);
     });
 
     useEffect(() => {
-        worker.addEventListener('message', (e) => {
-            const { data, type }: { data: DebugData; type: WORKER_MESSAGES } = e.data;
+        const handler = (e: MessageEvent<{ data: DebugData; type: WORKER_MESSAGES }>) => {
+            const { data, type } = e.data;
             switch (type) {
                 case WORKER_MESSAGES.DEBUG_INFO:
-                    setDebugInfo(data as DebugData);
+                    setDebugInfo(data);
                     break;
             }
-        });
+        };
+
+        worker.addEventListener('message', handler);
+        return () => worker.removeEventListener('message', handler);
     }, [worker]);
 
     return (
