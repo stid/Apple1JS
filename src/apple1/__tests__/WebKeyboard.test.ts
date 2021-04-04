@@ -14,8 +14,7 @@ describe('WebKeyboard', function () {
                 done();
             },
         });
-        const result = await webKeyboard.write('A');
-        expect(result).toBe(65);
+        webKeyboard.write('A');
     });
 
     test('Should Wire & write Backspace', function (done) {

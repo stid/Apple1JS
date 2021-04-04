@@ -1,7 +1,8 @@
 {
     "exclude": [
         "**/*.test.ts",
-        "**/*.test.tsx"
+        "**/*.test.tsx",
+        "node_modules"
     ],
     "compilerOptions": {
       "jsx": "react-jsx",
