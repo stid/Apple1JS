@@ -32,6 +32,10 @@ class Keyboard implements IoComponent {
         // Not implemented
     }
 
+    reset(): void {
+        return;
+    }
+
     onKeyPressed(_str: string, key: { sequence: string; name: string }): void {
         const logicWrite = this.logicWrite;
 
@@ -41,7 +45,6 @@ class Keyboard implements IoComponent {
             case '\u0003': // ctrl-c
                 process.exit();
                 break;
-            // RESET
             case '\u0012': // ctrl-r
                 if (logicWrite) {
                     logicWrite(RESET_CODE);

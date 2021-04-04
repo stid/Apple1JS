@@ -47,9 +47,9 @@ class Apple1 {
 
         // Wire PIA
         this.pia = new PIA6820();
-        this.keyboardLogic = new KeyboardLogic(this.pia);
+        this.keyboardLogic = new KeyboardLogic(this.pia, keyboard);
         this.displayLogic = new DisplayLogic(this.pia, video);
-        this.pia.wireIOA(this.keyboard);
+        this.pia.wireIOA(this.keyboardLogic);
         this.pia.wireIOB(this.displayLogic);
 
         // Map components
@@ -75,6 +75,8 @@ class Apple1 {
         this.keyboard.wire({
             logicWrite: async (value) => {
                 if (value === RESET_CODE) {
+                    this.pia.reset();
+                    this.video.reset();
                     this.cpu.reset();
                 } else {
                     return this.keyboardLogic.write(value);
@@ -85,7 +87,7 @@ class Apple1 {
         this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_CHUNK);
         console.log(`Apple 1`);
 
-        this.reset();
+        //this.reset();
 
         this.clock.toLog();
         this.addressSpaces.toLog();

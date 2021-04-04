@@ -53,7 +53,7 @@ interface DebugDomainProps {
 
 const DebugDomainContainer = styled('div', {
     width: '240px',
-    padding: '20px',
+    padding: '0px 10px 0 20px',
 });
 
 const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (

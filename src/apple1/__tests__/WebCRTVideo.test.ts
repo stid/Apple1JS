@@ -20,7 +20,25 @@ describe('WebCRTVideo', function () {
         expect(webCRTVideo.column).toBe(0);
     });
 
+    test('Should Init with Cold State', function () {
+        const compBuffer = Array(NUM_ROWS);
+        for (let i = 0; i < compBuffer.length; i++) {
+            compBuffer[i] = [i, Array(NUM_COLUMNS).fill('@')];
+        }
+        expect(onChange).toBeCalledWith(compBuffer, 0, 0);
+    });
+
+    test('Should Reset', function () {
+        const compBuffer = Array(NUM_ROWS);
+        for (let i = 0; i < compBuffer.length; i++) {
+            compBuffer[i] = [i, Array(NUM_COLUMNS).fill(' ')];
+        }
+        webCRTVideo.reset();
+        expect(onChange).toBeCalledWith(compBuffer, 0, 0);
+    });
+
     test('Call on change on Write', async function () {
+        webCRTVideo.reset();
         const compBuffer = Array(NUM_ROWS);
         for (let i = 0; i < compBuffer.length; i++) {
             compBuffer[i] = [i, Array(NUM_COLUMNS).fill(' ')];
@@ -34,6 +52,7 @@ describe('WebCRTVideo', function () {
     });
 
     test('Should clear the screen', async function () {
+        webCRTVideo.reset();
         const compBuffer = Array(NUM_ROWS);
         for (let i = 0; i < compBuffer.length; i++) {
             compBuffer[i] = [i, Array(NUM_COLUMNS).fill(' ')];
@@ -47,6 +66,7 @@ describe('WebCRTVideo', function () {
     });
 
     test('Fill a line + 2 colunm & Scroll Up Buffer', async function () {
+        webCRTVideo.reset();
         const compBuffer = Array(NUM_ROWS);
         for (let i = 0; i < compBuffer.length; i++) {
             compBuffer[i] = i < 1 ? [i, Array(NUM_COLUMNS).fill('3')] : [i, Array(NUM_COLUMNS).fill(' ')];

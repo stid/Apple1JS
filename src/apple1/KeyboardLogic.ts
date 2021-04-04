@@ -3,9 +3,11 @@ import * as utils from 'core/utils';
 
 class KeyboardLogic implements IoLogic {
     private pia: PIA6820;
+    private keyboard: IoComponent;
 
-    constructor(pia: PIA6820) {
+    constructor(pia: PIA6820, keyboard: IoComponent) {
         this.pia = pia;
+        this.keyboard = keyboard;
     }
 
     // eslint-disable-next-line no-unused-vars
@@ -24,6 +26,10 @@ class KeyboardLogic implements IoLogic {
 
     wire(): void {
         return;
+    }
+
+    reset(): void {
+        this.keyboard.reset();
     }
 }
 
