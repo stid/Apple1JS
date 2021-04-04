@@ -19,7 +19,7 @@ const NUM_ROWS = 24;
 //                rts
 //
 
-interface VideoOut {
+export interface VideoOut {
     onChange: (buffer: VideoBuffer, row: number, column: number) => void;
 }
 
@@ -118,12 +118,19 @@ class CRTVideo implements IoComponent {
                 this._onChar('\n');
                 break;
             case appleConstants.BS:
-                this._onChar('\b');
+                this._onChar('_');
+                // TODO: Will be nice to make this an option
+                //this._onChar('\b'); // Uncomment for real BS
+                break;
+            default:
+                if (bitChar >= 13) {
+                    this._onChar(String.fromCharCode(bitChar));
+                }
                 break;
             case appleConstants.CLEAR:
-                return this.onClear();
-            default:
-                this._onChar(String.fromCharCode(bitChar));
+                // Some video on YuoTube show
+                // creen cleaned with a full scroll up
+                // line by line
                 break;
         }
         await wait(appleConstants.DISPLAY_DELAY);
