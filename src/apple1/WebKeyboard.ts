@@ -25,7 +25,6 @@ class Keyboard implements IoComponent {
         let result;
         if (wireWrite) {
             // Standard Keys
-            console.log(key);
             switch (key) {
                 case 'Tab':
                     result = await wireWrite(RESET_CODE);
