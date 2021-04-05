@@ -3,14 +3,12 @@ import * as utils from 'core/utils';
 
 class KeyboardLogic implements IoLogic {
     private pia: PIA6820;
-    private keyboard: IoComponent;
+    private wireReset?: () => void;
 
-    constructor(pia: PIA6820, keyboard: IoComponent) {
+    constructor(pia: PIA6820) {
         this.pia = pia;
-        this.keyboard = keyboard;
     }
 
-    // eslint-disable-next-line no-unused-vars
     async read(_address: number): Promise<void> {
         // Not implemented
         return;
@@ -21,15 +19,15 @@ class KeyboardLogic implements IoLogic {
         this.pia.setDataA(utils.bitSet(char, 7));
         // Keyboard Strobe - raise CA1 on key pressed
         // CA1 raise - PIA will raise CTRL A bit 7
-        this.pia.raiseCA1();
+        this.pia.setBitCtrA(7);
     }
 
-    wire(): void {
-        return;
+    wire({ reset }: WireOptions): void {
+        this.wireReset = reset;
     }
 
     reset(): void {
-        this.keyboard.reset();
+        if (this.wireReset) this.wireReset();
     }
 }
 

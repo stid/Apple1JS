@@ -47,8 +47,8 @@ class Apple1 {
 
         // Wire PIA
         this.pia = new PIA6820();
-        this.keyboardLogic = new KeyboardLogic(this.pia, keyboard);
-        this.displayLogic = new DisplayLogic(this.pia, video);
+        this.keyboardLogic = new KeyboardLogic(this.pia);
+        this.displayLogic = new DisplayLogic(this.pia);
         this.pia.wireIOA(this.keyboardLogic);
         this.pia.wireIOB(this.displayLogic);
 
@@ -73,7 +73,7 @@ class Apple1 {
         this.cpu = new CPU6502(this.addressSpaces);
 
         this.keyboard.wire({
-            logicWrite: async (value) => {
+            write: async (value) => {
                 if (value === RESET_CODE) {
                     this.pia.reset();
                     this.video.reset();
@@ -82,6 +82,11 @@ class Apple1 {
                     return this.keyboardLogic.write(value);
                 }
             },
+        });
+
+        this.displayLogic.wire({
+            write: (value: string | number) => this.video.write(value),
+            reset: () => this.video.reset(),
         });
 
         this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_CHUNK);

@@ -9,7 +9,7 @@ describe('WebKeyboard', function () {
 
     test('Should Wire & write 65', async function (done) {
         webKeyboard.wire({
-            logicWrite: async (value) => {
+            write: async (value) => {
                 expect(value).toBe(65);
                 done();
             },
@@ -19,7 +19,7 @@ describe('WebKeyboard', function () {
 
     test('Should Wire & write Backspace', function (done) {
         webKeyboard.wire({
-            logicWrite: async (value) => {
+            write: async (value) => {
                 expect(value).toBe(223);
                 done();
             },
@@ -29,7 +29,7 @@ describe('WebKeyboard', function () {
 
     test('Should Wire & write Escape', function (done) {
         webKeyboard.wire({
-            logicWrite: async (value) => {
+            write: async (value) => {
                 expect(value).toBe(155);
                 done();
             },
@@ -39,7 +39,7 @@ describe('WebKeyboard', function () {
 
     test('Should Wire & write Enter', function (done) {
         webKeyboard.wire({
-            logicWrite: async (value) => {
+            write: async (value) => {
                 expect(value).toBe(141);
                 done();
             },
@@ -49,7 +49,7 @@ describe('WebKeyboard', function () {
 
     test('Should Wire & result 65', async function () {
         webKeyboard.wire({
-            logicWrite: async (value) => {
+            write: async (value) => {
                 return value;
             },
         });

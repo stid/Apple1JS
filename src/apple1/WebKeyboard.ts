@@ -3,15 +3,13 @@ const B7ESC = 0x9b; // ESC key (B7 High)
 const B7CR = 0x8d;
 const RESET_CODE = -255;
 
-//const RESET_CODE = -255;
-
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
-    private logicWrite?: (value: number) => Promise<number | void>;
+    private wireWrite?: (value: number) => Promise<number | void>;
 
-    wire(conf: { logicWrite?: (value: number) => Promise<number | void> }): void {
-        this.logicWrite = conf.logicWrite;
+    wire(conf: { write?: (value: number) => Promise<number | void> }): void {
+        this.wireWrite = conf.write;
     }
 
     reset(): void {
@@ -23,27 +21,27 @@ class Keyboard implements IoComponent {
     }
 
     async write(key: string): Promise<number | void> {
-        const logicWrite = this.logicWrite;
+        const wireWrite = this.wireWrite;
         let result;
-        if (logicWrite) {
+        if (wireWrite) {
             // Standard Keys
             console.log(key);
             switch (key) {
                 case 'Tab':
-                    result = await logicWrite(RESET_CODE);
+                    result = await wireWrite(RESET_CODE);
                     break;
                 case 'Backspace':
-                    result = await logicWrite(B7BS);
+                    result = await wireWrite(B7BS);
                     break;
                 case 'Escape':
-                    result = await logicWrite(B7ESC);
+                    result = await wireWrite(B7ESC);
                     break;
                 case 'Enter':
-                    result = await logicWrite(B7CR);
+                    result = await wireWrite(B7CR);
                     break;
                 default: {
                     if (key.length === 1) {
-                        result = await logicWrite(key.toUpperCase().charCodeAt(0));
+                        result = await wireWrite(key.toUpperCase().charCodeAt(0));
                     }
                 }
             }
