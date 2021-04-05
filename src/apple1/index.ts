@@ -14,7 +14,6 @@ import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
 
-const RESET_CODE = -255;
 const STEP_CHUNK = 100;
 const MHZ_CPU_SPEED = 1;
 
@@ -48,8 +47,8 @@ class Apple1 {
         // Wire PIA
         this.pia = new PIA6820();
         this.keyboardLogic = new KeyboardLogic(this.pia);
-        this.displayLogic = new DisplayLogic(this.pia, video);
-        this.pia.wireIOA(this.keyboard);
+        this.displayLogic = new DisplayLogic(this.pia);
+        this.pia.wireIOA(this.keyboardLogic);
         this.pia.wireIOB(this.displayLogic);
 
         // Map components
@@ -68,24 +67,33 @@ class Apple1 {
         this.ramBank1.flash(anniversary);
         this.ramBank2.flash(basic);
 
-        // WIRING MORE
         this.addressSpaces = new AddressSpaces(this.addressMapping);
         this.cpu = new CPU6502(this.addressSpaces);
 
+        // WIRING IO
         this.keyboard.wire({
-            logicWrite: async (value) => {
-                if (value === RESET_CODE) {
-                    this.cpu.reset();
-                } else {
-                    return this.keyboardLogic.write(value);
-                }
+            write: async (value) => this.keyboardLogic.write(value),
+        });
+
+        this.keyboardLogic.wire({
+            // Keyboard Reset is Hardware on Apple 1
+            // Direct wiring to reset components logic
+            reset: () => {
+                this.pia.reset();
+                this.displayLogic.reset();
+                this.cpu.reset();
             },
+        });
+
+        this.displayLogic.wire({
+            write: (value: string | number) => this.video.write(value),
+            reset: () => this.video.reset(),
         });
 
         this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_CHUNK);
         console.log(`Apple 1`);
 
-        this.reset();
+        //this.reset();
 
         this.clock.toLog();
         this.addressSpaces.toLog();

@@ -5,45 +5,45 @@ jest.mock('../../core/PIA6820');
 describe('KeyboardLogic', function () {
     let pia: PIA6820;
     let displayLogic: DisplayLogic;
-    let video: any;
 
     test('Should Wire & write 65 on PIA', async function () {
         pia = new PIA6820();
 
-        displayLogic = new DisplayLogic(pia, {
-            read: async (address: number) => {
-                return 1;
-            },
-            write: async (value: number) => {
-                return 1;
-            },
-            wire: (options: any) => {
-                return 1;
-            },
-        });
+        displayLogic = new DisplayLogic(pia);
 
         await displayLogic.write(65);
         expect(pia.setBitDataB).toBeCalledWith(7);
         expect(pia.clearBitDataB).toBeCalledWith(7);
     });
 
-    test('Should Wire & write 65 on PIA 2', async function (done) {
+    test('Should Wire & write 65 on wired write', async function (done) {
         pia = new PIA6820();
-        const fnRead = jest.fn();
 
-        displayLogic = new DisplayLogic(pia, {
-            read: async (address: number) => {
-                return;
-            },
+        const wireOptions = {
             write: async (value: number) => {
                 expect(value).toBe(65);
                 done();
             },
-            wire: (options: any) => {
-                return;
-            },
-        });
+        };
+
+        displayLogic = new DisplayLogic(pia);
+        displayLogic.wire(wireOptions);
 
         displayLogic.write(65);
+    });
+
+    test('Should Wire & Reset 65 on wired reset', function () {
+        pia = new PIA6820();
+        const fnReset = jest.fn();
+
+        const wireOptions = {
+            reset: fnReset,
+        };
+
+        displayLogic = new DisplayLogic(pia);
+        displayLogic.wire(wireOptions);
+
+        displayLogic.reset();
+        expect(fnReset).toBeCalled();
     });
 });

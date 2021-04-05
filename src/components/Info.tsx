@@ -6,7 +6,7 @@ const InfoContainer = styled('div', {
     },
 
     p: {
-        marginTop: '6px',
+        marginTop: '4px',
         color: ' #607d8b',
     },
 
@@ -29,6 +29,9 @@ const InfoContainer = styled('div', {
 
 const Info = (): JSX.Element => (
     <InfoContainer>
+        <h3>FIRST START / RESET</h3>
+        <p>Press TAB</p>
+
         <h3>TEST PROGRAM</h3>
         <p>
             0:A9 0 AA 20 EF FF E8 8A 4C 2 0<br />

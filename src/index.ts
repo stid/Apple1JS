@@ -8,5 +8,6 @@ export const keyboard = new NodeKeyboard();
 export default Apple1;
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
+console.log('::: CTRL-R to Start / Reset');
 
 apple1.loop();

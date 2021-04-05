@@ -1,10 +1,12 @@
-interface IoComponentWireOptions {
-    logicWrite?: (value: number) => Promise<number | void>;
-    logicRead?: (address: number) => Promise<number>;
+declare interface WireOptions {
+    write?: (value: number) => Promise<number | string | void>;
+    read?: (address: number) => Promise<number | void>;
+    reset?: () => void;
 }
 
 declare interface IoComponent {
     read(address: number): Promise<number | void>;
-    write(value: number | string): Promise<number | void>;
-    wire(options: IoComponentWireOptions): void;
+    write(value: number | string): Promise<number | string | void>;
+    wire(options: WireOptions): void;
+    reset(): void;
 }

@@ -7,7 +7,7 @@ const RESET_CODE = -255;
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
 class Keyboard implements IoComponent {
-    private logicWrite?: (value: number) => Promise<void>;
+    private wireWrite?: (value: number) => Promise<void>;
 
     constructor() {
         readline.emitKeypressEvents(process.stdin);
@@ -18,8 +18,8 @@ class Keyboard implements IoComponent {
         process.stdin.on('keypress', this.onKeyPressed.bind(this));
     }
 
-    wire({ logicWrite }: { logicWrite?: (value: number) => Promise<void> }): void {
-        this.logicWrite = logicWrite;
+    wire({ write }: { write?: (value: number) => Promise<void> }): void {
+        this.wireWrite = write;
     }
 
     // eslint-disable-next-line no-unused-vars
@@ -32,34 +32,37 @@ class Keyboard implements IoComponent {
         // Not implemented
     }
 
+    reset(): void {
+        return;
+    }
+
     onKeyPressed(_str: string, key: { sequence: string; name: string }): void {
-        const logicWrite = this.logicWrite;
+        const wireWrite = this.wireWrite;
 
         // Special Keys
         switch (key.sequence) {
             // EXIT
             case '\u0003': // ctrl-c
                 process.exit();
-                break;
-            // RESET
+            // eslint-disable-next-line no-fallthrough
             case '\u0012': // ctrl-r
-                if (logicWrite) {
-                    logicWrite(RESET_CODE);
+                if (wireWrite) {
+                    wireWrite(RESET_CODE);
                 }
                 return;
         }
 
-        if (logicWrite) {
+        if (wireWrite) {
             // Standard Keys
             switch (key.name) {
                 case 'backspace':
-                    logicWrite(BS);
+                    wireWrite(BS);
                     break;
                 case 'escape':
-                    logicWrite(ESC);
+                    wireWrite(ESC);
                     break;
                 default:
-                    logicWrite(key.sequence.toUpperCase().charCodeAt(0));
+                    wireWrite(key.sequence.toUpperCase().charCodeAt(0));
             }
         }
     }

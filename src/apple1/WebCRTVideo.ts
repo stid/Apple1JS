@@ -36,7 +36,15 @@ class CRTVideo implements IoComponent {
         this.rowShift = 0;
         this.buffer = Array(NUM_ROWS);
         this.subscribers = [];
-        this.onClear();
+        this.coldStart();
+    }
+
+    private coldStart(): void {
+        this._updateBuffer((draftBuffer): void => {
+            for (let i = 0; i < this.buffer.length; i++) {
+                draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill('@')];
+            }
+        });
     }
 
     onClear(): void {
@@ -106,6 +114,12 @@ class CRTVideo implements IoComponent {
 
     wire(): void {
         return;
+    }
+
+    reset(): void {
+        this.onClear();
+        this.row = 0;
+        this.column = 0;
     }
 
     async write(char: number): Promise<void> {

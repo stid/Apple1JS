@@ -24,7 +24,7 @@ const LayoutColumn = styled('div', {
     padding: '20px',
 });
 
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.9.0</h3>;
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.11.0</h3>;
 
 type Props = {
     worker: Worker;

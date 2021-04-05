@@ -37,6 +37,10 @@ class CRTVideo implements IoComponent {
         return;
     }
 
+    reset(): void {
+        return;
+    }
+
     async write(char: number): Promise<void> {
         const bitChar = char & appleConstants.B7;
 

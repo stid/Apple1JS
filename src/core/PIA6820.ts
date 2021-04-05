@@ -15,6 +15,11 @@ class PIA6820 implements IoAddressable {
         this.data = [0, 0, 0, 0];
     }
 
+    reset(): void {
+        this.data.fill(0);
+        return;
+    }
+
     wireIOA(ioA: IoComponent): void {
         this.ioA = ioA;
     }
@@ -55,16 +60,6 @@ class PIA6820 implements IoAddressable {
 
     clearBitCrtB(bit: number): void {
         this.data[B_DSPCR] = utils.bitClear(this.data[B_DSPCR], bit);
-    }
-
-    // Interrupt CA1
-    raiseCA1(): void {
-        this.setBitCtrA(7);
-    }
-
-    // Interrupt CB1
-    raiseCB1(): void {
-        this.setBitCtrB(7);
     }
 
     // Wire Actions
