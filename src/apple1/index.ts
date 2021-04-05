@@ -14,7 +14,6 @@ import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
 
-const RESET_CODE = -255;
 const STEP_CHUNK = 100;
 const MHZ_CPU_SPEED = 1;
 
@@ -77,6 +76,8 @@ class Apple1 {
         });
 
         this.keyboardLogic.wire({
+            // Keyboard Reset is Hardware on Apple 1
+            // Direct wiring to reset components logic
             reset: () => {
                 this.pia.reset();
                 this.displayLogic.reset();
