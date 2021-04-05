@@ -68,19 +68,19 @@ class Apple1 {
         this.ramBank1.flash(anniversary);
         this.ramBank2.flash(basic);
 
-        // WIRING MORE
         this.addressSpaces = new AddressSpaces(this.addressMapping);
         this.cpu = new CPU6502(this.addressSpaces);
 
+        // WIRING IO
         this.keyboard.wire({
-            write: async (value) => {
-                if (value === RESET_CODE) {
-                    this.pia.reset();
-                    this.video.reset();
-                    this.cpu.reset();
-                } else {
-                    return this.keyboardLogic.write(value);
-                }
+            write: async (value) => this.keyboardLogic.write(value),
+        });
+
+        this.keyboardLogic.wire({
+            reset: () => {
+                this.pia.reset();
+                this.displayLogic.reset();
+                this.cpu.reset();
             },
         });
 
