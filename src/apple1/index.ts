@@ -41,41 +41,49 @@ class Apple1 {
     clock: Clock;
 
     constructor({ video, keyboard }: { video: IoComponent; keyboard: IoComponent }) {
+        // Keyboard & Video are injected from the outside (browser vs nodejs). This make this core
+        // implementation agnostic. They just need to conform to IOComponent interfaces.
         this.video = video;
         this.keyboard = keyboard;
 
-        // Wire PIA
+        // Create PIA & use it to wire to related IOComponents / Logic
         this.pia = new PIA6820();
         this.keyboardLogic = new KeyboardLogic(this.pia);
         this.displayLogic = new DisplayLogic(this.pia);
         this.pia.wireIOA(this.keyboardLogic);
         this.pia.wireIOB(this.displayLogic);
 
-        // Map components
+        // Map Components to related memory addresses
         this.rom = new ROM();
         this.ramBank1 = new RAM();
         this.ramBank2 = new RAM();
         this.addressMapping = [
             { addr: ROM_ADDR, component: this.rom, name: 'ROM' },
             { addr: RAM_BANK1_ADDR, component: this.ramBank1, name: 'RAM_BANK_1' },
+            // Base Apple 1 was shipped with BANK 1 only.
+            // It was possible to add more ram, especially it was needed to execute BASIC
             { addr: RAM_BANK2_ADDR, component: this.ramBank2, name: 'RAM_BANK_2' },
             { addr: PIA_ADDR, component: this.pia, name: 'PIA6820' },
         ];
 
-        // LOAD PROGRAMS
+        // LOAD PROGRAMS in ROM/RAM
         this.rom.flash(wozMonitor);
         this.ramBank1.flash(anniversary);
         this.ramBank2.flash(basic);
 
+        // Bound CPU to related Address Spaces
         this.addressSpaces = new AddressSpaces(this.addressMapping);
         this.cpu = new CPU6502(this.addressSpaces);
 
         // WIRING IO
         this.keyboard.wire({
+            // Keyboard --> KeyboardLogic
+            // Whatver entered in the keyboard goes straight into the logic
             write: async (value) => this.keyboardLogic.write(value),
         });
 
         this.keyboardLogic.wire({
+            // KeyboardLogic --> Reset
             // Keyboard Reset is Hardware on Apple 1
             // Direct wiring to reset components logic
             reset: () => {
@@ -86,15 +94,20 @@ class Apple1 {
         });
 
         this.displayLogic.wire({
+            // DisplayLogic --> Video Out
+            // Output to video from inner displayLogic
+            // write / reset goes straight to video out.
             write: (value: string | number) => this.video.write(value),
             reset: () => this.video.reset(),
         });
 
+        // Create the Clock
+        // Clock is bound to the CPU and will step on it + take care of respecting
+        // the related cycles per executed instruction type.
         this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_CHUNK);
         console.log(`Apple 1`);
 
-        //this.reset();
-
+        // Debug output
         this.clock.toLog();
         this.addressSpaces.toLog();
         this.cpu.toLog();
@@ -105,8 +118,13 @@ class Apple1 {
     }
 
     loop(): void {
+        // Step on 6502 next instruction.
+        // Execution will just return to this loop if elapsed time < expected cycles.
+        // A loop is executed STEP_CHUNK times before returning to optimize.
+        // More STEP CHUMKS means more precise cycles and 6502 execution vs less
+        // time released to the main js loop.
         this.clock.cycle();
-        setImmediate(this.loop.bind(this));
+        setImmediate(this.loop.bind(this)); // Async to not block
     }
 }
 

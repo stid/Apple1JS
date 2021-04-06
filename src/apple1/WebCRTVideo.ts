@@ -6,10 +6,10 @@ import * as appleConstants from './const';
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
 
-// NOTE: WOZ monitor will wait in a loop until DSP b7 is clear and another char
+// NOTE: WOZ monitor will wait in a loop until DSP B7 is clear and another char
 // was echoed.
 // DISPLAY_DELAY will in fact slow down the effective execution as the
-// flow hold until Display is Ready.
+// flow is on hold until Display is Ready when printing out.
 // This is unrelated to the effective CPU speed that was able to compute far more faster
 // then the display video effective speed.
 //
@@ -18,6 +18,10 @@ const NUM_ROWS = 24;
 //                sta     DSP              ;Output character. Sets DA
 //                rts
 //
+
+// On Apple 1 the display logic, including scroll was entirely hardware driven.
+// The CPU was free to execute in the meantime. In fact Apple 1 was faster than
+// the Apple II in this sense.
 
 export interface VideoOut {
     onChange: (buffer: VideoBuffer, row: number, column: number) => void;
@@ -107,7 +111,6 @@ class CRTVideo implements IoComponent {
         });
     }
 
-    // eslint-disable-next-line no-unused-vars
     async read(_address: number): Promise<void> {
         // Not implemented
     }
@@ -144,7 +147,7 @@ class CRTVideo implements IoComponent {
             case appleConstants.CLEAR:
                 // Some video on YuoTube show
                 // creen cleaned with a full scroll up
-                // line by line
+                // line by line.
                 break;
         }
         await wait(appleConstants.DISPLAY_DELAY);
