@@ -3,6 +3,27 @@ class AddressSpaces {
 
     constructor(addressMapping: Array<AddressSpaceType>) {
         this.addressMapping = addressMapping;
+        this._validate();
+    }
+
+    private _validate() {
+        // Validate Start < End
+        this.addressMapping.forEach((item: AddressSpaceType) => {
+            if (item.addr[0] > item.addr[1]) {
+                throw Error(`${item.name} Starting address > ending address`);
+            }
+        });
+
+        // Validate No Overlap
+        const sortedAddrs = this.addressMapping.sort(
+            (itemA: AddressSpaceType, itemB: AddressSpaceType): number => itemA.addr[0] - itemB.addr[0],
+        );
+
+        for (let i = 0; i < sortedAddrs.length - 1; i++) {
+            if (sortedAddrs[i].addr[1] >= sortedAddrs[i + 1].addr[0]) {
+                throw Error(`Space ${sortedAddrs[i].name} overlap with ${sortedAddrs[i + 1].name}`);
+            }
+        }
     }
 
     private _findInstanceWithAddress(address: number): AddressSpaceType | void {

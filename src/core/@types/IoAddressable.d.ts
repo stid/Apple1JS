@@ -7,5 +7,5 @@ declare interface IoAddressable {
 declare interface AddressSpaceType {
     addr: [number, number];
     component: IoAddressable;
-    name?: string;
+    name: string;
 }

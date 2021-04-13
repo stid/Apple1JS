@@ -1,6 +1,8 @@
 import KeyboardLogic from '../KeyboardLogic';
 import PIA6820 from '../../core/PIA6820';
+
 jest.mock('../../core/PIA6820');
+
 describe('KeyboardLogic', function () {
     let pia: PIA6820;
     let keyboardLogic: KeyboardLogic;
