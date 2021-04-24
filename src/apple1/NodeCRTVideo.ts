@@ -28,7 +28,7 @@ class CRTVideo implements IoComponent {
         clearLoop();
     }
 
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async read(_address: number): Promise<number> {
         return 0;
     }

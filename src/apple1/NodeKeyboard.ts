@@ -23,11 +23,13 @@ class Keyboard implements IoComponent {
     }
 
     // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async read(_address: number): Promise<void> {
         // Not implemented
     }
 
     // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async write(_address: number): Promise<void> {
         // Not implemented
     }

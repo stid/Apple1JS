@@ -116,6 +116,7 @@ class PIA6820 implements IoAddressable {
         };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     flash(_data: Array<number>): void {
         return;
     }

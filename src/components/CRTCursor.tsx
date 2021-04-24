@@ -39,4 +39,6 @@ const CRTCursor = memo(({ row, column }: CursorProp) => {
     );
 });
 
+CRTCursor.displayName = 'CRTCursor';
+
 export default CRTCursor;

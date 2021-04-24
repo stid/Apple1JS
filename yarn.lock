@@ -997,13 +997,13 @@
     "@babel/helper-validator-option" "^7.12.17"
     "@babel/plugin-transform-typescript" "^7.13.0"
 
-"@babel/register@7.13.14":
-  version "7.13.14"
-  resolved "https://registry.yarnpkg.com/@babel/register/-/register-7.13.14.tgz#bbfa8f4f027c2ebc432e8e69e078b632605f2d9b"
-  integrity sha512-iyw0hUwjh/fzN8qklVqZodbyWjEBOG0KdDnBOpv3zzIgK3NmuRXBmIXH39ZBdspkn8LTHvSboN+oYb4MT43+9Q==
+"@babel/register@7.13.16":
+  version "7.13.16"
+  resolved "https://registry.yarnpkg.com/@babel/register/-/register-7.13.16.tgz#ae3ab0b55c8ec28763877383c454f01521d9a53d"
+  integrity sha512-dh2t11ysujTwByQjXNgJ48QZ2zcXKQVdV8s0TbeMI0flmtGWCdTwK9tJiACHXPLmncm5+ktNn/diojA45JE4jg==
   dependencies:
+    clone-deep "^4.0.1"
     find-cache-dir "^2.0.0"
-    lodash "^4.17.19"
     make-dir "^2.1.0"
     pirates "^4.0.0"
     source-map-support "^0.5.16"
@@ -1387,17 +1387,17 @@
   dependencies:
     "@sinonjs/commons" "^1.7.0"
 
-"@stitches/core@^0.1.8":
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/@stitches/core/-/core-0.1.8.tgz#174e109244be3745fc3eb4869a6a3b6c9a38d074"
-  integrity sha512-SIBYlL8H2k2kk4NpvD17cvf5n2WDRscqpIwHQs66k1l9xnSXISiCaLCgNigaGrZAYlkAI57YAX2WoTmNnGAL+Q==
+"@stitches/core@^0.1.9":
+  version "0.1.9"
+  resolved "https://registry.yarnpkg.com/@stitches/core/-/core-0.1.9.tgz#6cc42ae6052f6900f9add164232449ff8d62c4ba"
+  integrity sha512-70gVb0uhgV6BOJmloirWEGZmofk/Hzr5yWlub1rtm4CvimD3Xl5xr9fVkjcTu+REC6ILCJCnlEP4WmilTfXNOA==
 
-"@stitches/react@^0.1.8":
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/@stitches/react/-/react-0.1.8.tgz#c34dbf0d605653f139e3f8f59684d78e1a6a43d8"
-  integrity sha512-DrnYguiSh6WnUtiuaH2fI47WojUCmJEPQBPTPy4Zz0xW6c3aer8slSJpl3K4jRuN98yoOqhadhn3TCPALV5f4w==
+"@stitches/react@^0.1.9":
+  version "0.1.9"
+  resolved "https://registry.yarnpkg.com/@stitches/react/-/react-0.1.9.tgz#b16e05c9ee7e34369bb3b051b92a997ab379863f"
+  integrity sha512-yK4ZAdkuOiOum+bfPYlDNS9UI/Tm9JYsYNMUWLB3uAy+7tvSYfB4cVYkXwFuiKxis03woATTZTe6IlTb+LXm+A==
   dependencies:
-    "@stitches/core" "^0.1.8"
+    "@stitches/core" "^0.1.9"
 
 "@testing-library/dom@^7.28.1":
   version "7.30.1"
@@ -3753,10 +3753,10 @@ eslint-visitor-keys@^2.0.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-2.0.0.tgz#21fdc8fbcd9c795cc0321f0563702095751511a8"
   integrity sha512-QudtT6av5WXels9WjIM7qz1XD1cWGvX4gGXvp/zBn9nXG02D0utdU3Em2m/QjTnrsk6bBjmCygl3rmj118msQQ==
 
-eslint@7.24.0:
-  version "7.24.0"
-  resolved "https://registry.yarnpkg.com/eslint/-/eslint-7.24.0.tgz#2e44fa62d93892bfdb100521f17345ba54b8513a"
-  integrity sha512-k9gaHeHiFmGCDQ2rEfvULlSLruz6tgfA8DEn+rY9/oYPFFTlz55mM/Q/Rij1b2Y42jwZiK3lXvNTw6w6TXzcKQ==
+eslint@7.25.0:
+  version "7.25.0"
+  resolved "https://registry.yarnpkg.com/eslint/-/eslint-7.25.0.tgz#1309e4404d94e676e3e831b3a3ad2b050031eb67"
+  integrity sha512-TVpSovpvCNpLURIScDRB6g5CYu/ZFq9GfX2hLNIV4dSBKxIWojeDODvYl3t0k0VtMxYeR8OXPCFE5+oHMlGfhw==
   dependencies:
     "@babel/code-frame" "7.12.11"
     "@eslint/eslintrc" "^0.4.0"
@@ -8434,10 +8434,10 @@ webpack-sources@^2.1.1:
     source-list-map "^2.0.1"
     source-map "^0.6.1"
 
-webpack@5.35.0:
-  version "5.35.0"
-  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.35.0.tgz#4db23c2b96c4e53a90c5732d7cdb301a84a33576"
-  integrity sha512-au3gu55yYF/h6NXFr0KZPZAYxS6Nlc595BzYPke8n0CSff5WXcoixtjh5LC/8mXunkRKxhymhXmBY0+kEbR6jg==
+webpack@5.35.1:
+  version "5.35.1"
+  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.35.1.tgz#857670799465c8a5cbb94c4c175d60ac42d18ba3"
+  integrity sha512-uWKYStqJ23+N6/EnMEwUjPSSKUG1tFmcuKhALEh/QXoUxwN8eb3ATNIZB38A+fO6QZ0xfc7Cu7KNV9LXNhDCsw==
   dependencies:
     "@types/eslint-scope" "^3.7.0"
     "@types/estree" "^0.0.47"

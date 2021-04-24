@@ -20,4 +20,6 @@ const CRTRowChar = memo(({ char, x }: CRTRowCharProps) => {
     );
 });
 
+CRTRowChar.displayName = 'CRTRowChar';
+
 export default CRTRowChar;

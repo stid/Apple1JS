@@ -71,4 +71,6 @@ const DebugDomainItem = memo(({ label, value }: { label: string; value: string |
     return <div>{`${label}: ${value}`}</div>;
 });
 
+DebugDomainItem.displayName = 'DebugDomainItem';
+
 export default Debugger;
