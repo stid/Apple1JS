@@ -16,26 +16,28 @@ const CRTCursor = memo(({ row, column }: CursorProp) => {
     const [visible, setVisible] = useState(true);
 
     useEffect(() => {
-        setTimeout(
+        const tm = setTimeout(
             () => {
                 setVisible(!visible);
             },
-            visible ? 600 : 400,
+            visible ? 400 : 600,
         );
+
+        return () => {
+            clearTimeout(tm);
+        };
     }, [visible]);
 
     return (
-        <>
-            <CursorContainer
-                style={{
-                    left: `${column * CRTConstants.FONT_RECT + CRTConstants.LEFT_PADDING}px`,
-                    top: `${row * CRTConstants.FONT_RECT + CRTConstants.TOP_PADDING}px`,
-                    display: `${visible ? 'none' : 'block'}`,
-                }}
-            >
-                @
-            </CursorContainer>
-        </>
+        <CursorContainer
+            style={{
+                left: `${column * CRTConstants.FONT_RECT + CRTConstants.LEFT_PADDING}px`,
+                top: `${row * CRTConstants.FONT_RECT + CRTConstants.TOP_PADDING}px`,
+                display: `${visible ? 'block' : 'none'}`,
+            }}
+        >
+            @
+        </CursorContainer>
     );
 });
 

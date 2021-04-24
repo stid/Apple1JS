@@ -1,6 +1,7 @@
-import ReactDOM from 'react-dom';
+import { render } from 'react-dom';
 import App from 'components/App';
 import { WORKER_MESSAGES } from 'apple1/TSTypes';
+import { unstable_trace as trace } from 'scheduler/tracing';
 
 const appleWorker = new Worker('Apple.worker.js');
 
@@ -9,4 +10,4 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     e.preventDefault();
 });
 
-ReactDOM.render(<App worker={appleWorker} />, document.getElementById('app'));
+trace('initial render', performance.now(), () => render(<App worker={appleWorker} />, document.getElementById('app')));
