@@ -27,9 +27,12 @@ jobs: # a collection of steps
       - run: # run tests
           name: test-ci
           command: |
-              mkdir -p reports/junit
+              mkdir -p ./reports/junit
               yarn test-ci
+          environment:
+              JEST_JUNIT_OUTPUT_DIR: ./reports/junit/
+              JEST_JUNIT_OUTPUT: ./reports/junit/js-test-results.xml
       - store_test_results:
-          path: reports/junit
+          path: ./reports/junit
       - store_artifacts:
-          path: reports/junit
+          path: ./reports/junit
