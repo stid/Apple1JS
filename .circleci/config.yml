@@ -24,8 +24,8 @@ jobs: # a collection of steps
       - run: # run tests
           name: test
           command: yarn test
-      - store_test_results 
-        path: test-results
+      - store_test_results:
+          path: test-results
       #- run: # run deploy
       #    name: deploy
       #    command: yarn deploy
