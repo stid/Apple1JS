@@ -11,9 +11,10 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
 
     useEffect(() => {
-        setTimeout(() => {
+        const t = setTimeout(() => {
             worker.postMessage({ data: '', type: WORKER_MESSAGES.DEBUG_INFO });
         }, 250);
+        return () => clearTimeout(t);
     });
 
     useEffect(() => {
@@ -70,5 +71,7 @@ const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
 const DebugDomainItem = memo(({ label, value }: { label: string; value: string | number | boolean }) => {
     return <div>{`${label}: ${value}`}</div>;
 });
+
+DebugDomainItem.displayName = 'DebugDomainItem';
 
 export default Debugger;

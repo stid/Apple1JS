@@ -9,6 +9,7 @@ class Clock {
     private nanoPerCycle: number;
     private lastCycleCount: number;
     private cpu: Clockable;
+    private hrtime: (previousTimestamp?: [number, number]) => [number, number];
 
     constructor(cpu: Clockable, mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_CHUNK) {
         this.mhz = mhz;
@@ -16,6 +17,10 @@ class Clock {
         this.lastCycleCount = 1;
         this.nanoPerCycle = 1000 / this.mhz;
         this.cpu = cpu;
+
+        // Just use native hrtime if available (always on node)
+        this.hrtime = typeof process !== 'undefined' && process.hrtime ? process.hrtime : this._hrtime;
+
         this.prevCycleTime = this.hrtime();
     }
 
@@ -28,7 +33,7 @@ class Clock {
         return { mhz, stepChunk, lastCycleCount, nanoPerCycle, prevCycleTime: this.prevCycleTime.join(':') };
     }
 
-    _nanoDiff(): number {
+    private _nanoDiff(): number {
         const diff: [number, number] = this.hrtime(this.prevCycleTime);
         const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
 
@@ -47,20 +52,8 @@ class Clock {
     }
 
     // Extracted from: https://github.com/kumavis/browser-process-hrtime
-    hrtime(previousTimestamp?: [number, number]): [number, number] {
-        if (typeof process !== 'undefined' && process.hrtime) {
-            return process.hrtime();
-        }
-
-        const performance = global.performance || {};
-
-        const performanceNow =
-            performance.now ||
-            function () {
-                return new Date().getTime();
-            };
-
-        const clocktime = performanceNow.call(performance) * 1e-3;
+    private _hrtime(previousTimestamp?: [number, number]): [number, number] {
+        const clocktime = performance.now() * 1e-3;
         let seconds = Math.floor(clocktime);
         let nanoseconds = Math.floor((clocktime % 1) * 1e9);
         if (previousTimestamp) {

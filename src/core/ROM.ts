@@ -11,7 +11,7 @@ class ROM implements IoAddressable {
         return this.data[address] || 0;
     }
 
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     write(_address: number, _value: number): void {
         return;
     }

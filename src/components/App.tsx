@@ -3,7 +3,6 @@ import Info from './Info';
 import ErrorBoundary from './Error';
 import CRTWorker from './CRTWorker';
 
-//import styled, { createGlobalStyle } from 'styled-components';
 import { global, styled } from '@stitches/react';
 
 const GlobalStyle = global({
@@ -24,12 +23,13 @@ const LayoutColumn = styled('div', {
     padding: '20px',
 });
 
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.11.1</h3>;
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.12.1</h3>;
 
 type Props = {
     worker: Worker;
 };
-export default ({ worker }: Props): JSX.Element => {
+
+const App = ({ worker }: Props): JSX.Element => {
     GlobalStyle();
     return (
         <ErrorBoundary>
@@ -48,3 +48,5 @@ export default ({ worker }: Props): JSX.Element => {
         </ErrorBoundary>
     );
 };
+
+export default App;

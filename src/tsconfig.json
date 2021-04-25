@@ -24,7 +24,8 @@
       "types": [
         "node",
         "jest",
-        "mocha"
+        "mocha",
+        "@testing-library/jest-dom"
       ],
       "typeRoots": [
         "core/@types",

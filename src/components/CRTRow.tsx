@@ -22,4 +22,6 @@ const CRTRow = memo(({ line, rowIndex }: CRTRowProps) => {
     );
 });
 
+CRTRow.displayName = 'CRTRow';
+
 export default CRTRow;
