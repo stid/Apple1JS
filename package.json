@@ -6,6 +6,7 @@
   "module": "src/index-web.js",
   "scripts": {
     "test": "run-s eslint type-check jest",
+    "test-ci": "run-s eslint type-check jest-ci",
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development",
     "build-node": "webpack --config webpack-node.config.js --mode production",
@@ -16,6 +17,7 @@
     "eslint": "eslint src --ext .ts --ext .tsx --fix",
     "profile": "node --prof dist/bundle.js",
     "jest": "jest",
+    "jest-ci": "jest --ci --runInBand --reporters=default --reporters=jest-junit",
     "type-check": "tsc --build ./src/tsconfig.json",
     "deploy": "gh-pages -d public"
   },

@@ -21,11 +21,13 @@ jobs: # a collection of steps
           key: yarn-packages-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
+      - run:
+          name: Install JUnit coverage reporter
+          command: yarn add --dev jest-junit
       - run: # run tests
-          name: test
-          command: yarn test
-      - store_test_results:
-          path: test-results
-      #- run: # run deploy
-      #    name: deploy
-      #    command: yarn deploy
+          name: test-ci
+          command: yarn test-ci
+    - store_test_results:
+          path: ./reports/junit/
+    - store_artifacts:
+          path: ./reports/junit
