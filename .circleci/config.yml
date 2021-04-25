@@ -26,7 +26,9 @@ jobs: # a collection of steps
           command: yarn add --dev jest-junit
       - run: # run tests
           name: test-ci
-          command: yarn test-ci
+          command: |
+              mkdir -p reports/junit
+              yarn test-ci
           environment:
               JEST_JUNIT_OUTPUT: "reports/junit/js-test-results.xml"
       - store_test_results:
