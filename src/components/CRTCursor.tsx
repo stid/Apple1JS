@@ -16,16 +16,14 @@ const CRTCursor = memo(({ row, column }: CursorProp) => {
     const [visible, setVisible] = useState(true);
 
     useEffect(() => {
-        const tm = setTimeout(
+        const t = setTimeout(
             () => {
                 setVisible(!visible);
             },
             visible ? 400 : 600,
         );
 
-        return () => {
-            clearTimeout(tm);
-        };
+        return () => clearTimeout(t);
     }, [visible]);
 
     return (
