@@ -17,7 +17,7 @@
     "eslint": "eslint src --ext .ts --ext .tsx --fix",
     "profile": "node --prof dist/bundle.js",
     "jest": "jest",
-    "jest-ci": "jest --ci --runInBand --reporters=standard --reporters=jest-junit --outputFile=reports/junit/js-test-results.xml",
+    "jest-ci": "jest --ci --runInBand --reporters=default --reporters=jest-junit --outputFile=reports/junit/js-test-results.xml",
     "type-check": "tsc --build ./src/tsconfig.json",
     "deploy": "gh-pages -d public"
   },
