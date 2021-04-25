@@ -27,7 +27,7 @@ jobs: # a collection of steps
       - run: # run tests
           name: test-ci
           command: yarn test-ci
-    - store_test_results:
+      - store_test_results:
           path: ./reports/junit/
-    - store_artifacts:
+      - store_artifacts:
           path: ./reports/junit
