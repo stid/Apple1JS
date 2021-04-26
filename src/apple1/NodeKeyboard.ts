@@ -12,9 +12,7 @@ class Keyboard implements IoComponent {
     constructor() {
         readline.emitKeypressEvents(process.stdin);
 
-        if (process.stdin.setRawMode) {
-            process.stdin.setRawMode(true);
-        }
+        process.stdin.setRawMode?.(true);
         process.stdin.on('keypress', this.onKeyPressed.bind(this));
     }
 

@@ -8,7 +8,7 @@ module.exports = function (api) {
                 bugfixes: true,
                 shippedProposals: true,
                 useBuiltIns: 'usage',
-                corejs: '3.10',
+                corejs: '3.11',
                 targets: { edge: '89', chrome: '89', node: '14' },
             },
         ],

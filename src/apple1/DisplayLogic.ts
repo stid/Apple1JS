@@ -20,12 +20,12 @@ class DisplayLogic implements IoLogic {
 
     async write(char: number): Promise<void> {
         if (char == RESET_CODE) {
-            if (this.wireReset) this.wireReset();
+            this.wireReset?.();
             return;
         }
         // CB2 is wired to PB7 - arise on display busy
         this.pia.setBitDataB(7);
-        if (this.wireWrite) await this.wireWrite(char);
+        await this.wireWrite?.(char);
         this.pia.clearBitDataB(7);
     }
 
@@ -35,7 +35,7 @@ class DisplayLogic implements IoLogic {
     }
 
     reset(): void {
-        if (this.wireReset) this.wireReset();
+        this.wireReset?.();
     }
 }
 

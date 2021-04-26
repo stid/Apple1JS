@@ -16,13 +16,22 @@ describe('CRTCursor', function () {
         render(<CRTCursor row={10} column={20} />);
         const element = screen.getByText('@');
         expect(element).toBeInTheDocument();
+        expect(element).toMatchInlineSnapshot(`
+            <div
+              class="sxmv3c1"
+              style="left: 310px; top: 160px; display: block;"
+            >
+              @
+            </div>
+        `);
     });
 
-    test('Blink CRTCursor component', async function () {
+    test('Blinking CRTCursor', async function () {
         act(() => {
             render(<CRTCursor row={10} column={20} />);
         });
-        expect(screen.getByText('@').style.display).toBe('block');
+        const element = screen.getByText('@');
+        expect(element.style.display).toBe('block');
 
         // Blink Off
         act(() => {
@@ -30,7 +39,7 @@ describe('CRTCursor', function () {
         });
 
         await waitFor(() => {
-            expect(screen.getByText('@').style.display).toBe('none');
+            expect(element.style.display).toBe('none');
         });
 
         // Blink On
@@ -38,7 +47,7 @@ describe('CRTCursor', function () {
             jest.advanceTimersByTime(601);
         });
         await waitFor(() => {
-            expect(screen.getByText('@').style.display).toBe('block');
+            expect(element.style.display).toBe('block');
         });
     });
 });

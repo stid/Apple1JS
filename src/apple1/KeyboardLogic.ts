@@ -34,7 +34,7 @@ class KeyboardLogic implements IoLogic {
     }
 
     reset(): void {
-        if (this.wireReset) this.wireReset();
+        this.wireReset?.();
     }
 }
 

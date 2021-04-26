@@ -1,4 +1,4 @@
-import { WEB_VIDEO_BUFFER_ROW, VideoData } from 'apple1/TSTypes';
+import { WEB_VIDEO_BUFFER_ROW, VideoData } from '../apple1/TSTypes';
 import { styled } from '@stitches/react';
 import CRTCursor from './CRTCursor';
 import CRTRow from './CRTRow';

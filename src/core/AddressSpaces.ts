@@ -31,11 +31,8 @@ class AddressSpaces {
     }
 
     read(address: number): number {
-        const addrInstance: AddressSpaceType | void = this._findInstanceWithAddress(address);
-        if (addrInstance != null && addrInstance != undefined) {
-            return addrInstance.component.read(address - addrInstance.addr[0]);
-        }
-        return 0;
+        const addrInstance = this._findInstanceWithAddress(address);
+        return addrInstance ? addrInstance.component.read(address - addrInstance.addr[0]) : 0;
     }
 
     write(address: number, value: number): void {
