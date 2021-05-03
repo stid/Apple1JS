@@ -5,7 +5,8 @@
     "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended",
     "plugin:mocha/recommended",
-    "plugin:react/recommended"
+    "plugin:react/recommended",
+    "plugin:radar/recommended"
 
   ],
   "env": {
@@ -22,14 +23,19 @@
     "@typescript-eslint/eslint-plugin",
     "mocha",
     "prettier",
-    "react-hooks"
+    "react-hooks",
+    "radar",
+    "immutable"
 
   ],
   "rules": {
     "prettier/prettier": "error",
     "react-hooks/rules-of-hooks": "error",
     "react/jsx-uses-react": "off",
-    "react/react-in-jsx-scope": "off"
+    "react/react-in-jsx-scope": "off",
+    //"immutable/no-let": 2,
+    //"immutable/no-this": 2,
+    //"immutable/no-mutation": 2
   },
   "settings":  {
     "react":  {

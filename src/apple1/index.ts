@@ -1,7 +1,7 @@
 import CPU6502 from 'core/6502';
 import PIA6820 from 'core/PIA6820';
 import Clock from 'core/Clock';
-import ROM from 'core/ROM';
+import FROM, {FROMReturn} from 'core/FROM';
 import RAM from 'core/RAM';
 
 import AddressSpaces from 'core/AddressSpaces';
@@ -32,7 +32,7 @@ class Apple1 {
     displayLogic: DisplayLogic;
     video: IoComponent;
     keyboard: IoComponent;
-    rom: ROM;
+    rom: FROMReturn;
     ramBank1: RAM;
     ramBank2: RAM;
     addressMapping: Array<AddressSpaceType>;
@@ -54,7 +54,7 @@ class Apple1 {
         this.pia.wireIOB(this.displayLogic);
 
         // Map Components to related memory addresses
-        this.rom = new ROM();
+        this.rom = FROM();
         this.ramBank1 = new RAM();
         this.ramBank2 = new RAM();
         this.addressMapping = [
@@ -67,7 +67,8 @@ class Apple1 {
         ];
 
         // LOAD PROGRAMS in ROM/RAM
-        this.rom.flash(wozMonitor);
+        this.rom = this.rom.flash(wozMonitor);
+        debugger;
         this.ramBank1.flash(anniversary);
         this.ramBank2.flash(basic);
 

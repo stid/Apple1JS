@@ -35,9 +35,7 @@ class Clock {
 
     private _nanoDiff(): number {
         const diff: [number, number] = this.hrtime(this.prevCycleTime);
-        const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
-
-        return nanoDelta;
+        return diff[0] * NS_PER_SEC + diff[1];
     }
 
     cycle(): void {

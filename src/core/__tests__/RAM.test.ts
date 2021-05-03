@@ -16,7 +16,7 @@ describe('RAM', function () {
     });
 
     test('Should write & read', function () {
-        testRam.write(0x0a, 0xab); // This will just be ignored
+        testRam.write(0x0a, 0xab);
         expect(testRam.read(0x0a)).toBe(0xab);
     });
 });
