@@ -19,11 +19,11 @@ const FROM = (byteSize: number = DEFAULT_ROM_SIZE, initWithData?: number[]): FRO
     const write = (_address: number, _value: number) => {
         return FROM(byteSize, data);
     };
-    const flash = (data: number[]) => {
-        return FROM(byteSize, [...data].splice(2));
+    const flash = (newData: number[]) => {
+        return FROM(byteSize, [...newData].splice(2));
     };
-    const burn = (data: Array<number>) => {
-        return flash(data);
+    const burn = (newData: Array<number>) => {
+        return flash(newData);
     };
 
     return {

@@ -57,8 +57,11 @@ class Apple1 {
         this.rom = FROM();
         this.ramBank1 = new RAM();
         this.ramBank2 = new RAM();
+
+
+
         this.addressMapping = [
-            { addr: ROM_ADDR, component: this.rom, name: 'ROM' },
+            { addr: ROM_ADDR, component: () => this.rom, name: 'ROM' },
             { addr: RAM_BANK1_ADDR, component: this.ramBank1, name: 'RAM_BANK_1' },
             // Base Apple 1 was shipped with BANK 1 only.
             // It was possible to add more ram, especially it was needed to execute BASIC
@@ -68,7 +71,6 @@ class Apple1 {
 
         // LOAD PROGRAMS in ROM/RAM
         this.rom = this.rom.flash(wozMonitor);
-        debugger;
         this.ramBank1.flash(anniversary);
         this.ramBank2.flash(basic);
 
