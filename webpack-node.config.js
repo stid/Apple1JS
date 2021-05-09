@@ -1,14 +1,13 @@
-const path = require('path'); // eslint-disable-line @typescript-eslint/no-var-requires
-const commonConfig = require('./webpack-common.config.js'); // eslint-disable-line @typescript-eslint/no-var-requires
+/* eslint-disable @typescript-eslint/no-var-requires */
+const path = require('path');
+const common = require('./webpack-common.config.js');
+const { merge } = require('webpack-merge');
 
-const nodeConfig = {
+module.exports = merge(common, {
     entry: './src/index',
     target: 'node',
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
     },
-    ...commonConfig,
-};
-
-module.exports = [nodeConfig];
+});

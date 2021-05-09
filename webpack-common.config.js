@@ -1,10 +1,15 @@
-const path = require('path'); // eslint-disable-line @typescript-eslint/no-var-requires
-const webpack = require('webpack'); // eslint-disable-line @typescript-eslint/no-var-requires
-const { CleanWebpackPlugin } = require('clean-webpack-plugin'); // eslint-disable-line @typescript-eslint/no-var-requires
+/* eslint-disable @typescript-eslint/no-var-requires */
+const path = require('path');
+const webpack = require('webpack');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
-const commonConfig = {
+module.exports = {
     module: {
         rules: [
+            {
+                test: /\.txt$/i,
+                use: 'raw-loader',
+            },
             {
                 test: /\.(ts|js)x?$/,
                 exclude: /(node_modules)/,
@@ -27,5 +32,3 @@ const commonConfig = {
     },
     plugins: [new webpack.optimize.ModuleConcatenationPlugin(), new CleanWebpackPlugin()],
 };
-
-module.exports = commonConfig;
