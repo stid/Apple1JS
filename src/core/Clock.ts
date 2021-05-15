@@ -8,6 +8,9 @@ class Clock {
     private prevCycleTime: [number, number];
     private nanoPerCycle: number;
     private lastCycleCount: number;
+    private currentCycleCount: number;
+    private provisionedCycles: number;
+
     private cpu: Clockable;
     private hrtime: (previousTimestamp?: [number, number]) => [number, number];
 
@@ -17,6 +20,8 @@ class Clock {
         this.lastCycleCount = 1;
         this.nanoPerCycle = 1000 / this.mhz;
         this.cpu = cpu;
+        this.currentCycleCount = 0;
+        this.provisionedCycles = 1000;
 
         // Just use native hrtime if available (always on node)
         this.hrtime = typeof process !== 'undefined' && process.hrtime ? process.hrtime : this._hrtime;
@@ -38,6 +43,14 @@ class Clock {
         const nanoDelta: number = diff[0] * NS_PER_SEC + diff[1];
 
         return nanoDelta;
+    }
+
+    cycleBulk(): void {
+        while (this.currentCycleCount <= this.provisionedCycles) {
+            this.lastCycleCount = this.cpu.step();
+            this.currentCycleCount += this.lastCycleCount;
+        }
+        this.currentCycleCount = 0;
     }
 
     cycle(): void {

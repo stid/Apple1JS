@@ -123,7 +123,7 @@ class Apple1 {
         // A loop is executed STEP_CHUNK times before returning to optimize.
         // More STEP CHUMKS means more precise cycles and 6502 execution vs less
         // time released to the main js loop.
-        this.clock.cycle();
+        this.clock.cycleBulk();
         setImmediate(this.loop.bind(this)); // Async to not block
     }
 }
