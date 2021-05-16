@@ -117,12 +117,7 @@ class Apple1 {
         this.cpu.reset();
     }
 
-    async loop() {
-        // Step on 6502 next instruction.
-        // Execution will just return to this loop if elapsed time < expected cycles.
-        // A loop is executed STEP_CHUNK times before returning to optimize.
-        // More STEP CHUMKS means more precise cycles and 6502 execution vs less
-        // time released to the main js loop.
+    async loop(): Promise<void> {
         await this.clock.start();
     }
 }
