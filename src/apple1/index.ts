@@ -14,7 +14,7 @@ import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
 
-const STEP_CHUNK = 100;
+const STEP_CHUNK = 30;
 const MHZ_CPU_SPEED = 1;
 
 // $FF00-$FFFF 256 Bytes ROM
@@ -117,14 +117,8 @@ class Apple1 {
         this.cpu.reset();
     }
 
-    loop(): void {
-        // Step on 6502 next instruction.
-        // Execution will just return to this loop if elapsed time < expected cycles.
-        // A loop is executed STEP_CHUNK times before returning to optimize.
-        // More STEP CHUMKS means more precise cycles and 6502 execution vs less
-        // time released to the main js loop.
-        this.clock.cycle();
-        setImmediate(this.loop.bind(this)); // Async to not block
+    async loop(): Promise<void> {
+        await this.clock.start();
     }
 }
 
