@@ -14,7 +14,7 @@ import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
 
-const STEP_CHUNK = 30;
+const STEP_INTERVAL = 30;
 const MHZ_CPU_SPEED = 1;
 
 // $FF00-$FFFF 256 Bytes ROM
@@ -104,7 +104,7 @@ class Apple1 {
         // Create the Clock
         // Clock is bound to the CPU and will step on it + take care of respecting
         // the related cycles per executed instruction type.
-        this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_CHUNK);
+        this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_INTERVAL);
         console.log(`Apple 1`);
 
         // Debug output
@@ -118,7 +118,7 @@ class Apple1 {
     }
 
     async loop(): Promise<void> {
-        await this.clock.start();
+        return this.clock.start();
     }
 }
 
