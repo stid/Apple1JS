@@ -2,6 +2,7 @@ export enum WORKER_MESSAGES {
     VIDEO_BUFFER,
     KEY_DOWN,
     DEBUG_INFO,
+    CLOCK_DATA,
 }
 
 export enum WEB_VIDEO_BUFFER_ROW {

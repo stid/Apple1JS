@@ -3,24 +3,32 @@ import wait from 'waait';
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_INTERVAL = 30;
 
-class Clock {
+class Clock implements PubSub {
     private mhz: number;
     private stepChunk: number;
-    private lastStepCycleCount: number;
-    private currentCycleCount: number;
     private provisionedCycles: number;
     private maxedCycles: number;
+    private subscribers: subscribeFunction<number>[];
 
-    private cpu: Clockable;
-
-    constructor(cpu: Clockable, mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_INTERVAL) {
+    constructor(mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_INTERVAL) {
         this.mhz = mhz;
         this.stepChunk = stepChunk;
-        this.lastStepCycleCount = 1;
-        this.cpu = cpu;
-        this.currentCycleCount = 0;
         this.provisionedCycles = 0;
         this.maxedCycles = 0;
+        this.subscribers = [];
+    }
+
+    subscribe(subFunc: subscribeFunction<number>): void {
+        this.subscribers.push(subFunc);
+        subFunc(this.provisionedCycles);
+    }
+
+    unsubscribe(subFunc: subscribeFunction<number>): void {
+        this.subscribers = this.subscribers.filter((subItem) => subItem !== subFunc);
+    }
+
+    private _notifySubscribers() {
+        this.subscribers.forEach((subFunc) => subFunc(this.provisionedCycles));
     }
 
     toLog(): void {
@@ -28,11 +36,15 @@ class Clock {
     }
 
     toDebug(): { [key: string]: number | string } {
-        const { mhz, stepChunk, lastStepCycleCount, provisionedCycles, maxedCycles } = this;
-        return { mhz, stepChunk, lastStepCycleCount, provisionedCycles, maxedCycles };
+        const { mhz, stepChunk, provisionedCycles, maxedCycles } = this;
+        return { mhz, stepChunk, provisionedCycles, maxedCycles };
     }
 
-    async start(): Promise<void> {
+    getCurrentProvisionedCycles(): number {
+        return this.provisionedCycles;
+    }
+
+    async loop(): Promise<void> {
         const stepMax = this.mhz * 1000 * this.stepChunk * 1.25;
         let startTime,
             lastTime = Date.now();
@@ -46,11 +58,9 @@ class Clock {
                 this.provisionedCycles = stepMax;
                 this.maxedCycles += 1;
             }
-            while (this.currentCycleCount <= this.provisionedCycles) {
-                this.lastStepCycleCount = this.cpu.step();
-                this.currentCycleCount += this.lastStepCycleCount;
-            }
-            this.currentCycleCount = 0;
+
+            this._notifySubscribers();
+
             await wait(5);
             return runLoop();
         };
