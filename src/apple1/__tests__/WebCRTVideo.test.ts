@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import WebCRTVideo from '../WebCRTVideo';
 
 const onChange = jest.fn();

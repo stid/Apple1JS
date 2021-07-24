@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 require('@testing-library/jest-dom/extend-expect');
 import CRTRowChar from '../CRTRowChar';
 import { render, screen } from '@testing-library/react';
@@ -9,7 +13,7 @@ describe('CRTRowChar', function () {
         expect(container).toMatchInlineSnapshot(`
             <div>
               <div
-                class="sxfmx7r"
+                class="c-cOstaE"
                 style="left: 160px;"
               >
                 Z

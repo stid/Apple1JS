@@ -7,7 +7,7 @@ describe('WebKeyboard', function () {
         webKeyboard = new WebKeyboard();
     });
 
-    test('Should Wire & write 65', async function (done) {
+    test('Should Wire & write 65', function (done) {
         webKeyboard.wire({
             write: async (value) => {
                 expect(value).toBe(65);

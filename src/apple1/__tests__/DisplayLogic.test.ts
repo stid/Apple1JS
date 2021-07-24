@@ -16,7 +16,7 @@ describe('KeyboardLogic', function () {
         expect(pia.clearBitDataB).toBeCalledWith(7);
     });
 
-    test('Should Wire & write 65 on wired write', async function (done) {
+    test('Should Wire & write 65 on wired write', function (done) {
         pia = new PIA6820();
 
         const wireOptions = {

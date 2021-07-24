@@ -12,12 +12,19 @@ class RAM implements IoAddressable {
     }
 
     write(address: number, value: number): void {
-        this.data[address] = value;
+        if (address < this.data.length && address >= 0) {
+            this.data[address] = value;
+        }
     }
 
     flash(data: Array<number>): void {
         // LOAD A PROG
         const [highAddr, lowAddr, ...coreData] = data;
+
+        if (coreData.length > this.data.length) {
+            throw new Error(`Flash Data too large (${coreData.length} -> ${this.data.length})`);
+        }
+
         const prgAddr: number = highAddr | (lowAddr << 8);
 
         for (let i = 0; i < coreData.length; i++) {

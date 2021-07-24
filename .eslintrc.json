@@ -4,7 +4,6 @@
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended",
-    "plugin:mocha/recommended",
     "plugin:react/recommended"
 
   ],
@@ -20,7 +19,6 @@
   },
   "plugins": [
     "@typescript-eslint/eslint-plugin",
-    "mocha",
     "prettier",
     "react-hooks"
 

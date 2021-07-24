@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 require('@testing-library/jest-dom/extend-expect');
 import CRT from '../CRT';
 import { render } from '@testing-library/react';
@@ -15,41 +19,41 @@ describe('CRT', function () {
         expect(container).toMatchInlineSnapshot(`
             <div>
               <div
-                class="sxqsz30"
+                class="c-jRhcJL"
               >
                 <div
-                  class="sxlkdk6"
+                  class="c-cuLMin"
                 >
                   <div
-                    class="sxmv3c1"
+                    class="c-emBIds"
                     style="left: 40px; top: 40px; display: block;"
                   >
                     @
                   </div>
                   <div
-                    class="sxf1x2q"
+                    class="c-eFUkS"
                     style="top: 10px;"
                   >
                     <div
-                      class="sxfmx7r"
+                      class="c-cOstaE"
                       style="left: 10px;"
                     >
                       1
                     </div>
                     <div
-                      class="sxfmx7r"
+                      class="c-cOstaE"
                       style="left: 25px;"
                     >
                       2
                     </div>
                     <div
-                      class="sxfmx7r"
+                      class="c-cOstaE"
                       style="left: 40px;"
                     >
                       3
                     </div>
                     <div
-                      class="sxfmx7r"
+                      class="c-cOstaE"
                       style="left: 55px;"
                     >
                       4

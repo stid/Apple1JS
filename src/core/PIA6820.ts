@@ -6,18 +6,33 @@ const A_KBDCR = 0x1; // PIA.A keyboard control register
 const B_DSP = 0x2; // PIA.B display output register
 const B_DSPCR = 0x3; // PIA.B display control register
 
-class PIA6820 implements IoAddressable {
+class PIA6820 implements IoAddressable, PubSub {
     data: Array<number>;
     ioA?: IoComponent;
     ioB?: IoComponent;
+    private subscribers: subscribeFunction<number[]>[];
 
     constructor() {
         this.data = [0, 0, 0, 0];
+        this.subscribers = [];
     }
 
     reset(): void {
         this.data.fill(0);
         return;
+    }
+
+    subscribe(subFunc: subscribeFunction<number[]>): void {
+        this.subscribers.push(subFunc);
+        subFunc([...this.data]);
+    }
+
+    unsubscribe(subFunc: subscribeFunction<number[]>): void {
+        this.subscribers = this.subscribers.filter((subItem) => subItem !== subFunc);
+    }
+
+    private _notifySubscribers() {
+        this.subscribers.forEach((subFunc) => subFunc([...this.data]));
     }
 
     wireIOA(ioA: IoComponent): void {
@@ -87,6 +102,8 @@ class PIA6820 implements IoAddressable {
 
     write(address: number, value: number): void {
         this.data[address] = value;
+
+        this._notifySubscribers();
 
         switch (address) {
             case A_KBD:

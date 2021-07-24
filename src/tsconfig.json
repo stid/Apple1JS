@@ -23,7 +23,6 @@
       "types": [
         "node",
         "jest",
-        "mocha",
         "@testing-library/jest-dom"
       ],
       "typeRoots": [
