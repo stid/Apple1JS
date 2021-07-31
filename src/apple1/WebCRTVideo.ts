@@ -27,11 +27,13 @@ export interface VideoOut {
     onChange: (buffer: VideoBuffer, row: number, column: number) => void;
 }
 
-class CRTVideo implements IoComponent {
+export type WebCrtVideoSubFuncVideoType = { buffer: VideoBuffer; row: number; column: number };
+
+class CRTVideo implements IoComponent, PubSub {
     row: number;
     column: number;
     private buffer: VideoBuffer;
-    private subscribers: Array<VideoOut>;
+    subscribers: Array<subscribeFunction<WebCrtVideoSubFuncVideoType>>;
     private rowShift: number;
 
     constructor() {
@@ -59,17 +61,17 @@ class CRTVideo implements IoComponent {
         });
     }
 
-    subscribe(videoOut: VideoOut): void {
-        this.subscribers.push(videoOut);
-        videoOut.onChange(this.buffer, this.row, this.column);
+    subscribe(subFunc: subscribeFunction<WebCrtVideoSubFuncVideoType>): void {
+        this.subscribers.push(subFunc);
+        subFunc({ buffer: this.buffer, row: this.row, column: this.column });
     }
 
-    unsubscribe(videoOut: VideoOut): void {
-        this.subscribers = this.subscribers.filter((subscriber) => subscriber !== videoOut);
+    unsubscribe(subFunc: subscribeFunction<WebCrtVideoSubFuncVideoType>): void {
+        this.subscribers = this.subscribers.filter((subItem) => subItem !== subFunc);
     }
 
     private _notifySubscribers() {
-        this.subscribers.forEach((subscriber) => subscriber.onChange(this.buffer, this.row, this.column));
+        this.subscribers.forEach((subFunc) => subFunc({ buffer: this.buffer, row: this.row, column: this.column }));
     }
 
     private _newLine() {
@@ -121,9 +123,9 @@ class CRTVideo implements IoComponent {
     }
 
     reset(): void {
-        this.onClear();
         this.row = 0;
         this.column = 0;
+        this.onClear();
     }
 
     async write(char: number): Promise<void> {

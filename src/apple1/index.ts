@@ -104,8 +104,12 @@ class Apple1 {
         // Create the Clock
         // Clock is bound to the CPU and will step on it + take care of respecting
         // the related cycles per executed instruction type.
-        this.clock = new Clock(this.cpu, MHZ_CPU_SPEED, STEP_INTERVAL);
+        this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
         console.log(`Apple 1`);
+
+        this.clock.subscribe((steps: number) => {
+            this.cpu.bulkSteps(steps);
+        });
 
         // Debug output
         this.clock.toLog();
@@ -118,7 +122,7 @@ class Apple1 {
     }
 
     async loop(): Promise<void> {
-        return this.clock.start();
+        return this.clock.loop();
     }
 }
 

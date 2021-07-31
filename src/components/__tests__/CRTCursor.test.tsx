@@ -18,7 +18,7 @@ describe('CRTCursor', function () {
         expect(element).toBeInTheDocument();
         expect(element).toMatchInlineSnapshot(`
             <div
-              class="sxmv3c1"
+              class="c-emBIds"
               style="left: 310px; top: 160px; display: block;"
             >
               @

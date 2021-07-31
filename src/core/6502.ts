@@ -1183,6 +1183,13 @@ class CPU6502 implements Clockable {
         return this.cycles - startCycles;
     }
 
+    bulkSteps(steps: number): void {
+        let currentCycleCount = 0;
+        while (currentCycleCount <= steps) {
+            currentCycleCount += this.step();
+        }
+    }
+
     read(address: number): number {
         return this.addressSpace.read(address);
     }

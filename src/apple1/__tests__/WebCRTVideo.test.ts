@@ -1,4 +1,8 @@
-import WebCRTVideo, { VideoOut } from '../WebCRTVideo';
+/**
+ * @jest-environment jsdom
+ */
+
+import WebCRTVideo from '../WebCRTVideo';
 
 const onChange = jest.fn();
 
@@ -7,13 +11,10 @@ const NUM_ROWS = 24;
 
 describe('WebCRTVideo', function () {
     let webCRTVideo: WebCRTVideo;
-    let videoOut: VideoOut;
 
     beforeEach(function () {
         webCRTVideo = new WebCRTVideo();
-        webCRTVideo.subscribe({
-            onChange: onChange,
-        });
+        webCRTVideo.subscribe(onChange);
     });
     test('Should Init with pos at 0', function () {
         expect(webCRTVideo.row).toBe(0);
@@ -25,7 +26,7 @@ describe('WebCRTVideo', function () {
         for (let i = 0; i < compBuffer.length; i++) {
             compBuffer[i] = [i, Array(NUM_COLUMNS).fill('@')];
         }
-        expect(onChange).toBeCalledWith(compBuffer, 0, 0);
+        expect(onChange).toBeCalledWith({ buffer: compBuffer, column: 0, row: 0 });
     });
 
     test('Should Reset', function () {
@@ -34,7 +35,7 @@ describe('WebCRTVideo', function () {
             compBuffer[i] = [i, Array(NUM_COLUMNS).fill(' ')];
         }
         webCRTVideo.reset();
-        expect(onChange).toBeCalledWith(compBuffer, 0, 0);
+        expect(onChange).toBeCalledWith({ buffer: compBuffer, column: 0, row: 0 });
     });
 
     test('Call on change on Write', async function () {
@@ -48,7 +49,7 @@ describe('WebCRTVideo', function () {
         await webCRTVideo.write(0x33);
         expect(webCRTVideo.row).toBe(0);
         expect(webCRTVideo.column).toBe(1);
-        expect(onChange).toBeCalledWith(compBuffer, 0, 1);
+        expect(onChange).toBeCalledWith({ buffer: compBuffer, column: 1, row: 0 });
     });
 
     test('Should clear the screen', async function () {
@@ -62,7 +63,7 @@ describe('WebCRTVideo', function () {
         webCRTVideo.onClear();
         expect(webCRTVideo.row).toBe(0);
         expect(webCRTVideo.column).toBe(1);
-        expect(onChange).toBeCalledWith(compBuffer, 0, 0);
+        expect(onChange).toBeCalledWith({ buffer: compBuffer, column: 0, row: 0 });
     });
 
     test('Fill a line + 2 colunm & Scroll Up Buffer', async function () {
@@ -79,11 +80,11 @@ describe('WebCRTVideo', function () {
         }
         expect(webCRTVideo.row).toBe(1);
         expect(webCRTVideo.column).toBe(2);
-        expect(onChange).toBeCalledWith(compBuffer, 1, 2);
+        expect(onChange).toBeCalledWith({ buffer: compBuffer, column: 2, row: 1 });
     });
 
     afterEach(function () {
-        webCRTVideo.unsubscribe(videoOut);
+        webCRTVideo.unsubscribe(onChange);
         onChange.mockClear();
     });
 });

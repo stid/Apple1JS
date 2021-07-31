@@ -11,18 +11,18 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
 
     useEffect(() => {
-        const t = setTimeout(() => {
+        const t = setInterval(() => {
             worker.postMessage({ data: '', type: WORKER_MESSAGES.DEBUG_INFO });
-        }, 250);
-        return () => clearTimeout(t);
-    });
+        }, 1000);
+        return () => clearInterval(t);
+    }, [worker]);
 
     useEffect(() => {
-        const handler = (e: MessageEvent<{ data: DebugData; type: WORKER_MESSAGES }>) => {
+        const handler = (e: MessageEvent<{ data: DebugData | number[]; type: WORKER_MESSAGES }>) => {
             const { data, type } = e.data;
             switch (type) {
                 case WORKER_MESSAGES.DEBUG_INFO:
-                    setDebugInfo(data);
+                    setDebugInfo(data as DebugData);
                     break;
             }
         };

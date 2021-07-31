@@ -38,7 +38,7 @@ class AddressSpaces {
     write(address: number, value: number): void {
         const addrInstance = this._findInstanceWithAddress(address);
         if (addrInstance) {
-            addrInstance.component.write(address - addrInstance.addr[0], value);
+            addrInstance?.component.write(address - addrInstance.addr[0], value);
         }
     }
 

@@ -1,15 +1,14 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
-import WebCRTVideo from './WebCRTVideo';
+import WebCRTVideo, { WebCrtVideoSubFuncVideoType } from './WebCRTVideo';
 import { WORKER_MESSAGES } from './TSTypes';
 
 export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();
 
-video.subscribe({
-    onChange: (newBuffer, row, column) => {
-        postMessage({ data: { buffer: newBuffer, row: row, column: column }, type: WORKER_MESSAGES.VIDEO_BUFFER });
-    },
+video.subscribe((data: WebCrtVideoSubFuncVideoType) => {
+    const { buffer, row, column } = data;
+    postMessage({ data: { buffer, row, column }, type: WORKER_MESSAGES.VIDEO_BUFFER });
 });
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
@@ -21,17 +20,19 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) 
         case WORKER_MESSAGES.KEY_DOWN:
             keyboard.write(data);
             break;
-        case WORKER_MESSAGES.DEBUG_INFO:
+        case WORKER_MESSAGES.DEBUG_INFO: {
+            const { clock, cpu, pia, addressSpaces } = apple1;
             postMessage({
                 data: {
-                    clock: apple1.clock.toDebug(),
-                    cpu: apple1.cpu.toDebug(),
-                    pia: apple1.pia.toDebug(),
-                    Spaces: apple1.addressSpaces.toDebug(),
+                    clock: clock.toDebug(),
+                    cpu: cpu.toDebug(),
+                    pia: pia.toDebug(),
+                    Spaces: addressSpaces.toDebug(),
                 },
                 type: WORKER_MESSAGES.DEBUG_INFO,
             });
             break;
+        }
     }
 };
 
