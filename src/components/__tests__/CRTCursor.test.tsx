@@ -1,14 +1,10 @@
-/**
- * @jest-environment jsdom
- */
-
 require('@testing-library/jest-dom/extend-expect');
 import CRTCursor from '../CRTCursor';
 import { render, screen, act, waitFor } from '@testing-library/react';
 
 describe('CRTCursor', function () {
     beforeEach(function () {
-        jest.useFakeTimers('modern');
+        jest.useFakeTimers();
     });
 
     afterEach(function () {
@@ -42,21 +38,16 @@ describe('CRTCursor', function () {
             jest.advanceTimersByTime(401);
         });
 
-        expect(screen.getByText('@')).toMatchInlineSnapshot(`
-            <div
-              class="c-emBIds"
-              style="left: 310px; top: 160px; display: block;"
-            >
-              @
-            </div>
-        `);
+        await waitFor(() => {
+            expect(element.style.display).toBe('none');
+        });
 
         // Blink On
         act(() => {
             jest.advanceTimersByTime(601);
         });
         await waitFor(() => {
-            expect(screen.getByText('@').style.display).toBe('block');
+            expect(element.style.display).toBe('block');
         });
     });
 });
