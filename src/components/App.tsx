@@ -3,9 +3,9 @@ import Info from './Info';
 import ErrorBoundary from './Error';
 import CRTWorker from './CRTWorker';
 
-import { global, styled } from '@stitches/react';
+import { globalCss, styled } from '@stitches/react';
 
-const GlobalStyle = global({
+const GlobalStyle = globalCss({
     body: {
         backgroundColor: 'black',
         color: '#BBB',
