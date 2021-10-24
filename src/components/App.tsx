@@ -2,6 +2,7 @@ import Debugger from './Debugger';
 import Info from './Info';
 import ErrorBoundary from './Error';
 import CRTWorker from './CRTWorker';
+import { APPPLEJS_VER } from 'const';
 
 import { globalCss, styled } from '@stitches/react';
 
@@ -23,7 +24,11 @@ const LayoutColumn = styled('div', {
     padding: '20px',
 });
 
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v1.13.1</h3>;
+const Title = () => (
+    <h3>
+        Apple 1 :: JS Emulator - by =stid= v{APPPLEJS_VER.MAJIOR}.{APPPLEJS_VER.MINOR}.{APPPLEJS_VER.REVISION}
+    </h3>
+);
 
 type Props = {
     worker: Worker;
