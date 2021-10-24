@@ -107,9 +107,7 @@ class Apple1 {
         this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
         console.log(`Apple 1`);
 
-        this.clock.subscribe((steps: number) => {
-            this.cpu.bulkSteps(steps);
-        });
+        this.clock.subscribe((steps: number) => this.cpu.bulkSteps(steps));
 
         // Debug output
         this.clock.toLog();
