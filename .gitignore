@@ -43,3 +43,6 @@ dist-web/**/*
 *.o
 *.sym
 *.lst
+
+*dot
+*.svg
