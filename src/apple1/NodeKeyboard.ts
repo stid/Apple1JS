@@ -3,6 +3,8 @@ import readline from 'readline';
 const BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const ESC = 0x9b; // ESC key (B7 High)
 const RESET_CODE = -255;
+const CTRL_C = '\u0003';
+const CTRL_R = '\u0012';
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
@@ -42,10 +44,10 @@ class Keyboard implements IoComponent {
         // Special Keys
         switch (key.sequence) {
             // EXIT
-            case '\u0003': // ctrl-c
+            case CTRL_C: // ctrl-c
                 process.exit();
             // eslint-disable-next-line no-fallthrough
-            case '\u0012': // ctrl-r
+            case CTRL_R: // ctrl-r
                 if (wireWrite) {
                     wireWrite(RESET_CODE);
                 }

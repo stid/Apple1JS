@@ -1,7 +1,7 @@
 import CPU6502 from '../6502';
 import ROM from '../ROM';
 import RAM from '../RAM';
-import AddressSpaces from '../AddressSpaces';
+import Bus from '../Bus';
 
 describe('CPU6502', function () {
     let cpu: CPU6502;
@@ -15,8 +15,8 @@ describe('CPU6502', function () {
             { addr: [0, 100], component: ramInstance, name: 'ROM' },
             { addr: [0xff00, 0xffff], component: romInstance, name: 'RAM_BANK_1' },
         ];
-        const addressSpaces = new AddressSpaces(addressMapping);
-        cpu = new CPU6502(addressSpaces);
+        const bus = new Bus(addressMapping);
+        cpu = new CPU6502(bus);
     });
     test('Initial state', function () {
         expect(cpu.getCycles()).toBe(0x00);

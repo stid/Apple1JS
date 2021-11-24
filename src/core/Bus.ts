@@ -1,4 +1,4 @@
-class AddressSpaces {
+class Bus {
     private addressMapping: Array<AddressSpaceType>;
 
     constructor(addressMapping: Array<AddressSpaceType>) {
@@ -58,4 +58,4 @@ class AddressSpaces {
     }
 }
 
-export default AddressSpaces;
+export default Bus;

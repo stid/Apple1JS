@@ -13,7 +13,7 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     useEffect(() => {
         const t = setInterval(() => {
             worker.postMessage({ data: '', type: WORKER_MESSAGES.DEBUG_INFO });
-        }, 1000);
+        }, 600);
         return () => clearInterval(t);
     }, [worker]);
 

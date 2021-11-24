@@ -1,7 +1,7 @@
-import AddressSpaces from '../AddressSpaces';
+import Bus from '../Bus';
 
-describe('AddressSpaces', function () {
-    let testAddressSpaces: AddressSpaces;
+describe('Bus', function () {
+    let testBus: Bus;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let readMockA: jest.Mock<any, any>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,43 +46,43 @@ describe('AddressSpaces', function () {
             },
         ];
 
-        testAddressSpaces = new AddressSpaces(addressMapping);
+        testBus = new Bus(addressMapping);
     });
     test('Should Cal Read on BANK_A', function () {
-        const result = testAddressSpaces.read(0x10);
+        const result = testBus.read(0x10);
         expect(readMockA).toBeCalledWith(0x10);
         expect(result).toBe(0x0a);
     });
     test('Should Cal Read on BANK_B', function () {
-        const result = testAddressSpaces.read(0x110);
+        const result = testBus.read(0x110);
         expect(readMockB).toBeCalledWith(0x10); // Relatiev AddressS
         expect(result).toBe(0x0b);
     });
 
     test('Should not Call read on non Existing address space', function () {
-        const result = testAddressSpaces.read(0xffff);
+        const result = testBus.read(0xffff);
         expect(readMockA).toHaveBeenCalledTimes(0);
         expect(readMockB).toHaveBeenCalledTimes(0);
         expect(result).toBe(0);
     });
 
     test('Should Cal write on BANK_A', function () {
-        testAddressSpaces.write(0x10, 0x0a);
+        testBus.write(0x10, 0x0a);
         expect(writeMockA).toBeCalledWith(0x10, 0x0a);
     });
 
     test('Should Cal write on BANK_B', function () {
-        testAddressSpaces.write(0x110, 0x0b);
+        testBus.write(0x110, 0x0b);
         expect(writeMockB).toBeCalledWith(0x10, 0x0b);
     });
 
     test('Should not Call write on non Existing address space', function () {
-        testAddressSpaces.write(0xffff, 0xff);
+        testBus.write(0xffff, 0xff);
         expect(writeMockB).toHaveBeenCalledTimes(0);
         expect(writeMockB).toHaveBeenCalledTimes(0);
     });
 
-    test('Should Fail if Spaces overlap', function () {
+    test('Should Fail if Bus Spaces overlap', function () {
         const fn = jest.fn();
         const tmpMapping: AddressSpaceType[] = [
             {
@@ -113,8 +113,8 @@ describe('AddressSpaces', function () {
                 name: 'BANK_B',
             },
         ];
-        expect(() => new AddressSpaces(tmpMapping)).toThrow(Error);
-        expect(() => new AddressSpaces(tmpMapping)).toThrow('Space BANK_B overlap with BANK_C');
+        expect(() => new Bus(tmpMapping)).toThrow(Error);
+        expect(() => new Bus(tmpMapping)).toThrow('Space BANK_B overlap with BANK_C');
     });
 
     test('Should Fail if space start < space end addr', function () {
@@ -130,7 +130,7 @@ describe('AddressSpaces', function () {
                 name: 'BANK_A',
             },
         ];
-        expect(() => new AddressSpaces(tmpMapping)).toThrow(Error);
-        expect(() => new AddressSpaces(tmpMapping)).toThrow('BANK_A Starting address > ending address');
+        expect(() => new Bus(tmpMapping)).toThrow(Error);
+        expect(() => new Bus(tmpMapping)).toThrow('BANK_A Starting address > ending address');
     });
 });

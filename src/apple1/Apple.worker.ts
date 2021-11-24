@@ -21,13 +21,13 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) 
             keyboard.write(data);
             break;
         case WORKER_MESSAGES.DEBUG_INFO: {
-            const { clock, cpu, pia, addressSpaces } = apple1;
+            const { clock, cpu, pia, bus } = apple1;
             postMessage({
                 data: {
                     clock: clock.toDebug(),
                     cpu: cpu.toDebug(),
                     pia: pia.toDebug(),
-                    Spaces: addressSpaces.toDebug(),
+                    Bus: bus.toDebug(),
                 },
                 type: WORKER_MESSAGES.DEBUG_INFO,
             });

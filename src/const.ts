@@ -1,5 +1,5 @@
 export const APPPLEJS_VER = Object.freeze({
     MAJIOR: 1,
-    MINOR: 13,
-    REVISION: 5,
+    MINOR: 15,
+    REVISION: 0,
 });

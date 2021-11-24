@@ -1,4 +1,4 @@
-import AddressSpaces from 'core/AddressSpaces';
+import Bus from 'core/Bus';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Opcode table
@@ -1113,7 +1113,7 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 class CPU6502 implements Clockable {
-    addressSpace: AddressSpaces;
+    bus: Bus;
     PC: number;
     A: number;
     X: number;
@@ -1130,11 +1130,13 @@ class CPU6502 implements Clockable {
     tmp: number;
     addr: number;
     opcode: number;
+    data: number;
+    address: number;
 
     cycles: number;
 
-    constructor(addressSpace: AddressSpaces) {
-        this.addressSpace = addressSpace;
+    constructor(bus: Bus) {
+        this.bus = bus;
 
         this.PC = 0; // Program counter
         this.A = 0;
@@ -1147,6 +1149,9 @@ class CPU6502 implements Clockable {
         this.V = false; // ALU flags
         this.I = false;
         this.D = false; // Other flags
+
+        this.data = 0;
+        this.address = 0;
 
         this.irq = false;
         this.nmi = false; // IRQ lines
@@ -1173,6 +1178,9 @@ class CPU6502 implements Clockable {
         this.I = false;
         this.D = false;
 
+        this.data = 0;
+        this.address = 0;
+
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
     }
 
@@ -1191,11 +1199,15 @@ class CPU6502 implements Clockable {
     }
 
     read(address: number): number {
-        return this.addressSpace.read(address);
+        this.address = address;
+        this.data = this.bus.read(address);
+        return this.data;
     }
 
     write(address: number, value: number): void {
-        this.addressSpace.write(address, value);
+        this.address = address;
+        this.data = value;
+        this.bus.write(address, value);
     }
 
     getCycles(): number {
@@ -1220,6 +1232,8 @@ class CPU6502 implements Clockable {
         msg += ' X=' + this.X.toString(16);
         msg += ' Y=' + this.Y.toString(16);
         msg += ' S=' + this.S.toString(16);
+        msg += ' ADDR=' + this.address.toString(16);
+        msg += ' DATA=' + this.data.toString(16);
         return { REG: msg };
     }
 

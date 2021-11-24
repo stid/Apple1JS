@@ -4,7 +4,7 @@ import Clock from 'core/Clock';
 import ROM from 'core/ROM';
 import RAM from 'core/RAM';
 
-import AddressSpaces from 'core/AddressSpaces';
+import Bus from 'core/Bus';
 
 import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
@@ -36,7 +36,7 @@ class Apple1 {
     ramBank1: RAM;
     ramBank2: RAM;
     addressMapping: Array<AddressSpaceType>;
-    addressSpaces: AddressSpaces;
+    bus: Bus;
     cpu: CPU6502;
     clock: Clock;
 
@@ -72,8 +72,8 @@ class Apple1 {
         this.ramBank2.flash(basic);
 
         // Bound CPU to related Address Spaces
-        this.addressSpaces = new AddressSpaces(this.addressMapping);
-        this.cpu = new CPU6502(this.addressSpaces);
+        this.bus = new Bus(this.addressMapping);
+        this.cpu = new CPU6502(this.bus);
 
         // WIRING IO
         this.keyboard.wire({
@@ -111,7 +111,7 @@ class Apple1 {
 
         // Debug output
         this.clock.toLog();
-        this.addressSpaces.toLog();
+        this.bus.toLog();
         this.cpu.toLog();
     }
 
