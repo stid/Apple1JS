@@ -1218,23 +1218,24 @@ class CPU6502 implements Clockable {
         console.log(this.toDebug());
     }
 
-    toDebug(): { REG: string } {
-        let msg: string = 'nPC=' + this.PC.toString(16);
-        msg += ' cyc=' + this.cycles;
-        msg += ' [' + this.opcode.toString(16) + '] ';
-        msg += this.C ? 'C' : '-';
-        msg += this.N ? 'N' : '-';
-        msg += this.Z ? 'Z' : '-';
-        msg += this.V ? 'V' : '-';
-        msg += this.D ? 'D' : '-';
-        msg += this.I ? 'I' : '-';
-        msg += ' A=' + this.A.toString(16);
-        msg += ' X=' + this.X.toString(16);
-        msg += ' Y=' + this.Y.toString(16);
-        msg += ' S=' + this.S.toString(16);
-        msg += ' ADDR=' + this.address.toString(16);
-        msg += ' DATA=' + this.data.toString(16);
-        return { REG: msg };
+    toDebug(): { REG: string; HW: string } {
+        let reg: string = 'nPC=' + this.PC.toString(16).padStart(4, '0').toUpperCase();
+        reg += ' cyc=' + this.cycles;
+        reg += ' [' + this.opcode.toString(16).padStart(2, '0').toUpperCase() + '] ';
+        reg += this.C ? 'C' : '-';
+        reg += this.N ? 'N' : '-';
+        reg += this.Z ? 'Z' : '-';
+        reg += this.V ? 'V' : '-';
+        reg += this.D ? 'D' : '-';
+        reg += this.I ? 'I' : '-';
+        reg += ' A=' + this.A.toString(16).padStart(2, '0').toUpperCase();
+        reg += ' X=' + this.X.toString(16).padStart(2, '0').toUpperCase();
+        reg += ' Y=' + this.Y.toString(16).padStart(2, '0').toUpperCase();
+        reg += ' S=' + this.S.toString(16).padStart(2, '0').toUpperCase();
+
+        let hw = 'ADDR=' + this.address.toString(16).padStart(4, '0').toUpperCase();
+        hw += ' DATA=' + this.data.toString(16).padStart(4, '0').toUpperCase();
+        return { REG: reg, HW: hw };
     }
 
     ////////////////////////////////////////////////////////////////////////////////
