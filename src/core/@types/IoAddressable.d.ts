@@ -4,7 +4,7 @@ declare interface IoAddressable {
     flash(data: Array<number>): void;
 }
 
-declare interface AddressSpaceType {
+declare interface BusSpaceType {
     addr: [number, number];
     component: IoAddressable;
     name: string;

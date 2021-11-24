@@ -11,11 +11,11 @@ describe('CPU6502', function () {
     beforeEach(function () {
         romInstance = new ROM();
         ramInstance = new RAM();
-        const addressMapping: AddressSpaceType[] = [
+        const busMapping: BusSpaceType[] = [
             { addr: [0, 100], component: ramInstance, name: 'ROM' },
             { addr: [0xff00, 0xffff], component: romInstance, name: 'RAM_BANK_1' },
         ];
-        const bus = new Bus(addressMapping);
+        const bus = new Bus(busMapping);
         cpu = new CPU6502(bus);
     });
     test('Initial state', function () {

@@ -1,22 +1,22 @@
 class Bus {
-    private addressMapping: Array<AddressSpaceType>;
+    private busMapping: Array<BusSpaceType>;
 
-    constructor(addressMapping: Array<AddressSpaceType>) {
-        this.addressMapping = addressMapping;
+    constructor(busMapping: Array<BusSpaceType>) {
+        this.busMapping = busMapping;
         this._validate();
     }
 
     private _validate() {
         // Validate Start < End
-        this.addressMapping.forEach((item: AddressSpaceType) => {
+        this.busMapping.forEach((item: BusSpaceType) => {
             if (item.addr[0] > item.addr[1]) {
                 throw Error(`${item.name} Starting address > ending address`);
             }
         });
 
         // Validate No Overlap
-        const sortedAddrs = this.addressMapping.sort(
-            (itemA: AddressSpaceType, itemB: AddressSpaceType): number => itemA.addr[0] - itemB.addr[0],
+        const sortedAddrs = this.busMapping.sort(
+            (itemA: BusSpaceType, itemB: BusSpaceType): number => itemA.addr[0] - itemB.addr[0],
         );
 
         for (let i = 0; i < sortedAddrs.length - 1; i++) {
@@ -26,8 +26,8 @@ class Bus {
         }
     }
 
-    private _findInstanceWithAddress(address: number): AddressSpaceType | void {
-        return this.addressMapping.find((item: AddressSpaceType) => address >= item.addr[0] && address <= item.addr[1]);
+    private _findInstanceWithAddress(address: number): BusSpaceType | void {
+        return this.busMapping.find((item: BusSpaceType) => address >= item.addr[0] && address <= item.addr[1]);
     }
 
     read(address: number): number {
@@ -48,7 +48,7 @@ class Bus {
 
     toDebug(): { [key: string]: string } {
         const result: { [key: string]: string } = {};
-        this.addressMapping.forEach((element) => {
+        this.busMapping.forEach((element) => {
             const from: string = element.addr[0].toString(16).padStart(4, '0').toUpperCase();
             const to: string = element.addr[1].toString(16).padStart(4, '0').toUpperCase();
             const name: string = element.name || 'Unknown';

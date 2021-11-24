@@ -35,7 +35,7 @@ class Apple1 {
     rom: ROM;
     ramBank1: RAM;
     ramBank2: RAM;
-    addressMapping: Array<AddressSpaceType>;
+    busMapping: Array<BusSpaceType>;
     bus: Bus;
     cpu: CPU6502;
     clock: Clock;
@@ -57,7 +57,7 @@ class Apple1 {
         this.rom = new ROM();
         this.ramBank1 = new RAM();
         this.ramBank2 = new RAM();
-        this.addressMapping = [
+        this.busMapping = [
             { addr: ROM_ADDR, component: this.rom, name: 'ROM' },
             { addr: RAM_BANK1_ADDR, component: this.ramBank1, name: 'RAM_BANK_1' },
             // Base Apple 1 was shipped with BANK 1 only.
@@ -72,7 +72,7 @@ class Apple1 {
         this.ramBank2.flash(basic);
 
         // Bound CPU to related Address Spaces
-        this.bus = new Bus(this.addressMapping);
+        this.bus = new Bus(this.busMapping);
         this.cpu = new CPU6502(this.bus);
 
         // WIRING IO

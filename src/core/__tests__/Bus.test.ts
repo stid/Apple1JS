@@ -25,7 +25,7 @@ describe('Bus', function () {
         writeMockB = jest.fn();
         flashMockB = jest.fn();
 
-        const addressMapping: AddressSpaceType[] = [
+        const busMapping: BusSpaceType[] = [
             {
                 addr: [0x00, 0xff],
                 component: {
@@ -46,7 +46,7 @@ describe('Bus', function () {
             },
         ];
 
-        testBus = new Bus(addressMapping);
+        testBus = new Bus(busMapping);
     });
     test('Should Cal Read on BANK_A', function () {
         const result = testBus.read(0x10);
@@ -84,7 +84,7 @@ describe('Bus', function () {
 
     test('Should Fail if Bus Spaces overlap', function () {
         const fn = jest.fn();
-        const tmpMapping: AddressSpaceType[] = [
+        const tmpMapping: BusSpaceType[] = [
             {
                 addr: [0x00, 0xff],
                 component: {
@@ -119,7 +119,7 @@ describe('Bus', function () {
 
     test('Should Fail if space start < space end addr', function () {
         const fn = jest.fn();
-        const tmpMapping: AddressSpaceType[] = [
+        const tmpMapping: BusSpaceType[] = [
             {
                 addr: [0xff, 0xfe],
                 component: {
