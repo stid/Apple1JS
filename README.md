@@ -105,6 +105,8 @@ To reset press: <br>
  `Ctrl-R` in the **Terminal** <br>
  `Tab` in the **Browser**
 
+<br>
+
 *Entering code is done line by line,* <br>
 *basically entering a list of command.*
 
