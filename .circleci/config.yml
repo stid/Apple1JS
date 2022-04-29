@@ -26,6 +26,8 @@ jobs:
       # The primary container is an instance of the first image listed. The job's commands run in this container.
       - image: cimg/node:16.15.0
 
+    working_directory: ~/node-starter # directory where steps will run
+
     steps:
       # Reuse the workspace from the build job
       - attach_workspace:
