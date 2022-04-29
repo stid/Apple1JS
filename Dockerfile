@@ -1,4 +1,4 @@
-FROM node:16.13.2-slim
+FROM node:16.15.0-slim
 
 RUN apt-get update -y
 RUN apt-get install apt-transport-https -y --no-install-recommends
