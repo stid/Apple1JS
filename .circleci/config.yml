@@ -4,7 +4,7 @@ jobs:
   build:
     docker:
       # The primary container is an instance of the first image listed. The job's commands run in this container.
-      - image: cimg/node:current
+      - image: cimg/node:16.15.0 # ...with this image as the primary container; this is where all `steps` will run
     working_directory: ~/node-starter # directory where steps will run
     steps:
       - checkout # special step to check out source code to working directory
@@ -24,7 +24,7 @@ jobs:
   test:
     docker:
       # The primary container is an instance of the first image listed. The job's commands run in this container.
-      - image: cimg/node:current
+      - image: cimg/node:16.15.0
 
     steps:
       # Reuse the workspace from the build job
