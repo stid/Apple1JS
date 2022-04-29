@@ -28,7 +28,7 @@ jobs:
       - attach_workspace:
           at: ~/project
       - run:
-          command: yarn deploy
+          command: echo 'stid.me' > ./public/CNAME && gh-pages -d public
           name: Deploy github Pages
 
 
