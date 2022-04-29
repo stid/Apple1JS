@@ -19,7 +19,7 @@
     "jest": "jest",
     "jest-ci": "jest --ci --runInBand --reporters=default --reporters=jest-junit",
     "type-check": "tsc --build ./src/tsconfig.json",
-    "deploy": "gh-pages -d public"
+    "deploy": "echo 'stid.me' > ./public/CNAME && gh-pages -d public"
   },
   "repository": "git+https://github.com/stid/Apple1JS.git",
   "author": "Stefano Furiosi",
