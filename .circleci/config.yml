@@ -27,6 +27,11 @@ jobs:
       # The primary container is an instance of the first image listed. The job's commands run in this container.
       - image: cimg/node:current
 
+    steps:
+      # Reuse the workspace from the build job
+      - attach_workspace:
+          at: .
+
       - run:
           name: Install JUnit coverage reporter
           command: yarn add --dev jest-junit
