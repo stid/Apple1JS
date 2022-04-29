@@ -1,12 +1,11 @@
 version: 2.1
 
-orbs:
-  node: circleci/node:3.0.0
-
 jobs:
   build:
+    docker:
+      # The primary container is an instance of the first image listed. The job's commands run in this container.
+      - image: cimg/node:current
     working_directory: ~/node-starter # directory where steps will run
-    executor: node/default
     steps:
       - checkout # special step to check out source code to working directory
       - restore_cache:
