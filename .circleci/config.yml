@@ -31,7 +31,7 @@ jobs:
           name: Disable jekyll builds
           command: touch ./public/.nojekyll
       - run:
-          command: echo 'stid.me' > ./public/CNAME && gh-pages --message "[skip ci] Updates" -d public
+          command: echo 'stid.me' > ./public/CNAME && yarn gh-pages --message "[skip ci] Updates" -d public
           name: Deploy github Pages
 
 
