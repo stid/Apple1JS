@@ -1,35 +1,62 @@
-version: 2 # use CircleCI 2.0
-jobs: # a collection of steps
-  build: # runs not using Workflows must have a `build` job as entry point
-    working_directory: ~/node-starter # directory where steps will run
-    docker: # run the steps with Docker
-      - image: cimg/node:16.15.0 # ...with this image as the primary container; this is where all `steps` will run
-    steps: # a collection of executable commands
-      - checkout # special step to check out source code to working directory
-      - restore_cache:
-          name: Restore Yarn Package Cache
-          keys:
-            - yarn-packages-{{ checksum "yarn.lock" }}
+version: 2.1
+orbs:
+  node: circleci/node@5.0.2
+
+jobs:
+  build:
+    docker:
+      - image: cimg/node:16.15.0 
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
       - run:
-          name: Install Dependencies
-          command: yarn install --frozen-lockfile
-      - save_cache:
-          name: Save Yarn Package Cache
-          key: yarn-packages-{{ checksum "yarn.lock" }}
+          command: yarn test
+          name: Run tests
+      - run:
+          command: yarn build
+          name: Build app
+      - persist_to_workspace:
+          root: ~/project
           paths:
-            - ~/.cache/yarn
+            - .
+
+  deploy:
+    docker:
+      - image: cimg/node:16.15.0 
+    steps:
+      - attach_workspace:
+          at: ~/project
       - run:
-          name: Install JUnit coverage reporter
-          command: yarn add --dev jest-junit
-      - run: # run tests
-          name: test-ci
+          name: Disable jekyll builds
+          command: touch ./public/.nojekyll
+      - run:
+          name: Add github.com to known hosts
           command: |
-              mkdir -p ./reports/junit
-              yarn test-ci
-          environment:
-              JEST_JUNIT_OUTPUT_DIR: ./reports/junit/
-              JEST_JUNIT_OUTPUT: ./reports/junit/js-test-results.xml
-      - store_test_results:
-          path: ./reports/junit
-      - store_artifacts:
-          path: ./reports/junit
+            mkdir -p ~/.ssh
+            touch ~/.ssh/known_hosts
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - add_ssh_keys:
+          fingerprints:
+            - "c1:f7:13:59:3a:ec:22:77:e7:4d:c6:ce:aa:77:d0:82"
+      - run:
+          name: Add git meta
+          command: |
+            git config user.email "ci-build@stid.me"
+            git config user.name "ci-build"
+      - run:
+          name: Deploy github Pages
+          command: echo 'stid.me' > ./public/CNAME && yarn gh-pages --message "[skip ci] Updates" -d public
+
+
+
+workflows:
+  test:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build # only deploy if the build_and_test job has completed
+          filters:
+            branches:
+              only: master # only deploy when on main
