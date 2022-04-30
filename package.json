@@ -18,8 +18,7 @@
     "profile": "node --prof dist/bundle.js",
     "jest": "jest",
     "jest-ci": "jest --ci --runInBand --reporters=default --reporters=jest-junit",
-    "type-check": "tsc --build ./src/tsconfig.json",
-    "deploy": "gh-pages -d public"
+    "type-check": "tsc --build ./src/tsconfig.json"
   },
   "repository": "git+https://github.com/stid/Apple1JS.git",
   "author": "Stefano Furiosi",
