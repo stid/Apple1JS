@@ -1,69 +1,150 @@
-# Apple 1 Javascript Emulator
 
-*<https://stid.github.io/Apple1JS/>*
+[Preview]: Resources/Preview.png
 
-NodeJS/Javascript Apple 1 Emulator, include initial abstraction of 6820 and other core components.
+[Interactive Demo]: https://stid.github.io/Apple1JS/
+[Hybrid]: https://github.com/stid/APPLE-1-ReplicaDue
+[6502.js]: https://github.com/Torlus/6502.js
 
-Project was build to sketch the hybrid HW version published here: <https://github.com/stid/APPLE-1-ReplicaDue>
+[Localhost]: http://127.0.0.1:8080/
 
-6502.js is based on:
-<https://github.com/Torlus/6502.js>
+# Apple 1 Emulator
+*Written in `Typescript` / `Javascript`*
 
-I use this project as some sort of on the edge sandbox/playground. It give me an excuse to play with the latest technologies as I improve the emulator itself.
+An emulator based on the **[Hybrid HW][Hybrid]**, <br>
+as well as on **Torlus'** [`6502.js`][6502.js] project.
 
-## NODEJS
+![Preview]
 
-You can execute the emulator in via nodejs, assuming proper version of node is installed in your system.
+*I use this project as some sort of `'on the edge'`* <br>
+*sandbox / playground. It gives me an excuse to play* <br>
+*with the latest technologies, as I improve the emulator.*
 
-Under this repository root:
 
-1. Install required packages via: `yarn install`
-2. Start in dev mode via: `yarn raw_start`
+---
 
-If you want to build the node version:
+**⸢ [Interactive Demo] ⸥**
 
-1. Build node package via: `yarn build-node`
-2. Execute node package via: `yarn start`
+---
 
-## BROWSER
+## Terminal Version
 
-You can build & execute a web version visible inside your browser. This use a simple server behind, Web Workers to execute the core and a simple React component to render the monitor.
+The emulator runs in **Node**, using **Yarn**, <br>
+you can easily install the required version.
 
-Under this repository root:
+#### Install
 
-1. Install required packages via: `yarn install`
-2. Build via `yarn build`
-3. Start the simple web server via: `yarn server-start`
-4. Follow the info and load the related app on your browser (usually <http://127.0.0.1:8080>)
+1. Navigate to the *repo* folder
 
-## WOZ MONITOR TEST PROGRAM
+2. Install **Packages** with:
 
-``` text
-0:A9 0 AA 20 EF FF E8 8A 4C 2 0 (RET)
-0 (RET)
-R (RET)
+    ```sh
+    yarn install
+    ```
 
-THE PROGRAM SHOULD THEN PRINT
-OUT ON THE DISPLAY A CONTINUOUS STREAM
-OF ASCII CHARACTERS. TO STOP THE PROGRAM
-AND RETURN TO THE SYSTEM MONITOR,
-HIT THE "RESET" BUTTON. TO RUN AGAIN,
-TYPE : R (RET).
+3. Start in ***developer mode***:
+
+    ```sh
+    yarn raw_start
+    ```
+
+#### Building Node Manually
+
+1. Navigate to the *repo* folder
+
+2. Build **Node** with:
+
+    ```sh
+    yarn build-node
+    ```
+
+3. Start **Node** with:
+
+    ```sh
+    yarn start
+    ```
+
+---
+
+## Browser Version
+
+A local **Webserver** is used to host a **Browser** <br>
+accessible interface utilizing **Web Workers** as <br>
+well as **React** components for the interface.
+
+#### Installation
+
+1. Install the **Packages** with:
+
+    ```sh
+    yarn install
+    ```
+
+2. Build the **Emulator** with:
+
+    ```sh
+    yarn build
+    ```
+
+#### Usage
+
+1. Start the local **Webserver** with:
+
+    ```sh
+    yarn server-start
+    ```
+
+2. Use any **Browser** to navigate to:
+
+    [```localhost:8080```][Localhost]
+
+---
+
+## Test Programs
+
+To reset press: <br>
+ `Ctrl-R` in the **Terminal** <br>
+ `Tab` in the **Browser**
+
+<br>
+
+*Entering code is done line by line,* <br>
+*basically entering a list of command.*
+
+<br>
+
+#### Monitor Test
+
+This program should print a continuous <br>
+stream of `ASCII` characters once entered.
+
+```basic
+0:A9 0 AA 20 EF FF E8 8A 4C 2 0
+0
+R
 ```
 
-## APPLE 1 ANNIVERSARY
+<br>
 
-``` text
-280 (RET)
-R (RET)
+#### Anniversary
+
+This program should print an image of `WOZ`.
+
+```basic
+280
+R
 ```
 
-## BASIC
+<br>
 
-``` text
-E000 (RET)
-R (RET)
-10 PRINT "HELLO! FROM APPLE 1 JS" (RET)
-20 GOTO 10 (RET)
-RUN (RET)
+#### Hello World
+
+This program should continuously <br>
+print the given a **Hello World** msg.
+
+```basic
+E000
+R
+10 PRINT "HELLO! FROM APPLE 1 JS"
+20 GOTO 10
+RUN
 ```
