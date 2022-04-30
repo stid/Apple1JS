@@ -12,7 +12,7 @@ module.exports = merge(common, {
     output: {
         filename: (pathData) => {
             return pathData.chunk.name === 'Apple.worker' ? '[name].js' : '[name].[contenthash].js';
-          },
+        },
         path: path.resolve(__dirname, 'public'),
     },
     optimization: {
