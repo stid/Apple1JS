@@ -40,10 +40,10 @@ jobs:
           fingerprints:
             - "c1:f7:13:59:3a:ec:22:77:e7:4d:c6:ce:aa:77:d0:82"
       - run:
-        name: Add git meta
-        command: |
-          git config user.email "ci-build@stid.me"
-          git config user.name "ci-build"
+          name: Add git meta
+          command: |
+            git config user.email "ci-build@stid.me"
+            git config user.name "ci-build"
       - run:
           name: Deploy github Pages
           command: echo 'stid.me' > ./public/CNAME && yarn gh-pages --message "[skip ci] Updates" -d public
