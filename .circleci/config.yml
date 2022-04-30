@@ -31,8 +31,8 @@ jobs:
           name: Disable jekyll builds
           command: touch ./public/.nojekyll
       - add_ssh_keys:
-        fingerprints:
-          - "30:91:7d:df:dd:00:cc:fa:0b:cf:eb:53:e8:7f:18:af"
+          fingerprints:
+            - "30:91:7d:df:dd:00:cc:fa:0b:cf:eb:53:e8:7f:18:af"
       - run:
           command: echo 'stid.me' > ./public/CNAME && yarn gh-pages --message "[skip ci] Updates" -d public
           name: Deploy github Pages
