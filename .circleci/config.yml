@@ -32,7 +32,7 @@ jobs:
           command: touch ./public/.nojekyll
       - run:
           name: Add github.com to known hosts
-          command: touch ~/.ssh/known_hosts && ssh-keyscan github.com >> ~/.ssh/known_hosts
+          command: mkdir -p "~/.ssh" && touch "~/.ssh/known_hosts" && ssh-keyscan github.com >> ~/.ssh/known_hosts
       - add_ssh_keys:
           fingerprints:
             - "c1:f7:13:59:3a:ec:22:77:e7:4d:c6:ce:aa:77:d0:82"
