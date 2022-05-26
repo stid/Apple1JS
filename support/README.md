@@ -1,5 +1,26 @@
-# ASM source codes
 
-To compile: ```dasm woz_monitor_dasm.asm -orom.o -lrom.lst -srom.sym```
-To convert & print out .o to js module (easy in the browser): ```node o2kj.js orom.o```
+# ASM Source Code
 
+<br>
+
+## Compile
+
+*Build the files with:*
+
+```sh
+dasm woz_monitor_dasm.asm   \
+    -orom.o                 \
+    -lrom.lst               \
+    -srom.sym
+```
+
+<br>
+
+## Convert
+
+*Generate Javascript modules* <br>
+*from the object files with:*
+
+```sh
+node o2kj.js orom.o
+```
