@@ -1,26 +1,45 @@
+
 const fs = require('fs');
 
+const { log } = console;
+
+
 const file = process.argv[2];
-console.log(`CONVERTING: ${file}`);
 
-const buffer = [...fs.readFileSync(file)];
+log(`Converting: ${ file }`);
 
-const convertedBuffer = buffer.map(byte => {
-    return `0x${byte
-        .toString(16)
-        .padStart(2, '0')
-        .toUpperCase()}`;
-});
 
-const spliceBuffer = [];
-while (convertedBuffer.length) {
-    spliceBuffer.push(convertedBuffer.splice(0, 8).join(', '));
+const bytes = [ ... fs.readFileSync(file) ];
+
+const buffer = bytes.map(byteToHex);
+
+const slices = [];
+
+while(buffer.length){
+
+    const slice = buffer
+        .splice(0,8)
+        .join(' , ');
+
+    slices.push(slice);
 }
 
-const result = `
-export default [
-    ${spliceBuffer.join(',\n    ')}
-];
-`;
 
-console.log(result);
+const combined = slices
+    .map((line) => `    ${ line }`)
+    .join(' ,\n');
+
+const result = `\nexport default [\n${ combined }\n];\n`;
+
+log(result);
+
+
+function byteToHex(byte){
+
+    const hex = byte
+        .toString(16)
+        .padStart(2,'0')
+        .toUpperCase();
+
+    return `0x${ hex }`;
+}
