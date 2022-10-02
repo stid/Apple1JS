@@ -10,5 +10,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 const container = document.getElementById('app');
-const root = createRoot(container!);
-root.render(<App worker={appleWorker} />);
+
+if (container) {
+    const root = createRoot(container);
+    root.render(<App worker={appleWorker} />);
+} else {
+    alert('ERROR: App Container Not Found!');
+}
