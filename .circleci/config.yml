@@ -53,7 +53,7 @@ jobs:
 workflows:
   test:
     jobs:
-      - build
+      build
       # - deploy:
       #     requires:
       #       - build # only deploy if the build_and_test job has completed
