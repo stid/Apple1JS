@@ -53,10 +53,10 @@ jobs:
 workflows:
   test:
     jobs:
-      build
+      - build
       # - deploy:
       #     requires:
       #       - build # only deploy if the build_and_test job has completed
-          filters:
-            branches:
-              only: master # only deploy when on main
+          # filters:
+          #   branches:
+          #     only: master # only deploy when on main
