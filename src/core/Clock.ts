@@ -3,12 +3,16 @@ import wait from 'waait';
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_INTERVAL = 30;
 
+/**
+ * Clock class simulates a clock and allows subscribers to be notified of its changes.
+ */
 class Clock implements PubSub {
     private mhz: number;
     private stepChunk: number;
     private provisionedCycles: number;
     private maxedCycles: number;
     private subscribers: subscribeFunction<number>[];
+    private running: boolean;
 
     constructor(mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_INTERVAL) {
         this.mhz = mhz;
@@ -16,40 +20,59 @@ class Clock implements PubSub {
         this.provisionedCycles = 0;
         this.maxedCycles = 0;
         this.subscribers = [];
+        this.running = false;
     }
 
+    // Allows a function to subscribe to the clock's updates.
     subscribe(subFunc: subscribeFunction<number>): void {
         this.subscribers.push(subFunc);
         subFunc(this.provisionedCycles);
     }
 
+    // Removes a function from the list of subscribers.
     unsubscribe(subFunc: subscribeFunction<number>): void {
         this.subscribers = this.subscribers.filter((subItem) => subItem !== subFunc);
     }
 
+    // Notify all subscribers about the current provisioned cycles.
     private _notifySubscribers() {
         this.subscribers.forEach((subFunc) => subFunc(this.provisionedCycles));
     }
 
+    // Logs the clock's debug information.
     toLog(): void {
         console.log(this.toDebug());
     }
 
+    // Returns the clock's debug information.
     toDebug(): { [key: string]: number | string } {
         const { mhz, stepChunk, provisionedCycles, maxedCycles } = this;
         return { mhz, stepChunk, provisionedCycles, maxedCycles };
     }
 
+    // Returns the current provisioned cycles.
     getCurrentProvisionedCycles(): number {
         return this.provisionedCycles;
     }
 
-    async loop(): Promise<void> {
-        const stepMax = this.mhz * 1000 * this.stepChunk * 1.25;
-        let startTime,
-            lastTime = Date.now();
+    // Starts the main loop for the clock.
+    async startLoop(): Promise<void> {
+        this.running = true;
+        await this.loop();
+    }
 
-        const runLoop = async (): Promise<void> => {
+    // Stops the main loop for the clock.
+    stopLoop(): void {
+        this.running = false;
+    }
+
+    // Main loop for the clock.
+    private async loop(): Promise<void> {
+        const stepMax = this.mhz * 1000 * this.stepChunk * 1.25;
+        let startTime;
+        let lastTime = Date.now();
+
+        while (this.running) {
             startTime = Date.now();
             this.provisionedCycles = (startTime - lastTime) * this.mhz * 1000;
             lastTime = startTime;
@@ -61,10 +84,11 @@ class Clock implements PubSub {
 
             this._notifySubscribers();
 
-            await wait(5);
-            return runLoop();
-        };
-        return runLoop();
+            const remainingTimeForNextCycle = this.stepChunk - (performance.now() - startTime);
+            const waitTime = Math.max(remainingTimeForNextCycle, 5);
+
+            await wait(waitTime);
+        }
     }
 }
 

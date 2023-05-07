@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define custom styles for the base layer */
+@layer base {
+  /* Body styles */
+  body {
+    @apply bg-black;        /* Background color */
+    @apply text-gray-400;    /* Text color */
+    @apply text-sm;          /* Text size */
+    @apply font-mono;        /* Font family */
+  }
+
+  /* Link styles */
+  a {
+    @apply text-green-600;             /* Text color */
+    @apply hover:text-green-300;       /* Hover text color */
+    @apply visited:text-green-600;     /* Visited text color */
+  }
+
+  /* Heading 3 styles */
+  h3 {
+    @apply mt-4 mb-1;        /* Margins */
+    @apply font-bold;        /* Font weight */
+  }
+
+  /* Paragraph styles */
+  p {
+    @apply text-slate-500;   /* Text color */
+  }
+}

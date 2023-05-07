@@ -43,12 +43,12 @@ describe('RAM', function () {
     });
 
     test('Should flash content if size == ram space', function () {
-        const smallRam = new RAM(4);
-        expect(() => smallRam.flash([9, 9, 1, 2, 3, 4])).not.toThrow();
+        const smallRam = new RAM(6);
+        expect(() => smallRam.flash([2, 0, 1, 2, 3, 4])).not.toThrow();
     });
 
     test('Should raise an exception is flash content > ram space', function () {
         const smallRam = new RAM(4);
-        expect(() => smallRam.flash([9, 9, 1, 2, 3, 4, 5])).toThrow(Error('Flash Data too large (5 -> 4)'));
+        expect(() => smallRam.flash([0, 0, 1, 2, 3, 4, 5])).toThrow(Error('Flash Data too large (5 -> 4)'));
     });
 });

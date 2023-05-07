@@ -1,4 +1,4 @@
-import Bus from 'core/Bus';
+import Bus from './Bus';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Opcode table
@@ -1112,7 +1112,7 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
     m.rmw();
 };
 
-class CPU6502 implements Clockable {
+class CPU6502 implements IClockable {
     bus: Bus;
     PC: number;
     A: number;
@@ -1184,17 +1184,17 @@ class CPU6502 implements Clockable {
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
     }
 
-    step(): number {
+    performSingleStep(): number {
         const startCycles = this.cycles;
         this.opcode = this.read(this.PC++);
         CPU6502op[this.opcode](this);
         return this.cycles - startCycles;
     }
 
-    bulkSteps(steps: number): void {
+    performBulkSteps(steps: number): void {
         let currentCycleCount = 0;
         while (currentCycleCount <= steps) {
-            currentCycleCount += this.step();
+            currentCycleCount += this.performSingleStep();
         }
     }
 
@@ -1210,7 +1210,7 @@ class CPU6502 implements Clockable {
         this.bus.write(address, value);
     }
 
-    getCycles(): number {
+    getCompletedCycles(): number {
         return this.cycles;
     }
 

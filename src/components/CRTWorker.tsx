@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { WORKER_MESSAGES, VideoData } from 'apple1/TSTypes';
+import { WORKER_MESSAGES, VideoData } from '../apple1/TSTypes';
 import CRT from './CRT';
 
 type CRTWorkerProps = {
@@ -14,17 +14,18 @@ const CRTWorker = ({ worker }: CRTWorkerProps): JSX.Element => {
     });
 
     useEffect(() => {
-        const handler = (e: MessageEvent<{ data: VideoData; type: WORKER_MESSAGES }>) => {
+        const handleWorkerMessage = (e: MessageEvent<{ data: VideoData; type: WORKER_MESSAGES }>) => {
             const { data, type } = e.data;
-            switch (type) {
-                case WORKER_MESSAGES.VIDEO_BUFFER:
-                    setVideoData(data);
-                    break;
+            if (type === WORKER_MESSAGES.VIDEO_BUFFER) {
+                setVideoData(data);
             }
         };
-        worker.addEventListener('message', handler);
 
-        return () => worker.removeEventListener('message', handler);
+        worker.addEventListener('message', handleWorkerMessage);
+
+        return () => {
+            worker.removeEventListener('message', handleWorkerMessage);
+        };
     }, [worker]);
 
     return <CRT videoData={videoData} />;

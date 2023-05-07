@@ -1,19 +1,59 @@
-import KeyboardLogic from '../KeyboardLogic';
 import PIA6820 from '../../core/PIA6820';
+import KeyboardLogic from '../KeyboardLogic';
 
-jest.mock('../../core/PIA6820');
+const mockSetDataA = jest.fn();
+const mockSetBitCtrA = jest.fn();
 
-describe('KeyboardLogic', function () {
+jest.mock('../../core/PIA6820', () => {
+    return jest.fn().mockImplementation(() => {
+        return {
+            setDataA: mockSetDataA,
+            setBitCtrA: mockSetBitCtrA,
+        };
+    });
+});
+
+describe('KeyboardLogic', () => {
     let pia: PIA6820;
     let keyboardLogic: KeyboardLogic;
 
-    test('Should Wire & write 65 on PIA', async function () {
+    beforeEach(() => {
         pia = new PIA6820();
-
         keyboardLogic = new KeyboardLogic(pia);
+    });
 
-        await keyboardLogic.write(65);
-        expect(pia.setDataA).toBeCalledWith(193); // 65 with B7 Up
-        expect(pia.setBitCtrA).toBeCalledWith(7); // CA1 raise - PIA will raise CTRL A bit 7
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('reset should call wireResetCallback if provided', () => {
+        const wireResetCallback = jest.fn();
+        keyboardLogic.wire({ reset: wireResetCallback });
+        keyboardLogic.reset();
+
+        expect(wireResetCallback).toHaveBeenCalled();
+    });
+
+    test('reset should not throw if wireResetCallback is not provided', () => {
+        expect(() => {
+            keyboardLogic.reset();
+        }).not.toThrow();
+    });
+
+    test('write should call reset if RESET_CODE is provided', () => {
+        const wireResetCallback = jest.fn();
+        keyboardLogic.wire({ reset: wireResetCallback });
+        keyboardLogic.write(-255);
+
+        expect(wireResetCallback).toHaveBeenCalled();
+    });
+
+    test('write should call setDataA and setBitCtrA if not RESET_CODE', async () => {
+        const testChar = 65; // ASCII 'A'
+
+        await keyboardLogic.write(testChar);
+
+        expect(mockSetDataA).toHaveBeenCalledWith(193); // 65 | 128 (bit 7 set)
+        expect(mockSetBitCtrA).toHaveBeenCalledWith(7);
     });
 });

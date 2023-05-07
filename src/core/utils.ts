@@ -7,9 +7,9 @@ export const bitSet = (num: number, bit: number): number => {
 };
 
 export const bitTest = (num: number, bit: number): boolean => {
-    return (num >> bit) % 2 != 0;
+    return ((num >> bit) & 1) === 1;
 };
 
 export const bitToggle = (num: number, bit: number): number => {
-    return bitTest(num, bit) ? bitClear(num, bit) : bitSet(num, bit);
+    return num ^ (1 << bit);
 };

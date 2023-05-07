@@ -1,58 +1,38 @@
-/**
- * @jest-environment jsdom
- */
-
-require('@testing-library/jest-dom/extend-expect');
+import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import CRTCursor from '../CRTCursor';
-import { render, screen, act, waitFor } from '@testing-library/react';
 
-describe('CRTCursor', function () {
-    beforeEach(function () {
+describe('CRTCursor', () => {
+    it('renders the cursor at the specified row and column', () => {
+        render(<CRTCursor row={3} column={5} />);
+
+        const cursor = screen.getByText('@');
+        expect(cursor).toHaveStyle({
+            left: '85px', // (5 * 15) + 10
+            top: '55px', // (3 * 15) + 10
+        });
+    });
+
+    it('toggles cursor visibility', async () => {
         jest.useFakeTimers();
-    });
 
-    afterEach(function () {
-        jest.runOnlyPendingTimers();
+        render(<CRTCursor row={0} column={0} />);
+        const cursor = screen.getByText('@');
+
+        expect(cursor).toHaveStyle('display: block');
+
+        act(() => {
+            jest.advanceTimersByTime(400);
+        });
+
+        expect(cursor).toHaveStyle('display: none');
+
+        act(() => {
+            jest.advanceTimersByTime(600);
+        });
+
+        expect(cursor).toHaveStyle('display: block');
+
         jest.useRealTimers();
-    });
-
-    test('Render CRTCursor component', function () {
-        render(<CRTCursor row={10} column={20} />);
-        const element = screen.getByText('@');
-        expect(element).toBeInTheDocument();
-        expect(element).toMatchInlineSnapshot(`
-            <div
-              class="c-emBIds"
-              style="left: 310px; top: 160px; display: block;"
-            >
-              @
-            </div>
-        `);
-    });
-
-    // SKIP: Mock timers not working on new jest + Hooks
-    test.skip('Blinking CRTCursor', async function () {
-        act(() => {
-            render(<CRTCursor row={10} column={20} />);
-        });
-        const element = screen.getByText('@');
-        expect(element.style.display).toBe('block');
-
-        // Blink Off
-        act(() => {
-            jest.advanceTimersByTime(401);
-        });
-
-        await waitFor(() => {
-            expect(element.style.display).toBe('none');
-        });
-
-        // Blink On
-        act(() => {
-            jest.advanceTimersByTime(601);
-        });
-        await waitFor(() => {
-            expect(element.style.display).toBe('block');
-        });
     });
 });

@@ -19,8 +19,8 @@ describe('CPU6502', function () {
         cpu = new CPU6502(bus);
     });
     test('Initial state', function () {
-        expect(cpu.getCycles()).toBe(0x00);
-        const cycles = cpu.step();
+        expect(cpu.getCompletedCycles()).toBe(0x00);
+        const cycles = cpu.performSingleStep();
         expect(cycles).toBe(0x07);
         expect(cpu.PC).toBe(0);
     });
@@ -43,26 +43,26 @@ describe('CPU6502', function () {
 
         cpu.reset();
         expect(cpu.PC).toBe(0xff00);
-        expect(cpu.getCycles()).toBe(0x00);
+        expect(cpu.getCompletedCycles()).toBe(0x00);
 
-        let stepRes = cpu.step();
+        let stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff01);
-        expect(cpu.getCycles()).toBe(2);
+        expect(cpu.getCompletedCycles()).toBe(2);
         expect(stepRes).toBe(2);
 
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff02);
-        expect(cpu.getCycles()).toBe(4);
+        expect(cpu.getCompletedCycles()).toBe(4);
         expect(stepRes).toBe(2);
 
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff03);
-        expect(cpu.getCycles()).toBe(6);
+        expect(cpu.getCompletedCycles()).toBe(6);
         expect(stepRes).toBe(2);
 
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff02);
-        expect(cpu.getCycles()).toBe(9);
+        expect(cpu.getCompletedCycles()).toBe(9);
         expect(stepRes).toBe(3);
     });
     test('Write Steps', function () {
@@ -94,54 +94,54 @@ describe('CPU6502', function () {
 
         cpu.reset();
         expect(cpu.PC).toBe(0xff00);
-        expect(cpu.getCycles()).toBe(0x00);
+        expect(cpu.getCompletedCycles()).toBe(0x00);
 
         // lda mem
-        let stepRes = cpu.step();
+        let stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff03);
         expect(cpu.A).toBe(0xaa);
-        expect(cpu.getCycles()).toBe(4);
+        expect(cpu.getCompletedCycles()).toBe(4);
         expect(stepRes).toBe(4);
 
         // sta 10
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff05);
         expect(ramInstance.read(10)).toBe(0xaa);
-        expect(cpu.getCycles()).toBe(7);
+        expect(cpu.getCompletedCycles()).toBe(7);
         expect(stepRes).toBe(3);
 
         // lda mem+1
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff08);
         expect(cpu.A).toBe(0xbb);
-        expect(cpu.getCycles()).toBe(11);
+        expect(cpu.getCompletedCycles()).toBe(11);
         expect(stepRes).toBe(4);
 
         // sta 11
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff0a);
         expect(ramInstance.read(11)).toBe(0xbb);
-        expect(cpu.getCycles()).toBe(14);
+        expect(cpu.getCompletedCycles()).toBe(14);
         expect(stepRes).toBe(3);
 
         // lda #$CC
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff0c);
         expect(cpu.A).toBe(0xcc);
-        expect(cpu.getCycles()).toBe(16);
+        expect(cpu.getCompletedCycles()).toBe(16);
         expect(stepRes).toBe(2);
 
         // ldx #1
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff0e);
         expect(cpu.X).toBe(0x01);
 
         // sta 11, x
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(ramInstance.read(12)).toBe(0xcc);
 
         // jmp start
-        stepRes = cpu.step();
+        stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff00);
     });
 });

@@ -3,6 +3,7 @@ export enum WORKER_MESSAGES {
     KEY_DOWN,
     DEBUG_INFO,
     CLOCK_DATA,
+    SET_CRT_SUPPORT_BS,
 }
 
 export enum WEB_VIDEO_BUFFER_ROW {

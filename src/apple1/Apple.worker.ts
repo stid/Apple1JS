@@ -17,6 +17,9 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) 
     const { data, type } = e.data;
 
     switch (type) {
+        case WORKER_MESSAGES.SET_CRT_SUPPORT_BS:
+            video.setSupportBS(!!data);
+            break;
         case WORKER_MESSAGES.KEY_DOWN:
             keyboard.write(data);
             break;
@@ -24,10 +27,10 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) 
             const { clock, cpu, pia, bus } = apple1;
             postMessage({
                 data: {
-                    clock: clock.toDebug(),
                     cpu: cpu.toDebug(),
                     pia: pia.toDebug(),
                     Bus: bus.toDebug(),
+                    clock: clock.toDebug(),
                 },
                 type: WORKER_MESSAGES.DEBUG_INFO,
             });
@@ -36,4 +39,4 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) 
     }
 };
 
-apple1.loop();
+apple1.startLoop();

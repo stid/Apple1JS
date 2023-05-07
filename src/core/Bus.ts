@@ -1,44 +1,88 @@
 class Bus {
     private busMapping: Array<BusSpaceType>;
+    private sortedAddrs: Array<BusSpaceType>;
 
+    /**
+     * Construct a new Bus object.
+     * @param busMapping - An array of BusSpaceType objects representing the bus address space mapping.
+     */
     constructor(busMapping: Array<BusSpaceType>) {
         this.busMapping = busMapping;
+        this.sortedAddrs = this._sortAddresses(busMapping);
         this._validate();
     }
 
-    private _validate() {
-        // Validate Start < End
-        this.busMapping.forEach((item: BusSpaceType) => {
+    /**
+     * Sort the busMapping array by starting addresses.
+     * @param busMapping - An array of BusSpaceType objects to be sorted.
+     * @returns A sorted array of BusSpaceType objects.
+     */
+    private _sortAddresses(busMapping: Array<BusSpaceType>): Array<BusSpaceType> {
+        return busMapping.sort((itemA: BusSpaceType, itemB: BusSpaceType): number => itemA.addr[0] - itemB.addr[0]);
+    }
+
+    /**
+     * Validate the bus mapping by checking that start < end and there is no overlap between address ranges.
+     * @throws Will throw an error if any validation fails.
+     */
+    private _validate(): void {
+        this.sortedAddrs.forEach((item: BusSpaceType) => {
             if (item.addr[0] > item.addr[1]) {
-                throw Error(`${item.name} Starting address > ending address`);
+                throw Error(`"${item.name}": Starting address is greater than ending address`);
             }
         });
 
-        // Validate No Overlap
-        const sortedAddrs = this.busMapping.sort(
-            (itemA: BusSpaceType, itemB: BusSpaceType): number => itemA.addr[0] - itemB.addr[0],
-        );
-
-        for (let i = 0; i < sortedAddrs.length - 1; i++) {
-            if (sortedAddrs[i].addr[1] >= sortedAddrs[i + 1].addr[0]) {
-                throw Error(`Space ${sortedAddrs[i].name} overlap with ${sortedAddrs[i + 1].name}`);
+        for (let i = 0; i < this.sortedAddrs.length - 1; i++) {
+            if (this.sortedAddrs[i].addr[1] >= this.sortedAddrs[i + 1].addr[0]) {
+                throw Error(`Space "${this.sortedAddrs[i].name}" overlaps with "${this.sortedAddrs[i + 1].name}"`);
             }
         }
     }
 
-    private _findInstanceWithAddress(address: number): BusSpaceType | void {
-        return this.busMapping.find((item: BusSpaceType) => address >= item.addr[0] && address <= item.addr[1]);
+    /**
+     * Find the component instance containing the given address using binary search.
+     * @param address - The memory address to search for.
+     * @returns The BusSpaceType object containing the address, or undefined if not found.
+     */
+    private _findInstanceWithAddress(address: number): BusSpaceType | undefined {
+        let left = 0;
+        let right = this.sortedAddrs.length - 1;
+
+        while (left <= right) {
+            const mid = Math.floor((left + right) / 2);
+            const current = this.sortedAddrs[mid];
+
+            if (address >= current.addr[0] && address <= current.addr[1]) {
+                return current;
+            } else if (address < current.addr[0]) {
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        }
+
+        return undefined;
     }
 
+    /**
+     * Read a value from a specific address.
+     * @param address - The memory address to read from.
+     * @returns The value at the specified address, or 0 if the address is not found.
+     */
     read(address: number): number {
         const addrInstance = this._findInstanceWithAddress(address);
         return addrInstance ? addrInstance.component.read(address - addrInstance.addr[0]) : 0;
     }
 
+    /**
+     * Write a value to a specific address.
+     * @param address - The memory address to write to.
+     * @param value - The value to be written.
+     */
     write(address: number, value: number): void {
         const addrInstance = this._findInstanceWithAddress(address);
         if (addrInstance) {
-            addrInstance?.component.write(address - addrInstance.addr[0], value);
+            addrInstance.component.write(address - addrInstance.addr[0], value);
         }
     }
 
