@@ -1,6 +1,6 @@
 # Apple 1 JS Emulator
 
-The Apple 1 JS Emulator is a project written in TypeScript/JavaScript that emulates the Apple 1 computer. It is based on the Hybrid HW and Torlus' 6502.js project.
+The Apple 1 JS Emulator is a project written in TypeScript/JavaScript that emulates the Apple 1 computer. It is based on the [Hybrid HW](https://github.com/stid/APPLE-1-ReplicaDue) and Torlus' [6502.js](https://github.com/Torlus/6502.js) project.
 
 ## Demo
 
