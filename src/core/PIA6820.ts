@@ -7,7 +7,7 @@ const B_DSP = 0x2; // PIA.B display output register
 const B_DSPCR = 0x3; // PIA.B display control register
 
 class PIA6820 implements IoAddressable, PubSub {
-    data: Array<number>;
+    private data: number[];
     ioA?: IoComponent;
     ioB?: IoComponent;
     private subscribers: subscribeFunction<number[]>[];
@@ -102,7 +102,6 @@ class PIA6820 implements IoAddressable, PubSub {
 
     write(address: number, value: number): void {
         this.data[address] = value;
-
         this._notifySubscribers();
 
         switch (address) {

@@ -1,7 +1,8 @@
 import wait from 'waait';
-import produce from 'immer';
+import { produce } from 'immer';
 import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from './TSTypes';
 import * as appleConstants from './const';
+import { CONFIG } from '../config';
 
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
@@ -35,11 +36,13 @@ class CRTVideo implements IoComponent, PubSub {
     private buffer: VideoBuffer;
     subscribers: Array<subscribeFunction<WebCrtVideoSubFuncVideoType>>;
     private rowShift: number;
+    private supportBS: boolean;
 
     constructor() {
         this.row = 0;
         this.column = 0;
         this.rowShift = 0;
+        this.supportBS = CONFIG.CRT_SUPPORT_BS;
         this.buffer = Array(NUM_ROWS);
         this.subscribers = [];
         this.coldStart();
@@ -51,6 +54,10 @@ class CRTVideo implements IoComponent, PubSub {
                 draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill('@')];
             }
         });
+    }
+
+    setSupportBS(supportBS: boolean): void {
+        this.supportBS = supportBS;
     }
 
     onClear(): void {
@@ -82,20 +89,23 @@ class CRTVideo implements IoComponent, PubSub {
     private _onChar(char: string) {
         this._updateBuffer((draftBuffer) => {
             // NEW LINE
-            if (char === '\n') {
-                this._newLine();
-                // BACKSPACE
-            } else if (char === '\b') {
-                if (this.column > 0) {
-                    this.column -= 1;
-                    draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = ' ';
-                }
-            } else {
-                // STANDARD SUPPORTED ASCII
-                if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
-                    draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = char;
-                    this.column += 1;
-                }
+
+            switch (char) {
+                case '\n':
+                    this._newLine();
+                    break;
+                case '\b':
+                    if (this.column > 0) {
+                        this.column -= 1;
+                        draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = ' ';
+                    }
+                    break;
+                default:
+                    if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
+                        draftBuffer[this.row][WEB_VIDEO_BUFFER_ROW.DATA][this.column] = char;
+                        this.column += 1;
+                    }
+                    break;
             }
 
             // End of line
@@ -138,9 +148,7 @@ class CRTVideo implements IoComponent, PubSub {
                 this._onChar('\n');
                 break;
             case appleConstants.BS:
-                this._onChar('_');
-                // TODO: Will be nice to make this an option
-                //this._onChar('\b'); // Uncomment for real BS
+                this.supportBS ? this._onChar('\b') : this._onChar('_');
                 break;
             default:
                 if (bitChar >= 13) {

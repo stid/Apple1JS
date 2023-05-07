@@ -1,0 +1,28 @@
+{
+    "exclude": ["node_modules"],
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "allowJs": false,
+        "allowSyntheticDefaultImports": true,
+        "lib": ["es5", "es6", "es7", "ESNext", "dom", "webworker"],
+        "moduleResolution": "node",
+        "module": "esnext",
+        "noEmit": true,
+        "noUnusedLocals": true,
+        "noImplicitAny": true,
+        "noUnusedParameters": true,
+        "preserveConstEnums": true,
+        "removeComments": false,
+        "skipLibCheck": true,
+        "strictNullChecks": true,
+        "sourceMap": true,
+        "inlineSources": true,
+        "sourceRoot": "/",
+        "strict": true,
+        "target": "esnext",
+        "baseUrl": ".",
+        "esModuleInterop": true,
+        "types": ["node", "jest", "@testing-library/jest-dom"],
+        "typeRoots": ["src/core/@types", "node_modules/@types"]
+    }
+}

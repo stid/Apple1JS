@@ -9,31 +9,31 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-    public state: State;
-
-    constructor(props: Props) {
-        super(props);
-        this.state = { hasError: false };
-    }
+    state: State = { hasError: false };
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public static getDerivedStateFromError(_: Error): State {
-        // Update state so the next render will show the fallback UI.
+    static getDerivedStateFromError(_: Error): State {
         return { hasError: true };
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    componentDidCatch = (error: Error, errorInfo: ErrorInfo) => {
         console.error('Uncaught error:', error, errorInfo);
-    }
+    };
 
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    public render() {
-        if (this.state.hasError) {
-            return <h1>Sorry.. there was an error</h1>;
+    render() {
+        const { hasError } = this.state;
+        const { children } = this.props;
+
+        if (hasError) {
+            return (
+                <div className="bg-red-100 p-4">
+                    <h1 className="text-red-600 text-xl font-semibold mb-2">Oops! Something went wrong</h1>
+                    <p className="text-red-500">Please try refreshing the page.</p>
+                </div>
+            );
         }
 
-        return this.props.children;
+        return children;
     }
 }
 

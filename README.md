@@ -1,24 +1,24 @@
 
 [Preview]: Resources/Preview.png
 
-[Interactive Demo]: https://stid.github.io/Apple1JS/
+[Interactive Demo]: https://stid.me
 [Hybrid]: https://github.com/stid/APPLE-1-ReplicaDue
 [6502.js]: https://github.com/Torlus/6502.js
 
-[Localhost]: http://127.0.0.1:8080/
+[Localhost]: http://localhost:1234
 
-# Apple 1 Emulator
+# Apple 1 JS Emulator
+
 *Written in `Typescript` / `Javascript`*
 
-An emulator based on the **[Hybrid HW][Hybrid]**, <br>
+An emulator based on the **[Hybrid HW][Hybrid]**,
 as well as on **Torlus'** [`6502.js`][6502.js] project.
 
 ![Preview]
 
-*I use this project as some sort of `'on the edge'`* <br>
-*sandbox / playground. It gives me an excuse to play* <br>
+*I use this project as some sort of `'on the edge'`*
+*sandbox / playground. It gives me an excuse to play*
 *with the latest technologies, as I improve the emulator.*
-
 
 ---
 
@@ -31,7 +31,7 @@ as well as on **Torlus'** [`6502.js`][6502.js] project.
 The emulator runs in **Node**, using **Yarn**, <br>
 you can easily install the required version.
 
-#### Install
+### Install
 
 1. Navigate to the *repo* folder
 
@@ -44,75 +44,22 @@ you can easily install the required version.
 3. Start in ***developer mode***:
 
     ```sh
-    yarn raw_start
-    ```
-
-#### Building Node Manually
-
-1. Navigate to the *repo* folder
-
-2. Build **Node** with:
-
-    ```sh
-    yarn build-node
-    ```
-
-3. Start **Node** with:
-
-    ```sh
     yarn start
     ```
 
----
+4. Use any **Browser** to navigate to:
 
-## Browser Version
-
-A local **Webserver** is used to host a **Browser** <br>
-accessible interface utilizing **Web Workers** as <br>
-well as **React** components for the interface.
-
-#### Installation
-
-1. Install the **Packages** with:
-
-    ```sh
-    yarn install
-    ```
-
-2. Build the **Emulator** with:
-
-    ```sh
-    yarn build
-    ```
-
-#### Usage
-
-1. Start the local **Webserver** with:
-
-    ```sh
-    yarn server-start
-    ```
-
-2. Use any **Browser** to navigate to:
-
-    [```localhost:8080```][Localhost]
-
----
+    [```localhost:1234```][Localhost]
 
 ## Test Programs
 
-To reset press: <br>
- `Ctrl-R` in the **Terminal** <br>
+To reset press:
  `Tab` in the **Browser**
 
-<br>
-
-*Entering code is done line by line,* <br>
+*Entering code is done line by line,*
 *basically entering a list of command.*
 
-<br>
-
-#### Monitor Test
+### Monitor Test
 
 This program should print a continuous <br>
 stream of `ASCII` characters once entered.
@@ -123,9 +70,8 @@ stream of `ASCII` characters once entered.
 R
 ```
 
-<br>
 
-#### Anniversary
+### Anniversary
 
 This program should print an image of `WOZ`.
 
@@ -134,11 +80,9 @@ This program should print an image of `WOZ`.
 R
 ```
 
-<br>
+### Hello World
 
-#### Hello World
-
-This program should continuously <br>
+This program should continuously
 print the given a **Hello World** msg.
 
 ```basic

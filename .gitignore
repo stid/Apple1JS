@@ -1,48 +1,10 @@
-.vscode
+dist/*
+!dist/_headers
 node_modules
-lib-cov
-*.seed
+.parcel-cache/
 *.log
-*.csv
-*.dat
-*.out
-*.pid
-*.gz
-*.swp
-
-pids
-logs
-results
-tmp
-
-# Build
-public/
-
-# Coverage reports
-coverage
-
-# API keys and secrets
-.env
-
-# Dependency directory
-node_modules
-bower_components
-
-# Editors
-.idea
-*.iml
-
-# OS metadata
 .DS_Store
-Thumbs.db
-
-# Ignore built ts files
-dist/**/*
-dist-web/**/*
-
-*.o
-*.sym
-*.lst
-
-*dot
-*.svg
+junit.xml
+# Local Netlify folder
+.netlify
+tmp

@@ -1,55 +1,51 @@
 import Debugger from './Debugger';
 import Info from './Info';
-import ErrorBoundary from './Error';
 import CRTWorker from './CRTWorker';
-import { APPPLEJS_VER } from 'const';
+import { CONFIG } from '../config';
+import { APP_VERSION } from '../version';
+import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import Actions from './Actions';
+import { useState } from 'react';
+import ErrorBoundary from './Error';
 
-import { globalCss, styled } from '@stitches/react';
+const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
 
-const GlobalStyle = globalCss({
-    body: {
-        backgroundColor: 'black',
-        color: '#BBB',
-        fontSize: '14px',
-        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-    },
-});
-
-const LayoutRow = styled('div', {
-    display: 'flex',
-});
-
-const LayoutColumn = styled('div', {
-    flex: '50%',
-    padding: '20px',
-});
-
-const Title = () => (
-    <h3>
-        Apple 1 :: JS Emulator - by =stid= v{APPPLEJS_VER.MAJIOR}.{APPPLEJS_VER.MINOR}.{APPPLEJS_VER.REVISION}
-    </h3>
-);
+const LayoutRow = ({ children }: { children?: React.ReactNode }) => <div className="flex-1 p-6">{children}</div>;
 
 type Props = {
     worker: Worker;
 };
-
 const App = ({ worker }: Props): JSX.Element => {
-    GlobalStyle();
+    const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
+
     return (
         <ErrorBoundary>
-            <LayoutRow>
-                <LayoutColumn>
+            <div className="flex">
+                <LayoutRow>
                     <Title />
                     <CRTWorker worker={worker} />
-                </LayoutColumn>
-                <LayoutColumn>
+                    <div className="p-0 mt-1">
+                        <Actions
+                            supportBS={supportBS}
+                            onReset={(e) => {
+                                e.preventDefault();
+                                worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
+                            }}
+                            onBS={(e) => {
+                                e.preventDefault();
+                                worker.postMessage({ data: !supportBS, type: WORKER_MESSAGES.SET_CRT_SUPPORT_BS });
+                                setSupportBS(!supportBS);
+                            }}
+                        />
+                    </div>
+                </LayoutRow>
+                <LayoutRow>
                     <Info />
-                </LayoutColumn>
-            </LayoutRow>
-            <LayoutRow>
+                </LayoutRow>
+            </div>
+            <div className="flex">
                 <Debugger worker={worker} />
-            </LayoutRow>
+            </div>
         </ErrorBoundary>
     );
 };

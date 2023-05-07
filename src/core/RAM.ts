@@ -1,10 +1,9 @@
 const DEFAULT_RAM_BANK_SIZE = 4096;
-
 class RAM implements IoAddressable {
-    private data: Array<number>;
+    private data: Uint8Array;
 
     constructor(byteSize: number = DEFAULT_RAM_BANK_SIZE) {
-        this.data = new Array(byteSize).fill(0);
+        this.data = new Uint8Array(byteSize);
     }
 
     read(address: number): number {
@@ -18,7 +17,6 @@ class RAM implements IoAddressable {
     }
 
     flash(data: Array<number>): void {
-        // LOAD A PROG
         const [highAddr, lowAddr, ...coreData] = data;
 
         if (coreData.length > this.data.length) {
@@ -27,9 +25,14 @@ class RAM implements IoAddressable {
 
         const prgAddr: number = highAddr | (lowAddr << 8);
 
-        for (let i = 0; i < coreData.length; i++) {
-            this.data[prgAddr + i] = coreData[i];
+        if (prgAddr + coreData.length > this.data.length) {
+            throw new Error(
+                `Flash Data would write outside of bounds (address: ${prgAddr}, length: ${coreData.length})`,
+            );
         }
+
+        const coreDataTyped = new Uint8Array(coreData);
+        this.data.set(coreDataTyped, prgAddr);
     }
 }
 

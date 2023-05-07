@@ -1,10 +1,10 @@
-import CPU6502 from 'core/6502';
-import PIA6820 from 'core/PIA6820';
-import Clock from 'core/Clock';
-import ROM from 'core/ROM';
-import RAM from 'core/RAM';
+import CPU6502 from '../core/6502';
+import PIA6820 from '../core/PIA6820';
+import Clock from '../core/Clock';
+import ROM from '../core/ROM';
+import RAM from '../core/RAM';
 
-import Bus from 'core/Bus';
+import Bus from '../core/Bus';
 
 import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
@@ -107,7 +107,7 @@ class Apple1 {
         this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
         console.log(`Apple 1`);
 
-        this.clock.subscribe((steps: number) => this.cpu.bulkSteps(steps));
+        this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
 
         // Debug output
         this.clock.toLog();
@@ -119,8 +119,8 @@ class Apple1 {
         this.cpu.reset();
     }
 
-    async loop(): Promise<void> {
-        return this.clock.loop();
+    async startLoop(): Promise<void> {
+        return this.clock.startLoop();
     }
 }
 

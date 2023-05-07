@@ -114,7 +114,7 @@ describe('Bus', function () {
             },
         ];
         expect(() => new Bus(tmpMapping)).toThrow(Error);
-        expect(() => new Bus(tmpMapping)).toThrow('Space BANK_B overlap with BANK_C');
+        expect(() => new Bus(tmpMapping)).toThrow('Space "BANK_B" overlaps with "BANK_C"');
     });
 
     test('Should Fail if space start < space end addr', function () {
@@ -131,6 +131,6 @@ describe('Bus', function () {
             },
         ];
         expect(() => new Bus(tmpMapping)).toThrow(Error);
-        expect(() => new Bus(tmpMapping)).toThrow('BANK_A Starting address > ending address');
+        expect(() => new Bus(tmpMapping)).toThrow('"BANK_A": Starting address is greater than ending address');
     });
 });
