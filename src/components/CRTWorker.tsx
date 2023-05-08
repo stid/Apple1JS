@@ -16,7 +16,7 @@ const CRTWorker = ({ worker }: CRTWorkerProps): JSX.Element => {
     useEffect(() => {
         const handleWorkerMessage = (e: MessageEvent<{ data: VideoData; type: WORKER_MESSAGES }>) => {
             const { data, type } = e.data;
-            if (type === WORKER_MESSAGES.VIDEO_BUFFER) {
+            if (type === WORKER_MESSAGES.UPDATE_VIDEO_BUFFER) {
                 setVideoData(data);
             }
         };

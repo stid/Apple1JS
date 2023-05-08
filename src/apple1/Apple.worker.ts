@@ -8,7 +8,7 @@ export const keyboard = new WebWorkerKeyboard();
 
 video.subscribe((data: WebCrtVideoSubFuncVideoType) => {
     const { buffer, row, column } = data;
-    postMessage({ data: { buffer, row, column }, type: WORKER_MESSAGES.VIDEO_BUFFER });
+    postMessage({ data: { buffer, row, column }, type: WORKER_MESSAGES.UPDATE_VIDEO_BUFFER });
 });
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
@@ -17,7 +17,7 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES }>) 
     const { data, type } = e.data;
 
     switch (type) {
-        case WORKER_MESSAGES.SET_CRT_SUPPORT_BS:
+        case WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG:
             video.setSupportBS(!!data);
             break;
         case WORKER_MESSAGES.KEY_DOWN:

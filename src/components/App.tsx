@@ -33,7 +33,7 @@ const App = ({ worker }: Props): JSX.Element => {
                             }}
                             onBS={(e) => {
                                 e.preventDefault();
-                                worker.postMessage({ data: !supportBS, type: WORKER_MESSAGES.SET_CRT_SUPPORT_BS });
+                                worker.postMessage({ data: !supportBS, type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG });
                                 setSupportBS(!supportBS);
                             }}
                         />
