@@ -1358,11 +1358,7 @@ class CPU6502 implements IClockable {
 
     branch(taken: boolean): void {
         if (taken) {
-            if ((this.addr & 0x100) != (this.PC & 0x100)) {
-                this.cycles += 2;
-            } else {
-                this.cycles += 1;
-            }
+            this.cycles += (this.addr & 0x100) !== (this.PC & 0x100) ? 2 : 1;
             this.PC = this.addr;
         }
     }

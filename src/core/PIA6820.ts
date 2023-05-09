@@ -1,12 +1,11 @@
 import * as utils from './utils';
 
-// PIA MAPPING 682
-const A_KBD = 0x0; // PIA.A keyboard input
-const A_KBDCR = 0x1; // PIA.A keyboard control register
-const B_DSP = 0x2; // PIA.B display output register
-const B_DSPCR = 0x3; // PIA.B display control register
+const A_KBD = 0x0;
+const A_KBDCR = 0x1;
+const B_DSP = 0x2;
+const B_DSPCR = 0x3;
 
-class PIA6820 implements IoAddressable, PubSub {
+class PIA6820 {
     private data: number[];
     ioA?: IoComponent;
     ioB?: IoComponent;
@@ -19,7 +18,6 @@ class PIA6820 implements IoAddressable, PubSub {
 
     reset(): void {
         this.data.fill(0);
-        return;
     }
 
     subscribe(subFunc: subscribeFunction<number[]>): void {
@@ -43,41 +41,42 @@ class PIA6820 implements IoAddressable, PubSub {
         this.ioB = ioB;
     }
 
-    // Direct Bits A
+    private updateBitData(reg: number, bit: number, set: boolean): void {
+        this.data[reg] = set ? utils.bitSet(this.data[reg], bit) : utils.bitClear(this.data[reg], bit);
+    }
+
     setBitDataA(bit: number): void {
-        this.data[A_KBD] = utils.bitSet(this.data[A_KBD], bit);
+        this.updateBitData(A_KBD, bit, true);
     }
 
     clearBitDataA(bit: number): void {
-        this.data[A_KBD] = utils.bitClear(this.data[A_KBD], bit);
+        this.updateBitData(A_KBD, bit, false);
     }
 
     setBitCtrA(bit: number): void {
-        this.data[A_KBDCR] = utils.bitSet(this.data[A_KBDCR], bit);
+        this.updateBitData(A_KBDCR, bit, true);
     }
 
     clearBitCrtA(bit: number): void {
-        this.data[A_KBDCR] = utils.bitClear(this.data[A_KBDCR], bit);
+        this.updateBitData(A_KBDCR, bit, false);
     }
 
-    // Direct Bits B
     setBitDataB(bit: number): void {
-        this.data[B_DSP] = utils.bitSet(this.data[B_DSP], bit);
+        this.updateBitData(B_DSP, bit, true);
     }
 
     clearBitDataB(bit: number): void {
-        this.data[B_DSP] = utils.bitClear(this.data[B_DSP], bit);
+        this.updateBitData(B_DSP, bit, false);
     }
 
     setBitCtrB(bit: number): void {
-        this.data[A_KBDCR] = utils.bitSet(this.data[A_KBDCR], bit);
+        this.updateBitData(A_KBDCR, bit, true);
     }
 
     clearBitCrtB(bit: number): void {
-        this.data[B_DSPCR] = utils.bitClear(this.data[B_DSPCR], bit);
+        this.updateBitData(B_DSPCR, bit, false);
     }
 
-    // Wire Actions
     setDataA(value: number): void {
         this.data[A_KBD] = value;
     }
@@ -86,17 +85,9 @@ class PIA6820 implements IoAddressable, PubSub {
         this.data[B_DSP] = value;
     }
 
-    // BUS Actions
     read(address: number): number {
-        switch (address) {
-            case A_KBD:
-                this.clearBitCrtA(7);
-                break;
-
-            case B_DSP:
-                this.clearBitCrtB(7);
-                break;
-        }
+        if (address === A_KBD) this.clearBitCrtA(7);
+        if (address === B_DSP) this.clearBitCrtB(7);
         return this.data[address];
     }
 
@@ -104,19 +95,8 @@ class PIA6820 implements IoAddressable, PubSub {
         this.data[address] = value;
         this._notifySubscribers();
 
-        switch (address) {
-            case A_KBD:
-                if (this.ioA) {
-                    this.ioA.write(value);
-                }
-                break;
-
-            case B_DSP:
-                if (this.ioB) {
-                    this.ioB.write(value);
-                }
-                break;
-        }
+        const ioComponent = address === A_KBD ? this.ioA : address === B_DSP ? this.ioB : null;
+        if (ioComponent) ioComponent.write(value);
     }
 
     toLog(): void {
