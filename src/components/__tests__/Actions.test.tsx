@@ -6,7 +6,9 @@ describe('Actions component', () => {
     const props: ActionsProps = {
         onReset: jest.fn(),
         onBS: jest.fn(),
+        onShowDebug: jest.fn(),
         supportBS: true,
+        showDebug: true,
     };
 
     afterEach(() => {
