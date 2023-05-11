@@ -17,6 +17,7 @@ type Props = {
 };
 const App = ({ worker }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
+    const [showDebug, setShowDebug] = useState<boolean>(false);
 
     return (
         <ErrorBoundary>
@@ -36,6 +37,11 @@ const App = ({ worker }: Props): JSX.Element => {
                                 worker.postMessage({ data: !supportBS, type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG });
                                 setSupportBS(!supportBS);
                             }}
+                            showDebug={showDebug}
+                            onShowDebug={(e) => {
+                                e.preventDefault();
+                                setShowDebug(!showDebug);
+                            }}
                         />
                     </div>
                 </LayoutRow>
@@ -43,9 +49,11 @@ const App = ({ worker }: Props): JSX.Element => {
                     <Info />
                 </LayoutRow>
             </div>
-            <div className="flex">
-                <Debugger worker={worker} />
-            </div>
+            {showDebug && (
+                <div className="flex">
+                    <Debugger worker={worker} />
+                </div>
+            )}
         </ErrorBoundary>
     );
 };

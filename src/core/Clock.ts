@@ -2,6 +2,7 @@ import wait from 'waait';
 
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_INTERVAL = 30;
+const WAIT_TIME = 5;
 
 /**
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
@@ -84,10 +85,7 @@ class Clock implements PubSub {
 
             this._notifySubscribers();
 
-            const remainingTimeForNextCycle = this.stepChunk - (performance.now() - startTime);
-            const waitTime = Math.max(remainingTimeForNextCycle, 5);
-
-            await wait(waitTime);
+            await wait(WAIT_TIME);
         }
     }
 }
