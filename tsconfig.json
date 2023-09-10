@@ -22,7 +22,7 @@
         "target": "esnext",
         "baseUrl": ".",
         "esModuleInterop": true,
-        "types": ["node", "jest", "@testing-library/jest-dom"],
+        "types": ["node", "jest"],
         "typeRoots": ["src/core/@types", "node_modules/@types"]
     }
 }
