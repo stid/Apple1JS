@@ -1,5 +1,6 @@
 # Apple 1 JS Emulator
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8dda601a-c4c2-4cde-80c4-bc08ffd6d18e/deploy-status)](https://app.netlify.com/sites/stidme/deploys)
+[![CodeQL](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql)
 
 The Apple 1 JS Emulator is a project written in TypeScript/JavaScript that emulates the Apple 1 computer. It is based on the [Hybrid HW](https://github.com/stid/APPLE-1-ReplicaDue) and Torlus' [6502.js](https://github.com/Torlus/6502.js) project.
 
