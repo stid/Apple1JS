@@ -11,7 +11,7 @@ const CRT = ({ videoData }: Props): JSX.Element => (
         className="relative bg-teal-900"
         style={{ width: CRTConstants.MONITOR_WIDTH, height: CRTConstants.MONITOR_HEIGHT }}
     >
-        <div className={`text-[13px] relative text-green-400 tracking-normal font-['Press_Start_2P']`}>
+        <div className={`text-[13px] relative text-green-400 tracking-normal]`}>
             <CRTCursor row={videoData.row} column={videoData.column} />
             {videoData.buffer.map((line, index) => (
                 <CRTRow
