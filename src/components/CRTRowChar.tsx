@@ -7,7 +7,7 @@ type CRTRowCharProps = {
 };
 const CRTRowChar = memo(({ char, x }: CRTRowCharProps) => {
     return (
-        <div className="absolute" style={{ left: `${x * CRTConstants.FONT_RECT + CRTConstants.LEFT_PADDING}px` }}>
+        <div className="absolute" style={{ left: `${x * CRTConstants.FONT_RECT[0] + CRTConstants.LEFT_PADDING}px` }}>
             {char}
         </div>
     );

@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import * as CRTConstants from './CRTConstants';
+import CRTRowChar from './CRTRowCharRom'; // Import the CRTRowChar component
 
 type CursorProp = {
     row: number;
@@ -18,14 +19,14 @@ const CRTCursor = memo(({ row, column }: CursorProp) => {
     }, [visible]);
 
     const cursorStyle = {
-        left: `${column * CRTConstants.FONT_RECT + CRTConstants.LEFT_PADDING}px`,
-        top: `${row * CRTConstants.FONT_RECT + CRTConstants.TOP_PADDING}px`,
+        left: `${column * (CRTConstants.FONT_RECT[0] - 4) + CRTConstants.LEFT_PADDING - 11}px`,
+        top: `${row * CRTConstants.FONT_RECT[1] + CRTConstants.TOP_PADDING}px`,
         display: visible ? 'block' : 'none',
     };
 
     return (
-        <div className="absolute" style={cursorStyle}>
-            @
+        <div className="absolute" data-testid="cursor" style={cursorStyle}>
+            <CRTRowChar x={0} char="@" />
         </div>
     );
 });
