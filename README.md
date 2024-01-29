@@ -1,4 +1,5 @@
 # Apple 1 JS Emulator
+
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8dda601a-c4c2-4cde-80c4-bc08ffd6d18e/deploy-status)](https://app.netlify.com/sites/stidme/deploys)
 [![CodeQL](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql)
 
