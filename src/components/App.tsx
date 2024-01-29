@@ -51,50 +51,51 @@ const App = ({ worker }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div onClick={focusHiddenInput}>
-                <div className="flex">
-                    <LayoutRow>
-                        <Title />
+            <div className="flex">
+                <LayoutRow>
+                    <Title />
+                    <div onClick={focusHiddenInput}>
                         <CRTWorker worker={worker} />
-                        <div className="p-0 mt-1">
-                            <Actions
-                                supportBS={supportBS}
-                                onReset={(e) => {
-                                    e.preventDefault();
-                                    worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
-                                }}
-                                onBS={(e) => {
-                                    e.preventDefault();
-                                    worker.postMessage({
-                                        data: !supportBS,
-                                        type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG,
-                                    });
-                                    setSupportBS(!supportBS);
-                                }}
-                                showDebug={showDebug}
-                                onShowDebug={(e) => {
-                                    e.preventDefault();
-                                    setShowDebug(!showDebug);
-                                }}
-                            />
-                        </div>
-                    </LayoutRow>
-                    <LayoutRow>
-                        <Info />
-                    </LayoutRow>
-                </div>
-                {showDebug && (
-                    <div className="flex">
-                        <Debugger worker={worker} />
                     </div>
-                )}
 
-                <input
-                    type="text"
-                    ref={hiddenInputRef}
-                    style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
-                />
+                    <div className="p-0 mt-1">
+                        <Actions
+                            supportBS={supportBS}
+                            onReset={(e) => {
+                                e.preventDefault();
+                                worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
+                            }}
+                            onBS={(e) => {
+                                e.preventDefault();
+                                worker.postMessage({
+                                    data: !supportBS,
+                                    type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG,
+                                });
+                                setSupportBS(!supportBS);
+                            }}
+                            showDebug={showDebug}
+                            onShowDebug={(e) => {
+                                e.preventDefault();
+                                setShowDebug(!showDebug);
+                            }}
+                        />
+                    </div>
+                </LayoutRow>
+                <LayoutRow>
+                    <Info />
+                </LayoutRow>
             </div>
+            {showDebug && (
+                <div className="flex">
+                    <Debugger worker={worker} />
+                </div>
+            )}
+
+            <input
+                type="text"
+                ref={hiddenInputRef}
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+            />
         </ErrorBoundary>
     );
 };
