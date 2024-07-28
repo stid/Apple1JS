@@ -1,6 +1,6 @@
 import App from './components/App';
 import { createRoot } from 'react-dom/client';
-import { onCLS, onFID, onLCP } from 'web-vitals';
+import { onCLS, onLCP } from 'web-vitals';
 
 const createAppleWorker = (): Worker => {
     return new Worker(new URL('./apple1/Apple.worker.ts', import.meta.url), { type: 'module' });
@@ -18,7 +18,6 @@ const renderApp = (worker: Worker) => {
 
 const initWebVitals = () => {
     onCLS(console.log);
-    onFID(console.log);
     onLCP(console.log);
 };
 
