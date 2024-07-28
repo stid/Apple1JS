@@ -27,14 +27,12 @@ const App = ({ worker }: Props): JSX.Element => {
             e.preventDefault();
         };
 
-        window.addEventListener('keydown', handleKeyDown);
         const hiddenInput = hiddenInputRef.current;
         if (hiddenInput) {
             hiddenInput.addEventListener('keydown', handleKeyDown);
         }
 
         return () => {
-            window.removeEventListener('keydown', handleKeyDown);
             if (hiddenInput) {
                 hiddenInput.removeEventListener('keydown', handleKeyDown);
             }
