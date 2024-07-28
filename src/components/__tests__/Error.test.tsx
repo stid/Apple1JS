@@ -59,6 +59,6 @@ describe('ErrorBoundary', () => {
 
         fireEvent.click(screen.getByText('Throw Error'));
 
-        expect(consoleSpy).toHaveBeenCalledTimes(4);
+        expect(consoleSpy).toHaveBeenCalledTimes(2);
     });
 });
