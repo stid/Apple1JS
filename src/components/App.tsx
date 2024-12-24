@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { APP_VERSION } from '../version';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import Actions from './Actions';
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, JSX } from 'react';
 import ErrorBoundary from './Error';
 
 const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
@@ -38,6 +38,10 @@ const App = ({ worker }: Props): JSX.Element => {
             }
         };
     }, [worker]);
+
+    useEffect(() => {
+        focusHiddenInput();
+    }, []);
 
     const focusHiddenInput = () => {
         const hiddenInput = hiddenInputRef.current;

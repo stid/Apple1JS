@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, JSX } from 'react';
 import { WORKER_MESSAGES, VideoData } from '../apple1/TSTypes';
 import CRT from './CRT';
 

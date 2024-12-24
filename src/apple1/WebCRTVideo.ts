@@ -148,7 +148,11 @@ class CRTVideo implements IoComponent, PubSub {
                 this._onChar('\n');
                 break;
             case appleConstants.BS:
-                this.supportBS ? this._onChar('\b') : this._onChar('_');
+                if (this.supportBS) {
+                    this._onChar('\b');
+                } else {
+                    this._onChar('_');
+                }
                 break;
             default:
                 if (bitChar >= 13) {
