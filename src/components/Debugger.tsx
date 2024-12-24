@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo, JSX } from 'react';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 
 // The Debugger component is responsible for displaying debug information

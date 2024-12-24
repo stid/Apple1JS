@@ -2,6 +2,7 @@ import { WEB_VIDEO_BUFFER_ROW, VideoData } from '../apple1/TSTypes';
 import CRTCursor from './CRTCursor';
 import CRTRow from './CRTRow';
 import * as CRTConstants from './CRTConstants';
+import { JSX } from 'react';
 
 type Props = {
     videoData: VideoData;
