@@ -6,7 +6,7 @@ import * as CRTConstants from './CRTConstants';
 type Props = {
     videoData: VideoData;
 };
-const CRT = ({ videoData }: Props): JSX.Element => (
+const CRT = ({ videoData }: Props): React.JSX.Element => (
     <div
         className="relative bg-teal-900"
         style={{ width: CRTConstants.MONITOR_WIDTH, height: CRTConstants.MONITOR_HEIGHT }}

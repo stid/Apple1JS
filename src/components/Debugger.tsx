@@ -3,7 +3,7 @@ import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 
 // The Debugger component is responsible for displaying debug information
 // received from a Web Worker.
-const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
+const Debugger = ({ worker }: { worker: Worker }): React.JSX.Element => {
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
 
     // Set up an interval to request debug information from the worker.

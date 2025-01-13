@@ -6,7 +6,7 @@ type CRTWorkerProps = {
     worker: Worker;
 };
 
-const CRTWorker = ({ worker }: CRTWorkerProps): JSX.Element => {
+const CRTWorker = ({ worker }: CRTWorkerProps): React.JSX.Element => {
     const [videoData, setVideoData] = useState<VideoData>({
         buffer: [[0, ['']]],
         row: 0,

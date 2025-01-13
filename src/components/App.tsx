@@ -15,7 +15,7 @@ const LayoutRow = ({ children }: { children?: React.ReactNode }) => <div classNa
 type Props = {
     worker: Worker;
 };
-const App = ({ worker }: Props): JSX.Element => {
+const App = ({ worker }: Props): React.JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [showDebug, setShowDebug] = useState<boolean>(false);
 
