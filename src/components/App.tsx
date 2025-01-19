@@ -23,18 +23,38 @@ const App = ({ worker }: Props): JSX.Element => {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if modifier keys are pressed (except for Shift)
+            if (e.metaKey || e.ctrlKey || e.altKey) {
+                return;
+            }
             worker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });
             e.preventDefault();
+        };
+
+        const handlePaste = (e: ClipboardEvent) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData?.getData('text') || '';
+            console.log('Pasting:', pastedText); // Debug log
+
+            // Send characters with a small delay between them
+            pastedText.split('').forEach((char, index) => {
+                setTimeout(() => {
+                    const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
+                    worker.postMessage({ data: keyToSend, type: WORKER_MESSAGES.KEY_DOWN });
+                }, index * 160); // 160ms delay between each character
+            });
         };
 
         const hiddenInput = hiddenInputRef.current;
         if (hiddenInput) {
             hiddenInput.addEventListener('keydown', handleKeyDown);
+            hiddenInput.addEventListener('paste', handlePaste);
         }
 
         return () => {
             if (hiddenInput) {
                 hiddenInput.removeEventListener('keydown', handleKeyDown);
+                hiddenInput.removeEventListener('paste', handlePaste);
             }
         };
     }, [worker]);
