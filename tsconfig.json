@@ -5,7 +5,7 @@
         "allowJs": false,
         "allowSyntheticDefaultImports": true,
         "lib": ["es5", "es6", "es7", "ESNext", "dom", "webworker"],
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "module": "esnext",
         "noEmit": true,
         "noUnusedLocals": true,
@@ -23,6 +23,10 @@
         "baseUrl": ".",
         "esModuleInterop": true,
         "types": ["node", "jest"],
-        "typeRoots": ["src/core/@types", "node_modules/@types"]
-    }
+        "typeRoots": ["src/core/@types", "node_modules/@types"],
+        "paths": {
+            "@/*": ["src/*"]
+        }
+    },
+    "include": ["src"]
 }

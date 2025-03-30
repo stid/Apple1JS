@@ -24,4 +24,5 @@ module.exports = {
     rules: {
         'react/react-in-jsx-scope': 'off',
     },
+    ignorePatterns: ['src/core/wasm/pkg/**/*'],
 };
