@@ -9,3 +9,4 @@ junit.xml
 .netlify
 tmp
 
+*.tsbuildinfo
