@@ -12,24 +12,23 @@ describe('KeyboardLogic', function () {
         displayLogic = new DisplayLogic(pia);
 
         await displayLogic.write(65);
-        expect(pia.setBitDataB).toBeCalledWith(7);
-        expect(pia.clearBitDataB).toBeCalledWith(7);
+        expect(pia.setBitDataB).toHaveBeenCalledWith(7);
+        expect(pia.clearBitDataB).toHaveBeenCalledWith(7);
     });
 
-    test('Should Wire & write 65 on wired write', function (done) {
+    test('Should Wire & write 65 on wired write', async function () {
         pia = new PIA6820();
 
         const wireOptions = {
             write: async (value: number) => {
                 expect(value).toBe(65);
-                done();
             },
         };
 
         displayLogic = new DisplayLogic(pia);
         displayLogic.wire(wireOptions);
 
-        displayLogic.write(65);
+        await displayLogic.write(65);
     });
 
     test('Should Wire & Reset 65 on wired reset', function () {
@@ -44,6 +43,6 @@ describe('KeyboardLogic', function () {
         displayLogic.wire(wireOptions);
 
         displayLogic.reset();
-        expect(fnReset).toBeCalled();
+        expect(fnReset).toHaveBeenCalled();
     });
 });

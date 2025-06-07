@@ -1,3 +1,5 @@
+import React from 'react';
+
 export type ActionsProps = {
     onReset: React.MouseEventHandler<HTMLAnchorElement>;
     onBS: React.MouseEventHandler<HTMLAnchorElement>;

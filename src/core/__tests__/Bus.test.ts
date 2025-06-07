@@ -50,12 +50,12 @@ describe('Bus', function () {
     });
     test('Should Cal Read on BANK_A', function () {
         const result = testBus.read(0x10);
-        expect(readMockA).toBeCalledWith(0x10);
+        expect(readMockA).toHaveBeenCalledWith(0x10);
         expect(result).toBe(0x0a);
     });
     test('Should Cal Read on BANK_B', function () {
         const result = testBus.read(0x110);
-        expect(readMockB).toBeCalledWith(0x10); // Relatiev AddressS
+        expect(readMockB).toHaveBeenCalledWith(0x10); // Relatiev AddressS
         expect(result).toBe(0x0b);
     });
 
@@ -68,12 +68,12 @@ describe('Bus', function () {
 
     test('Should Cal write on BANK_A', function () {
         testBus.write(0x10, 0x0a);
-        expect(writeMockA).toBeCalledWith(0x10, 0x0a);
+        expect(writeMockA).toHaveBeenCalledWith(0x10, 0x0a);
     });
 
     test('Should Cal write on BANK_B', function () {
         testBus.write(0x110, 0x0b);
-        expect(writeMockB).toBeCalledWith(0x10, 0x0b);
+        expect(writeMockB).toHaveBeenCalledWith(0x10, 0x0b);
     });
 
     test('Should not Call write on non Existing address space', function () {
