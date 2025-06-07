@@ -1,5 +1,4 @@
 import wait from 'waait';
-import { produce } from 'immer';
 import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from './TSTypes';
 import * as appleConstants from './const';
 import { CONFIG } from '../config';
@@ -30,6 +29,11 @@ export interface VideoOut {
 
 export type WebCrtVideoSubFuncVideoType = { buffer: VideoBuffer; row: number; column: number };
 
+function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
+    // Deep clone: each row and its data array
+    return buffer.map(([rowIdx, rowData]) => [rowIdx, [...rowData]] as [number, string[]]);
+}
+
 class CRTVideo implements IoComponent, PubSub {
     row: number;
     column: number;
@@ -43,17 +47,8 @@ class CRTVideo implements IoComponent, PubSub {
         this.column = 0;
         this.rowShift = 0;
         this.supportBS = CONFIG.CRT_SUPPORT_BS;
-        this.buffer = Array(NUM_ROWS);
+        this.buffer = Array.from({ length: NUM_ROWS }, (_, i) => [i, Array(NUM_COLUMNS).fill('@')]);
         this.subscribers = [];
-        this.coldStart();
-    }
-
-    private coldStart(): void {
-        this._updateBuffer((draftBuffer): void => {
-            for (let i = 0; i < this.buffer.length; i++) {
-                draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill('@')];
-            }
-        });
     }
 
     setSupportBS(supportBS: boolean): void {
@@ -61,11 +56,8 @@ class CRTVideo implements IoComponent, PubSub {
     }
 
     onClear(): void {
-        this._updateBuffer((draftBuffer): void => {
-            for (let i = 0; i < this.buffer.length; i++) {
-                draftBuffer[i] = [this.rowShift + i, Array(NUM_COLUMNS).fill(' ')];
-            }
-        });
+        this.buffer = Array.from({ length: NUM_ROWS }, (_, i) => [i, Array(NUM_COLUMNS).fill(' ')]);
+        this._notifySubscribers();
     }
 
     subscribe(subFunc: subscribeFunction<WebCrtVideoSubFuncVideoType>): void {
@@ -89,7 +81,6 @@ class CRTVideo implements IoComponent, PubSub {
     private _onChar(char: string) {
         this._updateBuffer((draftBuffer) => {
             // NEW LINE
-
             switch (char) {
                 case '\n':
                     this._newLine();
@@ -107,12 +98,10 @@ class CRTVideo implements IoComponent, PubSub {
                     }
                     break;
             }
-
             // End of line
             if (this.column >= NUM_COLUMNS) {
                 this._newLine();
             }
-
             // End of Screen - shift up
             if (this.row >= NUM_ROWS) {
                 this.rowShift += 1;
@@ -135,12 +124,12 @@ class CRTVideo implements IoComponent, PubSub {
     reset(): void {
         this.row = 0;
         this.column = 0;
+        this.rowShift = 0;
         this.onClear();
     }
 
     async write(char: number): Promise<void> {
         const bitChar = char & appleConstants.B7;
-
         switch (bitChar) {
             case appleConstants.ESC:
                 break;
@@ -160,18 +149,33 @@ class CRTVideo implements IoComponent, PubSub {
                 }
                 break;
             case appleConstants.CLEAR:
-                // Some video on YuoTube show
-                // creen cleaned with a full scroll up
-                // line by line.
+                // Not implemented
                 break;
         }
         await wait(appleConstants.DISPLAY_DELAY);
     }
 
     private _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
-        const newBuffer = produce(this.buffer, (draftBuffer) => updateFunction(draftBuffer));
-        if (newBuffer !== this.buffer) {
-            this.buffer = newBuffer;
+        // Deep clone buffer for immutability
+        const draftBuffer = cloneBuffer(this.buffer);
+        updateFunction(draftBuffer);
+        // Only update if changed (shallow compare)
+        let changed = false;
+        if (draftBuffer.length !== this.buffer.length) {
+            changed = true;
+        } else {
+            for (let i = 0; i < draftBuffer.length; i++) {
+                if (
+                    draftBuffer[i][0] !== this.buffer[i][0] ||
+                    draftBuffer[i][1].join('') !== this.buffer[i][1].join('')
+                ) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        if (changed) {
+            this.buffer = draftBuffer;
         }
         this._notifySubscribers();
     }
