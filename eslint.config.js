@@ -93,7 +93,7 @@ export default [
         },
     },
     {
-        files: ['src/core/wasm/pkg/*.js', 'src/apple1/Apple.worker.ts'],
+        files: ['src/apple1/Apple.worker.ts'],
         languageOptions: {
             globals: {
                 window: true,
