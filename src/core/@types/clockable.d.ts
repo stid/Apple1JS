@@ -2,7 +2,7 @@
  * Interface for classes that can be clocked, providing methods to
  * manage clock cycles and perform operations based on clock steps.
  */
-interface IClockable {
+export interface IClockable {
     /**
      * Returns the total number of completed clock cycles.
      * @return {number} The total number of clock cycles.

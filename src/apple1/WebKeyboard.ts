@@ -1,3 +1,5 @@
+import { IoComponent } from '@/core/@types/IoComponent';
+
 const B7BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const B7ESC = 0x9b; // ESC key (B7 High)
 const B7CR = 0x8d;

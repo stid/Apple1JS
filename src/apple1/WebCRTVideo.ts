@@ -2,6 +2,8 @@ import wait from 'waait';
 import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from './TSTypes';
 import * as appleConstants from './const';
 import { CONFIG } from '../config';
+import { IoComponent } from '@/core/@types/IoComponent';
+import { PubSub, subscribeFunction } from '@/core/@types/PubSub';
 
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;

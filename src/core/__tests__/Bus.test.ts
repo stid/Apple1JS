@@ -1,4 +1,5 @@
 import Bus from '../Bus';
+import { BusSpaceType } from '../@types/IoAddressable';
 
 describe('Bus', function () {
     let testBus: Bus;

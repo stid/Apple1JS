@@ -36,15 +36,7 @@ export default [
                 process: true,
                 module: true,
                 require: true,
-                // Custom types for legacy compatibility
-                IoComponent: 'readonly',
-                BusSpaceType: 'readonly',
-                IoLogic: 'readonly',
-                WireOptions: 'readonly',
-                PubSub: 'readonly',
-                subscribeFunction: 'readonly',
-                IoAddressable: 'readonly',
-                IClockable: 'readonly',
+                // Removed custom types from globals; TypeScript handles these.
             },
         },
         plugins: {

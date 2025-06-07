@@ -1,3 +1,5 @@
+import { BusSpaceType } from './@types/IoAddressable';
+
 class Bus {
     private busMapping: Array<BusSpaceType>;
     private sortedAddrs: Array<BusSpaceType>;
