@@ -7,44 +7,68 @@ describe('WebKeyboard', function () {
         webKeyboard = new WebKeyboard();
     });
 
-    test('Should Wire & write 65', function (done) {
-        webKeyboard.wire({
-            write: async (value) => {
-                expect(value).toBe(65);
-                done();
-            },
+    test('Should Wire & write 65', async function () {
+        await new Promise((resolve, reject) => {
+            webKeyboard.wire({
+                write: async (value) => {
+                    try {
+                        expect(value).toBe(65);
+                        resolve(undefined);
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+            });
+            webKeyboard.write('A');
         });
-        webKeyboard.write('A');
     });
 
-    test('Should Wire & write Backspace', function (done) {
-        webKeyboard.wire({
-            write: async (value) => {
-                expect(value).toBe(223);
-                done();
-            },
+    test('Should Wire & write Backspace', async function () {
+        await new Promise((resolve, reject) => {
+            webKeyboard.wire({
+                write: async (value) => {
+                    try {
+                        expect(value).toBe(223);
+                        resolve(undefined);
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+            });
+            webKeyboard.write('Backspace');
         });
-        webKeyboard.write('Backspace');
     });
 
-    test('Should Wire & write Escape', function (done) {
-        webKeyboard.wire({
-            write: async (value) => {
-                expect(value).toBe(155);
-                done();
-            },
+    test('Should Wire & write Escape', async function () {
+        await new Promise((resolve, reject) => {
+            webKeyboard.wire({
+                write: async (value) => {
+                    try {
+                        expect(value).toBe(155);
+                        resolve(undefined);
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+            });
+            webKeyboard.write('Escape');
         });
-        webKeyboard.write('Escape');
     });
 
-    test('Should Wire & write Enter', function (done) {
-        webKeyboard.wire({
-            write: async (value) => {
-                expect(value).toBe(141);
-                done();
-            },
+    test('Should Wire & write Enter', async function () {
+        await new Promise((resolve, reject) => {
+            webKeyboard.wire({
+                write: async (value) => {
+                    try {
+                        expect(value).toBe(141);
+                        resolve(undefined);
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+            });
+            webKeyboard.write('Enter');
         });
-        webKeyboard.write('Enter');
     });
 
     test('Should Wire & result 65', async function () {

@@ -1,4 +1,5 @@
 import wait from 'waait';
+import { PubSub, subscribeFunction } from './@types/PubSub';
 
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_INTERVAL = 30;

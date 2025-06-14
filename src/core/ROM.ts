@@ -1,4 +1,5 @@
 const DEFAULT_ROM_SIZE = 256;
+import { IoAddressable } from './@types/IoAddressable';
 
 class ROM implements IoAddressable {
     private data: Uint8Array;

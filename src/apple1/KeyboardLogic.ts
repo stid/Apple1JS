@@ -1,3 +1,4 @@
+import { IoLogic, WireOptions } from '@/core/@types/IoLogic';
 import PIA6820 from '../core/PIA6820';
 import * as utils from '../core/utils';
 

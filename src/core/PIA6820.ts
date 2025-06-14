@@ -1,3 +1,5 @@
+import { IoComponent } from './@types/IoComponent';
+import { subscribeFunction } from './@types/PubSub';
 import * as utils from './utils';
 
 const A_KBD = 0x0;

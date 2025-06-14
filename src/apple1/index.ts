@@ -13,6 +13,8 @@ import DisplayLogic from './DisplayLogic';
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
+import { IoComponent } from '@/core/@types/IoComponent';
+import { BusSpaceType } from '@/core/@types/IoAddressable';
 
 const STEP_INTERVAL = 30;
 const MHZ_CPU_SPEED = 1;

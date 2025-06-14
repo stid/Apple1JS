@@ -1,3 +1,5 @@
+import { IoAddressable } from './@types/IoAddressable';
+
 const DEFAULT_RAM_BANK_SIZE = 4096;
 class RAM implements IoAddressable {
     private data: Uint8Array;
