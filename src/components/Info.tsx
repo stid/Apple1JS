@@ -10,30 +10,31 @@ const StartInstructions = () => (
 const TestProgram = () => (
     <section className="mb-6">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">TEST PROGRAM</h3>
-        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre-wrap">
-            0:A9 0 AA 20 EF FF E8 8A 4C 2 0 0 R
-        </pre>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0 0 R`}</pre>
     </section>
 );
 
 const BasicProgram = () => (
     <section className="mb-6">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">BASIC</h3>
-        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre-wrap">{`E000R\n10 PRINT "HELLO WORLD!"\n20 GOTO 10\nRUN`}</pre>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`E000R
+10 PRINT "HELLO WORLD!"
+20 GOTO 10
+RUN`}</pre>
     </section>
 );
 
 const AnniversaryInfo = () => (
     <section className="mb-6">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">APPLE 30th ANNIVERSARY</h3>
-        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block">280R</pre>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block whitespace-pre">{`280R`}</pre>
     </section>
 );
 
 const MemoryAddresses = () => (
     <section className="mb-6">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">LIST MEMORY ADDRESS</h3>
-        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block">0.FF</pre>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block whitespace-pre">{`0.FF`}</pre>
     </section>
 );
 
