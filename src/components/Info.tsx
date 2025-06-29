@@ -19,9 +19,7 @@ const TestProgram = () => (
 const BasicProgram = () => (
     <section className="mb-6">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">BASIC</h3>
-        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre-wrap">
-            E000R 10 PRINT &quot;HELLO WORLD!&quot; 20 GOTO 10 RUN
-        </pre>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre-wrap">{`E000R\n10 PRINT "HELLO WORLD!"\n20 GOTO 10\nRUN`}</pre>
     </section>
 );
 
