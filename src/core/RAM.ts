@@ -1,7 +1,13 @@
+import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoAddressable } from './@types/IoAddressable';
 
 const DEFAULT_RAM_BANK_SIZE = 4096;
-class RAM implements IoAddressable {
+class RAM implements IoAddressable, IInspectableComponent {
+    id = 'ram';
+    type = 'RAM';
+    get children() {
+        return [];
+    }
     private data: Uint8Array;
 
     constructor(byteSize: number = DEFAULT_RAM_BANK_SIZE) {

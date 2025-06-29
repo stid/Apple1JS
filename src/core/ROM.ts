@@ -1,7 +1,13 @@
 const DEFAULT_ROM_SIZE = 256;
+import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoAddressable } from './@types/IoAddressable';
 
-class ROM implements IoAddressable {
+class ROM implements IoAddressable, IInspectableComponent {
+    id = 'rom';
+    type = 'ROM';
+    get children() {
+        return [];
+    }
     private data: Uint8Array;
 
     constructor(byteSize: number = DEFAULT_ROM_SIZE) {

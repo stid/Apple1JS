@@ -3,11 +3,11 @@ import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
 import ROM from '../core/ROM';
 import RAM from '../core/RAM';
-
 import Bus from '../core/Bus';
-
 import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
+import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { InspectableIoComponent } from '../core/InspectableIoComponent';
 
 // ROM + Demo Program
 import anniversary from './progs/anniversary';
@@ -28,7 +28,30 @@ const RAM_BANK2_ADDR: [number, number] = [0xe000, 0xefff];
 // $D010-$D013 PIA (6821) [KBD & DSP]
 const PIA_ADDR: [number, number] = [0xd010, 0xd013];
 
-class Apple1 {
+class Apple1 implements IInspectableComponent {
+    id = 'apple1';
+    type = 'Apple1';
+    get children() {
+        // Wrap video and keyboard as inspectable if possible
+        const children: IInspectableComponent[] = [
+            this.cpu,
+            this.bus,
+            this.rom,
+            this.ramBank1,
+            this.ramBank2,
+            this.pia,
+        ];
+        if (this.video) {
+            children.push(new InspectableIoComponent('video', 'IoComponent', this.video));
+        }
+        if (this.keyboard) {
+            children.push(new InspectableIoComponent('keyboard', 'IoComponent', this.keyboard));
+        }
+        return children;
+    }
+    getCompositionTree(): IInspectableComponent {
+        return this;
+    }
     pia: PIA6820;
     keyboardLogic: KeyboardLogic;
     displayLogic: DisplayLogic;

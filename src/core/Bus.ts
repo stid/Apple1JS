@@ -1,6 +1,26 @@
+import { IInspectableComponent } from './@types/IInspectableComponent';
 import { BusSpaceType } from './@types/IoAddressable';
 
-class Bus {
+class Bus implements IInspectableComponent {
+    id = 'bus';
+    type = 'Bus';
+    get children() {
+        // Return all mapped components as children
+        return this.busMapping.map((b) => {
+            // If the component implements IInspectableComponent, return as is, else wrap minimally
+            if (
+                b.component &&
+                typeof b.component === 'object' &&
+                'type' in b.component &&
+                'id' in b.component &&
+                typeof (b.component as { id: unknown }).id === 'string' &&
+                typeof (b.component as { type: unknown }).type === 'string'
+            ) {
+                return b.component as import('./@types/IInspectableComponent').IInspectableComponent;
+            }
+            return { id: b.name || 'unknown', type: 'Unknown', children: [] };
+        });
+    }
     private busMapping: Array<BusSpaceType>;
     private sortedAddrs: Array<BusSpaceType>;
 
