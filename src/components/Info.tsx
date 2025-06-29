@@ -67,7 +67,7 @@ const GitHubLink = () => (
 );
 
 const Info = () => (
-    <aside className="bg-black/80 rounded-lg p-6 max-w-md ml-auto mr-0 text-slate-100 shadow-lg border border-slate-800">
+    <aside className="bg-black/80 rounded-xl px-2 py-2 md:px-3 md:py-3 max-w-md lg:max-w-lg ml-auto mr-0 text-slate-100 shadow-lg border border-slate-800 flex flex-col gap-1">
         <StartInstructions />
         <TestProgram />
         <BasicProgram />

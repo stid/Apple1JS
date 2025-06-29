@@ -73,10 +73,12 @@ const App = ({ worker }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-8 p-2 sm:p-4 md:p-8">
+            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-6 p-1 sm:p-2 md:px-4 md:py-2">
                 {/* Left column: CRT, Actions, Debugger */}
-                <div className="flex flex-col flex-1 max-w-full lg:max-w-[60%] items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 p-4 md:p-8">
-                    <Title />
+                <div className="flex flex-col flex-1 max-w-full lg:max-w-[60%] items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4">
+                    <div className="mb-1 mt-0">
+                        <Title />
+                    </div>
                     <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
@@ -117,7 +119,7 @@ const App = ({ worker }: Props): JSX.Element => {
                 {/* Vertical divider for desktop */}
                 <div className="hidden lg:block w-px bg-neutral-800 mx-6 rounded-full self-stretch" />
                 {/* Right column: Info */}
-                <div className="w-full max-w-md min-w-0 lg:flex-1 lg:max-w-[40%] bg-black/60 rounded-xl shadow-lg border border-neutral-800 p-4 md:p-8 flex flex-col justify-start mx-auto lg:mx-0 mt-6 lg:mt-0">
+                <div className="w-full max-w-md min-w-0 lg:flex-1 lg:max-w-lg bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-2 py-2 md:px-3 md:py-3 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
                     <div className="sm:text-xs md:text-sm">
                         <Info />
                     </div>
