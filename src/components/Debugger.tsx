@@ -27,11 +27,17 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
 
+    // Show a friendly empty state if no debug info
+    const hasDomains = Object.keys(debugInfo).length > 0;
     return (
-        <div className="flex flex-wrap space-x-4 text-sm pl-4">
-            {Object.keys(debugInfo).map((key) => (
-                <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />
-            ))}
+        <div className="flex flex-wrap gap-4 text-sm pl-4 py-4 bg-black border-t border-slate-800 min-h-[120px]">
+            {hasDomains ? (
+                Object.keys(debugInfo)
+                    .sort()
+                    .map((key) => <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />)
+            ) : (
+                <div className="italic text-slate-500 p-4">No debug info available</div>
+            )}
         </div>
     );
 };
@@ -43,27 +49,40 @@ interface DebugDomainProps {
 
 // The DebugDomain component displays a domain of debug information.
 const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
-    <div className="bg-gray-100 rounded p-4 shadow-md">
+    <div className="bg-neutral-900 rounded-lg p-4 shadow border border-slate-700 min-w-[180px] max-w-xs">
         <DomainTitle title={domainKey} />
         <DomainContent domainData={domainData} />
     </div>
 );
 
 // The DomainTitle component displays the title for a domain.
-const DomainTitle = ({ title }: { title: string }) => <div className="font-bold mb-2">{title}</div>;
+const DomainTitle = ({ title }: { title: string }) => (
+    <div className="font-bold mb-2 text-slate-100 text-base tracking-wide border-b border-slate-700 pb-1 uppercase">
+        {title}
+    </div>
+);
 
 // The DomainContent component displays the content for a domain.
 const DomainContent = ({ domainData }: { domainData: { [key: string]: string | number | boolean } }) => (
-    <div className="text-gray-700">
-        {Object.keys(domainData).map((key) => (
-            <DebugDomainItem key={key} label={key} value={domainData[key]} />
-        ))}
-    </div>
+    <table className="w-full text-xs font-mono text-left mt-2">
+        <tbody>
+            {Object.keys(domainData)
+                .sort()
+                .map((key) => (
+                    <DebugDomainItem key={key} label={key} value={domainData[key]} />
+                ))}
+        </tbody>
+    </table>
 );
 
 // The DebugDomainItem component displays a single key-value pair in a domain.
 const DebugDomainItem = memo(({ label, value }: { label: string; value: string | number | boolean }) => {
-    return <div className="mb-1">{`${label}: ${value}`}</div>;
+    return (
+        <tr>
+            <td className="pr-2 text-slate-400">{label}</td>
+            <td className="text-green-300 font-semibold">{String(value)}</td>
+        </tr>
+    );
 });
 DebugDomainItem.displayName = 'DebugDomainItem';
 
