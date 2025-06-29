@@ -10,7 +10,7 @@ import ErrorBoundary from './Error';
 
 const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
 
-const LayoutRow = ({ children }: { children?: React.ReactNode }) => <div className="flex-1 p-6">{children}</div>;
+const LayoutRow = ({ children }: { children?: React.ReactNode }) => <div className="flex-1 p-4 sm:p-6">{children}</div>;
 
 type Props = {
     worker: Worker;
@@ -18,7 +18,7 @@ type Props = {
 
 const App = ({ worker }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
-    const [showDebug, setShowDebug] = useState<boolean>(false);
+    const [showDebug, setShowDebug] = useState<boolean>(true);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
 
     const focusHiddenInput = useCallback(() => {
@@ -75,10 +75,10 @@ const App = ({ worker }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex">
+            <div className="flex flex-col lg:flex-row">
                 <LayoutRow>
                     <Title />
-                    <div onClick={focusHiddenInput} role="presentation">
+                    <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
                     <div className="p-0 mt-1">
@@ -111,12 +111,16 @@ const App = ({ worker }: Props): JSX.Element => {
                     </div>
                 </LayoutRow>
                 <LayoutRow>
-                    <Info />
+                    <div className="sm:text-xs md:text-sm p-2 sm:p-4 md:p-6">
+                        <Info />
+                    </div>
                 </LayoutRow>
             </div>
             {showDebug && (
-                <div className="flex">
-                    <Debugger worker={worker} />
+                <div className="flex flex-col sm:flex-row">
+                    <div className="w-full sm:text-xs md:text-sm p-2 sm:p-4 md:p-6">
+                        <Debugger worker={worker} />
+                    </div>
                 </div>
             )}
             <input
