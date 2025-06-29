@@ -16,7 +16,7 @@ describe('Info', () => {
     });
     it('renders manual and github links', () => {
         render(<Info />);
-        expect(screen.getByText(/apple1.chez.com/i)).toHaveAttribute('href');
-        expect(screen.getByText(/github.com\/stid\/Apple1JS/i)).toHaveAttribute('href');
+        expect(screen.getByText(/apple1\.chez\.com/i)).toHaveAttribute('href');
+        expect(screen.getByText(/github\.com\/stid\/Apple1JS/i)).toHaveAttribute('href');
     });
 });
