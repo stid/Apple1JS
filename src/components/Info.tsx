@@ -1,71 +1,73 @@
 const StartInstructions = () => (
-    <>
-        <h3>FIRST START / RESET</h3>
-        <p>Press TAB</p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">FIRST START / RESET</h3>
+        <p className="text-slate-200">
+            Press <span className="font-mono bg-slate-800 px-1 rounded">TAB</span>
+        </p>
+    </section>
 );
 
 const TestProgram = () => (
-    <>
-        <h3>TEST PROGRAM</h3>
-        <p>
-            0:A9 0 AA 20 EF FF E8 8A 4C 2 0<br />
-            0<br />R
-        </p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">TEST PROGRAM</h3>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0 0 R`}</pre>
+    </section>
 );
 
 const BasicProgram = () => (
-    <>
-        <h3>BASIC</h3>
-        <p>
-            E000R
-            <br />
-            10 PRINT &quot;HELLO WORLD!&quot;
-            <br />
-            20 GOTO 10
-            <br />
-            RUN
-        </p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">BASIC</h3>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`E000R
+10 PRINT "HELLO WORLD!"
+20 GOTO 10
+RUN`}</pre>
+    </section>
 );
 
 const AnniversaryInfo = () => (
-    <>
-        <h3>APPLE 30th ANNIVERSARY</h3>
-        <p>280R</p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">APPLE 30th ANNIVERSARY</h3>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block whitespace-pre">{`280R`}</pre>
+    </section>
 );
 
 const MemoryAddresses = () => (
-    <>
-        <h3>LIST MEMORY ADDRESS</h3>
-        <p>0.FF</p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">LIST MEMORY ADDRESS</h3>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block whitespace-pre">{`0.FF`}</pre>
+    </section>
 );
 
 const ManualLink = () => (
-    <>
-        <h3>APPLE-1 OPERATION MANUAL</h3>
-        <p>
-            <a href={'http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf'}>
-                http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf
-            </a>
-        </p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">APPLE-1 OPERATION MANUAL</h3>
+        <a
+            href="http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf"
+            className="text-green-400 underline hover:text-green-300 break-all"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf
+        </a>
+    </section>
 );
 
 const GitHubLink = () => (
-    <>
-        <h3>GITHUB</h3>
-        <p>
-            <a href={'https://github.com/stid/Apple1JS'}>https://github.com/stid/Apple1JS</a>
-        </p>
-    </>
+    <section className="mb-6">
+        <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">GITHUB</h3>
+        <a
+            href="https://github.com/stid/Apple1JS"
+            className="text-green-400 underline hover:text-green-300 break-all"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            https://github.com/stid/Apple1JS
+        </a>
+    </section>
 );
 
 const Info = () => (
-    <div>
+    <aside className="bg-black/80 rounded-lg p-6 max-w-md ml-auto mr-0 text-slate-100 shadow-lg border border-slate-800">
         <StartInstructions />
         <TestProgram />
         <BasicProgram />
@@ -73,7 +75,7 @@ const Info = () => (
         <MemoryAddresses />
         <ManualLink />
         <GitHubLink />
-    </div>
+    </aside>
 );
 
 export default Info;

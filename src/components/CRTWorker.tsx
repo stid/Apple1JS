@@ -1,4 +1,4 @@
-import { useState, useEffect, JSX } from 'react';
+import { useState, useEffect, useCallback, JSX } from 'react';
 import { WORKER_MESSAGES, VideoData } from '../apple1/TSTypes';
 import CRT from './CRT';
 
@@ -13,22 +13,25 @@ const CRTWorker = ({ worker }: CRTWorkerProps): JSX.Element => {
         column: 0,
     });
 
+    const handleWorkerMessage = useCallback((e: MessageEvent) => {
+        // Type guard for expected message structure
+        if (!e.data || typeof e.data !== 'object') return;
+        const { data, type } = e.data as { data: VideoData; type: WORKER_MESSAGES };
+        if (type === WORKER_MESSAGES.UPDATE_VIDEO_BUFFER) {
+            setVideoData(data);
+        }
+    }, []);
+
     useEffect(() => {
-        const handleWorkerMessage = (e: MessageEvent<{ data: VideoData; type: WORKER_MESSAGES }>) => {
-            const { data, type } = e.data;
-            if (type === WORKER_MESSAGES.UPDATE_VIDEO_BUFFER) {
-                setVideoData(data);
-            }
-        };
-
         worker.addEventListener('message', handleWorkerMessage);
-
         return () => {
             worker.removeEventListener('message', handleWorkerMessage);
         };
-    }, [worker]);
+    }, [worker, handleWorkerMessage]);
 
     return <CRT videoData={videoData} />;
 };
+
+CRTWorker.displayName = 'CRTWorker';
 
 export default CRTWorker;

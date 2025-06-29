@@ -5,118 +5,141 @@ import { CONFIG } from '../config';
 import { APP_VERSION } from '../version';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import Actions from './Actions';
-import React, { useRef, useEffect, useState, JSX } from 'react';
+import { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import ErrorBoundary from './Error';
 
 const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
 
-const LayoutRow = ({ children }: { children?: React.ReactNode }) => <div className="flex-1 p-6">{children}</div>;
-
 type Props = {
     worker: Worker;
 };
+
 const App = ({ worker }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
-    const [showDebug, setShowDebug] = useState<boolean>(false);
-
+    const [showDebug, setShowDebug] = useState<boolean>(true);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Ignore if modifier keys are pressed (except for Shift)
+    const focusHiddenInput = useCallback(() => {
+        const hiddenInput = hiddenInputRef.current;
+        if (hiddenInput) {
+            hiddenInput.focus();
+        }
+    }, []);
+
+    const handleKeyDown = useCallback(
+        (e: KeyboardEvent) => {
             if (e.metaKey || e.ctrlKey || e.altKey) {
                 return;
             }
             worker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });
             e.preventDefault();
-        };
+        },
+        [worker],
+    );
 
-        const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = useCallback(
+        (e: ClipboardEvent) => {
             e.preventDefault();
             const pastedText = e.clipboardData?.getData('text') || '';
-            console.log('Pasting:', pastedText); // Debug log
-
-            // Send characters with a small delay between them
+            // Optionally, add a debug flag if you want to keep this log
+            // console.log('Pasting:', pastedText);
             pastedText.split('').forEach((char, index) => {
                 setTimeout(() => {
                     const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
                     worker.postMessage({ data: keyToSend, type: WORKER_MESSAGES.KEY_DOWN });
-                }, index * 160); // 160ms delay between each character
+                }, index * 160);
             });
-        };
+        },
+        [worker],
+    );
 
+    useEffect(() => {
         const hiddenInput = hiddenInputRef.current;
         if (hiddenInput) {
             hiddenInput.addEventListener('keydown', handleKeyDown);
             hiddenInput.addEventListener('paste', handlePaste);
         }
-
         return () => {
             if (hiddenInput) {
                 hiddenInput.removeEventListener('keydown', handleKeyDown);
                 hiddenInput.removeEventListener('paste', handlePaste);
             }
         };
-    }, [worker]);
+    }, [handleKeyDown, handlePaste]);
 
     useEffect(() => {
         focusHiddenInput();
-    }, []);
-
-    const focusHiddenInput = () => {
-        const hiddenInput = hiddenInputRef.current;
-        if (hiddenInput) {
-            hiddenInput.style.opacity = '0';
-            hiddenInput.focus();
-        }
-    };
+    }, [focusHiddenInput]);
 
     return (
         <ErrorBoundary>
-            <div className="flex">
-                <LayoutRow>
+            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-8 p-2 sm:p-4 md:p-8">
+                {/* Left column: CRT, Actions, Debugger */}
+                <div className="flex flex-col flex-1 max-w-full lg:max-w-[60%] items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 p-4 md:p-8">
                     <Title />
-                    <div onClick={focusHiddenInput}>
+                    <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
-
-                    <div className="p-0 mt-1">
+                    <div className="mt-2 mb-2 flex justify-start">
                         <Actions
                             supportBS={supportBS}
-                            onReset={(e) => {
-                                e.preventDefault();
-                                worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
-                            }}
-                            onBS={(e) => {
-                                e.preventDefault();
-                                worker.postMessage({
-                                    data: !supportBS,
-                                    type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG,
-                                });
-                                setSupportBS(!supportBS);
-                            }}
+                            onReset={useCallback(
+                                (e) => {
+                                    e.preventDefault();
+                                    worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
+                                },
+                                [worker],
+                            )}
+                            onBS={useCallback(
+                                (e) => {
+                                    e.preventDefault();
+                                    worker.postMessage({
+                                        data: !supportBS,
+                                        type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG,
+                                    });
+                                    setSupportBS((prev) => !prev);
+                                },
+                                [worker, supportBS],
+                            )}
                             showDebug={showDebug}
-                            onShowDebug={(e) => {
+                            onShowDebug={useCallback((e) => {
                                 e.preventDefault();
-                                setShowDebug(!showDebug);
-                            }}
+                                setShowDebug((prev) => !prev);
+                            }, [])}
                         />
                     </div>
-                </LayoutRow>
-                <LayoutRow>
-                    <Info />
-                </LayoutRow>
-            </div>
-            {showDebug && (
-                <div className="flex">
-                    <Debugger worker={worker} />
+                    {showDebug && (
+                        <div className="w-full mt-2">
+                            <Debugger worker={worker} />
+                        </div>
+                    )}
                 </div>
-            )}
-
+                {/* Vertical divider for desktop */}
+                <div className="hidden lg:block w-px bg-neutral-800 mx-6 rounded-full self-stretch" />
+                {/* Right column: Info */}
+                <div className="w-full max-w-md min-w-0 lg:flex-1 lg:max-w-[40%] bg-black/60 rounded-xl shadow-lg border border-neutral-800 p-4 md:p-8 flex flex-col justify-start mx-auto lg:mx-0 mt-6 lg:mt-0">
+                    <div className="sm:text-xs md:text-sm">
+                        <Info />
+                    </div>
+                </div>
+            </div>
             <input
                 type="text"
                 ref={hiddenInputRef}
-                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+                className="hidden-input-accessible"
+                aria-hidden="true"
+                tabIndex={-1}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '1px',
+                    height: '1px',
+                    opacity: 0,
+                    pointerEvents: 'none',
+                    overflow: 'hidden',
+                    zIndex: -1,
+                }}
             />
         </ErrorBoundary>
     );

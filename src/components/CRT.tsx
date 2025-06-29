@@ -9,10 +9,21 @@ type Props = {
 };
 const CRT = ({ videoData }: Props): JSX.Element => (
     <div
-        className="relative bg-teal-900"
+        className="relative bg-teal-900 rounded-lg shadow-2xl border-2 border-teal-700 overflow-hidden crt-effect"
         style={{ width: CRTConstants.MONITOR_WIDTH, height: CRTConstants.MONITOR_HEIGHT }}
     >
-        <div className={`text-[13px] relative text-green-400 tracking-normal]`}>
+        {/* Optional scanline overlay */}
+        <div
+            className="pointer-events-none absolute inset-0 z-10 opacity-20 mix-blend-overlay"
+            style={{
+                background:
+                    'repeating-linear-gradient(180deg, transparent, transparent 2px, #000 3px, transparent 4px)',
+            }}
+        />
+        <div
+            className="text-[13px] relative text-green-400 tracking-normal font-mono z-20 select-text"
+            style={{ right: '3px', position: 'relative' }}
+        >
             <CRTCursor row={videoData.row} column={videoData.column} />
             {videoData.buffer.map((line, index) => (
                 <CRTRow

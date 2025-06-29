@@ -1,18 +1,21 @@
-import { memo } from 'react';
+import React from 'react';
 import * as CRTConstants from './CRTConstants';
 
 type CRTRowCharProps = {
     char: string;
     x: number;
 };
-const CRTRowChar = memo(({ char, x }: CRTRowCharProps) => {
-    return (
-        <div className="absolute" style={{ left: `${x * CRTConstants.FONT_RECT[0] + CRTConstants.LEFT_PADDING}px` }}>
-            {char}
-        </div>
-    );
+
+const getCharStyle = (x: number) => ({
+    left: `${x * CRTConstants.FONT_RECT[0] + CRTConstants.LEFT_PADDING}px`,
 });
 
-CRTRowChar.displayName = 'CRTRowChar';
+const CRTRowChar: React.FC<CRTRowCharProps> = ({ char, x }) => (
+    <div className="absolute" style={getCharStyle(x)}>
+        {char}
+    </div>
+);
 
-export default CRTRowChar;
+export default React.memo(CRTRowChar);
+// Set displayName for DevTools
+(React.memo(CRTRowChar) as React.MemoExoticComponent<typeof CRTRowChar>).displayName = 'CRTRowChar';
