@@ -5,12 +5,10 @@ import { CONFIG } from '../config';
 import { APP_VERSION } from '../version';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import Actions from './Actions';
-import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
+import { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import ErrorBoundary from './Error';
 
 const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
-
-const LayoutRow = ({ children }: { children?: React.ReactNode }) => <div className="flex-1 p-4 sm:p-6">{children}</div>;
 
 type Props = {
     worker: Worker;
@@ -75,13 +73,14 @@ const App = ({ worker }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row">
-                <LayoutRow>
+            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-8 p-2 sm:p-4 md:p-8">
+                {/* Left column: CRT, Actions, Debugger */}
+                <div className="flex flex-col flex-1 max-w-full lg:max-w-[60%] items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 p-4 md:p-8">
                     <Title />
                     <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
-                    <div className="p-0 mt-1">
+                    <div className="mt-2 mb-2 flex justify-start">
                         <Actions
                             supportBS={supportBS}
                             onReset={useCallback(
@@ -109,27 +108,38 @@ const App = ({ worker }: Props): JSX.Element => {
                             }, [])}
                         />
                     </div>
-                </LayoutRow>
-                <LayoutRow>
-                    <div className="sm:text-xs md:text-sm p-2 sm:p-4 md:p-6">
+                    {showDebug && (
+                        <div className="w-full mt-2">
+                            <Debugger worker={worker} />
+                        </div>
+                    )}
+                </div>
+                {/* Vertical divider for desktop */}
+                <div className="hidden lg:block w-px bg-neutral-800 mx-6 rounded-full self-stretch" />
+                {/* Right column: Info */}
+                <div className="w-full max-w-md min-w-0 lg:flex-1 lg:max-w-[40%] bg-black/60 rounded-xl shadow-lg border border-neutral-800 p-4 md:p-8 flex flex-col justify-start mx-auto lg:mx-0 mt-6 lg:mt-0">
+                    <div className="sm:text-xs md:text-sm">
                         <Info />
                     </div>
-                </LayoutRow>
-            </div>
-            {showDebug && (
-                <div className="flex flex-col sm:flex-row">
-                    <div className="w-full sm:text-xs md:text-sm p-2 sm:p-4 md:p-6">
-                        <Debugger worker={worker} />
-                    </div>
                 </div>
-            )}
+            </div>
             <input
                 type="text"
                 ref={hiddenInputRef}
                 className="hidden-input-accessible"
                 aria-hidden="true"
                 tabIndex={-1}
-                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '1px',
+                    height: '1px',
+                    opacity: 0,
+                    pointerEvents: 'none',
+                    overflow: 'hidden',
+                    zIndex: -1,
+                }}
             />
         </ErrorBoundary>
     );
