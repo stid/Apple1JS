@@ -30,13 +30,13 @@ const Debugger = ({ worker }: { worker: Worker }): JSX.Element => {
     // Show a friendly empty state if no debug info
     const hasDomains = Object.keys(debugInfo).length > 0;
     return (
-        <div className="flex flex-wrap gap-4 text-sm pl-4 py-4 bg-black border-t border-slate-800 min-h-[120px]">
+        <div className="flex flex-wrap gap-6 text-sm px-4 py-6 md:px-8 md:py-8 bg-black border-t border-slate-800 min-h-[120px] rounded-xl">
             {hasDomains ? (
                 Object.keys(debugInfo)
                     .sort()
                     .map((key) => <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />)
             ) : (
-                <div className="italic text-slate-500 p-4">No debug info available</div>
+                <div className="italic text-slate-500 px-4 py-6 md:px-8 md:py-8">No debug info available</div>
             )}
         </div>
     );
@@ -49,7 +49,7 @@ interface DebugDomainProps {
 
 // The DebugDomain component displays a domain of debug information.
 const DebugDomain = ({ domainKey, domainData }: DebugDomainProps) => (
-    <div className="bg-neutral-900 rounded-lg p-4 shadow border border-slate-700 min-w-[180px] max-w-xs">
+    <div className="bg-neutral-900 rounded-xl px-2 pt-0 pb-1 md:px-3 md:pt-1 md:pb-1 shadow border border-slate-700 min-w-[180px] max-w-xs">
         <DomainTitle title={domainKey} />
         <DomainContent domainData={domainData} />
     </div>
