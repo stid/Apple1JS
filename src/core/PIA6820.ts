@@ -9,6 +9,25 @@ const B_DSP = 0x2;
 const B_DSPCR = 0x3;
 
 class PIA6820 implements IInspectableComponent {
+    /**
+     * Returns a serializable architecture view of the PIA6820 and its children, suitable for inspectors.
+     */
+    getInspectable() {
+        const self = this as unknown as { __address?: string; __addressName?: string };
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            address: self.__address,
+            addressName: self.__addressName,
+            children: this.children.map((child) =>
+                typeof child.getInspectable === 'function'
+                    ? child.getInspectable()
+                    : { id: child.id, type: child.type },
+            ),
+            data: [...this.data],
+        };
+    }
     id = 'pia6820';
     type = 'PIA6820';
     name?: string;

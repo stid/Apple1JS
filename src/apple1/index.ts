@@ -53,6 +53,54 @@ class Apple1 implements IInspectableComponent {
     getCompositionTree(): IInspectableComponent {
         return this;
     }
+    /**
+     * Returns a serializable architecture view of the Apple1 and its children, suitable for inspectors.
+     */
+    getInspectable() {
+        // System-level config/state summary for Inspector
+        const childrenViews = this.children.map((child) => {
+            const view =
+                typeof child.getInspectable === 'function'
+                    ? child.getInspectable()
+                    : { id: child.id, type: child.type };
+            return view;
+        });
+        return {
+            id: this.id,
+            type: this.type,
+            name: 'Apple 1',
+            cpuSpeedMHz: MHZ_CPU_SPEED,
+            stepIntervalMs: STEP_INTERVAL,
+            romAddress: ROM_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
+            ramBank1Address: RAM_BANK1_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
+            ramBank2Address: RAM_BANK2_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
+            piaAddress: PIA_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
+            components: [
+                { id: this.cpu.id, name: this.cpu.name },
+                { id: this.bus.id, name: this.bus.name },
+                { id: this.rom.id, name: this.rom.name },
+                { id: this.ramBank1.id, name: this.ramBank1.name },
+                { id: this.ramBank2.id, name: this.ramBank2.name },
+                { id: this.pia.id, name: this.pia.name },
+                { id: this.clock.id ?? 'clock', name: this.clock.name },
+                {
+                    id: 'video',
+                    name:
+                        typeof this.video === 'object' && 'name' in this.video
+                            ? (this.video as { name?: string }).name
+                            : undefined,
+                },
+                {
+                    id: 'keyboard',
+                    name:
+                        typeof this.keyboard === 'object' && 'name' in this.keyboard
+                            ? (this.keyboard as { name?: string }).name
+                            : undefined,
+                },
+            ],
+            children: childrenViews,
+        };
+    }
     pia: PIA6820;
     keyboardLogic: KeyboardLogic;
     displayLogic: DisplayLogic;
@@ -83,10 +131,13 @@ class Apple1 implements IInspectableComponent {
         // Map Components to related memory addresses
         this.rom = new ROM();
         this.rom.name = 'Monitor ROM';
+        this.rom.id = 'rom';
         this.ramBank1 = new RAM();
         this.ramBank1.name = 'Main RAM (Bank 1)';
+        this.ramBank1.id = 'ram1';
         this.ramBank2 = new RAM();
         this.ramBank2.name = 'Extended RAM (Bank 2)';
+        this.ramBank2.id = 'ram2';
         // Annotate each component with its address info for inspection
         function annotateAddress(component: unknown, addr: [number, number], name: string) {
             if (typeof component === 'object' && component !== null) {

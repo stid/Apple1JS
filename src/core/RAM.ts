@@ -9,6 +9,22 @@ class RAM implements IoAddressable, IInspectableComponent {
     get children() {
         return [];
     }
+
+    /**
+     * Returns a serializable architecture view of the RAM, suitable for inspectors.
+     */
+    getInspectable() {
+        // Always include address info if present
+        const self = this as unknown as { __address?: string; __addressName?: string };
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            size: this.data.length,
+            address: self.__address,
+            addressName: self.__addressName,
+        };
+    }
     private data: Uint8Array;
     get details() {
         // Use optional chaining and unknown type for safer, typed access

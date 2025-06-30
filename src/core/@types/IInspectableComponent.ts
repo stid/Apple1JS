@@ -1,7 +1,13 @@
+import type { InspectableArchView } from './InspectableArchView';
+
 export interface IInspectableComponent {
     id: string;
     type: string;
     children?: IInspectableComponent[];
+    /**
+     * Returns a serializable architecture view of the component and its children, suitable for inspectors.
+     */
+    getInspectable?(): InspectableArchView;
 }
 
 // Helper type guard for runtime checking

@@ -7,7 +7,23 @@ const RESET_CODE = -255;
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
-class Keyboard implements IoComponent {
+import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
+
+class Keyboard implements IoComponent, IInspectableComponent {
+    id: string = 'keyboard';
+    type: string = 'IoComponent';
+    name?: string = 'Keyboard Input';
+    lastKey?: string;
+    connected: boolean = true;
+    getInspectable?() {
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            lastKey: this.lastKey ?? '(none)',
+            connected: typeof this.connected === 'boolean' ? this.connected : '(n/a)',
+        };
+    }
     private wireWrite?: (value: number) => Promise<number | void>;
 
     wire(conf: { write?: (value: number) => Promise<number | void> }): void {
@@ -24,6 +40,7 @@ class Keyboard implements IoComponent {
     }
 
     async write(key: string): Promise<number | void> {
+        this.lastKey = key;
         const wireWrite = this.wireWrite;
         let result;
         if (wireWrite) {

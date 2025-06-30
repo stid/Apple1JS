@@ -8,29 +8,30 @@ class Bus implements IInspectableComponent {
     private busMapping: Array<BusSpaceType>;
     private sortedAddrs: Array<BusSpaceType>;
 
-    get children() {
-        // Return all mapped components as children
-        return this.busMapping.map((b) => {
-            if (
-                b.component &&
-                typeof b.component === 'object' &&
-                'type' in b.component &&
-                'id' in b.component &&
-                typeof (b.component as { id: unknown }).id === 'string' &&
-                typeof (b.component as { type: unknown }).type === 'string'
-            ) {
-                return b.component as import('./@types/IInspectableComponent').IInspectableComponent;
-            }
-            return { id: b.name || 'unknown', type: 'Unknown', children: [] };
-        });
-    }
-
-    get details() {
+    /**
+     * Returns a serializable architecture view of the Bus and its children, suitable for inspectors.
+     */
+    getInspectable() {
+        const self = this as unknown as { __address?: string; __addressName?: string };
         return {
-            mapping: this.busMapping.map((b) => ({
-                name: b.name,
-                addr: b.addr.map((a) => a.toString(16).toUpperCase()).join(':'),
-            })),
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            address: self.__address,
+            addressName: self.__addressName,
+            mapping: this.busMapping.map((b) => {
+                const child =
+                    b.component && typeof b.component.getInspectable === 'function'
+                        ? b.component.getInspectable()
+                        : undefined;
+                return {
+                    name: b.name,
+                    addr: b.addr,
+                    child,
+                };
+            }),
+            mappingCount: this.busMapping.length,
+            sorted: this.sortedAddrs.length > 0,
         };
     }
 
