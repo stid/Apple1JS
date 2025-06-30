@@ -1121,7 +1121,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
         // Type guard for disassemble method
         if (typeof (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble === 'function') {
             try {
-                disasm = (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble!(this.PC, 3); // e.g., 3 instructions
+                disasm = (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble!(
+                    this.PC,
+                    3,
+                ); // e.g., 3 instructions
             } catch {
                 // ignore disassembly errors
             }
@@ -1131,7 +1134,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         if (typeof this.S === 'number' && this.bus && typeof this.bus.read === 'function') {
             stack = [];
             for (let i = 0; i < 8; ++i) {
-                const addr = 0x0100 + ((this.S - i) & 0xFF);
+                const addr = 0x0100 + ((this.S - i) & 0xff);
                 stack.push({ addr: addr.toString(16).padStart(4, '0').toUpperCase(), value: this.bus.read(addr) });
             }
         }

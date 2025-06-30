@@ -2,13 +2,10 @@ import Debugger from './Debugger';
 import Info from './Info';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
-import { APP_VERSION } from '../version';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import Actions from './Actions';
 import { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import ErrorBoundary from './Error';
-
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
 
 type Props = {
     worker: Worker;
@@ -76,9 +73,6 @@ const App = ({ worker }: Props): JSX.Element => {
             <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-6 p-1 sm:p-2 md:px-4 md:py-2">
                 {/* Left column: CRT, Actions, Debugger */}
                 <div className="flex flex-col flex-1 max-w-full lg:max-w-[60%] items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4">
-                    <div className="mb-1 mt-0">
-                        <Title />
-                    </div>
                     <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
