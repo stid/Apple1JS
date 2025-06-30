@@ -1,3 +1,19 @@
+// Type for RAM state (expandable for more components)
+export interface RAMBankState {
+    id: string;
+    state: { data: number[] };
+}
+
+export interface EmulatorState {
+    ram: RAMBankState[];
+    // Add more components here later
+}
+
+// Message for state save/load
+export type StateMessage = {
+    type: WORKER_MESSAGES.SAVE_STATE | WORKER_MESSAGES.LOAD_STATE | WORKER_MESSAGES.STATE_DATA;
+    data?: EmulatorState;
+};
 // Enum for worker message types
 export enum WORKER_MESSAGES {
     UPDATE_VIDEO_BUFFER, // Update the video buffer
@@ -5,6 +21,9 @@ export enum WORKER_MESSAGES {
     DEBUG_INFO, // Debugging information
     CLOCK_DATA, // Clock data update
     SET_CRT_BS_SUPPORT_FLAG, // Set CRT support flag
+    SAVE_STATE, // Request to save emulator state
+    LOAD_STATE, // Request to load emulator state
+    STATE_DATA, // Response with state data
 }
 
 // Enum for indexing the VideoBuffer row tuple

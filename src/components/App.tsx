@@ -1,10 +1,10 @@
+import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import Debugger from './Debugger';
 import Info from './Info';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import Actions from './Actions';
-import { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import ErrorBoundary from './Error';
 
 type Props = {
@@ -69,6 +69,52 @@ const App = ({ worker }: Props): JSX.Element => {
         focusHiddenInput();
     }, [focusHiddenInput]);
 
+    // --- State Save/Load Handlers ---
+    const handleSaveState = useCallback(
+        (e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault();
+            // Request state from worker
+            const handleStateData = (event: MessageEvent) => {
+                if (event.data && event.data.type === WORKER_MESSAGES.STATE_DATA) {
+                    const state = event.data.data;
+                    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'apple1_state.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    worker.removeEventListener('message', handleStateData);
+                }
+            };
+            worker.addEventListener('message', handleStateData);
+            worker.postMessage({ type: WORKER_MESSAGES.SAVE_STATE });
+        },
+        [worker],
+    );
+
+    const handleLoadState = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const state = JSON.parse(event.target?.result as string);
+                    worker.postMessage({ type: WORKER_MESSAGES.LOAD_STATE, data: state });
+                } catch {
+                    window.alert('Invalid state file.');
+                }
+            };
+            reader.readAsText(file);
+        },
+        [worker],
+    );
+
     return (
         <ErrorBoundary>
             <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
@@ -101,6 +147,8 @@ const App = ({ worker }: Props): JSX.Element => {
                                 },
                                 [worker, supportBS],
                             )}
+                            onSaveState={handleSaveState}
+                            onLoadState={handleLoadState}
                         />
                     </div>
                 </div>

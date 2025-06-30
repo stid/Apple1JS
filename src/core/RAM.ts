@@ -3,6 +3,24 @@ import { IoAddressable } from './@types/IoAddressable';
 
 const DEFAULT_RAM_BANK_SIZE = 4096;
 class RAM implements IoAddressable, IInspectableComponent {
+    /**
+     * Returns a serializable copy of the RAM contents.
+     */
+    saveState(): { data: number[] } {
+        return {
+            data: Array.from(this.data),
+        };
+    }
+
+    /**
+     * Restores RAM contents from a previously saved state.
+     */
+    loadState(state: { data: number[] }): void {
+        if (!state || !Array.isArray(state.data) || state.data.length !== this.data.length) {
+            throw new Error('Invalid RAM state or size mismatch');
+        }
+        this.data.set(state.data);
+    }
     id = 'ram';
     type = 'RAM';
     name?: string;

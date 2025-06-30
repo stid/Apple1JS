@@ -10,6 +10,24 @@ const B_DSPCR = 0x3;
 
 class PIA6820 implements IInspectableComponent {
     /**
+     * Returns a serializable copy of the PIA state.
+     */
+    saveState(): object {
+        return {
+            data: [...this.data],
+        };
+    }
+
+    /**
+     * Restores PIA state from a previously saved state.
+     */
+    loadState(state: { data: number[] }): void {
+        if (!state || !Array.isArray(state.data) || state.data.length !== this.data.length) {
+            throw new Error('Invalid PIA state or size mismatch');
+        }
+        this.data = [...state.data];
+    }
+    /**
      * Returns a serializable architecture view of the PIA6820 and its children, suitable for inspectors.
      */
     getInspectable() {
