@@ -4,6 +4,7 @@ import { BusSpaceType } from './@types/IoAddressable';
 class Bus implements IInspectableComponent {
     id = 'bus';
     type = 'Bus';
+    name?: string;
     private busMapping: Array<BusSpaceType>;
     private sortedAddrs: Array<BusSpaceType>;
 

@@ -52,7 +52,6 @@
         "vite": "6.3.5"
     },
     "dependencies": {
-        "dagre": "^0.8.5",
         "million": "^3.1.11",
         "react": "19.1.0",
         "react-dom": "19.1.0",

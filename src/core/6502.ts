@@ -1117,6 +1117,7 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 class CPU6502 implements IClockable, IInspectableComponent {
     id = 'cpu6502';
     type = 'CPU6502';
+    name?: string;
     get children() {
         return this.bus ? [this.bus] : [];
     }

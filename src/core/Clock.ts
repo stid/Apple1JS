@@ -8,7 +8,12 @@ const WAIT_TIME = 5;
 /**
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
  */
-class Clock implements PubSub {
+import { IInspectableComponent } from './@types/IInspectableComponent';
+
+class Clock implements PubSub, IInspectableComponent {
+    id = 'clock';
+    type = 'Clock';
+    name?: string;
     private mhz: number;
     private stepChunk: number;
     private provisionedCycles: number;
@@ -23,6 +28,10 @@ class Clock implements PubSub {
         this.maxedCycles = 0;
         this.subscribers = [];
         this.running = false;
+    }
+
+    get children() {
+        return [];
     }
 
     // Allows a function to subscribe to the clock's updates.

@@ -5,6 +5,7 @@ import { IoAddressable } from './@types/IoAddressable';
 class ROM implements IoAddressable, IInspectableComponent {
     id = 'rom';
     type = 'ROM';
+    name?: string;
     get children() {
         return [];
     }

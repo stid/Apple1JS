@@ -40,6 +40,7 @@ class Apple1 implements IInspectableComponent {
             this.ramBank1,
             this.ramBank2,
             this.pia,
+            this.clock,
         ];
         if (this.video) {
             children.push(new InspectableIoComponent('video', 'IoComponent', this.video));
@@ -73,6 +74,7 @@ class Apple1 implements IInspectableComponent {
 
         // Create PIA & use it to wire to related IOComponents / Logic
         this.pia = new PIA6820();
+        this.pia.name = 'Peripheral Interface Adapter (PIA 6820)';
         this.keyboardLogic = new KeyboardLogic(this.pia);
         this.displayLogic = new DisplayLogic(this.pia);
         this.pia.wireIOA(this.keyboardLogic);
@@ -80,8 +82,11 @@ class Apple1 implements IInspectableComponent {
 
         // Map Components to related memory addresses
         this.rom = new ROM();
+        this.rom.name = 'Monitor ROM';
         this.ramBank1 = new RAM();
+        this.ramBank1.name = 'Main RAM (Bank 1)';
         this.ramBank2 = new RAM();
+        this.ramBank2.name = 'Extended RAM (Bank 2)';
         // Annotate each component with its address info for inspection
         function annotateAddress(component: unknown, addr: [number, number], name: string) {
             if (typeof component === 'object' && component !== null) {
@@ -109,7 +114,9 @@ class Apple1 implements IInspectableComponent {
 
         // Bound CPU to related Address Spaces
         this.bus = new Bus(this.busMapping);
+        this.bus.name = 'System Bus';
         this.cpu = new CPU6502(this.bus);
+        this.cpu.name = '6502 CPU';
 
         // WIRING IO
         this.keyboard.wire({
@@ -141,6 +148,7 @@ class Apple1 implements IInspectableComponent {
         // Clock is bound to the CPU and will step on it + take care of respecting
         // the related cycles per executed instruction type.
         this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
+        this.clock.name = 'System Clock';
         console.log(`Apple 1`);
 
         this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));

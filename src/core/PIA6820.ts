@@ -11,6 +11,7 @@ const B_DSPCR = 0x3;
 class PIA6820 implements IInspectableComponent {
     id = 'pia6820';
     type = 'PIA6820';
+    name?: string;
     get children() {
         const children = [];
         if (

@@ -5,6 +5,7 @@ const DEFAULT_RAM_BANK_SIZE = 4096;
 class RAM implements IoAddressable, IInspectableComponent {
     id = 'ram';
     type = 'RAM';
+    name?: string;
     get children() {
         return [];
     }
