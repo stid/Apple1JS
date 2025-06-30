@@ -34,11 +34,17 @@ const Main: React.FC<MainProps> = ({ worker, apple1Instance }) => {
                     Inspector
                 </button>
             </nav>
-            {tab === 'emulator' && <App worker={worker} />}
-            {tab === 'inspector' && apple1Instance && <InspectorView root={apple1Instance} />}
-            {tab === 'inspector' && !apple1Instance && (
-                <div className="p-4 text-red-400">Inspector not connected to Apple1 instance.</div>
-            )}
+            {/* Always mount both, toggle visibility */}
+            <div style={{ display: tab === 'emulator' ? 'block' : 'none', width: '100%', height: '100%' }}>
+                <App worker={worker} />
+            </div>
+            <div style={{ display: tab === 'inspector' ? 'block' : 'none', width: '100%', height: '100%' }}>
+                {apple1Instance ? (
+                    <InspectorView root={apple1Instance} />
+                ) : (
+                    <div className="p-4 text-red-400">Inspector not connected to Apple1 instance.</div>
+                )}
+            </div>
         </div>
     );
 };
