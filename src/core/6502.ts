@@ -1117,25 +1117,28 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 class CPU6502 implements IClockable, IInspectableComponent {
     getInspectable?() {
         // Disassemble current and next instruction (if possible)
-        let disasm = undefined;
-        if (typeof (this as any).disassemble === 'function') {
+        let disasm: unknown = undefined;
+        // Type guard for disassemble method
+        if (typeof (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble === 'function') {
             try {
-                disasm = (this as any).disassemble(this.PC, 3); // e.g., 3 instructions
-            } catch {}
+                disasm = (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble!(this.PC, 3); // e.g., 3 instructions
+            } catch {
+                // ignore disassembly errors
+            }
         }
         // Stack dump (top 8 bytes)
-        let stack = undefined;
+        let stack: Array<{ addr: string; value: number }> | undefined = undefined;
         if (typeof this.S === 'number' && this.bus && typeof this.bus.read === 'function') {
             stack = [];
             for (let i = 0; i < 8; ++i) {
-                const addr = 0x0100 + ((this.S - i) & 0xff);
+                const addr = 0x0100 + ((this.S - i) & 0xFF);
                 stack.push({ addr: addr.toString(16).padStart(4, '0').toUpperCase(), value: this.bus.read(addr) });
             }
         }
         // Recent instruction trace (if available)
-        let trace = undefined;
-        if (Array.isArray((this as any).trace)) {
-            trace = (this as any).trace.slice(-8);
+        let trace: unknown = undefined;
+        if (Array.isArray((this as Partial<{ trace: unknown[] }>).trace)) {
+            trace = (this as Partial<{ trace: unknown[] }>).trace!.slice(-8);
         }
         return {
             id: this.id,

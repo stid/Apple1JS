@@ -7,9 +7,8 @@ export class InspectableIoComponent implements IInspectableComponent {
      */
     getInspectable() {
         // If the underlying ref has getInspectable, use it for config
-        const refAny = this.ref as any;
-        if (refAny && typeof refAny.getInspectable === 'function') {
-            const base = refAny.getInspectable();
+        if (this.ref && typeof (this.ref as Partial<IInspectableComponent>).getInspectable === 'function') {
+            const base = (this.ref as Partial<IInspectableComponent>).getInspectable!();
             return {
                 ...base,
                 id: this.id,
