@@ -9,6 +9,13 @@ class ROM implements IoAddressable, IInspectableComponent {
         return [];
     }
     private data: Uint8Array;
+    get details() {
+        return {
+            size: this.data.length,
+            address: (this as unknown as { __address?: string }).__address,
+            addressName: (this as unknown as { __addressName?: string }).__addressName,
+        };
+    }
 
     constructor(byteSize: number = DEFAULT_ROM_SIZE) {
         this.data = new Uint8Array(byteSize).fill(0);

@@ -82,6 +82,15 @@ class Apple1 implements IInspectableComponent {
         this.rom = new ROM();
         this.ramBank1 = new RAM();
         this.ramBank2 = new RAM();
+        // Annotate each component with its address info for inspection
+        function annotateAddress(component: unknown, addr: [number, number], name: string) {
+            if (typeof component === 'object' && component !== null) {
+                (component as { __address?: string }).__address =
+                    `${addr[0].toString(16).toUpperCase()}:${addr[1].toString(16).toUpperCase()}`;
+                (component as { __addressRange?: [number, number] }).__addressRange = addr;
+                (component as { __addressName?: string }).__addressName = name;
+            }
+        }
         this.busMapping = [
             { addr: ROM_ADDR, component: this.rom, name: 'ROM' },
             { addr: RAM_BANK1_ADDR, component: this.ramBank1, name: 'RAM_BANK_1' },
@@ -90,6 +99,8 @@ class Apple1 implements IInspectableComponent {
             { addr: RAM_BANK2_ADDR, component: this.ramBank2, name: 'RAM_BANK_2' },
             { addr: PIA_ADDR, component: this.pia, name: 'PIA6820' },
         ];
+        // Annotate all bus-mapped components
+        this.busMapping.forEach(({ component, addr, name }) => annotateAddress(component, addr, name));
 
         // LOAD PROGRAMS in ROM/RAM
         this.rom.flash(wozMonitor);

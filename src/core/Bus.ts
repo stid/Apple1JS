@@ -4,10 +4,12 @@ import { BusSpaceType } from './@types/IoAddressable';
 class Bus implements IInspectableComponent {
     id = 'bus';
     type = 'Bus';
+    private busMapping: Array<BusSpaceType>;
+    private sortedAddrs: Array<BusSpaceType>;
+
     get children() {
         // Return all mapped components as children
         return this.busMapping.map((b) => {
-            // If the component implements IInspectableComponent, return as is, else wrap minimally
             if (
                 b.component &&
                 typeof b.component === 'object' &&
@@ -21,8 +23,15 @@ class Bus implements IInspectableComponent {
             return { id: b.name || 'unknown', type: 'Unknown', children: [] };
         });
     }
-    private busMapping: Array<BusSpaceType>;
-    private sortedAddrs: Array<BusSpaceType>;
+
+    get details() {
+        return {
+            mapping: this.busMapping.map((b) => ({
+                name: b.name,
+                addr: b.addr.map((a) => a.toString(16).toUpperCase()).join(':'),
+            })),
+        };
+    }
 
     /**
      * Construct a new Bus object.
