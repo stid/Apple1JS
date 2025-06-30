@@ -36,7 +36,22 @@ function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
     return buffer.map(([rowIdx, rowData]) => [rowIdx, [...rowData]] as [number, string[]]);
 }
 
-class CRTVideo implements IoComponent, PubSub {
+import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
+
+class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
+    id: string = 'crtvideo';
+    type: string = 'IoComponent';
+    name?: string = 'Video Output';
+    getInspectable?() {
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            row: typeof this.row === 'number' ? this.row : '(n/a)',
+            column: typeof this.column === 'number' ? this.column : '(n/a)',
+            supportBS: typeof this.supportBS === 'boolean' ? this.supportBS : '(n/a)',
+        };
+    }
     row: number;
     column: number;
     private buffer: VideoBuffer;

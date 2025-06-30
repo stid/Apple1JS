@@ -34,6 +34,22 @@ class Clock implements PubSub, IInspectableComponent {
         return [];
     }
 
+    /**
+     * Returns a serializable architecture view of the Clock, suitable for inspectors.
+     */
+    getInspectable() {
+        const self = this as unknown as { __address?: string; __addressName?: string };
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            address: self.__address,
+            addressName: self.__addressName,
+            mhz: this.mhz,
+            stepChunk: this.stepChunk,
+        };
+    }
+
     // Allows a function to subscribe to the clock's updates.
     subscribe(subFunc: subscribeFunction<number>): void {
         this.subscribers.push(subFunc);

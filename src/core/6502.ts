@@ -1115,11 +1115,66 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 class CPU6502 implements IClockable, IInspectableComponent {
+    getInspectable?() {
+        // Disassemble current and next instruction (if possible)
+        let disasm: unknown = undefined;
+        // Type guard for disassemble method
+        if (typeof (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble === 'function') {
+            try {
+                disasm = (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble!(
+                    this.PC,
+                    3,
+                ); // e.g., 3 instructions
+            } catch {
+                // ignore disassembly errors
+            }
+        }
+        // Stack dump (top 8 bytes)
+        let stack: Array<{ addr: string; value: number }> | undefined = undefined;
+        if (typeof this.S === 'number' && this.bus && typeof this.bus.read === 'function') {
+            stack = [];
+            for (let i = 0; i < 8; ++i) {
+                const addr = 0x0100 + ((this.S - i) & 0xff);
+                stack.push({ addr: addr.toString(16).padStart(4, '0').toUpperCase(), value: this.bus.read(addr) });
+            }
+        }
+        // Recent instruction trace (if available)
+        let trace: unknown = undefined;
+        if (Array.isArray((this as Partial<{ trace: unknown[] }>).trace)) {
+            trace = (this as Partial<{ trace: unknown[] }>).trace!.slice(-8);
+        }
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            PC: this.PC,
+            A: this.A,
+            X: this.X,
+            Y: this.Y,
+            S: this.S,
+            N: this.N,
+            Z: this.Z,
+            C: this.C,
+            V: this.V,
+            I: this.I,
+            D: this.D,
+            irq: this.irq,
+            nmi: this.nmi,
+            cycles: this.cycles,
+            opcode: this.opcode,
+            address: this.address,
+            data: this.data,
+            stack,
+            disasm,
+            trace,
+            children: this.children,
+        };
+    }
     id = 'cpu6502';
     type = 'CPU6502';
     name?: string;
     get children() {
-        return this.bus ? [this.bus] : [];
+        return [];
     }
     bus: Bus;
     PC: number;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import InspectorView from './InspectorView';
 import App from './App';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { APP_VERSION } from '../version';
 
 interface MainProps {
     worker: Worker;
@@ -13,7 +14,13 @@ const Main: React.FC<MainProps> = ({ worker, apple1Instance }) => {
 
     return (
         <div className="w-full h-full">
-            <nav className="flex gap-2 mb-2">
+            <header className="w-full bg-black/90 border-b border-green-800 shadow-lg mb-2 py-2 px-4 flex items-center justify-between">
+                <h1 className="text-green-300 font-bold text-lg tracking-wide">
+                    Apple 1 :: JS Emulator <span className="text-green-500 font-normal">- by =stid=</span>{' '}
+                    <span className="text-green-700 font-mono">v{APP_VERSION}</span>
+                </h1>
+            </header>
+            <nav className="flex gap-2 mb-2 px-4">
                 <button
                     className={`px-3 py-1 rounded ${tab === 'emulator' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
                     onClick={() => setTab('emulator')}

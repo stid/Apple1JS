@@ -2,13 +2,10 @@ import Debugger from './Debugger';
 import Info from './Info';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
-import { APP_VERSION } from '../version';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import Actions from './Actions';
 import { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import ErrorBoundary from './Error';
-
-const Title = () => <h3>Apple 1 :: JS Emulator - by =stid= v{APP_VERSION}</h3>;
 
 type Props = {
     worker: Worker;
@@ -16,7 +13,8 @@ type Props = {
 
 const App = ({ worker }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
-    const [showDebug, setShowDebug] = useState<boolean>(true);
+    // Right panel tab: 'info' or 'debug'
+    const [rightTab, setRightTab] = useState<'info' | 'debug'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
 
     const focusHiddenInput = useCallback(() => {
@@ -73,12 +71,12 @@ const App = ({ worker }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-6 p-1 sm:p-2 md:px-4 md:py-2">
-                {/* Left column: CRT, Actions, Debugger */}
-                <div className="flex flex-col flex-1 max-w-full lg:max-w-[60%] items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4">
-                    <div className="mb-1 mt-0">
-                        <Title />
-                    </div>
+            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
+                {/* Left column: CRT, Actions */}
+                <div
+                    className="flex flex-col items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2"
+                    style={{ maxWidth: 720 }}
+                >
                     <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
@@ -103,25 +101,28 @@ const App = ({ worker }: Props): JSX.Element => {
                                 },
                                 [worker, supportBS],
                             )}
-                            showDebug={showDebug}
-                            onShowDebug={useCallback((e) => {
-                                e.preventDefault();
-                                setShowDebug((prev) => !prev);
-                            }, [])}
                         />
                     </div>
-                    {showDebug && (
-                        <div className="w-full mt-2">
-                            <Debugger worker={worker} />
-                        </div>
-                    )}
                 </div>
-                {/* Vertical divider for desktop */}
-                <div className="hidden lg:block w-px bg-neutral-800 mx-6 rounded-full self-stretch" />
-                {/* Right column: Info */}
-                <div className="w-full max-w-md min-w-0 lg:flex-1 lg:max-w-lg bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-2 py-2 md:px-3 md:py-3 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
-                    <div className="sm:text-xs md:text-sm">
-                        <Info />
+                {/* Right column: Info/Debug sub-tabs */}
+                <div className="w-full min-w-0 flex-1 bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
+                    <div className="flex gap-2 mb-2 mt-2">
+                        <button
+                            className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            onClick={() => setRightTab('info')}
+                        >
+                            Guide
+                        </button>
+                        <button
+                            className={`px-3 py-1 rounded ${rightTab === 'debug' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            onClick={() => setRightTab('debug')}
+                        >
+                            Debug
+                        </button>
+                    </div>
+                    <div className="w-full mt-2 sm:text-xs md:text-sm">
+                        {rightTab === 'info' && <Info />}
+                        {rightTab === 'debug' && <Debugger worker={worker} />}
                     </div>
                 </div>
             </div>

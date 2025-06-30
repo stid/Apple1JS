@@ -9,6 +9,21 @@ class ROM implements IoAddressable, IInspectableComponent {
     get children() {
         return [];
     }
+
+    /**
+     * Returns a serializable architecture view of the ROM, suitable for inspectors.
+     */
+    getInspectable() {
+        const self = this as unknown as { __address?: string; __addressName?: string };
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            size: this.data.length,
+            address: self.__address,
+            addressName: self.__addressName,
+        };
+    }
     private data: Uint8Array;
     get details() {
         return {
