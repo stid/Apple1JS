@@ -1,4 +1,5 @@
 import { IClockable } from './@types/clockable';
+import { IInspectableComponent } from './@types/IInspectableComponent';
 import Bus from './Bus';
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1113,7 +1114,13 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
     m.rmw();
 };
 
-class CPU6502 implements IClockable {
+class CPU6502 implements IClockable, IInspectableComponent {
+    id = 'cpu6502';
+    type = 'CPU6502';
+    name?: string;
+    get children() {
+        return this.bus ? [this.bus] : [];
+    }
     bus: Bus;
     PC: number;
     A: number;

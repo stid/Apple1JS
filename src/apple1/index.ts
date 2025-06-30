@@ -3,11 +3,11 @@ import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
 import ROM from '../core/ROM';
 import RAM from '../core/RAM';
-
 import Bus from '../core/Bus';
-
 import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
+import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { InspectableIoComponent } from '../core/InspectableIoComponent';
 
 // ROM + Demo Program
 import anniversary from './progs/anniversary';
@@ -28,7 +28,31 @@ const RAM_BANK2_ADDR: [number, number] = [0xe000, 0xefff];
 // $D010-$D013 PIA (6821) [KBD & DSP]
 const PIA_ADDR: [number, number] = [0xd010, 0xd013];
 
-class Apple1 {
+class Apple1 implements IInspectableComponent {
+    id = 'apple1';
+    type = 'Apple1';
+    get children() {
+        // Wrap video and keyboard as inspectable if possible
+        const children: IInspectableComponent[] = [
+            this.cpu,
+            this.bus,
+            this.rom,
+            this.ramBank1,
+            this.ramBank2,
+            this.pia,
+            this.clock,
+        ];
+        if (this.video) {
+            children.push(new InspectableIoComponent('video', 'IoComponent', this.video));
+        }
+        if (this.keyboard) {
+            children.push(new InspectableIoComponent('keyboard', 'IoComponent', this.keyboard));
+        }
+        return children;
+    }
+    getCompositionTree(): IInspectableComponent {
+        return this;
+    }
     pia: PIA6820;
     keyboardLogic: KeyboardLogic;
     displayLogic: DisplayLogic;
@@ -50,6 +74,7 @@ class Apple1 {
 
         // Create PIA & use it to wire to related IOComponents / Logic
         this.pia = new PIA6820();
+        this.pia.name = 'Peripheral Interface Adapter (PIA 6820)';
         this.keyboardLogic = new KeyboardLogic(this.pia);
         this.displayLogic = new DisplayLogic(this.pia);
         this.pia.wireIOA(this.keyboardLogic);
@@ -57,8 +82,20 @@ class Apple1 {
 
         // Map Components to related memory addresses
         this.rom = new ROM();
+        this.rom.name = 'Monitor ROM';
         this.ramBank1 = new RAM();
+        this.ramBank1.name = 'Main RAM (Bank 1)';
         this.ramBank2 = new RAM();
+        this.ramBank2.name = 'Extended RAM (Bank 2)';
+        // Annotate each component with its address info for inspection
+        function annotateAddress(component: unknown, addr: [number, number], name: string) {
+            if (typeof component === 'object' && component !== null) {
+                (component as { __address?: string }).__address =
+                    `${addr[0].toString(16).toUpperCase()}:${addr[1].toString(16).toUpperCase()}`;
+                (component as { __addressRange?: [number, number] }).__addressRange = addr;
+                (component as { __addressName?: string }).__addressName = name;
+            }
+        }
         this.busMapping = [
             { addr: ROM_ADDR, component: this.rom, name: 'ROM' },
             { addr: RAM_BANK1_ADDR, component: this.ramBank1, name: 'RAM_BANK_1' },
@@ -67,6 +104,8 @@ class Apple1 {
             { addr: RAM_BANK2_ADDR, component: this.ramBank2, name: 'RAM_BANK_2' },
             { addr: PIA_ADDR, component: this.pia, name: 'PIA6820' },
         ];
+        // Annotate all bus-mapped components
+        this.busMapping.forEach(({ component, addr, name }) => annotateAddress(component, addr, name));
 
         // LOAD PROGRAMS in ROM/RAM
         this.rom.flash(wozMonitor);
@@ -75,7 +114,9 @@ class Apple1 {
 
         // Bound CPU to related Address Spaces
         this.bus = new Bus(this.busMapping);
+        this.bus.name = 'System Bus';
         this.cpu = new CPU6502(this.bus);
+        this.cpu.name = '6502 CPU';
 
         // WIRING IO
         this.keyboard.wire({
@@ -107,6 +148,7 @@ class Apple1 {
         // Clock is bound to the CPU and will step on it + take care of respecting
         // the related cycles per executed instruction type.
         this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
+        this.clock.name = 'System Clock';
         console.log(`Apple 1`);
 
         this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));

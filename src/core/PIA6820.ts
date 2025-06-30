@@ -1,3 +1,4 @@
+import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoComponent } from './@types/IoComponent';
 import { subscribeFunction } from './@types/PubSub';
 import * as utils from './utils';
@@ -7,7 +8,34 @@ const A_KBDCR = 0x1;
 const B_DSP = 0x2;
 const B_DSPCR = 0x3;
 
-class PIA6820 {
+class PIA6820 implements IInspectableComponent {
+    id = 'pia6820';
+    type = 'PIA6820';
+    name?: string;
+    get children() {
+        const children = [];
+        if (
+            this.ioA &&
+            typeof this.ioA === 'object' &&
+            'type' in this.ioA &&
+            'id' in this.ioA &&
+            typeof this.ioA.id === 'string' &&
+            typeof this.ioA.type === 'string'
+        ) {
+            children.push(this.ioA as import('./@types/IInspectableComponent').IInspectableComponent);
+        }
+        if (
+            this.ioB &&
+            typeof this.ioB === 'object' &&
+            'type' in this.ioB &&
+            'id' in this.ioB &&
+            typeof this.ioB.id === 'string' &&
+            typeof this.ioB.type === 'string'
+        ) {
+            children.push(this.ioB as import('./@types/IInspectableComponent').IInspectableComponent);
+        }
+        return children;
+    }
     private data: number[];
     ioA?: IoComponent;
     ioB?: IoComponent;

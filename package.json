@@ -55,6 +55,7 @@
         "million": "^3.1.11",
         "react": "19.1.0",
         "react-dom": "19.1.0",
+        "reactflow": "^11.11.4",
         "waait": "^1.0.5",
         "web-vitals": "^5.0.3"
     }
