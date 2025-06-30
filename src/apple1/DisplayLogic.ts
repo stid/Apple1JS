@@ -13,20 +13,26 @@ class DisplayLogic implements IoLogic {
         this.pia = pia;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async read(_address: number): Promise<void> {
-        // Not imFplemented
+    async read(): Promise<void> {
+        // Not implemented
         return;
     }
 
+    /**
+     * Handles a character write to the display.
+     * Sets PB7 (display busy) before write, clears PB7 (display ready) after write.
+     * This handshake is essential for correct emulation: if PB7 is left set after a state restore,
+     * the emulated code may wait forever for the display to become ready. Always clear PB7 after restore.
+     */
     async write(char: number): Promise<void> {
         if (char == RESET_CODE) {
             this.wireReset?.();
             return;
         }
-        // CB2 is wired to PB7 - arise on display busy
+        // CB2 is wired to PB7 - set PB7 to indicate display is busy
         this.pia.setBitDataB(7);
         await this.wireWrite?.(char);
+        // Clear PB7 to indicate display is ready
         this.pia.clearBitDataB(7);
     }
 

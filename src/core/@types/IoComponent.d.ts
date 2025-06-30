@@ -9,4 +9,7 @@ export declare interface IoComponent {
     write(value: number | string): Promise<number | string | void>;
     wire(options: WireOptions): void;
     reset(): void;
+    // Optional: for video components that support state save/restore
+    getState?(): unknown;
+    setState?(state: unknown): void;
 }

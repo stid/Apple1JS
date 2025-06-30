@@ -1,6 +1,7 @@
-import { IClockable } from './@types/clockable';
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import Bus from './Bus';
+import type { IClockable } from './@types/clockable';
+import type { IInspectableComponent } from './@types/IInspectableComponent';
+import type Bus from './Bus';
+import type { CPU6502State } from './@types/CPU6502State';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Opcode table
@@ -1115,6 +1116,55 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 class CPU6502 implements IClockable, IInspectableComponent {
+    /**
+     * Returns a serializable copy of the CPU state.
+     */
+    saveState(): CPU6502State {
+        return {
+            PC: this.PC,
+            A: this.A,
+            X: this.X,
+            Y: this.Y,
+            S: this.S,
+            N: this.N,
+            Z: this.Z,
+            C: this.C,
+            V: this.V,
+            I: this.I,
+            D: this.D,
+            irq: this.irq,
+            nmi: this.nmi,
+            cycles: this.cycles,
+            opcode: this.opcode,
+            address: this.address,
+            data: this.data,
+        };
+    }
+
+    /**
+     * Restores CPU state from a previously saved state.
+     */
+    loadState(state: CPU6502State): void {
+        if (!state) throw new Error('Invalid CPU state');
+        this.PC = state.PC;
+        this.A = state.A;
+        this.X = state.X;
+        this.Y = state.Y;
+        this.S = state.S;
+        this.N = state.N;
+        this.Z = state.Z;
+        this.C = state.C;
+        this.V = state.V;
+        this.I = state.I;
+        this.D = state.D;
+        this.irq = state.irq;
+        this.nmi = state.nmi;
+        this.cycles = state.cycles;
+        this.opcode = state.opcode;
+        this.address = state.address;
+        this.data = state.data;
+    }
+
     getInspectable?() {
         // Disassemble current and next instruction (if possible)
         let disasm: unknown = undefined;
@@ -1230,6 +1280,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
     ////////////////////////////////////////////////////////////////////////////////
 
     reset(): void {
+        console.log('[CPU6502] reset called');
         this.A = 0;
         this.X = 0;
         this.Y = 0;

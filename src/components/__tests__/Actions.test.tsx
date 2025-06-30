@@ -7,6 +7,9 @@ describe('Actions component', () => {
         onReset: jest.fn(),
         onBS: jest.fn(),
         supportBS: true,
+        onSaveState: jest.fn(),
+        onLoadState: jest.fn(),
+        onRefocus: jest.fn(),
     };
 
     afterEach(() => {

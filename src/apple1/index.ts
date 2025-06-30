@@ -1,3 +1,28 @@
+// Emulator state type for save/load
+import type { CPU6502State } from '../core/@types/CPU6502State';
+
+export interface RAMBankState {
+    id: string;
+    state: { data: number[] };
+}
+
+export interface PIAState {
+    data: number[];
+}
+
+export interface VideoState {
+    buffer: unknown; // Use VideoBuffer if type is available
+    row: number;
+    column: number;
+    rowShift?: number;
+}
+
+export interface EmulatorState {
+    ram: RAMBankState[];
+    cpu: CPU6502State;
+    pia: PIAState;
+    video: VideoState;
+}
 import CPU6502 from '../core/6502';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
@@ -29,6 +54,54 @@ const RAM_BANK2_ADDR: [number, number] = [0xe000, 0xefff];
 const PIA_ADDR: [number, number] = [0xd010, 0xd013];
 
 class Apple1 implements IInspectableComponent {
+    /**
+     * Save the state of the entire machine (RAM, CPU, PIA, ...).
+     */
+    saveState(): EmulatorState {
+        return {
+            ram: this.saveRAMState(),
+            cpu: this.cpu.saveState(),
+            pia: this.pia.saveState() as PIAState,
+            video:
+                typeof this.video.getState === 'function'
+                    ? (this.video.getState() as VideoState)
+                    : (undefined as unknown as VideoState),
+        };
+    }
+
+    /**
+     * Restore the state of the entire machine (RAM, CPU, PIA, ...).
+     */
+    loadState(state: EmulatorState) {
+        if (state.ram) this.loadRAMState(state.ram);
+        if (state.cpu) this.cpu.loadState(state.cpu);
+        if (state.pia) this.pia.loadState(state.pia);
+        if (state.video && typeof this.video.setState === 'function') this.video.setState(state.video);
+    }
+    /**
+     * Save the state of all RAM banks.
+     */
+    saveRAMState() {
+        return [
+            { id: this.ramBank1.id, state: this.ramBank1.saveState() },
+            { id: this.ramBank2.id, state: this.ramBank2.saveState() },
+            // Add more banks here if needed
+        ];
+    }
+
+    /**
+     * Restore the state of all RAM banks.
+     */
+    loadRAMState(savedStates: { id: string; state: { data: number[] } }[]) {
+        savedStates.forEach((saved) => {
+            if (saved.id === this.ramBank1.id) {
+                this.ramBank1.loadState(saved.state);
+            } else if (saved.id === this.ramBank2.id) {
+                this.ramBank2.loadState(saved.state);
+            }
+            // Add more banks here if needed
+        });
+    }
     id = 'apple1';
     type = 'Apple1';
     get children() {

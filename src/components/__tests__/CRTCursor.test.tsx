@@ -5,25 +5,27 @@ import CRTCursor from '../CRTCursor';
 jest.useFakeTimers();
 
 describe('CRTCursor', () => {
-    it('should toggle visibility every 400ms when visible and 600ms when not visible', () => {
+    it('should toggle visibility with the blink interval', () => {
         const { rerender, queryByTestId } = render(<CRTCursor row={0} column={0} />);
 
-        expect(queryByTestId('cursor')).toBeVisible();
+        const getCursorOpacity = () => {
+            const el = queryByTestId('cursor');
+            if (!el) return null;
+            return window.getComputedStyle(el).opacity;
+        };
+
+        expect(getCursorOpacity()).toBe('1');
 
         act(() => {
-            jest.advanceTimersByTime(400);
+            jest.advanceTimersByTime(500);
         });
-
         rerender(<CRTCursor row={0} column={0} />);
-
-        expect(queryByTestId('cursor')).not.toBeVisible();
+        expect(getCursorOpacity()).toBe('0');
 
         act(() => {
-            jest.advanceTimersByTime(600);
+            jest.advanceTimersByTime(500);
         });
-
         rerender(<CRTCursor row={0} column={0} />);
-
-        expect(queryByTestId('cursor')).toBeVisible();
+        expect(getCursorOpacity()).toBe('1');
     });
 });

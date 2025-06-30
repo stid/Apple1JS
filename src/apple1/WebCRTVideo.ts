@@ -39,6 +39,37 @@ function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
 import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
 
 class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
+    /**
+     * Public method to force a video update to all subscribers.
+     */
+    forceUpdate() {
+        this._notifySubscribers();
+    }
+    /**
+     * Returns a serializable copy of the video state (buffer, row, column).
+     */
+    getState() {
+        // Deep clone buffer for immutability
+        return {
+            buffer: cloneBuffer(this.buffer),
+            row: this.row,
+            column: this.column,
+            rowShift: this.rowShift,
+        };
+    }
+
+    /**
+     * Restores the video state (buffer, row, column) from a saved state.
+     */
+    setState(state: { buffer: VideoBuffer; row: number; column: number; rowShift?: number }) {
+        if (!state) throw new Error('Invalid video state');
+        this.buffer = cloneBuffer(state.buffer);
+        this.row = state.row;
+        this.column = state.column;
+        if (typeof state.rowShift === 'number') this.rowShift = state.rowShift;
+        // Always notify subscribers, even if buffer looks the same
+        this._notifySubscribers();
+    }
     id: string = 'crtvideo';
     type: string = 'IoComponent';
     name?: string = 'Video Output';
