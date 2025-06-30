@@ -10,10 +10,18 @@ export interface PIAState {
     data: number[];
 }
 
+export interface VideoState {
+    buffer: unknown; // Use VideoBuffer if type is available
+    row: number;
+    column: number;
+    rowShift?: number;
+}
+
 export interface EmulatorState {
     ram: RAMBankState[];
     cpu: CPU6502State;
     pia: PIAState;
+    video: VideoState;
 }
 import CPU6502 from '../core/6502';
 import PIA6820 from '../core/PIA6820';
@@ -54,6 +62,10 @@ class Apple1 implements IInspectableComponent {
             ram: this.saveRAMState(),
             cpu: this.cpu.saveState(),
             pia: this.pia.saveState() as PIAState,
+            video:
+                typeof this.video.getState === 'function'
+                    ? (this.video.getState() as VideoState)
+                    : (undefined as unknown as VideoState),
         };
     }
 
@@ -64,6 +76,7 @@ class Apple1 implements IInspectableComponent {
         if (state.ram) this.loadRAMState(state.ram);
         if (state.cpu) this.cpu.loadState(state.cpu);
         if (state.pia) this.pia.loadState(state.pia);
+        if (state.video && typeof this.video.setState === 'function') this.video.setState(state.video);
     }
     /**
      * Save the state of all RAM banks.

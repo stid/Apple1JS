@@ -57,8 +57,15 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
         case WORKER_MESSAGES.LOAD_STATE: {
             // Restore full machine state
             if (data && typeof data === 'object') {
-                // @ts-expect-error: TypeScript can't infer the structure, but we know it's correct
-                apple1.loadState(data);
+                // Deep clone the state to ensure a new reference and trigger state change
+                const clonedState = JSON.parse(JSON.stringify(data));
+                apple1.loadState(clonedState);
+                // Always restart the main loop after loading state
+                apple1.startLoop();
+                // Force video update after restore
+                if (typeof video.forceUpdate === 'function') {
+                    video.forceUpdate();
+                }
             }
             break;
         }

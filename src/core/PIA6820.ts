@@ -26,6 +26,10 @@ class PIA6820 implements IInspectableComponent {
             throw new Error('Invalid PIA state or size mismatch');
         }
         this.data = [...state.data];
+        // Always clear PB7 (display busy) after restore to avoid stuck display
+        this.clearBitDataB(7);
+        // Notify all subscribers after restoring state to ensure display logic and others are up to date
+        this._notifySubscribers();
     }
     /**
      * Returns a serializable architecture view of the PIA6820 and its children, suitable for inspectors.

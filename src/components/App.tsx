@@ -106,6 +106,8 @@ const App = ({ worker }: Props): JSX.Element => {
                 try {
                     const state = JSON.parse(event.target?.result as string);
                     worker.postMessage({ type: WORKER_MESSAGES.LOAD_STATE, data: state });
+                    // Reset input so selecting the same file again triggers change
+                    e.target.value = '';
                 } catch {
                     window.alert('Invalid state file.');
                 }

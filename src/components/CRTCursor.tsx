@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import * as CRTConstants from './CRTConstants';
 import CRTRowChar from './CRTRowCharRom';
 
@@ -10,18 +10,30 @@ type CRTCursorProps = {
 const getCursorStyle = (row: number, column: number, visible: boolean) => ({
     left: `${column * (CRTConstants.FONT_RECT[0] - 4) + CRTConstants.LEFT_PADDING - 11}px`,
     top: `${row * CRTConstants.FONT_RECT[1] + CRTConstants.TOP_PADDING}px`,
-    display: visible ? 'block' : 'none',
+    opacity: visible ? 1 : 0,
+    transition: 'opacity 0.1s linear',
 });
+
+const BLINK_INTERVAL = 500; // ms
 
 const CRTCursor: React.FC<CRTCursorProps> = ({ row, column }) => {
     const [visible, setVisible] = useState(true);
+    const lastPos = useRef({ row, column });
 
     useEffect(() => {
-        const toggleVisibility = () => setVisible((prevVisible) => !prevVisible);
-        const visibleTimeout = visible ? 400 : 600;
-        const timerId = setTimeout(toggleVisibility, visibleTimeout);
-        return () => clearTimeout(timerId);
-    }, [visible]);
+        // Reset blink if cursor moves
+        if (lastPos.current.row !== row || lastPos.current.column !== column) {
+            setVisible(true);
+            lastPos.current = { row, column };
+        }
+    }, [row, column]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setVisible((v) => !v);
+        }, BLINK_INTERVAL);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="absolute" data-testid="cursor" style={getCursorStyle(row, column, visible)}>
