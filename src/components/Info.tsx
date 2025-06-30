@@ -1,5 +1,5 @@
 const StartInstructions = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">FIRST START / RESET</h3>
         <p className="text-slate-200">
             Press <span className="font-mono bg-slate-800 px-1 rounded">TAB</span>
@@ -8,14 +8,14 @@ const StartInstructions = () => (
 );
 
 const TestProgram = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">TEST PROGRAM</h3>
         <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0 0 R`}</pre>
     </section>
 );
 
 const BasicProgram = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">BASIC</h3>
         <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`E000R
 10 PRINT "HELLO WORLD!"
@@ -25,21 +25,21 @@ RUN`}</pre>
 );
 
 const AnniversaryInfo = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">APPLE 30th ANNIVERSARY</h3>
         <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block whitespace-pre">{`280R`}</pre>
     </section>
 );
 
 const MemoryAddresses = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">LIST MEMORY ADDRESS</h3>
         <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono inline-block whitespace-pre">{`0.FF`}</pre>
     </section>
 );
 
 const ManualLink = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">APPLE-1 OPERATION MANUAL</h3>
         <a
             href="http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf"
@@ -53,7 +53,7 @@ const ManualLink = () => (
 );
 
 const GitHubLink = () => (
-    <section className="mb-6">
+    <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">GITHUB</h3>
         <a
             href="https://github.com/stid/Apple1JS"
@@ -67,7 +67,7 @@ const GitHubLink = () => (
 );
 
 const Info = () => (
-    <aside className="bg-black/80 rounded-xl px-2 py-2 md:px-3 md:py-3 max-w-md lg:max-w-lg ml-auto mr-0 text-slate-100 shadow-lg border border-slate-800 flex flex-col gap-1">
+    <aside className="bg-black/80 rounded-xl px-2 py-2 md:px-3 md:py-3 w-full ml-auto mr-0 text-slate-100 shadow-lg border border-slate-800 flex flex-col gap-0.5">
         <StartInstructions />
         <TestProgram />
         <BasicProgram />
