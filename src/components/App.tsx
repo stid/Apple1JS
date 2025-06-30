@@ -151,6 +151,7 @@ const App = ({ worker }: Props): JSX.Element => {
                             )}
                             onSaveState={handleSaveState}
                             onLoadState={handleLoadState}
+                            onRefocus={focusHiddenInput}
                         />
                     </div>
                 </div>
@@ -159,13 +160,19 @@ const App = ({ worker }: Props): JSX.Element => {
                     <div className="flex gap-2 mb-2 mt-2">
                         <button
                             className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
-                            onClick={() => setRightTab('info')}
+                            onClick={() => {
+                                setRightTab('info');
+                                focusHiddenInput();
+                            }}
                         >
                             Guide
                         </button>
                         <button
                             className={`px-3 py-1 rounded ${rightTab === 'debug' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
-                            onClick={() => setRightTab('debug')}
+                            onClick={() => {
+                                setRightTab('debug');
+                                focusHiddenInput();
+                            }}
                         >
                             Debug
                         </button>

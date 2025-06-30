@@ -9,6 +9,7 @@ describe('Actions component', () => {
         supportBS: true,
         onSaveState: jest.fn(),
         onLoadState: jest.fn(),
+        onRefocus: jest.fn(),
     };
 
     afterEach(() => {
