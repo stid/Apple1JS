@@ -3,7 +3,7 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8dda601a-c4c2-4cde-80c4-bc08ffd6d18e/deploy-status)](https://app.netlify.com/sites/stidme/deploys)
 [![CodeQL](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql)
 
-The Apple 1 JS Emulator is a project written in TypeScript/JavaScript that emulates the Apple 1 computer. It is based on the [Hybrid HW](https://github.com/stid/APPLE-1-ReplicaDue) and Torlus' [6502.js](https://github.com/Torlus/6502.js) project.
+A modern TypeScript/React-based Apple 1 computer emulator featuring complete 6502 CPU emulation, memory management, peripheral interface adapter (PIA 6820), and a CRT-style display interface. Built with Vite and modern web technologies.
 
 ## Demo
 
@@ -19,11 +19,28 @@ yarn install
 
 Then, start the emulator in developer mode with:
 
-``` ssh
-yarn start
+```bash
+yarn dev
 ```
 
-You can access the emulator in your browser at `localhost:1234`.
+You can access the emulator in your browser at `localhost:3000`.
+
+## Development Commands
+
+### Core Development
+
+- `yarn dev` - Start development server (Vite, runs on port 3000)
+- `yarn build` - Build for production (TypeScript compilation + Vite build)
+- `yarn preview` - Preview production build
+
+### Testing & Quality
+
+- `yarn test` - Run Jest tests (includes pretest: lint + type-check)
+- `yarn test:ci` - CI test runner with Jest JUnit reporter
+- `yarn lint` - ESLint for TypeScript/React files
+- `yarn lint:fix` - Auto-fix linting issues
+- `yarn type-check` - TypeScript compilation check
+- `yarn format` - Prettier formatting
 
 ## Test Programs
 
