@@ -1961,22 +1961,40 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.write(this.addr, this.tmp & 0xff);
     }
 
-    // INCOMPLETE IMPLEMENTATION
+    // Previously incomplete illegal opcodes - now implemented
 
     kil(): void {
-        return;
+        // KIL/JAM/HLT - Halts the CPU by jamming the program counter
+        // This effectively freezes execution at the current PC
+        this.PC--;
+        // Note: In real hardware this would require a reset, but for emulation
+        // we simply prevent PC advancement to simulate the jam state
     }
 
     tas(): void {
-        return;
+        // TAS (Transfer A AND X to Stack pointer, Store A AND X AND (H+1))
+        // S = A & X; Store A & X & (high_byte_of_address + 1) to memory
+        this.S = this.A & this.X;
+        this.tmp = this.A & this.X & ((this.addr >> 8) + 1);
+        this.write(this.addr, this.tmp & 0xff);
     }
 
     axs(): void {
-        return;
+        // AXS/SBX (A AND X minus immediate, store in X)
+        // X = (A & X) - immediate, set flags
+        const v = this.read(this.addr);
+        this.tmp = (this.A & this.X) - v;
+        this.X = this.tmp & 0xff;
+        this.fnzb(this.tmp);
     }
 
     xaa(): void {
-        return;
+        // XAA/ANE (Transfer X to A, then AND with immediate)
+        // A = X & immediate
+        // Note: This opcode is highly unstable on real hardware and behavior
+        // varies between different 6502 variants. This is a simplified implementation.
+        this.A = this.X & this.read(this.addr);
+        this.fnz(this.A);
     }
 }
 

@@ -145,4 +145,136 @@ describe('CPU6502', function () {
         stepRes = cpu.performSingleStep();
         expect(cpu.PC).toBe(0xff00);
     });
+
+    describe('Illegal Opcodes', function () {
+        test('KIL instruction should jam CPU', function () {
+            // Setup ROM with KIL instruction (0x02)
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfd] = 0xff;
+            romData[2 + 0xfc] = 0x00;
+            const prog = [0x00, 0xff, 0x02]; // BRK, then KIL
+            romData.splice(0, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            
+            // Execute BRK
+            cpu.performSingleStep();
+            
+            // Execute KIL - should jam the CPU
+            const pcBeforeKIL = cpu.PC;
+            cpu.performSingleStep();
+            const pcAfterKIL = cpu.PC;
+            
+            // PC should not advance (jammed)
+            expect(pcAfterKIL).toBe(pcBeforeKIL);
+        });
+
+        test('TAS instruction should transfer A AND X to S and store', function () {
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfd] = 0xff;
+            romData[2 + 0xfc] = 0x00;
+            const prog = [0x00, 0xff, 0xa9, 0xf0, 0xa2, 0x0f, 0x9b, 0x10, 0x00]; // LDA #$F0, LDX #$0F, TAS $0010
+            romData.splice(0, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            cpu.performSingleStep(); // BRK
+            cpu.performSingleStep(); // LDA #$F0
+            cpu.performSingleStep(); // LDX #$0F
+            
+            expect(cpu.A).toBe(0xf0);
+            expect(cpu.X).toBe(0x0f);
+            
+            cpu.performSingleStep(); // TAS $0010
+            
+            // S should be A AND X
+            expect(cpu.S).toBe(0xf0 & 0x0f); // 0x00
+            // Memory at 0x10 should contain A & X & (high_byte + 1)
+            expect(ramInstance.read(0x10)).toBe(0xf0 & 0x0f & 0x01); // 0x00
+        });
+
+        test('LDX immediate value test', function () {
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfd] = 0xff;
+            romData[2 + 0xfc] = 0x00;
+            // BRK, then padding, then: LDX #$33
+            const prog = [0x00, 0xff, 0xa2, 0x33];
+            romData.splice(0, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            expect(cpu.PC).toBe(0xff00);
+            
+            // BRK
+            cpu.performSingleStep();
+            
+            // LDX #$33  
+            expect(cpu.PC).toBe(0xff02); // Should be at LDX
+            cpu.performSingleStep();
+            expect(cpu.X).toBe(0x33);
+            expect(cpu.PC).toBe(0xff04); // Should be past LDX
+        });
+
+        test('AXS instruction implementation', function () {
+            // Test AXS directly by setting up CPU state manually
+            cpu.A = 0xaa;
+            cpu.X = 0x55; 
+            cpu.C = true; // Start with carry set
+            
+            // Set up immediate addressing mode
+            cpu.addr = 0x10; // Arbitrary address for immediate value
+            ramInstance.write(0x10, 0x05); // Store immediate value 0x05
+            
+            // Execute AXS directly
+            cpu.axs();
+            
+            // X should be (A & X) - immediate = (0xAA & 0x55) - 0x05 = 0x00 - 0x05 = 0xFB (with borrow)
+            expect(cpu.X).toBe(0xfb);
+            expect(cpu.C).toBe(false); // Borrow occurred
+            expect(cpu.Z).toBe(false);
+            expect(cpu.N).toBe(true); // Negative result
+        });
+
+        test('XAA instruction should transfer X to A then AND with immediate', function () {
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfd] = 0xff;
+            romData[2 + 0xfc] = 0x00;
+            const prog = [0x00, 0xff, 0xa2, 0xf0, 0x8b, 0x33]; // LDX #$F0, XAA #$33
+            romData.splice(0, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            cpu.performSingleStep(); // BRK
+            cpu.performSingleStep(); // LDX #$F0
+            
+            expect(cpu.X).toBe(0xf0);
+            
+            cpu.performSingleStep(); // XAA #$33
+            
+            // A should be X & immediate = 0xF0 & 0x33 = 0x30
+            expect(cpu.A).toBe(0x30);
+            expect(cpu.Z).toBe(false);
+            expect(cpu.N).toBe(false);
+        });
+
+        test('XAA with zero result should set zero flag', function () {
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfd] = 0xff;
+            romData[2 + 0xfc] = 0x00;
+            const prog = [0x00, 0xff, 0xa2, 0xf0, 0x8b, 0x0f]; // LDX #$F0, XAA #$0F
+            romData.splice(0, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            cpu.performSingleStep(); // BRK
+            cpu.performSingleStep(); // LDX #$F0
+            cpu.performSingleStep(); // XAA #$0F
+            
+            // A should be X & immediate = 0xF0 & 0x0F = 0x00
+            expect(cpu.A).toBe(0x00);
+            expect(cpu.Z).toBe(true);
+            expect(cpu.N).toBe(false);
+        });
+    });
 });
