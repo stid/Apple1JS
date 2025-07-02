@@ -52,12 +52,38 @@ class ROM implements IoAddressable, IInspectableComponent {
     }
 
     flash(data: Array<number>): void {
-        if (data.length - 2 > this.data.length) {
-            loggingService.error('ROM', 'Data size exceeds ROM capacity');
+        if (!Array.isArray(data) || data.length < 2) {
+            loggingService.error('ROM', 'Flash data must be an array with at least 2 bytes (address header)');
             return;
         }
 
-        this.data.set(data.slice(2, this.data.length), 0);
+        const [highAddr, lowAddr, ...coreData] = data;
+
+        if (typeof highAddr !== 'number' || typeof lowAddr !== 'number') {
+            loggingService.error('ROM', 'Address bytes must be numbers');
+            return;
+        }
+
+        if (coreData.length > this.data.length) {
+            loggingService.error('ROM', `Flash data too large (${coreData.length} bytes > ${this.data.length} bytes)`);
+            return;
+        }
+
+        // Validate and mask data values to 8-bit
+        const validatedData = coreData.map((byte, index) => {
+            if (typeof byte !== 'number') {
+                loggingService.warn('ROM', `Non-numeric data at index ${index}, using 0`);
+                return 0;
+            }
+            const masked = byte & 0xFF;
+            if (byte !== masked) {
+                loggingService.info('ROM', `Data byte ${byte} masked to ${masked}`);
+            }
+            return masked;
+        });
+
+        this.data.set(validatedData, 0);
+        loggingService.info('ROM', `Flashed ${coreData.length} bytes to ROM`);
     }
 
     burn(data: Array<number>): void {

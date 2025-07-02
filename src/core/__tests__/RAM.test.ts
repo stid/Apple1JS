@@ -1,10 +1,17 @@
 import RAM from '../RAM';
+import { loggingService } from '../../services/LoggingService';
 
 describe('RAM', function () {
     let testRam: RAM;
-
     beforeEach(function () {
         testRam = new RAM();
+        jest.spyOn(loggingService, 'warn').mockImplementation();
+        jest.spyOn(loggingService, 'info').mockImplementation();
+        jest.spyOn(loggingService, 'error').mockImplementation();
+    });
+
+    afterEach(function () {
+        jest.restoreAllMocks();
     });
     test('Should flash', function () {
         // Should load at 0x0280
@@ -47,8 +54,54 @@ describe('RAM', function () {
         expect(() => smallRam.flash([2, 0, 1, 2, 3, 4])).not.toThrow();
     });
 
-    test('Should raise an exception is flash content > ram space', function () {
+    test('Should log error when flash content exceeds RAM space', function () {
         const smallRam = new RAM(4);
-        expect(() => smallRam.flash([0, 0, 1, 2, 3, 4, 5])).toThrow(Error('Flash Data too large (5 -> 4)'));
+        const errorSpy = jest.spyOn(loggingService, 'error');
+        
+        smallRam.flash([0, 0, 1, 2, 3, 4, 5]);
+        
+        expect(errorSpy).toHaveBeenCalledWith('RAM', expect.stringContaining('Flash data too large'));
+    });
+
+    test('Should handle invalid read addresses with logging', function () {
+        const result1 = testRam.read(-1);
+        const result2 = testRam.read(99999);
+        
+        expect(result1).toBe(0);
+        expect(result2).toBe(0);
+        expect(loggingService.warn).toHaveBeenCalledWith('RAM', expect.stringContaining('Invalid read address'));
+    });
+
+    test('Should handle invalid write addresses with logging', function () {
+        testRam.write(-1, 0xAB);
+        testRam.write(99999, 0xCD);
+        
+        expect(loggingService.warn).toHaveBeenCalledWith('RAM', expect.stringContaining('Invalid write address'));
+    });
+
+    test('Should mask values over 255 on write', function () {
+        testRam.write(0x10, 300);
+        
+        expect(testRam.read(0x10)).toBe(44); // 300 & 0xFF = 44
+        expect(loggingService.info).toHaveBeenCalledWith('RAM', expect.stringContaining('masked to 8-bit'));
+    });
+
+    test('Should validate flash data format', function () {
+        const errorSpy = jest.spyOn(loggingService, 'error');
+        
+        testRam.flash([]);
+        expect(errorSpy).toHaveBeenCalledWith('RAM', expect.stringContaining('at least 2 bytes'));
+        
+        testRam.flash(['invalid' as unknown as number, 0, 1, 2]);
+        expect(errorSpy).toHaveBeenCalledWith('RAM', expect.stringContaining('must be numbers'));
+    });
+
+    test('Should handle non-numeric data in flash', function () {
+        const warnSpy = jest.spyOn(loggingService, 'warn');
+        
+        testRam.flash([0x10, 0x00, 1, 'invalid' as unknown as number, 3]);
+        
+        expect(warnSpy).toHaveBeenCalledWith('RAM', expect.stringContaining('Non-numeric data'));
+        expect(testRam.read(0x11)).toBe(0); // Should use 0 for invalid data
     });
 });
