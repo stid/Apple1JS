@@ -3,9 +3,11 @@ import Debugger from './Debugger';
 import Info from './Info';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
 import Actions from './Actions';
 import ErrorBoundary from './Error';
+import StatusPanel from './StatusPanel';
+import { useLogging } from '../contexts/LoggingContext';
 
 type Props = {
     worker: Worker;
@@ -16,6 +18,7 @@ const App = ({ worker }: Props): JSX.Element => {
     // Right panel tab: 'info' or 'debug'
     const [rightTab, setRightTab] = useState<'info' | 'debug'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
+    const { addMessage } = useLogging();
 
     const focusHiddenInput = useCallback(() => {
         const hiddenInput = hiddenInputRef.current;
@@ -68,6 +71,25 @@ const App = ({ worker }: Props): JSX.Element => {
     useEffect(() => {
         focusHiddenInput();
     }, [focusHiddenInput]);
+
+    // Handle log messages from worker
+    useEffect(() => {
+        const handleWorkerMessage = (event: MessageEvent) => {
+            if (event.data && event.data.type === WORKER_MESSAGES.LOG_MESSAGE) {
+                const logData = event.data.data as LogMessageData;
+                addMessage({
+                    level: logData.level,
+                    source: logData.source,
+                    message: logData.message
+                });
+            }
+        };
+
+        worker.addEventListener('message', handleWorkerMessage);
+        return () => {
+            worker.removeEventListener('message', handleWorkerMessage);
+        };
+    }, [worker, addMessage]);
 
     // --- State Save/Load Handlers ---
     const handleSaveState = useCallback(
@@ -157,6 +179,7 @@ const App = ({ worker }: Props): JSX.Element => {
                 </div>
                 {/* Right column: Info/Debug sub-tabs */}
                 <div className="w-full min-w-0 flex-1 bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
+                    <StatusPanel />
                     <div className="flex gap-2 mb-2 mt-2">
                         <button
                             className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}

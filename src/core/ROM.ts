@@ -1,6 +1,7 @@
 const DEFAULT_ROM_SIZE = 256;
 import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoAddressable } from './@types/IoAddressable';
+import { loggingService } from '../services/LoggingService';
 
 class ROM implements IoAddressable, IInspectableComponent {
     id = 'rom';
@@ -39,7 +40,7 @@ class ROM implements IoAddressable, IInspectableComponent {
 
     read(address: number): number {
         if (address < 0 || address >= this.data.length) {
-            console.error(`ROM: Invalid read address ${address}`);
+            loggingService.error('ROM', `Invalid read address ${address}`);
             return 0;
         }
 
@@ -47,12 +48,12 @@ class ROM implements IoAddressable, IInspectableComponent {
     }
 
     write(address: number, value: number): void {
-        console.warn(`ROM: Attempt to write ${value} to read-only memory at address ${address}`);
+        loggingService.warn('ROM', `Attempt to write ${value} to read-only memory at address ${address}`);
     }
 
     flash(data: Array<number>): void {
         if (data.length - 2 > this.data.length) {
-            console.error('ROM: Data size exceeds ROM capacity');
+            loggingService.error('ROM', 'Data size exceeds ROM capacity');
             return;
         }
 

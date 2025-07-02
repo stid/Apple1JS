@@ -1280,7 +1280,6 @@ class CPU6502 implements IClockable, IInspectableComponent {
     ////////////////////////////////////////////////////////////////////////////////
 
     reset(): void {
-        console.log('[CPU6502] reset called');
         this.A = 0;
         this.X = 0;
         this.Y = 0;
