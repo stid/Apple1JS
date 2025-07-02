@@ -134,4 +134,59 @@ describe('Bus', function () {
         expect(() => new Bus(tmpMapping)).toThrow(Error);
         expect(() => new Bus(tmpMapping)).toThrow('"BANK_A": Starting address is greater than ending address');
     });
+
+    test('Should cache frequently accessed addresses', function () {
+        // Access the same address multiple times
+        testBus.read(0x10);
+        testBus.read(0x10);
+        testBus.read(0x10);
+        
+        const inspectable = testBus.getInspectable();
+        expect(inspectable.cacheSize).toBeGreaterThan(0);
+        expect(inspectable.cacheHitRate).toBeGreaterThan(0);
+    });
+
+    test('Should clear cache', function () {
+        testBus.read(0x10);
+        expect(testBus.getInspectable().cacheSize).toBeGreaterThan(0);
+        
+        testBus.clearCache();
+        expect(testBus.getInspectable().cacheSize).toBe(0);
+        expect(testBus.getInspectable().cacheHitRate).toBe(0);
+    });
+
+    test('Should handle cache overflow with LRU eviction', function () {
+        const largeBus = new Bus([
+            {
+                addr: [0x0000, 0xFFFF],
+                component: {
+                    read: jest.fn().mockReturnValue(0x42),
+                    write: jest.fn(),
+                    flash: jest.fn(),
+                },
+                name: 'LARGE_BANK',
+            },
+        ]);
+
+        // Fill cache beyond max size (256)
+        for (let i = 0; i < 300; i++) {
+            largeBus.read(i);
+        }
+
+        const inspectable = largeBus.getInspectable();
+        expect(inspectable.cacheSize).toBeLessThanOrEqual(256);
+    });
+
+    test('Should include cache stats in debug output', function () {
+        testBus.read(0x10);
+        testBus.read(0x10);
+        
+        const debugOutput = testBus.toDebug();
+        
+        expect(debugOutput).toHaveProperty('CACHE');
+        expect(debugOutput).toHaveProperty('HIT_RATE');
+        expect(debugOutput).toHaveProperty('ACCESSES');
+        expect(debugOutput['ACCESSES']).toBe('2');
+        expect(debugOutput['HIT_RATE']).toBe('50.0%');
+    });
 });

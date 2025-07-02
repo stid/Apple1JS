@@ -1,5 +1,6 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoAddressable } from './@types/IoAddressable';
+import { loggingService } from '../services/LoggingService';
 
 const DEFAULT_RAM_BANK_SIZE = 4096;
 class RAM implements IoAddressable, IInspectableComponent {
@@ -58,32 +59,71 @@ class RAM implements IoAddressable, IInspectableComponent {
     }
 
     read(address: number): number {
-        return this.data[address] || 0;
+        if (address < 0 || address >= this.data.length) {
+            loggingService.warn('RAM', `Invalid read address ${address} (size: ${this.data.length})`);
+            return 0;
+        }
+        return this.data[address];
     }
 
     write(address: number, value: number): void {
-        if (address < this.data.length && address >= 0) {
-            this.data[address] = value;
+        if (address < 0 || address >= this.data.length) {
+            loggingService.warn('RAM', `Invalid write address ${address} (size: ${this.data.length})`);
+            return;
         }
+        if (value < 0 || value > 255) {
+            loggingService.info('RAM', `Value ${value} masked to 8-bit: ${value & 0xFF}`);
+            value = value & 0xFF;
+        }
+        this.data[address] = value;
     }
 
     flash(data: Array<number>): void {
+        if (!Array.isArray(data) || data.length < 2) {
+            loggingService.error('RAM', 'Flash data must be an array with at least 2 bytes (address header)');
+            return;
+        }
+
         const [highAddr, lowAddr, ...coreData] = data;
 
+        if (typeof highAddr !== 'number' || typeof lowAddr !== 'number') {
+            loggingService.error('RAM', 'Address bytes must be numbers');
+            return;
+        }
+
         if (coreData.length > this.data.length) {
-            throw new Error(`Flash Data too large (${coreData.length} -> ${this.data.length})`);
+            loggingService.error('RAM', `Flash data too large (${coreData.length} bytes > ${this.data.length} bytes)`);
+            return;
         }
 
         const prgAddr: number = highAddr | (lowAddr << 8);
 
-        if (prgAddr + coreData.length > this.data.length) {
-            throw new Error(
-                `Flash Data would write outside of bounds (address: ${prgAddr}, length: ${coreData.length})`,
-            );
+        if (prgAddr < 0 || prgAddr >= this.data.length) {
+            loggingService.error('RAM', `Flash address out of bounds: ${prgAddr}`);
+            return;
         }
 
-        const coreDataTyped = new Uint8Array(coreData);
+        if (prgAddr + coreData.length > this.data.length) {
+            loggingService.error('RAM', `Flash data would write outside bounds (addr: ${prgAddr}, len: ${coreData.length})`);
+            return;
+        }
+
+        // Validate and mask data values to 8-bit
+        const validatedData = coreData.map((byte, index) => {
+            if (typeof byte !== 'number') {
+                loggingService.warn('RAM', `Non-numeric data at index ${index}, using 0`);
+                return 0;
+            }
+            const masked = byte & 0xFF;
+            if (byte !== masked) {
+                loggingService.info('RAM', `Data byte ${byte} masked to ${masked}`);
+            }
+            return masked;
+        });
+
+        const coreDataTyped = new Uint8Array(validatedData);
         this.data.set(coreDataTyped, prgAddr);
+        loggingService.info('RAM', `Flashed ${coreData.length} bytes to address ${prgAddr}`);
     }
 }
 
