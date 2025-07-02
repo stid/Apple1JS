@@ -11,3 +11,6 @@ tmp
 
 *.tsbuildinfo
 CLAUDE.md
+
+# Environment files
+.env*

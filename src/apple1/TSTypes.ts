@@ -24,6 +24,7 @@ export enum WORKER_MESSAGES {
     SAVE_STATE, // Request to save emulator state
     LOAD_STATE, // Request to load emulator state
     STATE_DATA, // Response with state data
+    LOG_MESSAGE, // Log message from worker to main thread
 }
 
 // Enum for indexing the VideoBuffer row tuple
@@ -47,5 +48,12 @@ export interface DebugData {
     [key: string]: { [key: string]: string | number };
 }
 
+// Type for log messages from worker
+export interface LogMessageData {
+    level: 'info' | 'warn' | 'error';
+    source: string;
+    message: string;
+}
+
 // Union type for message data types
-export type MessageDataTypes = DebugData | VideoData;
+export type MessageDataTypes = DebugData | VideoData | LogMessageData;

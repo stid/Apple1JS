@@ -1,6 +1,7 @@
 import Main from './components/Main';
 import { createRoot } from 'react-dom/client';
 import { onCLS, onLCP } from 'web-vitals';
+import { LoggingProvider } from './contexts/LoggingContext';
 
 const createAppleWorker = (): Worker => {
     return new Worker(new URL('./apple1/Apple.worker.ts', import.meta.url), { type: 'module' });
@@ -23,7 +24,11 @@ const renderApp = (worker: Worker) => {
             apple1Instance = new Apple1({ video, keyboard });
         }
         const root = createRoot(container);
-        root.render(<Main worker={worker} apple1Instance={apple1Instance} />);
+        root.render(
+            <LoggingProvider>
+                <Main worker={worker} apple1Instance={apple1Instance} />
+            </LoggingProvider>
+        );
     } else {
         console.error('ERROR: App Container Not Found!');
     }

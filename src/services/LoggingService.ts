@@ -1,0 +1,56 @@
+import { LogLevel } from '../types/logging';
+
+export type LogHandler = (level: LogLevel, source: string, message: string) => void;
+
+class LoggingService {
+    private handlers: LogHandler[] = [];
+
+    addHandler(handler: LogHandler): void {
+        this.handlers.push(handler);
+    }
+
+    removeHandler(handler: LogHandler): void {
+        this.handlers = this.handlers.filter(h => h !== handler);
+    }
+
+    log(level: LogLevel, source: string, message: string): void {
+        // Always log to console in development
+        if (process.env.NODE_ENV === 'development') {
+            switch (level) {
+                case 'info':
+                    console.log(`[${source}] ${message}`);
+                    break;
+                case 'warn':
+                    console.warn(`[${source}] ${message}`);
+                    break;
+                case 'error':
+                    console.error(`[${source}] ${message}`);
+                    break;
+            }
+        }
+
+        // Forward to registered handlers (UI)
+        this.handlers.forEach(handler => {
+            try {
+                handler(level, source, message);
+            } catch (error) {
+                console.error('Error in logging handler:', error);
+            }
+        });
+    }
+
+    info(source: string, message: string): void {
+        this.log('info', source, message);
+    }
+
+    warn(source: string, message: string): void {
+        this.log('warn', source, message);
+    }
+
+    error(source: string, message: string): void {
+        this.log('error', source, message);
+    }
+}
+
+// Singleton instance
+export const loggingService = new LoggingService();

@@ -1,7 +1,8 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo, { WebCrtVideoSubFuncVideoType } from './WebCRTVideo';
-import { WORKER_MESSAGES } from './TSTypes';
+import { WORKER_MESSAGES, LogMessageData } from './TSTypes';
+import { loggingService } from '../services/LoggingService';
 
 export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();
@@ -9,6 +10,12 @@ export const keyboard = new WebWorkerKeyboard();
 video.subscribe((data: WebCrtVideoSubFuncVideoType) => {
     const { buffer, row, column } = data;
     postMessage({ data: { buffer, row, column }, type: WORKER_MESSAGES.UPDATE_VIDEO_BUFFER });
+});
+
+// Set up worker-to-main thread log message forwarding
+loggingService.addHandler((level, source, message) => {
+    const logData: LogMessageData = { level, source, message };
+    postMessage({ data: logData, type: WORKER_MESSAGES.LOG_MESSAGE });
 });
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
