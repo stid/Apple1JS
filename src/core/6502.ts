@@ -1138,6 +1138,8 @@ class CPU6502 implements IClockable, IInspectableComponent {
             opcode: this.opcode,
             address: this.address,
             data: this.data,
+            pendingIrq: this.pendingIrq,
+            pendingNmi: this.pendingNmi,
         };
     }
 
@@ -1163,6 +1165,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.opcode = state.opcode;
         this.address = state.address;
         this.data = state.data;
+        // Load interrupt state if present (for backward compatibility)
+        this.pendingIrq = (state as unknown as { pendingIrq?: boolean }).pendingIrq || false;
+        this.pendingNmi = (state as unknown as { pendingNmi?: boolean }).pendingNmi || false;
     }
 
     getInspectable?() {
@@ -1210,6 +1215,8 @@ class CPU6502 implements IClockable, IInspectableComponent {
             D: this.D,
             irq: this.irq,
             nmi: this.nmi,
+            pendingIrq: this.pendingIrq,
+            pendingNmi: this.pendingNmi,
             cycles: this.cycles,
             opcode: this.opcode,
             address: this.address,
@@ -1248,6 +1255,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     cycles: number;
 
+    // Interrupt state
+    private pendingIrq: boolean = false;
+    private pendingNmi: boolean = false;
+
     constructor(bus: Bus) {
         this.bus = bus;
 
@@ -1260,7 +1271,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.Z = false;
         this.C = false;
         this.V = false; // ALU flags
-        this.I = false;
+        this.I = true; // Interrupts disabled after power-on
         this.D = false; // Other flags
 
         this.data = 0;
@@ -1288,17 +1299,27 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.Z = true;
         this.C = false;
         this.V = false;
-        this.I = false;
+        this.I = true; // Interrupts disabled after reset
         this.D = false;
 
         this.data = 0;
         this.address = 0;
+        
+        // Clear interrupt state
+        this.irq = false;
+        this.nmi = false;
+        this.pendingIrq = false;
+        this.pendingNmi = false;
 
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
     }
 
     performSingleStep(): number {
         const startCycles = this.cycles;
+        
+        // Check for interrupts before executing next instruction
+        this.checkInterrupts();
+        
         this.opcode = this.read(this.PC++);
         CPU6502op[this.opcode](this);
         return this.cycles - startCycles;
@@ -1579,6 +1600,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
     }
     cli(): void {
         this.I = false;
+        this.updateIrqPending();
     }
     clv(): void {
         this.V = false;
@@ -1798,6 +1820,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
     }
     sei(): void {
         this.I = true;
+        this.updateIrqPending();
     }
 
     slo(): void {
@@ -1846,6 +1869,120 @@ class CPU6502 implements IClockable, IInspectableComponent {
     tya(): void {
         this.A = this.Y;
         this.fnz(this.A);
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    // Interrupt handling
+    ////////////////////////////////////////////////////////////////////////////////
+    
+    /**
+     * Updates IRQ pending state based on current IRQ line and I flag
+     */
+    private updateIrqPending(): void {
+        this.pendingIrq = this.irq && !this.I;
+    }
+    
+    /**
+     * Sets the IRQ line state
+     */
+    setIrq(state: boolean): void {
+        this.irq = state;
+        this.updateIrqPending();
+    }
+    
+    /**
+     * Sets the NMI line state  
+     */
+    setNmi(state: boolean): void {
+        // NMI is edge-triggered (triggers on falling edge)
+        const previousNmi = this.nmi;
+        this.nmi = state;
+        if (previousNmi && !state) {
+            this.pendingNmi = true;
+        }
+    }
+    
+    /**
+     * Checks for pending interrupts and handles them
+     */
+    private checkInterrupts(): void {
+        // NMI has higher priority than IRQ
+        if (this.pendingNmi) {
+            this.handleNmi();
+            this.pendingNmi = false;
+        } else if (this.pendingIrq && !this.I) {
+            this.handleIrq();
+            this.pendingIrq = false;
+        }
+        
+        // Update IRQ pending state based on current IRQ line and I flag
+        this.updateIrqPending();
+    }
+    
+    /**
+     * Handles IRQ interrupt
+     */
+    private handleIrq(): void {
+        // Push PC to stack (high byte first)
+        this.write(this.S + 0x100, this.PC >> 8);
+        this.S = (this.S - 1) & 0xff;
+        this.write(this.S + 0x100, this.PC & 0xff);
+        this.S = (this.S - 1) & 0xff;
+        
+        // Push status register to stack (with B flag clear)
+        let status = 0;
+        status |= this.N ? 0x80 : 0;
+        status |= this.V ? 0x40 : 0;
+        status |= 0x20; // Unused bit always set
+        // B flag is clear (0x00) for IRQ
+        status |= this.D ? 0x08 : 0;
+        status |= this.I ? 0x04 : 0;
+        status |= this.Z ? 0x02 : 0;
+        status |= this.C ? 0x01 : 0;
+        this.write(this.S + 0x100, status);
+        this.S = (this.S - 1) & 0xff;
+        
+        // Set interrupt disable flag
+        this.I = true;
+        
+        // Jump to IRQ vector at $FFFE/$FFFF
+        this.PC = (this.read(0xffff) << 8) | this.read(0xfffe);
+        
+        // IRQ takes 7 cycles
+        this.cycles += 7;
+    }
+    
+    /**
+     * Handles NMI interrupt
+     */
+    private handleNmi(): void {
+        // Push PC to stack (high byte first)
+        this.write(this.S + 0x100, this.PC >> 8);
+        this.S = (this.S - 1) & 0xff;
+        this.write(this.S + 0x100, this.PC & 0xff);
+        this.S = (this.S - 1) & 0xff;
+        
+        // Push status register to stack (with B flag clear)
+        let status = 0;
+        status |= this.N ? 0x80 : 0;
+        status |= this.V ? 0x40 : 0;
+        status |= 0x20; // Unused bit always set
+        // B flag is clear (0x00) for NMI
+        status |= this.D ? 0x08 : 0;
+        status |= this.I ? 0x04 : 0;
+        status |= this.Z ? 0x02 : 0;
+        status |= this.C ? 0x01 : 0;
+        this.write(this.S + 0x100, status);
+        this.S = (this.S - 1) & 0xff;
+        
+        // Set interrupt disable flag
+        this.I = true;
+        
+        // Jump to NMI vector at $FFFA/$FFFB
+        this.PC = (this.read(0xfffb) << 8) | this.read(0xfffa);
+        
+        // NMI takes 7 cycles
+        this.cycles += 7;
     }
 
     isc(): void {

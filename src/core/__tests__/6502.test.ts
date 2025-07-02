@@ -13,8 +13,8 @@ describe('CPU6502', function () {
         romInstance = new ROM();
         ramInstance = new RAM();
         const busMapping: BusSpaceType[] = [
-            { addr: [0, 100], component: ramInstance, name: 'ROM' },
-            { addr: [0xff00, 0xffff], component: romInstance, name: 'RAM_BANK_1' },
+            { addr: [0, 0x0fff], component: ramInstance, name: 'RAM' },
+            { addr: [0xff00, 0xffff], component: romInstance, name: 'ROM' },
         ];
         const bus = new Bus(busMapping);
         cpu = new CPU6502(bus);
@@ -275,6 +275,210 @@ describe('CPU6502', function () {
             expect(cpu.A).toBe(0x00);
             expect(cpu.Z).toBe(true);
             expect(cpu.N).toBe(false);
+        });
+    });
+
+    describe('Interrupt handling', function () {
+        test('CLI instruction should clear I flag', function () {
+            // Setup ROM with reset vector pointing to 0xff00
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfc] = 0x00; // Reset vector low byte
+            romData[2 + 0xfd] = 0xff; // Reset vector high byte  
+            
+            // Program: CLI, NOP
+            const prog = [0x58, 0xea]; // CLI, NOP
+            romData.splice(2, prog.length, ...prog); 
+            romInstance.flash(romData);
+
+            cpu.reset();
+            expect(cpu.I).toBe(true); // I flag set after reset
+            
+            // Execute CLI to clear interrupt flag
+            cpu.performSingleStep();
+            expect(cpu.I).toBe(false); // I flag should be cleared
+            expect(cpu.PC).toBe(0xff01); // PC should advance
+        });
+
+        test('IRQ should be ignored when I flag is set', function () {
+            const romData = Array(255).fill(0x00);
+            romData[2 + 0xfd] = 0xff; // Reset vector (with +2 offset)
+            romData[2 + 0xfc] = 0x00;
+            const prog = [0xea, 0xea]; // NOP, NOP
+            romData.splice(2, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            expect(cpu.I).toBe(true); // I flag set after reset
+            
+            // Set IRQ line
+            cpu.setIrq(true);
+            
+            // Execute NOP - IRQ should be ignored
+            cpu.performSingleStep();
+            expect(cpu.PC).toBe(0xff01); // Should continue normal execution
+            expect(cpu.I).toBe(true); // I flag should remain set
+        });
+
+        test('NMI should be handled regardless of I flag', function () {
+            const romData = Array(255).fill(0x00);
+            romData[2 + 0xfd] = 0xff; // Reset vector high byte (with +2 offset)
+            romData[2 + 0xfc] = 0x00; // Reset vector low byte (with +2 offset)
+            romData[2 + 0xfb] = 0xff; // NMI vector high byte points to 0xff10 (with +2 offset)
+            romData[2 + 0xfa] = 0x10; // NMI vector low byte (with +2 offset)
+            
+            const prog = [0xea, 0xea]; // NOP, NOP at 0xff00
+            romData.splice(2, prog.length, ...prog);
+            
+            // Put a NOP at the NMI handler location (0xff10 = index 16+2 = 18)
+            romData[2 + 0x10] = 0xea; // NOP at NMI handler
+            
+            romInstance.flash(romData);
+
+            cpu.reset();
+            expect(cpu.I).toBe(true); // I flag set after reset
+            expect(cpu.PC).toBe(0xff00); // Should start at reset vector
+            
+            // Trigger NMI (edge-triggered on falling edge)
+            cpu.setNmi(true);
+            cpu.setNmi(false); // Falling edge triggers NMI
+            
+            const stackBefore = cpu.S;
+            cpu.performSingleStep(); // This should handle the NMI before executing NOP
+            
+            // Check that NMI was handled
+            expect(cpu.PC).toBe(0xff11); // Should be at NMI handler + 1 (after executing NOP)
+            expect(cpu.I).toBe(true); // I flag should be set
+            expect(cpu.S).toBe((stackBefore - 3) & 0xff); // Stack should have 3 bytes pushed
+        });
+
+        test('NMI has higher priority than IRQ', function () {
+            const romData = Array(255).fill(0x00);
+            romData[2 + 0xfd] = 0xff; // Reset vector (with +2 offset)
+            romData[2 + 0xfc] = 0x00;
+            romData[2 + 0xff] = 0xff; // IRQ vector points to 0xff20 (with +2 offset)
+            romData[2 + 0xfe] = 0x20;
+            romData[2 + 0xfb] = 0xff; // NMI vector points to 0xff10 (with +2 offset)
+            romData[2 + 0xfa] = 0x10;
+            
+            const prog = [0x58, 0xea]; // CLI, NOP
+            romData.splice(2, prog.length, ...prog);
+            
+            // Put NOPs at both handler locations
+            romData[2 + 0x10] = 0xea; // NOP at NMI handler (0xff10)
+            romData[2 + 0x20] = 0xea; // NOP at IRQ handler (0xff20)
+            
+            romInstance.flash(romData);
+
+            cpu.reset();
+            cpu.performSingleStep(); // CLI
+            
+            // Set both IRQ and NMI
+            cpu.setIrq(true);
+            cpu.setNmi(true);
+            cpu.setNmi(false); // Trigger NMI
+            
+            cpu.performSingleStep(); // Should handle NMI, not IRQ
+            expect(cpu.PC).toBe(0xff11); // Should be at NMI handler + 1, not IRQ handler
+        });
+
+        test('BRK should set B flag in status register', function () {
+            const romData = Array(255).fill(0x00);
+            romData[2 + 0xfd] = 0xff; // Reset vector (with +2 offset)
+            romData[2 + 0xfc] = 0x00; 
+            romData[2 + 0xff] = 0xff; // IRQ/BRK vector high byte (with +2 offset)
+            romData[2 + 0xfe] = 0xee; // IRQ/BRK vector low byte (with +2 offset) 
+            
+            const prog = [0x00]; // BRK
+            romData.splice(2, prog.length, ...prog);
+            
+            // Put a NOP at the BRK handler location to avoid infinite loop
+            romData[2 + 0xee] = 0xea; // NOP at BRK handler (0xffee)
+            
+            romInstance.flash(romData);
+
+            cpu.reset();
+            cpu.I = false; // Clear I flag for test
+            const stackBefore = cpu.S;
+            
+            cpu.performSingleStep(); // BRK
+            
+            // Check stack contents (status register should have B flag set)
+            const statusOnStack = ramInstance.read(stackBefore + 0x100);
+            expect(statusOnStack & 0x10).toBe(0x10); // B flag should be set
+            expect(cpu.PC).toBe(0xffee); // Should be at BRK handler
+        });
+
+        test('RTI should restore processor state correctly', function () {
+            const romData = Array(255).fill(0x00);
+            romData[2 + 0xfd] = 0xff; // Reset vector (with +2 offset)
+            romData[2 + 0xfc] = 0x00;
+            
+            // Setup: RTI instruction
+            const prog = [0x40]; // RTI
+            romData.splice(2, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            
+            // Manually setup stack as if interrupt occurred
+            cpu.S = 0xfc; // Set stack pointer
+            const returnAddr = 0x1234;
+            const statusReg = 0x82; // N flag and Z flag set
+            
+            // Push status, then return address (low, high)
+            ramInstance.write(0x01fd, statusReg);
+            ramInstance.write(0x01fe, returnAddr & 0xff);
+            ramInstance.write(0x01ff, returnAddr >> 8);
+            
+            cpu.performSingleStep(); // RTI
+            
+            // Check that state was restored
+            expect(cpu.PC).toBe(returnAddr);
+            expect(cpu.N).toBe(true);
+            expect(cpu.Z).toBe(true); // Bit 1 was set in statusReg (0x82)
+            expect(cpu.S).toBe(0xff); // Stack pointer should be restored
+        });
+
+        test('IRQ line state affects pending interrupt', function () {
+            const romData = Array(255).fill(0x00);
+            romData[2 + 0xfd] = 0xff; // Reset vector (with +2 offset)
+            romData[2 + 0xfc] = 0x00;
+            const prog = [0x58, 0xea, 0xea]; // CLI, NOP, NOP
+            romData.splice(2, prog.length, ...prog);
+            romInstance.flash(romData);
+
+            cpu.reset();
+            cpu.performSingleStep(); // CLI
+            
+            // Set and clear IRQ line quickly
+            cpu.setIrq(true);
+            cpu.setIrq(false);
+            
+            // Should not trigger interrupt since line is low
+            cpu.performSingleStep(); // NOP
+            expect(cpu.PC).toBe(0xff02); // Should continue normal execution
+        });
+
+        test('State serialization includes interrupt state', function () {
+            cpu.setIrq(true);
+            cpu.setNmi(true);
+            cpu.setNmi(false); // Trigger NMI pending
+            
+            const state = cpu.saveState();
+            
+            expect(state.irq).toBe(true);
+            expect(state.nmi).toBe(false);
+            expect(state.pendingNmi).toBe(true);
+            expect(state.pendingIrq).toBe(false); // Should be false due to I flag
+            
+            // Test state restoration
+            const newCpu = new CPU6502(cpu.bus);
+            newCpu.loadState(state);
+            
+            expect(newCpu.irq).toBe(true);
+            expect(newCpu.nmi).toBe(false);
+            expect((newCpu as unknown as { pendingNmi: boolean }).pendingNmi).toBe(true);
+            expect((newCpu as unknown as { pendingIrq: boolean }).pendingIrq).toBe(false);
         });
     });
 });

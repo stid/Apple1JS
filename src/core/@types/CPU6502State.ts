@@ -17,4 +17,7 @@ export interface CPU6502State {
     opcode: number;
     address: number;
     data: number;
+    // Interrupt handling state
+    pendingIrq: boolean;
+    pendingNmi: boolean;
 }
