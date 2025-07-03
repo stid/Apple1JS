@@ -1,14 +1,42 @@
-import React from 'react';
-// import InspectorGraph from './InspectorGraph';
+import React, { useEffect, useState, memo } from 'react';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 
 import type { InspectableArchView } from '../core/@types/InspectableArchView';
 
 interface InspectorViewProps {
     root: IInspectableComponent;
+    worker?: Worker;
 }
 
-const InspectorView: React.FC<InspectorViewProps> = ({ root }) => {
+const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
+    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+
+    // Set up an interval to request debug information from the worker.
+    useEffect(() => {
+        if (!worker) return;
+        
+        const interval = setInterval(() => {
+            worker.postMessage({ data: '', type: WORKER_MESSAGES.DEBUG_INFO });
+        }, 600);
+        return () => clearInterval(interval);
+    }, [worker]);
+
+    // Listen for messages from the worker and update the debugInfo state.
+    useEffect(() => {
+        if (!worker) return;
+        
+        const handleMessage = (e: MessageEvent<{ data: DebugData | number[]; type: WORKER_MESSAGES }>) => {
+            const { data, type } = e.data;
+            if (type === WORKER_MESSAGES.DEBUG_INFO) {
+                setDebugInfo(data as DebugData);
+            }
+        };
+
+        worker.addEventListener('message', handleMessage);
+        return () => worker.removeEventListener('message', handleMessage);
+    }, [worker]);
+
     // Type guard for children property
     function hasChildren(node: InspectableArchView): node is InspectableArchView & { children: InspectableArchView[] } {
         return Array.isArray((node as Record<string, unknown>).children);
@@ -131,29 +159,91 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root }) => {
         return [row, ...childrenRows];
     }
 
+    // Debug domain components (from Debugger component)
+    const DebugDomain = ({ domainKey, domainData }: { domainKey: string; domainData: { [key: string]: string | number | boolean } }) => (
+        <div className="bg-neutral-900 rounded-xl px-2 pt-0 pb-1 md:px-3 md:pt-1 md:pb-1 shadow border border-slate-700 min-w-[180px] max-w-xs">
+            <DomainTitle title={domainKey} />
+            <DomainContent domainData={domainData} />
+        </div>
+    );
+
+    const DomainTitle = ({ title }: { title: string }) => (
+        <div className="font-bold mb-2 text-slate-100 text-base tracking-wide border-b border-slate-700 pb-1 uppercase">
+            {title}
+        </div>
+    );
+
+    const DomainContent = ({ domainData }: { domainData: { [key: string]: string | number | boolean } }) => (
+        <table className="w-full text-xs font-mono text-left mt-2">
+            <tbody>
+                {Object.keys(domainData)
+                    .sort()
+                    .map((key) => (
+                        <DebugDomainItem key={key} label={key} value={domainData[key]} />
+                    ))}
+            </tbody>
+        </table>
+    );
+
+    const DebugDomainItem = memo(({ label, value }: { label: string; value: string | number | boolean }) => {
+        return (
+            <tr>
+                <td className="pr-2 text-slate-400">{label}</td>
+                <td className="text-green-300 font-semibold">{String(value)}</td>
+            </tr>
+        );
+    });
+    DebugDomainItem.displayName = 'DebugDomainItem';
+
+    // Check if we have debug info
+    const hasDebugDomains = Object.keys(debugInfo).length > 0;
+
     return (
-        <div className="p-4 bg-black/80 rounded-xl border border-neutral-700 shadow-lg">
-            <div className="flex gap-2 mb-2">
-                <span className="px-3 py-1 rounded bg-green-700 text-white font-semibold tracking-wide">
-                    Architecture
-                </span>
-            </div>
-            <div className="mb-4">
-                <h2 className="text-lg font-bold mb-2 text-green-200">Architecture Tree</h2>
-                <div className="overflow-x-auto">
-                    <table className="text-sm border border-neutral-700 rounded w-full bg-neutral-950">
-                        <thead>
-                            <tr className="text-green-300 bg-neutral-800">
-                                <th className="px-3 py-2 border-b border-neutral-700 text-left">Type</th>
-                                <th className="px-3 py-2 border-b border-neutral-700 text-left">ID</th>
-                                <th className="px-3 py-2 border-b border-neutral-700 text-left">Name</th>
-                                <th className="px-3 py-2 border-b border-neutral-700 text-left">Config</th>
-                            </tr>
-                        </thead>
-                        <tbody>{renderArchTreeTable(archRoot)}</tbody>
-                    </table>
+        <div className="p-4 space-y-6">
+            {/* Architecture Section */}
+            <div className="bg-black/80 rounded-xl border border-neutral-700 shadow-lg p-4">
+                <div className="flex gap-2 mb-4">
+                    <span className="px-3 py-1 rounded bg-green-700 text-white font-semibold tracking-wide">
+                        Architecture
+                    </span>
+                </div>
+                <div className="mb-4">
+                    <h2 className="text-lg font-bold mb-2 text-green-200">Architecture Tree</h2>
+                    <div className="overflow-x-auto">
+                        <table className="text-sm border border-neutral-700 rounded w-full bg-neutral-950">
+                            <thead>
+                                <tr className="text-green-300 bg-neutral-800">
+                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">Type</th>
+                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">ID</th>
+                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">Name</th>
+                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">Config</th>
+                                </tr>
+                            </thead>
+                            <tbody>{renderArchTreeTable(archRoot)}</tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+
+            {/* Debug Information Section */}
+            {worker && (
+                <div className="bg-black/80 rounded-xl border border-neutral-700 shadow-lg p-4">
+                    <div className="flex gap-2 mb-4">
+                        <span className="px-3 py-1 rounded bg-blue-700 text-white font-semibold tracking-wide">
+                            Real-time Debug
+                        </span>
+                    </div>
+                    <div className="flex flex-wrap gap-6 text-sm min-h-[120px]">
+                        {hasDebugDomains ? (
+                            Object.keys(debugInfo)
+                                .sort()
+                                .map((key) => <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />)
+                        ) : (
+                            <div className="italic text-slate-500 px-4 py-6 md:px-8 md:py-8">No debug info available</div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

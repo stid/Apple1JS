@@ -40,7 +40,7 @@ const Main: React.FC<MainProps> = ({ worker, apple1Instance }) => {
             </div>
             <div style={{ display: tab === 'inspector' ? 'block' : 'none', width: '100%', height: '100%' }}>
                 {apple1Instance ? (
-                    <InspectorView root={apple1Instance} />
+                    <InspectorView root={apple1Instance} worker={worker} />
                 ) : (
                     <div className="p-4 text-red-400">Inspector not connected to Apple1 instance.</div>
                 )}

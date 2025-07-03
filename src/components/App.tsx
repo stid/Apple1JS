@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
-import Debugger from './Debugger';
 import Info from './Info';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
@@ -16,8 +15,6 @@ type Props = {
 const App = ({ worker }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [isPaused, setIsPaused] = useState<boolean>(false);
-    // Right panel tab: 'info' or 'debug'
-    const [rightTab, setRightTab] = useState<'info' | 'debug'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
 
@@ -193,32 +190,19 @@ const App = ({ worker }: Props): JSX.Element => {
                         />
                     </div>
                 </div>
-                {/* Right column: Info/Debug sub-tabs */}
+                {/* Right column: Guide panel */}
                 <div className="w-full min-w-0 flex-1 bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
                     <StatusPanel />
                     <div className="flex gap-2 mb-2 mt-2">
                         <button
-                            className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
-                            onClick={() => {
-                                setRightTab('info');
-                                focusHiddenInput();
-                            }}
+                            className="px-3 py-1 rounded bg-green-700 text-white"
+                            onClick={() => focusHiddenInput()}
                         >
                             Guide
                         </button>
-                        <button
-                            className={`px-3 py-1 rounded ${rightTab === 'debug' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
-                            onClick={() => {
-                                setRightTab('debug');
-                                focusHiddenInput();
-                            }}
-                        >
-                            Debug
-                        </button>
                     </div>
                     <div className="w-full mt-2 sm:text-xs md:text-sm">
-                        {rightTab === 'info' && <Info />}
-                        {rightTab === 'debug' && <Debugger worker={worker} />}
+                        <Info />
                     </div>
                 </div>
             </div>
