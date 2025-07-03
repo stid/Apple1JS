@@ -10,6 +10,12 @@
     @apply text-gray-400;    /* Text color */
     @apply text-sm;          /* Text size */
     @apply font-mono;        /* Font family */
+    @apply overflow-auto lg:overflow-hidden;  /* Allow scrolling on mobile, prevent on desktop */
+  }
+  
+  /* Root app container */
+  #app {
+    @apply min-h-screen lg:h-screen lg:overflow-hidden;
   }
 
   /* Link styles */

@@ -137,18 +137,21 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         const filteredConfigEntries = Object.entries(combinedConfig).filter(([, v]) => v !== undefined && v !== null);
         const configCell =
             filteredConfigEntries.length > 0 ? (
-                <table className="text-xs text-green-300">
+                <table className="text-xs text-green-300 table-fixed">
                     <tbody>
                         {filteredConfigEntries.map(([k, v]) => {
                             // Check if this is debug data (from live debug info)
                             const isDebugData = k in debugData;
+                            // Format value with fixed width for common numeric fields
+                            const formattedValue = formatValue(k, v as string | number | boolean);
                             return (
                                 <tr key={k}>
-                                    <td className="pr-2 align-top" style={{ fontWeight: 600 }}>
+                                    <td className="pr-2 align-top" style={{ fontWeight: 600, minWidth: '80px' }}>
                                         {k}:
                                     </td>
-                                    <td className={`align-top ${isDebugData ? 'text-blue-300 font-semibold' : ''}`}>
-                                        {String(v)}
+                                    <td className={`align-top font-mono ${isDebugData ? 'text-blue-300 font-semibold' : ''}`}
+                                        style={{ minWidth: '100px' }}>
+                                        {formattedValue}
                                     </td>
                                 </tr>
                             );
@@ -158,6 +161,31 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
             ) : (
                 <span className="text-neutral-500 italic">No config</span>
             );
+        
+        // Helper function to format values with consistent width
+        function formatValue(key: string, value: string | number | boolean): string {
+            const strValue = String(value);
+            
+            // For known numeric fields that can vary in length, pad them
+            if (key === 'drift' || key === 'actualFrequency') {
+                // For drift percentage and frequency, ensure consistent decimal places
+                if (typeof value === 'number') {
+                    return value.toFixed(2).padStart(8, ' ');
+                }
+            }
+            
+            // For hex values, ensure consistent width
+            if (strValue.startsWith('0x')) {
+                return strValue.padStart(6, ' ');
+            }
+            
+            // For large numbers, add thousand separators for readability
+            if (typeof value === 'number' && value > 999) {
+                return value.toLocaleString().padStart(10, ' ');
+            }
+            
+            return strValue;
+        }
         const row = (
             <tr
                 key={node.id}
@@ -207,31 +235,19 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     }
 
     return (
-        <div className="bg-black border-t border-slate-800 min-h-[120px] rounded-xl">
-            <div className="flex gap-2 mb-3 px-4 py-3">
-                <span className="px-2 py-1 rounded bg-green-700 text-white text-xs font-semibold tracking-wide">
-                    Architecture
-                </span>
-                {worker && Object.keys(debugInfo).length > 0 && (
-                    <span className="px-2 py-1 rounded bg-blue-700 text-white text-xs font-semibold tracking-wide">
-                        Live Data
-                    </span>
-                )}
-            </div>
-            <div className="px-4 pb-4">
-                <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                    <table className="text-xs border border-neutral-700 rounded w-full bg-neutral-950">
-                        <thead className="sticky top-0">
-                            <tr className="text-green-300 bg-neutral-800">
-                                <th className="px-2 py-1 border-b border-neutral-700 text-left">Type</th>
-                                <th className="px-2 py-1 border-b border-neutral-700 text-left">ID</th>
-                                <th className="px-2 py-1 border-b border-neutral-700 text-left">Name</th>
-                                <th className="px-2 py-1 border-b border-neutral-700 text-left">Config & Live Data</th>
-                            </tr>
-                        </thead>
-                        <tbody>{renderArchTreeTable(archRoot)}</tbody>
-                    </table>
-                </div>
+        <div className="flex flex-col lg:h-full lg:overflow-hidden">
+            <div className="lg:flex-1 lg:overflow-auto bg-black border-t border-slate-800 rounded-xl px-4 py-4">
+                <table className="text-xs border border-neutral-700 rounded w-full bg-neutral-950">
+                    <thead className="lg:sticky lg:top-0 lg:z-10 bg-neutral-800">
+                        <tr className="text-green-300">
+                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">Type</th>
+                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">ID</th>
+                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">Name</th>
+                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">Config & Live Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>{renderArchTreeTable(archRoot)}</tbody>
+                </table>
             </div>
         </div>
     );

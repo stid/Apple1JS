@@ -57,9 +57,9 @@ describe('InspectorView component', () => {
     it('should render architecture section', () => {
         render(<InspectorView root={mockInspectable} />);
         
-        expect(screen.getByText('Architecture')).toBeInTheDocument();
         expect(screen.getByText('Apple1')).toBeInTheDocument();
         expect(screen.getByText('Test Apple1')).toBeInTheDocument();
+        expect(screen.getByText('Type')).toBeInTheDocument(); // Table header
     });
 
     it('should render child components in architecture tree', () => {
@@ -75,45 +75,23 @@ describe('InspectorView component', () => {
         render(<InspectorView root={mockInspectable} />);
         
         expect(screen.getByText('frequency:')).toBeInTheDocument();
-        expect(screen.getByText('1000000')).toBeInTheDocument();
+        expect(screen.getByText('1,000,000')).toBeInTheDocument(); // Formatted with thousand separators
         expect(screen.getByText('cycles:')).toBeInTheDocument();
-        expect(screen.getByText('12345')).toBeInTheDocument();
+        expect(screen.getByText('12,345')).toBeInTheDocument(); // Formatted with thousand separators
         expect(screen.getByText('size:')).toBeInTheDocument();
-        expect(screen.getByText('4096')).toBeInTheDocument();
+        expect(screen.getByText('4,096')).toBeInTheDocument(); // Formatted with thousand separators
     });
 
-    it('should not show live data indicator when no worker is provided', () => {
+    it('should show architecture data without special labels', () => {
         render(<InspectorView root={mockInspectable} />);
         
-        expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
-    });
-
-    it('should show live data indicator when worker is provided and debug data available', () => {
-        const { rerender } = render(<InspectorView root={mockInspectable} worker={mockWorker} />);
-        
-        // Initially no debug data
+        // Should not have the removed labels
+        expect(screen.queryByText('Architecture')).not.toBeInTheDocument();
         expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
         
-        // Simulate receiving debug data
-        const addEventListener = mockWorker.addEventListener as jest.Mock;
-        const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
-        
-        if (messageHandler) {
-            act(() => {
-                messageHandler({
-                    data: {
-                        type: WORKER_MESSAGES.DEBUG_INFO,
-                        data: {
-                            cpu: { REG: { PC: '0x1234' } }
-                        }
-                    }
-                });
-            });
-        }
-
-        rerender(<InspectorView root={mockInspectable} worker={mockWorker} />);
-        
-        expect(screen.getByText('Live Data')).toBeInTheDocument();
+        // But should have the table structure
+        expect(screen.getByText('Type')).toBeInTheDocument();
+        expect(screen.getByText('Config & Live Data')).toBeInTheDocument();
     });
 
     it('should set up interval to request debug info when worker is provided', () => {
@@ -213,9 +191,9 @@ describe('InspectorView component', () => {
             });
         }
 
-        // Should still show architecture tree, but no live data indicators
-        expect(screen.getByText('Architecture')).toBeInTheDocument();
-        expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
+        // Should still show architecture tree
+        expect(screen.getByText('Type')).toBeInTheDocument();
+        expect(screen.getByText('Config & Live Data')).toBeInTheDocument();
     });
 
     it('should clean up intervals and event listeners on unmount', () => {

@@ -157,16 +157,16 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
+            <div className="flex flex-col lg:flex-row w-full lg:h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 lg:overflow-hidden lg:justify-center">
                 {/* Left column: CRT, Actions */}
                 <div
-                    className="flex flex-col items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2"
-                    style={{ maxWidth: 720 }}
+                    className="flex-none flex flex-col items-center bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 mx-auto lg:mx-0"
+                    style={{ maxWidth: '538px' }}
                 >
-                    <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
+                    <div className="w-full flex justify-center" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
-                    <div className="mt-2 mb-2 flex justify-start">
+                    <div className="mt-2 mb-2 w-full">
                         <Actions
                             supportBS={supportBS}
                             onReset={useCallback(
@@ -196,9 +196,14 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                     </div>
                 </div>
                 {/* Right column: Guide/Inspector tabs */}
-                <div className="w-full min-w-0 flex-1 bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
+                <div 
+                    className="w-full bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col mx-auto lg:mx-0 mt-1 lg:mt-0 lg:overflow-hidden"
+                    style={{ 
+                        maxWidth: '538px' // Match CRT container width for balance
+                    }}
+                >
                     <StatusPanel />
-                    <div className="flex gap-2 mb-2 mt-2">
+                    <div className="flex-none flex gap-2 mb-2 mt-2">
                         <button
                             className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
                             onClick={() => {
@@ -218,8 +223,12 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             Inspector
                         </button>
                     </div>
-                    <div className="w-full mt-2 sm:text-xs md:text-sm">
-                        {rightTab === 'info' && <Info />}
+                    <div className="lg:flex-1 flex flex-col w-full sm:text-xs md:text-sm lg:overflow-hidden lg:min-h-0">
+                        {rightTab === 'info' && (
+                            <div className="lg:flex-1 lg:overflow-auto">
+                                <Info />
+                            </div>
+                        )}
                         {rightTab === 'inspector' && apple1Instance && (
                             <InspectorView root={apple1Instance} worker={worker} />
                         )}
