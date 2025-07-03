@@ -1,4 +1,4 @@
-import React, { useEffect, useState, memo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 
@@ -45,6 +45,42 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     // Use getInspectable() for architecture view
     const archRoot: InspectableArchView =
         typeof root.getInspectable === 'function' ? root.getInspectable() : (root as unknown as InspectableArchView);
+
+    // Helper function to get debug data for a component based on its type and id
+    const getDebugDataForComponent = (node: InspectableArchView): Record<string, string | number | boolean> => {
+        if (!debugInfo || Object.keys(debugInfo).length === 0) return {};
+        
+        // Map component types to debug domains
+        const typeToDebugDomain: Record<string, string> = {
+            'CPU': 'cpu',
+            'PIA6820': 'pia', 
+            'Bus': 'Bus',
+            'Clock': 'clock'
+        };
+        
+        const debugDomain = typeToDebugDomain[node.type];
+        if (!debugDomain || !debugInfo[debugDomain]) return {};
+        
+        const domainData = debugInfo[debugDomain];
+        
+        // For CPU, flatten REG and HW data
+        if (debugDomain === 'cpu' && typeof domainData === 'object') {
+            const result: Record<string, string | number | boolean> = {};
+            Object.entries(domainData).forEach(([key, value]) => {
+                if (typeof value === 'object' && value !== null) {
+                    // Flatten nested objects like REG and HW
+                    Object.entries(value).forEach(([subKey, subValue]) => {
+                        result[`${key}_${subKey}`] = subValue as string | number | boolean;
+                    });
+                } else {
+                    result[key] = value as string | number | boolean;
+                }
+            });
+            return result;
+        }
+        
+        return domainData as Record<string, string | number | boolean>;
+    };
 
     // Color legend (should match InspectorGraph)
     const colorLegend: Record<string, string> = {
@@ -93,19 +129,30 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                 configObj[key] = node[key];
             }
         }
-        const filteredConfigEntries = Object.entries(configObj).filter(([, v]) => v !== undefined && v !== null);
+        
+        // Add debug data for this component if available
+        const debugData = getDebugDataForComponent(node);
+        const combinedConfig = { ...configObj, ...debugData };
+        
+        const filteredConfigEntries = Object.entries(combinedConfig).filter(([, v]) => v !== undefined && v !== null);
         const configCell =
             filteredConfigEntries.length > 0 ? (
                 <table className="text-xs text-green-300">
                     <tbody>
-                        {filteredConfigEntries.map(([k, v]) => (
-                            <tr key={k}>
-                                <td className="pr-2 align-top" style={{ fontWeight: 600 }}>
-                                    {k}:
-                                </td>
-                                <td className="align-top">{String(v)}</td>
-                            </tr>
-                        ))}
+                        {filteredConfigEntries.map(([k, v]) => {
+                            // Check if this is debug data (from live debug info)
+                            const isDebugData = k in debugData;
+                            return (
+                                <tr key={k}>
+                                    <td className="pr-2 align-top" style={{ fontWeight: 600 }}>
+                                        {k}:
+                                    </td>
+                                    <td className={`align-top ${isDebugData ? 'text-blue-300 font-semibold' : ''}`}>
+                                        {String(v)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             ) : (
@@ -117,12 +164,12 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                 className={`border-b border-neutral-700 last:border-b-0 transition-colors duration-100 hover:bg-green-950/40 ${depth % 2 === 0 ? 'bg-neutral-900' : 'bg-neutral-950'}`}
             >
                 <td
-                    className="px-3 py-2 text-green-200 font-bold align-top"
+                    className="px-2 py-1 text-green-200 font-bold align-top"
                     style={{
                         color: colorLegend[node.type] || colorLegend.default,
                         fontWeight: 'bold',
-                        paddingLeft: 8,
-                        letterSpacing: 0.5,
+                        paddingLeft: 6,
+                        letterSpacing: 0.3,
                         position: 'relative',
                     }}
                 >
@@ -130,23 +177,23 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                         <span
                             style={{
                                 display: 'inline-block',
-                                width: 18 * depth,
-                                marginRight: 4,
-                                borderLeft: '2px solid #333',
+                                width: 12 * depth,
+                                marginRight: 2,
+                                borderLeft: '1px solid #333',
                                 height: '100%',
                                 verticalAlign: 'middle',
                             }}
                         />
                     )}
-                    {depth > 0 ? <span style={{ marginRight: 4 }}>{'└─'}</span> : null}
+                    {depth > 0 ? <span style={{ marginRight: 2 }}>{'└─'}</span> : null}
                     {node.type}
                 </td>
-                <td className="px-3 py-2 text-green-100 font-mono align-top opacity-90">{node.id}</td>
-                <td className="px-3 py-2 text-green-300 align-top">
+                <td className="px-2 py-1 text-green-100 font-mono align-top opacity-90 text-xs">{node.id}</td>
+                <td className="px-2 py-1 text-green-300 align-top text-xs">
                     {node.name || <span className="opacity-40 italic">(unnamed)</span>}
                 </td>
-                <td className="px-3 py-2 align-top">
-                    <div className="rounded bg-neutral-800/80 border border-neutral-700 px-2 py-1 text-xs font-mono text-green-300 max-w-xs whitespace-pre-wrap break-all">
+                <td className="px-2 py-1 align-top">
+                    <div className="rounded bg-neutral-800/80 border border-neutral-700 px-1 py-1 text-xs font-mono text-green-300 max-w-xs whitespace-pre-wrap break-all">
                         {configCell}
                     </div>
                 </td>
@@ -159,91 +206,33 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         return [row, ...childrenRows];
     }
 
-    // Debug domain components (from Debugger component)
-    const DebugDomain = ({ domainKey, domainData }: { domainKey: string; domainData: { [key: string]: string | number | boolean } }) => (
-        <div className="bg-neutral-900 rounded-xl px-2 pt-0 pb-1 md:px-3 md:pt-1 md:pb-1 shadow border border-slate-700 min-w-[180px] max-w-xs">
-            <DomainTitle title={domainKey} />
-            <DomainContent domainData={domainData} />
-        </div>
-    );
-
-    const DomainTitle = ({ title }: { title: string }) => (
-        <div className="font-bold mb-2 text-slate-100 text-base tracking-wide border-b border-slate-700 pb-1 uppercase">
-            {title}
-        </div>
-    );
-
-    const DomainContent = ({ domainData }: { domainData: { [key: string]: string | number | boolean } }) => (
-        <table className="w-full text-xs font-mono text-left mt-2">
-            <tbody>
-                {Object.keys(domainData)
-                    .sort()
-                    .map((key) => (
-                        <DebugDomainItem key={key} label={key} value={domainData[key]} />
-                    ))}
-            </tbody>
-        </table>
-    );
-
-    const DebugDomainItem = memo(({ label, value }: { label: string; value: string | number | boolean }) => {
-        return (
-            <tr>
-                <td className="pr-2 text-slate-400">{label}</td>
-                <td className="text-green-300 font-semibold">{String(value)}</td>
-            </tr>
-        );
-    });
-    DebugDomainItem.displayName = 'DebugDomainItem';
-
-    // Check if we have debug info
-    const hasDebugDomains = Object.keys(debugInfo).length > 0;
-
     return (
-        <div className="p-4 space-y-6">
-            {/* Architecture Section */}
-            <div className="bg-black/80 rounded-xl border border-neutral-700 shadow-lg p-4">
-                <div className="flex gap-2 mb-4">
-                    <span className="px-3 py-1 rounded bg-green-700 text-white font-semibold tracking-wide">
-                        Architecture
+        <div className="bg-black border-t border-slate-800 min-h-[120px] rounded-xl">
+            <div className="flex gap-2 mb-3 px-4 py-3">
+                <span className="px-2 py-1 rounded bg-green-700 text-white text-xs font-semibold tracking-wide">
+                    Architecture
+                </span>
+                {worker && Object.keys(debugInfo).length > 0 && (
+                    <span className="px-2 py-1 rounded bg-blue-700 text-white text-xs font-semibold tracking-wide">
+                        Live Data
                     </span>
-                </div>
-                <div className="mb-4">
-                    <h2 className="text-lg font-bold mb-2 text-green-200">Architecture Tree</h2>
-                    <div className="overflow-x-auto">
-                        <table className="text-sm border border-neutral-700 rounded w-full bg-neutral-950">
-                            <thead>
-                                <tr className="text-green-300 bg-neutral-800">
-                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">Type</th>
-                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">ID</th>
-                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">Name</th>
-                                    <th className="px-3 py-2 border-b border-neutral-700 text-left">Config</th>
-                                </tr>
-                            </thead>
-                            <tbody>{renderArchTreeTable(archRoot)}</tbody>
-                        </table>
-                    </div>
+                )}
+            </div>
+            <div className="px-4 pb-4">
+                <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                    <table className="text-xs border border-neutral-700 rounded w-full bg-neutral-950">
+                        <thead className="sticky top-0">
+                            <tr className="text-green-300 bg-neutral-800">
+                                <th className="px-2 py-1 border-b border-neutral-700 text-left">Type</th>
+                                <th className="px-2 py-1 border-b border-neutral-700 text-left">ID</th>
+                                <th className="px-2 py-1 border-b border-neutral-700 text-left">Name</th>
+                                <th className="px-2 py-1 border-b border-neutral-700 text-left">Config & Live Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>{renderArchTreeTable(archRoot)}</tbody>
+                    </table>
                 </div>
             </div>
-
-            {/* Debug Information Section */}
-            {worker && (
-                <div className="bg-black/80 rounded-xl border border-neutral-700 shadow-lg p-4">
-                    <div className="flex gap-2 mb-4">
-                        <span className="px-3 py-1 rounded bg-blue-700 text-white font-semibold tracking-wide">
-                            Real-time Debug
-                        </span>
-                    </div>
-                    <div className="flex flex-wrap gap-6 text-sm min-h-[120px]">
-                        {hasDebugDomains ? (
-                            Object.keys(debugInfo)
-                                .sort()
-                                .map((key) => <DebugDomain key={key} domainKey={key} domainData={debugInfo[key]} />)
-                        ) : (
-                            <div className="italic text-slate-500 px-4 py-6 md:px-8 md:py-8">No debug info available</div>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

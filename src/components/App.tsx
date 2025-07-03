@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import Info from './Info';
+import InspectorView from './InspectorView';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
 import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
@@ -7,14 +8,18 @@ import Actions from './Actions';
 import ErrorBoundary from './Error';
 import StatusPanel from './StatusPanel';
 import { useLogging } from '../contexts/LoggingContext';
+import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 
 type Props = {
     worker: Worker;
+    apple1Instance?: IInspectableComponent | null;
 };
 
-const App = ({ worker }: Props): JSX.Element => {
+const App = ({ worker, apple1Instance }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [isPaused, setIsPaused] = useState<boolean>(false);
+    // Right panel tab: 'info' or 'inspector'
+    const [rightTab, setRightTab] = useState<'info' | 'inspector'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
 
@@ -190,19 +195,37 @@ const App = ({ worker }: Props): JSX.Element => {
                         />
                     </div>
                 </div>
-                {/* Right column: Guide panel */}
+                {/* Right column: Guide/Inspector tabs */}
                 <div className="w-full min-w-0 flex-1 bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
                     <StatusPanel />
                     <div className="flex gap-2 mb-2 mt-2">
                         <button
-                            className="px-3 py-1 rounded bg-green-700 text-white"
-                            onClick={() => focusHiddenInput()}
+                            className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            onClick={() => {
+                                setRightTab('info');
+                                focusHiddenInput();
+                            }}
                         >
                             Guide
                         </button>
+                        <button
+                            className={`px-3 py-1 rounded ${rightTab === 'inspector' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            onClick={() => {
+                                setRightTab('inspector');
+                                focusHiddenInput();
+                            }}
+                        >
+                            Inspector
+                        </button>
                     </div>
                     <div className="w-full mt-2 sm:text-xs md:text-sm">
-                        <Info />
+                        {rightTab === 'info' && <Info />}
+                        {rightTab === 'inspector' && apple1Instance && (
+                            <InspectorView root={apple1Instance} worker={worker} />
+                        )}
+                        {rightTab === 'inspector' && !apple1Instance && (
+                            <div className="p-4 text-red-400">Inspector not available - Apple1 instance not connected.</div>
+                        )}
                     </div>
                 </div>
             </div>

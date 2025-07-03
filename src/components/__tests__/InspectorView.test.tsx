@@ -58,7 +58,6 @@ describe('InspectorView component', () => {
         render(<InspectorView root={mockInspectable} />);
         
         expect(screen.getByText('Architecture')).toBeInTheDocument();
-        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
         expect(screen.getByText('Apple1')).toBeInTheDocument();
         expect(screen.getByText('Test Apple1')).toBeInTheDocument();
     });
@@ -83,17 +82,38 @@ describe('InspectorView component', () => {
         expect(screen.getByText('4096')).toBeInTheDocument();
     });
 
-    it('should not render debug section when no worker is provided', () => {
+    it('should not show live data indicator when no worker is provided', () => {
         render(<InspectorView root={mockInspectable} />);
         
-        expect(screen.queryByText('Real-time Debug')).not.toBeInTheDocument();
+        expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
     });
 
-    it('should render debug section when worker is provided', () => {
-        render(<InspectorView root={mockInspectable} worker={mockWorker} />);
+    it('should show live data indicator when worker is provided and debug data available', () => {
+        const { rerender } = render(<InspectorView root={mockInspectable} worker={mockWorker} />);
         
-        expect(screen.getByText('Real-time Debug')).toBeInTheDocument();
-        expect(screen.getByText('No debug info available')).toBeInTheDocument();
+        // Initially no debug data
+        expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
+        
+        // Simulate receiving debug data
+        const addEventListener = mockWorker.addEventListener as jest.Mock;
+        const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
+        
+        if (messageHandler) {
+            act(() => {
+                messageHandler({
+                    data: {
+                        type: WORKER_MESSAGES.DEBUG_INFO,
+                        data: {
+                            cpu: { REG: { PC: '0x1234' } }
+                        }
+                    }
+                });
+            });
+        }
+
+        rerender(<InspectorView root={mockInspectable} worker={mockWorker} />);
+        
+        expect(screen.getByText('Live Data')).toBeInTheDocument();
     });
 
     it('should set up interval to request debug info when worker is provided', () => {
@@ -116,10 +136,30 @@ describe('InspectorView component', () => {
         expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
     });
 
-    it('should display debug domains when debug data is received', () => {
-        const { rerender } = render(<InspectorView root={mockInspectable} worker={mockWorker} />);
+    it('should integrate debug data into architecture tree components', () => {
+        // Create a mock with CPU component to test debug integration
+        const mockInspectableWithCPU: IInspectableComponent = {
+            id: 'test-root',
+            type: 'Apple1',
+            getInspectable: jest.fn().mockReturnValue({
+                id: 'test-root',
+                type: 'Apple1',
+                name: 'Test Apple1',
+                children: [
+                    {
+                        id: 'test-cpu',
+                        type: 'CPU',
+                        name: 'Test CPU',
+                        frequency: 1000000,
+                        cycles: 12345,
+                    }
+                ]
+            })
+        };
+
+        const { rerender } = render(<InspectorView root={mockInspectableWithCPU} worker={mockWorker} />);
         
-        // Simulate receiving debug data
+        // Simulate receiving debug data for CPU
         const addEventListener = mockWorker.addEventListener as jest.Mock;
         const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
         
@@ -129,15 +169,14 @@ describe('InspectorView component', () => {
                     data: {
                         type: WORKER_MESSAGES.DEBUG_INFO,
                         data: {
-                            CPU: {
-                                PC: '0x1234',
-                                A: '0x56',
-                                X: '0x78',
-                                Y: '0x9A'
-                            },
-                            Memory: {
-                                'RAM_SIZE': 4096,
-                                'ROM_SIZE': 256
+                            cpu: {
+                                REG: {
+                                    PC: '0x1234',
+                                    A: '0x56'
+                                },
+                                HW: {
+                                    ADDR: '0x1000'
+                                }
                             }
                         }
                     }
@@ -146,14 +185,15 @@ describe('InspectorView component', () => {
         }
 
         // Force re-render to show updated state
-        rerender(<InspectorView root={mockInspectable} worker={mockWorker} />);
+        rerender(<InspectorView root={mockInspectableWithCPU} worker={mockWorker} />);
         
-        expect(screen.getAllByText('CPU')).toHaveLength(2); // One in architecture, one in debug
-        expect(screen.getByText('Memory')).toBeInTheDocument();
-        expect(screen.getByText('PC')).toBeInTheDocument();
+        // Check that CPU debug data is integrated into the architecture tree
+        expect(screen.getByText('REG_PC:')).toBeInTheDocument();
         expect(screen.getByText('0x1234')).toBeInTheDocument();
-        expect(screen.getByText('RAM_SIZE')).toBeInTheDocument();
-        expect(screen.getAllByText('4096')).toHaveLength(2); // One in architecture, one in debug
+        expect(screen.getByText('REG_A:')).toBeInTheDocument();
+        expect(screen.getByText('0x56')).toBeInTheDocument();
+        expect(screen.getByText('HW_ADDR:')).toBeInTheDocument();
+        expect(screen.getByText('0x1000')).toBeInTheDocument();
     });
 
     it('should handle empty debug data gracefully', () => {
@@ -173,7 +213,9 @@ describe('InspectorView component', () => {
             });
         }
 
-        expect(screen.getByText('No debug info available')).toBeInTheDocument();
+        // Should still show architecture tree, but no live data indicators
+        expect(screen.getByText('Architecture')).toBeInTheDocument();
+        expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
     });
 
     it('should clean up intervals and event listeners on unmount', () => {
