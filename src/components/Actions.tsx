@@ -6,10 +6,12 @@ export type ActionsProps = {
     supportBS: boolean;
     onSaveState: React.MouseEventHandler<HTMLAnchorElement>;
     onLoadState: React.ChangeEventHandler<HTMLInputElement>;
+    onPauseResume: React.MouseEventHandler<HTMLAnchorElement>;
+    isPaused: boolean;
     onRefocus: () => void;
 };
 
-const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onRefocus }: ActionsProps) => (
+const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseResume, isPaused, onRefocus }: ActionsProps) => (
     <nav className="flex flex-wrap gap-2 justify-center my-4">
         <a
             onClick={(e) => {
@@ -31,7 +33,7 @@ const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onRefocus
             className="inline-block px-4 py-1 rounded-full bg-black/70 border border-green-700 text-green-400 font-mono text-xs tracking-wide transition hover:bg-green-900/60 hover:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
             tabIndex={0}
         >
-            SUPOPRT BACKSPACE [{supportBS ? 'ON' : 'OFF'}]
+            SUPPORT BACKSPACE [{supportBS ? 'ON' : 'OFF'}]
         </a>
         <a
             onClick={(e) => {
@@ -59,6 +61,17 @@ const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onRefocus
                 }}
             />
         </label>
+        <a
+            onClick={(e) => {
+                onPauseResume(e);
+                onRefocus();
+            }}
+            href="#"
+            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-purple-700 text-purple-400 font-mono text-xs tracking-wide transition hover:bg-purple-900/60 hover:text-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+            tabIndex={0}
+        >
+            {isPaused ? 'RESUME' : 'PAUSE'}
+        </a>
     </nav>
 );
 

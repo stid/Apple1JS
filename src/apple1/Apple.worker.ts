@@ -67,6 +67,8 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
                 // Deep clone the state to ensure a new reference and trigger state change
                 const clonedState = JSON.parse(JSON.stringify(data));
                 apple1.loadState(clonedState);
+                // Reset clock timing data to prevent timing issues after state restore
+                apple1.clock.resetTiming();
                 // Always restart the main loop after loading state
                 apple1.startLoop();
                 // Force video update after restore
@@ -74,6 +76,16 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
                     video.forceUpdate();
                 }
             }
+            break;
+        }
+        case WORKER_MESSAGES.PAUSE_EMULATION: {
+            // Pause the clock/emulation
+            apple1.clock.pause();
+            break;
+        }
+        case WORKER_MESSAGES.RESUME_EMULATION: {
+            // Resume the clock/emulation
+            apple1.clock.resume();
             break;
         }
     }

@@ -5,9 +5,11 @@ declare const performance: { now(): number };
 
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_INTERVAL = 30;
-const WAIT_TIME = 5;
+const DEFAULT_WAIT_TIME = 5;
+const MIN_WAIT_TIME = 1;
+const MAX_WAIT_TIME = 50;
 const TIMING_SAMPLE_SIZE = 100;
-const DRIFT_CORRECTION_THRESHOLD = 0.05;
+const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
 
 /**
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
@@ -41,6 +43,7 @@ class Clock implements PubSub, IInspectableComponent {
     private totalElapsedCycles: number;
     private startTime: number;
     private driftCompensation: number;
+    private dynamicWaitTime: number;
 
     constructor(mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_INTERVAL) {
         this.mhz = mhz;
@@ -57,6 +60,7 @@ class Clock implements PubSub, IInspectableComponent {
         this.totalElapsedCycles = 0;
         this.startTime = 0;
         this.driftCompensation = 1.0;
+        this.dynamicWaitTime = DEFAULT_WAIT_TIME;
     }
 
     get children() {
@@ -131,6 +135,8 @@ class Clock implements PubSub, IInspectableComponent {
     // Starts the main loop for the clock.
     async startLoop(): Promise<void> {
         this.running = true;
+        // Reset timing data when starting to ensure clean state
+        this.resetTiming();
         await this.loop();
     }
 
@@ -184,9 +190,25 @@ class Clock implements PubSub, IInspectableComponent {
     private updateDriftCompensation(): void {
         const stats = this.getTimingStats();
         if (Math.abs(stats.drift) > DRIFT_CORRECTION_THRESHOLD) {
-            this.driftCompensation = Math.max(0.5, Math.min(1.5, 1.0 - stats.drift * 0.1));
+            // More aggressive compensation: use 0.5x multiplier for drift
+            this.driftCompensation = Math.max(0.3, Math.min(2.0, 1.0 - stats.drift * 0.5));
+            
+            // Also adjust wait time dynamically
+            if (stats.drift > 0) {
+                // Running too fast, increase wait time
+                this.dynamicWaitTime = Math.min(MAX_WAIT_TIME, this.dynamicWaitTime + 1);
+            } else if (stats.drift < -0.1) {
+                // Running too slow, decrease wait time
+                this.dynamicWaitTime = Math.max(MIN_WAIT_TIME, this.dynamicWaitTime - 1);
+            }
         } else {
             this.driftCompensation = 1.0;
+            // Gradually return to default wait time
+            if (this.dynamicWaitTime > DEFAULT_WAIT_TIME) {
+                this.dynamicWaitTime--;
+            } else if (this.dynamicWaitTime < DEFAULT_WAIT_TIME) {
+                this.dynamicWaitTime++;
+            }
         }
     }
 
@@ -199,7 +221,7 @@ class Clock implements PubSub, IInspectableComponent {
 
         while (this.running) {
             if (this.paused) {
-                await wait(WAIT_TIME);
+                await wait(this.dynamicWaitTime);
                 continue;
             }
 
@@ -228,8 +250,22 @@ class Clock implements PubSub, IInspectableComponent {
 
             this._notifySubscribers();
 
-            await wait(WAIT_TIME);
+            await wait(this.dynamicWaitTime);
         }
+    }
+
+    // Reset timing data (useful after state restoration)
+    resetTiming(): void {
+        this.startTime = 0;
+        this.lastFrameTime = 0;
+        this.frameTimeSamples = [];
+        this.totalElapsedCycles = 0;
+        this.driftCompensation = 1.0;
+        this.dynamicWaitTime = DEFAULT_WAIT_TIME;
+        this.totalPausedTime = 0;
+        this.pausedAt = 0;
+        this.provisionedCycles = 0;
+        this.maxedCycles = 0;
     }
 }
 

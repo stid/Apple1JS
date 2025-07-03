@@ -216,4 +216,23 @@ describe('Clock', () => {
         expect(debugInfo.paused).toBe(false);
         expect(debugInfo.running).toBe(false);
     });
+
+    test('should reset timing data with resetTiming method', () => {
+        const clock = new Clock();
+        
+        // Simulate some timing data
+        clock['startTime'] = 1000;
+        clock['totalElapsedCycles'] = 5000;
+        clock['driftCompensation'] = 0.8;
+        clock['dynamicWaitTime'] = 10;
+        
+        clock.resetTiming();
+        
+        expect(clock['startTime']).toBe(0);
+        expect(clock['totalElapsedCycles']).toBe(0);
+        expect(clock['driftCompensation']).toBe(1.0);
+        expect(clock['dynamicWaitTime']).toBe(5); // DEFAULT_WAIT_TIME
+        expect(clock['frameTimeSamples']).toEqual([]);
+        expect(clock.getCurrentProvisionedCycles()).toBe(0);
+    });
 });

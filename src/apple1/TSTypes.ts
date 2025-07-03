@@ -25,6 +25,9 @@ export enum WORKER_MESSAGES {
     LOAD_STATE, // Request to load emulator state
     STATE_DATA, // Response with state data
     LOG_MESSAGE, // Log message from worker to main thread
+    PAUSE_EMULATION, // Pause the emulation
+    RESUME_EMULATION, // Resume the emulation
+    EMULATION_STATUS, // Current emulation status (paused/running)
 }
 
 // Enum for indexing the VideoBuffer row tuple

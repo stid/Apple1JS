@@ -15,6 +15,7 @@ type Props = {
 
 const App = ({ worker }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
+    const [isPaused, setIsPaused] = useState<boolean>(false);
     // Right panel tab: 'info' or 'debug'
     const [rightTab, setRightTab] = useState<'info' | 'debug'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +140,19 @@ const App = ({ worker }: Props): JSX.Element => {
         [worker],
     );
 
+    const handlePauseResume = useCallback(
+        (e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault();
+            if (isPaused) {
+                worker.postMessage({ type: WORKER_MESSAGES.RESUME_EMULATION });
+            } else {
+                worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
+            }
+            setIsPaused((prev) => !prev);
+        },
+        [worker, isPaused],
+    );
+
     return (
         <ErrorBoundary>
             <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
@@ -173,6 +187,8 @@ const App = ({ worker }: Props): JSX.Element => {
                             )}
                             onSaveState={handleSaveState}
                             onLoadState={handleLoadState}
+                            onPauseResume={handlePauseResume}
+                            isPaused={isPaused}
                             onRefocus={focusHiddenInput}
                         />
                     </div>
