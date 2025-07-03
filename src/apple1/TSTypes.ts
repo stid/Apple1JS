@@ -28,6 +28,9 @@ export enum WORKER_MESSAGES {
     PAUSE_EMULATION, // Pause the emulation
     RESUME_EMULATION, // Resume the emulation
     EMULATION_STATUS, // Current emulation status (paused/running)
+    GET_MEMORY_RANGE, // Request memory range for disassembly
+    MEMORY_RANGE_DATA, // Response with memory range data
+    DEBUG_DATA, // Debug data for components
 }
 
 // Enum for indexing the VideoBuffer row tuple
@@ -58,5 +61,17 @@ export interface LogMessageData {
     message: string;
 }
 
+// Interface for memory range requests
+export interface MemoryRangeRequest {
+    start: number;
+    length: number;
+}
+
+// Interface for memory range response
+export interface MemoryRangeData {
+    start: number;
+    data: number[];
+}
+
 // Union type for message data types
-export type MessageDataTypes = DebugData | VideoData | LogMessageData;
+export type MessageDataTypes = DebugData | VideoData | LogMessageData | MemoryRangeRequest | MemoryRangeData;

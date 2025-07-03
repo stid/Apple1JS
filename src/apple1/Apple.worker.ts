@@ -1,7 +1,7 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo, { WebCrtVideoSubFuncVideoType } from './WebCRTVideo';
-import { WORKER_MESSAGES, LogMessageData } from './TSTypes';
+import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData } from './TSTypes';
 import { loggingService } from '../services/LoggingService';
 
 export const video = new WebCRTVideo();
@@ -88,7 +88,39 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
             apple1.clock.resume();
             break;
         }
+        case WORKER_MESSAGES.GET_MEMORY_RANGE: {
+            // Handle memory range request for disassembler
+            if (data && typeof data === 'object') {
+                const request = data as MemoryRangeRequest;
+                const memoryData: number[] = [];
+                for (let i = 0; i < request.length; i++) {
+                    const addr = request.start + i;
+                    if (addr >= 0 && addr <= 0xFFFF) {
+                        memoryData.push(apple1.bus.read(addr));
+                    } else {
+                        memoryData.push(0);
+                    }
+                }
+                const response: MemoryRangeData = {
+                    start: request.start,
+                    data: memoryData
+                };
+                postMessage({ data: response, type: WORKER_MESSAGES.MEMORY_RANGE_DATA });
+            }
+            break;
+        }
     }
 };
+
+// Send debug data periodically for disassembler
+setInterval(() => {
+    const { cpu } = apple1;
+    postMessage({
+        data: {
+            cpu: { PC: cpu.PC }
+        },
+        type: WORKER_MESSAGES.DEBUG_DATA,
+    });
+}, 100); // Every 100ms
 
 apple1.startLoop();

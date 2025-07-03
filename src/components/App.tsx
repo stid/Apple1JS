@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import Info from './Info';
 import InspectorView from './InspectorView';
+import Disassembler from './Disassembler';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
 import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
@@ -18,8 +19,8 @@ type Props = {
 const App = ({ worker, apple1Instance }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [isPaused, setIsPaused] = useState<boolean>(false);
-    // Right panel tab: 'info' or 'inspector'
-    const [rightTab, setRightTab] = useState<'info' | 'inspector'>('info');
+    // Right panel tab: 'info', 'inspector', or 'disassembler'
+    const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'disassembler'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
 
@@ -222,6 +223,15 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                         >
                             Inspector
                         </button>
+                        <button
+                            className={`px-3 py-1 rounded ${rightTab === 'disassembler' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            onClick={() => {
+                                setRightTab('disassembler');
+                                focusHiddenInput();
+                            }}
+                        >
+                            Disassembler
+                        </button>
                     </div>
                     <div className="lg:flex-1 flex flex-col w-full sm:text-xs md:text-sm lg:overflow-hidden lg:min-h-0">
                         {rightTab === 'info' && (
@@ -234,6 +244,11 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                         )}
                         {rightTab === 'inspector' && !apple1Instance && (
                             <div className="p-4 text-red-400">Inspector not available - Apple1 instance not connected.</div>
+                        )}
+                        {rightTab === 'disassembler' && (
+                            <div className="lg:flex-1 lg:overflow-auto">
+                                <Disassembler worker={worker} />
+                            </div>
                         )}
                     </div>
                 </div>
