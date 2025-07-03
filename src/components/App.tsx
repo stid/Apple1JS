@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
-import Debugger from './Debugger';
 import Info from './Info';
+import InspectorView from './InspectorView';
+import Disassembler from './Disassembler';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
 import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
@@ -8,15 +9,18 @@ import Actions from './Actions';
 import ErrorBoundary from './Error';
 import StatusPanel from './StatusPanel';
 import { useLogging } from '../contexts/LoggingContext';
+import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 
 type Props = {
     worker: Worker;
+    apple1Instance?: IInspectableComponent | null;
 };
 
-const App = ({ worker }: Props): JSX.Element => {
+const App = ({ worker, apple1Instance }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
-    // Right panel tab: 'info' or 'debug'
-    const [rightTab, setRightTab] = useState<'info' | 'debug'>('info');
+    const [isPaused, setIsPaused] = useState<boolean>(false);
+    // Right panel tab: 'info', 'inspector', or 'disassembler'
+    const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'disassembler'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
 
@@ -139,18 +143,31 @@ const App = ({ worker }: Props): JSX.Element => {
         [worker],
     );
 
+    const handlePauseResume = useCallback(
+        (e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault();
+            if (isPaused) {
+                worker.postMessage({ type: WORKER_MESSAGES.RESUME_EMULATION });
+            } else {
+                worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
+            }
+            setIsPaused((prev) => !prev);
+        },
+        [worker, isPaused],
+    );
+
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
+            <div className="flex flex-col lg:flex-row w-full lg:h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 lg:overflow-hidden lg:justify-center">
                 {/* Left column: CRT, Actions */}
                 <div
-                    className="flex flex-col items-stretch bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2"
-                    style={{ maxWidth: 720 }}
+                    className="flex-none flex flex-col items-center bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 mx-auto lg:mx-0"
+                    style={{ maxWidth: '538px' }}
                 >
-                    <div className="w-full max-w-full overflow-x-auto" onClick={focusHiddenInput} role="presentation">
+                    <div className="w-full flex justify-center" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
-                    <div className="mt-2 mb-2 flex justify-start">
+                    <div className="mt-2 mb-2 w-full">
                         <Actions
                             supportBS={supportBS}
                             onReset={useCallback(
@@ -173,14 +190,21 @@ const App = ({ worker }: Props): JSX.Element => {
                             )}
                             onSaveState={handleSaveState}
                             onLoadState={handleLoadState}
+                            onPauseResume={handlePauseResume}
+                            isPaused={isPaused}
                             onRefocus={focusHiddenInput}
                         />
                     </div>
                 </div>
-                {/* Right column: Info/Debug sub-tabs */}
-                <div className="w-full min-w-0 flex-1 bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col justify-start mx-auto lg:mx-0 mt-1 lg:mt-0">
+                {/* Right column: Guide/Inspector tabs */}
+                <div 
+                    className="w-full bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col mx-auto lg:mx-0 mt-1 lg:mt-0 lg:overflow-hidden"
+                    style={{ 
+                        maxWidth: '538px' // Match CRT container width for balance
+                    }}
+                >
                     <StatusPanel />
-                    <div className="flex gap-2 mb-2 mt-2">
+                    <div className="flex-none flex gap-2 mb-2 mt-2">
                         <button
                             className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
                             onClick={() => {
@@ -191,18 +215,41 @@ const App = ({ worker }: Props): JSX.Element => {
                             Guide
                         </button>
                         <button
-                            className={`px-3 py-1 rounded ${rightTab === 'debug' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            className={`px-3 py-1 rounded ${rightTab === 'inspector' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
                             onClick={() => {
-                                setRightTab('debug');
+                                setRightTab('inspector');
                                 focusHiddenInput();
                             }}
                         >
-                            Debug
+                            Inspector
+                        </button>
+                        <button
+                            className={`px-3 py-1 rounded ${rightTab === 'disassembler' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            onClick={() => {
+                                setRightTab('disassembler');
+                                focusHiddenInput();
+                            }}
+                        >
+                            Disassembler
                         </button>
                     </div>
-                    <div className="w-full mt-2 sm:text-xs md:text-sm">
-                        {rightTab === 'info' && <Info />}
-                        {rightTab === 'debug' && <Debugger worker={worker} />}
+                    <div className="lg:flex-1 flex flex-col w-full sm:text-xs md:text-sm lg:overflow-hidden lg:min-h-0">
+                        {rightTab === 'info' && (
+                            <div className="lg:flex-1 lg:overflow-auto">
+                                <Info />
+                            </div>
+                        )}
+                        {rightTab === 'inspector' && apple1Instance && (
+                            <InspectorView root={apple1Instance} worker={worker} />
+                        )}
+                        {rightTab === 'inspector' && !apple1Instance && (
+                            <div className="p-4 text-red-400">Inspector not available - Apple1 instance not connected.</div>
+                        )}
+                        {rightTab === 'disassembler' && (
+                            <div className="lg:flex-1 lg:overflow-auto">
+                                <Disassembler worker={worker} />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

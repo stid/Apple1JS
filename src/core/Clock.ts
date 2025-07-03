@@ -1,14 +1,29 @@
 import wait from 'waait';
 import { PubSub, subscribeFunction } from './@types/PubSub';
 
+declare const performance: { now(): number };
+
 const DEFAULT_MHZ = 1;
 const DEFAULT_STEP_INTERVAL = 30;
-const WAIT_TIME = 5;
+const DEFAULT_WAIT_TIME = 5;
+const MIN_WAIT_TIME = 1;
+const MAX_WAIT_TIME = 50;
+const TIMING_SAMPLE_SIZE = 100;
+const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
 
 /**
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
  */
 import { IInspectableComponent } from './@types/IInspectableComponent';
+
+interface TimingStats {
+    actualFrequency: number;
+    targetFrequency: number;
+    drift: number;
+    avgCycleTime: number;
+    totalCycles: number;
+    totalTime: number;
+}
 
 class Clock implements PubSub, IInspectableComponent {
     id = 'clock';
@@ -20,6 +35,15 @@ class Clock implements PubSub, IInspectableComponent {
     private maxedCycles: number;
     private subscribers: subscribeFunction<number>[];
     private running: boolean;
+    private paused: boolean;
+    private pausedAt: number;
+    private totalPausedTime: number;
+    private lastFrameTime: number;
+    private frameTimeSamples: number[];
+    private totalElapsedCycles: number;
+    private startTime: number;
+    private driftCompensation: number;
+    private dynamicWaitTime: number;
 
     constructor(mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_INTERVAL) {
         this.mhz = mhz;
@@ -28,6 +52,15 @@ class Clock implements PubSub, IInspectableComponent {
         this.maxedCycles = 0;
         this.subscribers = [];
         this.running = false;
+        this.paused = false;
+        this.pausedAt = 0;
+        this.totalPausedTime = 0;
+        this.lastFrameTime = 0;
+        this.frameTimeSamples = [];
+        this.totalElapsedCycles = 0;
+        this.startTime = 0;
+        this.driftCompensation = 1.0;
+        this.dynamicWaitTime = DEFAULT_WAIT_TIME;
     }
 
     get children() {
@@ -39,6 +72,7 @@ class Clock implements PubSub, IInspectableComponent {
      */
     getInspectable() {
         const self = this as unknown as { __address?: string; __addressName?: string };
+        const stats = this.getTimingStats();
         return {
             id: this.id,
             type: this.type,
@@ -47,6 +81,12 @@ class Clock implements PubSub, IInspectableComponent {
             addressName: self.__addressName,
             mhz: this.mhz,
             stepChunk: this.stepChunk,
+            running: this.running,
+            paused: this.paused,
+            actualFrequency: stats.actualFrequency.toFixed(3) + ' MHz',
+            drift: (stats.drift * 100).toFixed(2) + '%',
+            avgCycleTime: stats.avgCycleTime.toFixed(2) + 'ms',
+            totalCycles: stats.totalCycles,
         };
     }
 
@@ -72,9 +112,19 @@ class Clock implements PubSub, IInspectableComponent {
     }
 
     // Returns the clock's debug information.
-    toDebug(): { [key: string]: number | string } {
+    toDebug(): { [key: string]: number | string | boolean } {
         const { mhz, stepChunk, provisionedCycles, maxedCycles } = this;
-        return { mhz, stepChunk, provisionedCycles, maxedCycles };
+        const stats = this.getTimingStats();
+        return { 
+            mhz, 
+            stepChunk, 
+            provisionedCycles, 
+            maxedCycles,
+            actualFrequency: stats.actualFrequency,
+            drift: stats.drift,
+            running: this.running,
+            paused: this.paused
+        };
     }
 
     // Returns the current provisioned cycles.
@@ -85,34 +135,137 @@ class Clock implements PubSub, IInspectableComponent {
     // Starts the main loop for the clock.
     async startLoop(): Promise<void> {
         this.running = true;
+        // Reset timing data when starting to ensure clean state
+        this.resetTiming();
         await this.loop();
     }
 
     // Stops the main loop for the clock.
     stopLoop(): void {
         this.running = false;
+        this.paused = false;
+        this.totalPausedTime = 0;
+        this.frameTimeSamples = [];
+        this.totalElapsedCycles = 0;
+    }
+
+    // Pause the clock, preserving state
+    pause(): void {
+        if (this.running && !this.paused) {
+            this.paused = true;
+            this.pausedAt = performance.now();
+        }
+    }
+
+    // Resume the clock from pause
+    resume(): void {
+        if (this.running && this.paused) {
+            this.totalPausedTime += performance.now() - this.pausedAt;
+            this.paused = false;
+        }
+    }
+
+    // Get current timing statistics
+    private getTimingStats(): TimingStats {
+        const elapsedTime = this.startTime ? (performance.now() - this.startTime - this.totalPausedTime) / 1000 : 0;
+        const actualFrequency = elapsedTime > 0 ? this.totalElapsedCycles / elapsedTime / 1000000 : 0;
+        const targetFrequency = this.mhz;
+        const drift = targetFrequency > 0 ? (actualFrequency - targetFrequency) / targetFrequency : 0;
+        
+        const avgCycleTime = this.frameTimeSamples.length > 0 
+            ? this.frameTimeSamples.reduce((a, b) => a + b, 0) / this.frameTimeSamples.length 
+            : 0;
+
+        return {
+            actualFrequency,
+            targetFrequency,
+            drift,
+            avgCycleTime,
+            totalCycles: this.totalElapsedCycles,
+            totalTime: elapsedTime
+        };
+    }
+
+    // Update drift compensation based on timing statistics
+    private updateDriftCompensation(): void {
+        const stats = this.getTimingStats();
+        if (Math.abs(stats.drift) > DRIFT_CORRECTION_THRESHOLD) {
+            // More aggressive compensation: use 0.5x multiplier for drift
+            this.driftCompensation = Math.max(0.3, Math.min(2.0, 1.0 - stats.drift * 0.5));
+            
+            // Also adjust wait time dynamically
+            if (stats.drift > 0) {
+                // Running too fast, increase wait time
+                this.dynamicWaitTime = Math.min(MAX_WAIT_TIME, this.dynamicWaitTime + 1);
+            } else if (stats.drift < -0.1) {
+                // Running too slow, decrease wait time
+                this.dynamicWaitTime = Math.max(MIN_WAIT_TIME, this.dynamicWaitTime - 1);
+            }
+        } else {
+            this.driftCompensation = 1.0;
+            // Gradually return to default wait time
+            if (this.dynamicWaitTime > DEFAULT_WAIT_TIME) {
+                this.dynamicWaitTime--;
+            } else if (this.dynamicWaitTime < DEFAULT_WAIT_TIME) {
+                this.dynamicWaitTime++;
+            }
+        }
     }
 
     // Main loop for the clock.
     private async loop(): Promise<void> {
         const stepMax = this.mhz * 1000 * this.stepChunk * 1.25;
-        let startTime;
-        let lastTime = Date.now();
+        this.startTime = performance.now();
+        this.lastFrameTime = this.startTime;
+        let frameCount = 0;
 
         while (this.running) {
-            startTime = Date.now();
-            this.provisionedCycles = (startTime - lastTime) * this.mhz * 1000;
-            lastTime = startTime;
+            if (this.paused) {
+                await wait(this.dynamicWaitTime);
+                continue;
+            }
+
+            const currentTime = performance.now();
+            const deltaTime = currentTime - this.lastFrameTime;
+            
+            this.provisionedCycles = Math.floor(deltaTime * this.mhz * 1000 * this.driftCompensation);
+            this.lastFrameTime = currentTime;
 
             if (this.provisionedCycles > stepMax) {
                 this.provisionedCycles = stepMax;
                 this.maxedCycles += 1;
             }
 
+            this.totalElapsedCycles += this.provisionedCycles;
+
+            this.frameTimeSamples.push(deltaTime);
+            if (this.frameTimeSamples.length > TIMING_SAMPLE_SIZE) {
+                this.frameTimeSamples.shift();
+            }
+
+            frameCount++;
+            if (frameCount % TIMING_SAMPLE_SIZE === 0) {
+                this.updateDriftCompensation();
+            }
+
             this._notifySubscribers();
 
-            await wait(WAIT_TIME);
+            await wait(this.dynamicWaitTime);
         }
+    }
+
+    // Reset timing data (useful after state restoration)
+    resetTiming(): void {
+        this.startTime = 0;
+        this.lastFrameTime = 0;
+        this.frameTimeSamples = [];
+        this.totalElapsedCycles = 0;
+        this.driftCompensation = 1.0;
+        this.dynamicWaitTime = DEFAULT_WAIT_TIME;
+        this.totalPausedTime = 0;
+        this.pausedAt = 0;
+        this.provisionedCycles = 0;
+        this.maxedCycles = 0;
     }
 }
 

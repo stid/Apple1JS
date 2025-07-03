@@ -1,7 +1,7 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo, { WebCrtVideoSubFuncVideoType } from './WebCRTVideo';
-import { WORKER_MESSAGES, LogMessageData } from './TSTypes';
+import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData } from './TSTypes';
 import { loggingService } from '../services/LoggingService';
 
 export const video = new WebCRTVideo();
@@ -67,6 +67,8 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
                 // Deep clone the state to ensure a new reference and trigger state change
                 const clonedState = JSON.parse(JSON.stringify(data));
                 apple1.loadState(clonedState);
+                // Reset clock timing data to prevent timing issues after state restore
+                apple1.clock.resetTiming();
                 // Always restart the main loop after loading state
                 apple1.startLoop();
                 // Force video update after restore
@@ -76,7 +78,49 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
             }
             break;
         }
+        case WORKER_MESSAGES.PAUSE_EMULATION: {
+            // Pause the clock/emulation
+            apple1.clock.pause();
+            break;
+        }
+        case WORKER_MESSAGES.RESUME_EMULATION: {
+            // Resume the clock/emulation
+            apple1.clock.resume();
+            break;
+        }
+        case WORKER_MESSAGES.GET_MEMORY_RANGE: {
+            // Handle memory range request for disassembler
+            if (data && typeof data === 'object') {
+                const request = data as MemoryRangeRequest;
+                const memoryData: number[] = [];
+                for (let i = 0; i < request.length; i++) {
+                    const addr = request.start + i;
+                    if (addr >= 0 && addr <= 0xFFFF) {
+                        memoryData.push(apple1.bus.read(addr));
+                    } else {
+                        memoryData.push(0);
+                    }
+                }
+                const response: MemoryRangeData = {
+                    start: request.start,
+                    data: memoryData
+                };
+                postMessage({ data: response, type: WORKER_MESSAGES.MEMORY_RANGE_DATA });
+            }
+            break;
+        }
     }
 };
+
+// Send debug data periodically for disassembler
+setInterval(() => {
+    const { cpu } = apple1;
+    postMessage({
+        data: {
+            cpu: { PC: cpu.PC }
+        },
+        type: WORKER_MESSAGES.DEBUG_DATA,
+    });
+}, 100); // Every 100ms
 
 apple1.startLoop();
