@@ -53,6 +53,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         // Map component types to debug domains
         const typeToDebugDomain: Record<string, string> = {
             'CPU': 'cpu',
+            'CPU6502': 'cpu',  // Real CPU6502 component type
             'PIA6820': 'pia', 
             'Bus': 'Bus',
             'Clock': 'clock'
@@ -63,16 +64,17 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         
         const domainData = debugInfo[debugDomain];
         
-        // For CPU, flatten REG and HW data
+        // Handle CPU debug data (could be flat or nested depending on source)
         if (debugDomain === 'cpu' && typeof domainData === 'object') {
             const result: Record<string, string | number | boolean> = {};
             Object.entries(domainData).forEach(([key, value]) => {
                 if (typeof value === 'object' && value !== null) {
-                    // Flatten nested objects like REG and HW
+                    // Flatten nested objects like REG: { PC: '0x1234' } -> REG_PC: '0x1234'
                     Object.entries(value).forEach(([subKey, subValue]) => {
                         result[`${key}_${subKey}`] = subValue as string | number | boolean;
                     });
                 } else {
+                    // Keep flat values as-is (like REG_PC: '$1234')
                     result[key] = value as string | number | boolean;
                 }
             });
@@ -137,7 +139,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         const filteredConfigEntries = Object.entries(combinedConfig).filter(([, v]) => v !== undefined && v !== null);
         const configCell =
             filteredConfigEntries.length > 0 ? (
-                <table className="text-xs text-green-300 table-fixed">
+                <table className="text-xs text-green-300 table-auto w-full">
                     <tbody>
                         {filteredConfigEntries.map(([k, v]) => {
                             // Check if this is debug data (from live debug info)
@@ -146,11 +148,11 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                             const formattedValue = formatValue(k, v as string | number | boolean);
                             return (
                                 <tr key={k}>
-                                    <td className="pr-2 align-top" style={{ fontWeight: 600, minWidth: '80px' }}>
+                                    <td className="pr-3 align-top" style={{ fontWeight: 600, minWidth: '120px' }}>
                                         {k}:
                                     </td>
                                     <td className={`align-top font-mono ${isDebugData ? 'text-blue-300 font-semibold' : ''}`}
-                                        style={{ minWidth: '100px' }}>
+                                        style={{ minWidth: '140px' }}>
                                         {formattedValue}
                                     </td>
                                 </tr>

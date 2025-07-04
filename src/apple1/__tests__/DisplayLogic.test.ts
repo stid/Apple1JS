@@ -8,12 +8,15 @@ describe('KeyboardLogic', function () {
 
     test('Should Wire & write 65 on PIA', async function () {
         pia = new PIA6820();
+        pia.setPB7DisplayStatus = jest.fn();
 
         displayLogic = new DisplayLogic(pia);
 
         await displayLogic.write(65);
-        expect(pia.setBitDataB).toHaveBeenCalledWith(7);
-        expect(pia.clearBitDataB).toHaveBeenCalledWith(7);
+        
+        // Expect sequence: set PB7 busy, then clear PB7 ready
+        expect(pia.setPB7DisplayStatus).toHaveBeenNthCalledWith(1, true); // Set PB7 busy
+        expect(pia.setPB7DisplayStatus).toHaveBeenNthCalledWith(2, false); // Clear PB7 ready
     });
 
     test('Should Wire & write 65 on wired write', async function () {

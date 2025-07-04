@@ -5,19 +5,19 @@ export interface CPU6502State {
     X: number;
     Y: number;
     S: number;
-    N: boolean;
-    Z: boolean;
-    C: boolean;
-    V: boolean;
-    I: boolean;
-    D: boolean;
-    irq: boolean;
-    nmi: boolean;
+    N: number;
+    Z: number;
+    C: number;
+    V: number;
+    I: number;
+    D: number;
+    irq: number;
+    nmi: number;
     cycles: number;
     opcode: number;
     address: number;
     data: number;
     // Interrupt handling state
-    pendingIrq: boolean;
-    pendingNmi: boolean;
+    pendingIrq: number;
+    pendingNmi: number;
 }

@@ -10,7 +10,9 @@ const StartInstructions = () => (
 const TestProgram = () => (
     <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">TEST PROGRAM</h3>
-        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0 0 R`}</pre>
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0
+0
+R`}</pre>
     </section>
 );
 
@@ -34,10 +36,10 @@ const AnniversaryInfo = () => (
 const RomTestProgram = () => (
     <section className="mb-3">
         <h3 className="text-green-300 font-bold text-sm tracking-wider uppercase mb-1">ROM WRITE TEST (Triggers UI Logging)</h3>
-        <pre className="bg-slate-900 text-purple-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 AA 8D 0 FF A9 BB 8D 1 FF A9 CC 8D 2 FF 4C 0 0
+        <pre className="bg-slate-900 text-green-200 rounded p-2 text-xs font-mono leading-relaxed whitespace-pre">{`0:A9 AA 8D 0 FF A9 BB 8D 1 FF A9 CC 8D 2 FF 4C 0 0
 0
 R`}</pre>
-        <p className="text-xs text-purple-400 mt-1">Attempts to write to ROM addresses - watch Status Panel above!</p>
+        <p className="text-xs text-slate-400 mt-1">Attempts to write to ROM addresses - watch Status Panel above!</p>
     </section>
 );
 

@@ -7,7 +7,23 @@ export interface RAMBankState {
 }
 
 export interface PIAState {
-    data: number[];
+    version?: string;
+    ora: number;
+    orb: number;
+    ddra: number;
+    ddrb: number;
+    cra: number;
+    crb: number;
+    controlLines: {
+        ca1: boolean;
+        ca2: boolean;
+        cb1: boolean;
+        cb2: boolean;
+        prevCa1: boolean;
+        prevCa2: boolean;
+        prevCb1: boolean;
+        prevCb2: boolean;
+    };
 }
 
 export interface VideoState {

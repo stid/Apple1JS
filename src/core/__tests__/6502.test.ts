@@ -220,7 +220,7 @@ describe('CPU6502', function () {
             // Test AXS directly by setting up CPU state manually
             cpu.A = 0xaa;
             cpu.X = 0x55; 
-            cpu.C = true; // Start with carry set
+            cpu.C = 1; // Start with carry set
             
             // Set up immediate addressing mode
             cpu.addr = 0x10; // Arbitrary address for immediate value
@@ -231,9 +231,9 @@ describe('CPU6502', function () {
             
             // X should be (A & X) - immediate = (0xAA & 0x55) - 0x05 = 0x00 - 0x05 = 0xFB (with borrow)
             expect(cpu.X).toBe(0xfb);
-            expect(cpu.C).toBe(false); // Borrow occurred
-            expect(cpu.Z).toBe(false);
-            expect(cpu.N).toBe(true); // Negative result
+            expect(cpu.C).toBe(0); // Borrow occurred
+            expect(cpu.Z).toBe(0);
+            expect(cpu.N).toBe(1); // Negative result
         });
 
         test('XAA instruction should transfer X to A then AND with immediate', function () {
@@ -254,8 +254,8 @@ describe('CPU6502', function () {
             
             // A should be X & immediate = 0xF0 & 0x33 = 0x30
             expect(cpu.A).toBe(0x30);
-            expect(cpu.Z).toBe(false);
-            expect(cpu.N).toBe(false);
+            expect(cpu.Z).toBe(0);
+            expect(cpu.N).toBe(0);
         });
 
         test('XAA with zero result should set zero flag', function () {
@@ -273,8 +273,8 @@ describe('CPU6502', function () {
             
             // A should be X & immediate = 0xF0 & 0x0F = 0x00
             expect(cpu.A).toBe(0x00);
-            expect(cpu.Z).toBe(true);
-            expect(cpu.N).toBe(false);
+            expect(cpu.Z).toBe(1);
+            expect(cpu.N).toBe(0);
         });
     });
 
@@ -291,11 +291,11 @@ describe('CPU6502', function () {
             romInstance.flash(romData);
 
             cpu.reset();
-            expect(cpu.I).toBe(true); // I flag set after reset
+            expect(cpu.I).toBe(1); // I flag set after reset
             
             // Execute CLI to clear interrupt flag
             cpu.performSingleStep();
-            expect(cpu.I).toBe(false); // I flag should be cleared
+            expect(cpu.I).toBe(0); // I flag should be cleared
             expect(cpu.PC).toBe(0xff01); // PC should advance
         });
 
@@ -308,7 +308,7 @@ describe('CPU6502', function () {
             romInstance.flash(romData);
 
             cpu.reset();
-            expect(cpu.I).toBe(true); // I flag set after reset
+            expect(cpu.I).toBe(1); // I flag set after reset
             
             // Set IRQ line
             cpu.setIrq(true);
@@ -316,7 +316,7 @@ describe('CPU6502', function () {
             // Execute NOP - IRQ should be ignored
             cpu.performSingleStep();
             expect(cpu.PC).toBe(0xff01); // Should continue normal execution
-            expect(cpu.I).toBe(true); // I flag should remain set
+            expect(cpu.I).toBe(1); // I flag should remain set
         });
 
         test('NMI should be handled regardless of I flag', function () {
@@ -335,7 +335,7 @@ describe('CPU6502', function () {
             romInstance.flash(romData);
 
             cpu.reset();
-            expect(cpu.I).toBe(true); // I flag set after reset
+            expect(cpu.I).toBe(1); // I flag set after reset
             expect(cpu.PC).toBe(0xff00); // Should start at reset vector
             
             // Trigger NMI (edge-triggered on falling edge)
@@ -347,7 +347,7 @@ describe('CPU6502', function () {
             
             // Check that NMI was handled
             expect(cpu.PC).toBe(0xff11); // Should be at NMI handler + 1 (after executing NOP)
-            expect(cpu.I).toBe(true); // I flag should be set
+            expect(cpu.I).toBe(1); // I flag should be set
             expect(cpu.S).toBe((stackBefore - 3) & 0xff); // Stack should have 3 bytes pushed
         });
 
@@ -397,7 +397,7 @@ describe('CPU6502', function () {
             romInstance.flash(romData);
 
             cpu.reset();
-            cpu.I = false; // Clear I flag for test
+            cpu.I = 0; // Clear I flag for test
             const stackBefore = cpu.S;
             
             cpu.performSingleStep(); // BRK
@@ -434,8 +434,8 @@ describe('CPU6502', function () {
             
             // Check that state was restored
             expect(cpu.PC).toBe(returnAddr);
-            expect(cpu.N).toBe(true);
-            expect(cpu.Z).toBe(true); // Bit 1 was set in statusReg (0x82)
+            expect(cpu.N).toBe(1);
+            expect(cpu.Z).toBe(1); // Bit 1 was set in statusReg (0x82)
             expect(cpu.S).toBe(0xff); // Stack pointer should be restored
         });
 
@@ -466,19 +466,19 @@ describe('CPU6502', function () {
             
             const state = cpu.saveState();
             
-            expect(state.irq).toBe(true);
-            expect(state.nmi).toBe(false);
-            expect(state.pendingNmi).toBe(true);
-            expect(state.pendingIrq).toBe(false); // Should be false due to I flag
+            expect(state.irq).toBe(1);
+            expect(state.nmi).toBe(0);
+            expect(state.pendingNmi).toBe(1);
+            expect(state.pendingIrq).toBe(0); // Should be false due to I flag
             
             // Test state restoration
             const newCpu = new CPU6502(cpu.bus);
             newCpu.loadState(state);
             
-            expect(newCpu.irq).toBe(true);
-            expect(newCpu.nmi).toBe(false);
-            expect((newCpu as unknown as { pendingNmi: boolean }).pendingNmi).toBe(true);
-            expect((newCpu as unknown as { pendingIrq: boolean }).pendingIrq).toBe(false);
+            expect(newCpu.irq).toBe(1);
+            expect(newCpu.nmi).toBe(0);
+            expect((newCpu as unknown as { pendingNmi: number }).pendingNmi).toBe(1);
+            expect((newCpu as unknown as { pendingIrq: number }).pendingIrq).toBe(0);
         });
     });
 });

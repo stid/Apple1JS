@@ -126,7 +126,7 @@ describe('InspectorView component', () => {
                 children: [
                     {
                         id: 'test-cpu',
-                        type: 'CPU',
+                        type: 'CPU6502',
                         name: 'Test CPU',
                         frequency: 1000000,
                         cycles: 12345,
@@ -148,13 +148,10 @@ describe('InspectorView component', () => {
                         type: WORKER_MESSAGES.DEBUG_INFO,
                         data: {
                             cpu: {
-                                REG: {
-                                    PC: '0x1234',
-                                    A: '0x56'
-                                },
-                                HW: {
-                                    ADDR: '0x1000'
-                                }
+                                REG_PC: '$1234',
+                                REG_A: '$56',
+                                HW_ADDR: '$1000',
+                                FLAG_Z: 'SET'
                             }
                         }
                     }
@@ -167,11 +164,13 @@ describe('InspectorView component', () => {
         
         // Check that CPU debug data is integrated into the architecture tree
         expect(screen.getByText('REG_PC:')).toBeInTheDocument();
-        expect(screen.getByText('0x1234')).toBeInTheDocument();
+        expect(screen.getByText('$1234')).toBeInTheDocument();
         expect(screen.getByText('REG_A:')).toBeInTheDocument();
-        expect(screen.getByText('0x56')).toBeInTheDocument();
+        expect(screen.getByText('$56')).toBeInTheDocument();
         expect(screen.getByText('HW_ADDR:')).toBeInTheDocument();
-        expect(screen.getByText('0x1000')).toBeInTheDocument();
+        expect(screen.getByText('$1000')).toBeInTheDocument();
+        expect(screen.getByText('FLAG_Z:')).toBeInTheDocument();
+        expect(screen.getByText('SET')).toBeInTheDocument();
     });
 
     it('should handle empty debug data gracefully', () => {
@@ -277,5 +276,67 @@ describe('InspectorView component', () => {
         expect(screen.getByText('instructions:')).toBeInTheDocument();
         
         consoleError.mockRestore();
+    });
+
+    it('should integrate debug data for CPU6502 component type', () => {
+        // Test the real CPU6502 component type mapping
+        const mockInspectableWithCPU6502: IInspectableComponent = {
+            id: 'test-root',
+            type: 'Apple1',
+            getInspectable: jest.fn().mockReturnValue({
+                id: 'test-root',
+                type: 'Apple1',
+                name: 'Test Apple1',
+                children: [
+                    {
+                        id: 'test-cpu6502',
+                        type: 'CPU6502',  // Real CPU6502 component type
+                        name: '6502 CPU',
+                        frequency: 1000000,
+                        cycles: 12345,
+                    }
+                ]
+            })
+        };
+
+        const { rerender } = render(<InspectorView root={mockInspectableWithCPU6502} worker={mockWorker} />);
+        
+        // Simulate receiving debug data for CPU6502 component
+        const addEventListener = mockWorker.addEventListener as jest.Mock;
+        const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
+        
+        if (messageHandler) {
+            act(() => {
+                messageHandler({
+                    data: {
+                        type: WORKER_MESSAGES.DEBUG_INFO,
+                        data: {
+                            cpu: {
+                                REG_PC: '$1234',
+                                REG_A: '$56',
+                                HW_ADDR: '$1000',
+                                FLAG_N: 'SET',
+                                FLAG_Z: 'CLR'
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        // Force re-render to show updated state
+        rerender(<InspectorView root={mockInspectableWithCPU6502} worker={mockWorker} />);
+        
+        // Check that CPU6502 debug data is integrated into the architecture tree
+        expect(screen.getByText('REG_PC:')).toBeInTheDocument();
+        expect(screen.getByText('$1234')).toBeInTheDocument();
+        expect(screen.getByText('REG_A:')).toBeInTheDocument();
+        expect(screen.getByText('$56')).toBeInTheDocument();
+        expect(screen.getByText('HW_ADDR:')).toBeInTheDocument();
+        expect(screen.getByText('$1000')).toBeInTheDocument();
+        expect(screen.getByText('FLAG_N:')).toBeInTheDocument();
+        expect(screen.getByText('SET')).toBeInTheDocument();
+        expect(screen.getByText('FLAG_Z:')).toBeInTheDocument();
+        expect(screen.getByText('CLR')).toBeInTheDocument();
     });
 });

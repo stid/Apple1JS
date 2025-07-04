@@ -160,11 +160,6 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async read(_address: number): Promise<void> {
-        // Not implemented
-    }
-
     wire(): void {
         return;
     }
