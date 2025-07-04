@@ -1381,7 +1381,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         const a: number = this.read(this.PC++);
         const paddr: number = (this.read((a + 1) & 0xff) << 8) | this.read(a);
         this.addr = paddr + this.Y;
-        if ((paddr & 0x100) != (this.addr & 0x100)) {
+        if ((paddr & 0xff00) !== (this.addr & 0xff00)) {
             this.cycles += 6;
         } else {
             this.cycles += 5;
@@ -1393,7 +1393,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         a |= this.read((this.PC & 0xff00) | ((this.PC + 1) & 0xff)) << 8;
         this.addr = this.read(a);
         this.addr |= this.read(a + 1) << 8;
-        this.cycles += 5;
+        this.cycles += 6;
     }
 
     zp(): void {
@@ -1430,7 +1430,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         let paddr: number = this.read(this.PC++);
         paddr |= this.read(this.PC++) << 8;
         this.addr = paddr + this.X;
-        if ((paddr & 0x100) != (this.addr & 0x100)) {
+        if ((paddr & 0xff00) !== (this.addr & 0xff00)) {
             this.cycles += 5;
         } else {
             this.cycles += 4;
@@ -1441,7 +1441,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         let paddr: number = this.read(this.PC++);
         paddr |= this.read(this.PC++) << 8;
         this.addr = paddr + this.Y;
-        if ((paddr & 0x100) != (this.addr & 0x100)) {
+        if ((paddr & 0xff00) !== (this.addr & 0xff00)) {
             this.cycles += 5;
         } else {
             this.cycles += 4;
@@ -1473,7 +1473,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     branch(taken: boolean): void {
         if (taken) {
-            this.cycles += (this.addr & 0x100) !== (this.PC & 0x100) ? 2 : 1;
+            this.cycles += (this.addr & 0xff00) !== (this.PC & 0xff00) ? 2 : 1;
             this.PC = this.addr;
         }
     }

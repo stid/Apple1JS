@@ -91,8 +91,8 @@ describe('CPU6502 - Jump/Call Operations', function () {
             cpu.performSingleStep();
             const cyclesAfter = cpu.getCompletedCycles();
             
-            // JMP indirect uses 4 cycles (ind() = 5, jmp() = -1)
-            expect(cyclesAfter - cyclesBefore).toBe(4);
+            // JMP indirect uses 5 cycles (ind() = 6, jmp() = -1)
+            expect(cyclesAfter - cyclesBefore).toBe(5);
         });
     });
 
