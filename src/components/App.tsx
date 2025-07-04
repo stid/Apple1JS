@@ -200,7 +200,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                 <div 
                     className="w-full bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col mx-auto lg:mx-0 mt-1 lg:mt-0 lg:overflow-hidden"
                     style={{ 
-                        maxWidth: '538px' // Match CRT container width for balance
+                        maxWidth: '680px' // Wider for better debug info display
                     }}
                 >
                     <StatusPanel />
