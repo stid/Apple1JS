@@ -23,6 +23,10 @@ class DisplayLogic implements IoLogic {
      * Sets PB7 (display busy) before write, clears PB7 (display ready) after write.
      * This handshake is essential for correct emulation: if PB7 is left set after a state restore,
      * the emulated code may wait forever for the display to become ready. Always clear PB7 after restore.
+     * 
+     * Note: In the real Apple 1, the display takes ~500 microseconds to process a character.
+     * The WOZ Monitor ECHO routine ($FFEF) polls PB7 in a tight loop waiting for it to clear.
+     * This emulation clears PB7 immediately after the display write completes.
      */
     async write(char: number): Promise<void> {
         if (char == RESET_CODE) {
@@ -33,6 +37,7 @@ class DisplayLogic implements IoLogic {
         this.pia.setBitDataB(7);
         await this.wireWrite?.(char);
         // Clear PB7 to indicate display is ready
+        // In real hardware, this would take ~500 microseconds
         this.pia.clearBitDataB(7);
     }
 
