@@ -56,18 +56,25 @@ import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
 import { IoComponent } from '@/core/@types/IoComponent';
 import { BusSpaceType } from '@/core/@types/IoAddressable';
+import { 
+    ROM_START, ROM_END, 
+    RAM_BANK1_START, RAM_BANK1_END,
+    RAM_BANK2_START, RAM_BANK2_END,
+    PIA_START, PIA_END 
+} from '../core/constants/memory';
+import { CPU_SPEED_MHZ, CPU_STEP_INTERVAL_MS } from './constants/system';
 
-const STEP_INTERVAL = 30;
-const MHZ_CPU_SPEED = 1;
+const STEP_INTERVAL = CPU_STEP_INTERVAL_MS;
+const MHZ_CPU_SPEED = CPU_SPEED_MHZ;
 
 // $FF00-$FFFF 256 Bytes ROM
-const ROM_ADDR: [number, number] = [0xff00, 0xffff];
+const ROM_ADDR: [number, number] = [ROM_START, ROM_END];
 // $0000-$0FFF 4KB Standard RAM
-const RAM_BANK1_ADDR: [number, number] = [0x0000, 0x0fff];
+const RAM_BANK1_ADDR: [number, number] = [RAM_BANK1_START, RAM_BANK1_END];
 // $E000-$EFFF 4KB Extended RAM
-const RAM_BANK2_ADDR: [number, number] = [0xe000, 0xefff];
+const RAM_BANK2_ADDR: [number, number] = [RAM_BANK2_START, RAM_BANK2_END];
 // $D010-$D013 PIA (6821) [KBD & DSP]
-const PIA_ADDR: [number, number] = [0xd010, 0xd013];
+const PIA_ADDR: [number, number] = [PIA_START, PIA_END];
 
 class Apple1 implements IInspectableComponent {
     /**

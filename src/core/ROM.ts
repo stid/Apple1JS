@@ -1,7 +1,7 @@
-const DEFAULT_ROM_SIZE = 256;
 import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoAddressable } from './@types/IoAddressable';
 import { loggingService } from '../services/LoggingService';
+import { DEFAULT_ROM_SIZE, MIN_BYTE_VALUE, BYTE_MASK } from './constants/memory';
 
 class ROM implements IoAddressable, IInspectableComponent {
     id = 'rom';
@@ -35,7 +35,7 @@ class ROM implements IoAddressable, IInspectableComponent {
     }
 
     constructor(byteSize: number = DEFAULT_ROM_SIZE) {
-        this.data = new Uint8Array(byteSize).fill(0);
+        this.data = new Uint8Array(byteSize).fill(MIN_BYTE_VALUE);
     }
 
     read(address: number): number {
@@ -75,7 +75,7 @@ class ROM implements IoAddressable, IInspectableComponent {
                 loggingService.warn('ROM', `Non-numeric data at index ${index}, using 0`);
                 return 0;
             }
-            const masked = byte & 0xFF;
+            const masked = byte & BYTE_MASK;
             if (byte !== masked) {
                 loggingService.info('ROM', `Data byte ${byte} masked to ${masked}`);
             }
