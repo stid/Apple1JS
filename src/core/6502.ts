@@ -1202,25 +1202,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
             id: this.id,
             type: this.type,
             name: this.name,
-            PC: this.PC,
-            A: this.A,
-            X: this.X,
-            Y: this.Y,
-            S: this.S,
-            N: this.N,
-            Z: this.Z,
-            C: this.C,
-            V: this.V,
-            I: this.I,
-            D: this.D,
-            irq: this.irq,
-            nmi: this.nmi,
-            pendingIrq: this.pendingIrq,
-            pendingNmi: this.pendingNmi,
-            cycles: this.cycles,
-            opcode: this.opcode,
-            address: this.address,
-            data: this.data,
+            // Advanced debugging data (for debugger, not Inspector UI)
             stack,
             disasm,
             trace,
@@ -1352,28 +1334,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
         console.log(this.toDebug());
     }
 
-    toDebug(): { REG: string; HW: string; [key: string]: string | number | boolean } {
-        let reg: string = 'nPC=' + this.PC.toString(16).padStart(4, '0').toUpperCase();
-        reg += ' cyc=' + this.cycles;
-        reg += ' [' + this.opcode.toString(16).padStart(2, '0').toUpperCase() + '] ';
-        reg += this.C ? 'C' : '-';
-        reg += this.N ? 'N' : '-';
-        reg += this.Z ? 'Z' : '-';
-        reg += this.V ? 'V' : '-';
-        reg += this.D ? 'D' : '-';
-        reg += this.I ? 'I' : '-';
-        reg += ' A=' + this.A.toString(16).padStart(2, '0').toUpperCase();
-        reg += ' X=' + this.X.toString(16).padStart(2, '0').toUpperCase();
-        reg += ' Y=' + this.Y.toString(16).padStart(2, '0').toUpperCase();
-        reg += ' S=' + this.S.toString(16).padStart(2, '0').toUpperCase();
-
-        let hw = 'ADDR=' + this.address.toString(16).padStart(4, '0').toUpperCase();
-        hw += ' DATA=' + this.data.toString(16).padStart(4, '0').toUpperCase();
-        
-        // Enhanced live state capture with hex formatting
+    toDebug(): { [key: string]: string | number | boolean } {
+        // Enhanced live state capture with hex formatting - no duplicates
         return { 
-            REG: reg, 
-            HW: hw,
             // Registers as hex values for inspector
             REG_PC: '$' + this.PC.toString(16).padStart(4, '0').toUpperCase(),
             REG_A: '$' + this.A.toString(16).padStart(2, '0').toUpperCase(),

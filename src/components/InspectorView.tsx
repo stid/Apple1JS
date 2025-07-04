@@ -53,6 +53,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         // Map component types to debug domains
         const typeToDebugDomain: Record<string, string> = {
             'CPU': 'cpu',
+            'CPU6502': 'cpu',  // Real CPU6502 component type
             'PIA6820': 'pia', 
             'Bus': 'Bus',
             'Clock': 'clock'
