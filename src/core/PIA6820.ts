@@ -141,7 +141,7 @@ class PIA6820 implements IInspectableComponent {
     }
 
     setBitCtrB(bit: number): void {
-        this.updateBitData(A_KBDCR, bit, true);
+        this.updateBitData(B_DSPCR, bit, true);
     }
 
     clearBitCrtB(bit: number): void {

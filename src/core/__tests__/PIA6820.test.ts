@@ -31,7 +31,7 @@ describe('PIA6820', () => {
         expect(pia['data'][2]).toBe(0);
 
         pia.setBitCtrB(4);
-        expect(pia['data'][1]).toBe(16);
+        expect(pia['data'][3]).toBe(16);
 
         pia.clearBitCrtB(4);
         expect(pia['data'][3]).toBe(0);
