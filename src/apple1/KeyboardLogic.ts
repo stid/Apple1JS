@@ -25,9 +25,14 @@ class KeyboardLogic implements IoLogic {
             // PA7 is always ON (+5v), so set it regardless of the input
             this.pia.setDataA(utils.bitSet(char, 7));
 
-            // Keyboard Strobe - raise CA1 on key pressed
+            // Keyboard Strobe - pulse CA1 on key pressed
             // When CA1 is raised, PIA will raise CTRL A bit 7
-            this.pia.setBitCtrA(7);
+            // First ensure CA1 is low
+            this.pia.setCA1(false);
+            // Then raise it to trigger the edge
+            this.pia.setCA1(true);
+            // In real hardware, CA1 would go low when key is released
+            // For now we'll leave it high until next key press
         }
     }
 
