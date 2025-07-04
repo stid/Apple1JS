@@ -481,4 +481,8 @@ describe('CPU6502', function () {
             expect((newCpu as unknown as { pendingIrq: number }).pendingIrq).toBe(0);
         });
     });
+
+    // Load/Store operations tests are now in CPU6502-LoadStore.test.ts
+    // Arithmetic operations tests are now in CPU6502-Arithmetic.test.ts  
+    // Branch operations tests are now in CPU6502-Branch.test.ts
 });

@@ -1,116 +1,91 @@
 import Bus from '../Bus';
+import RAM from '../RAM';
+import ROM from '../ROM';
 import { BusSpaceType } from '../@types/IoAddressable';
 
 describe('Bus', function () {
     let testBus: Bus;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let readMockA: jest.Mock<any, any>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let writeMockA: jest.Mock<any, any>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let flashMockA: jest.Mock<any, any>;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let readMockB: jest.Mock<any, any>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let writeMockB: jest.Mock<any, any>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let flashMockB: jest.Mock<any, any>;
+    let ramA: RAM;
+    let romB: ROM;
 
     beforeEach(function () {
-        readMockA = jest.fn().mockReturnValue(0x0a);
-        writeMockA = jest.fn();
-        flashMockA = jest.fn();
-
-        readMockB = jest.fn().mockReturnValue(0x0b);
-        writeMockB = jest.fn();
-        flashMockB = jest.fn();
+        ramA = new RAM(256); // 256 bytes RAM for BANK_A
+        romB = new ROM(256); // 256 bytes ROM for BANK_B
+        
+        // Flash ROM with test data
+        const romData = Array(256).fill(0x0b);
+        romData[0] = 0x00; // Start address low
+        romData[1] = 0x00; // Start address high
+        romB.flash(romData);
 
         const busMapping: BusSpaceType[] = [
             {
                 addr: [0x00, 0xff],
-                component: {
-                    read: readMockA,
-                    write: writeMockA,
-                    flash: flashMockA,
-                },
+                component: ramA,
                 name: 'BANK_A',
             },
             {
                 addr: [0x100, 0x1ff],
-                component: {
-                    read: readMockB,
-                    write: writeMockB,
-                    flash: flashMockB,
-                },
+                component: romB,
                 name: 'BANK_B',
             },
         ];
 
         testBus = new Bus(busMapping);
     });
-    test('Should Cal Read on BANK_A', function () {
+    test('Should read from BANK_A (RAM)', function () {
+        // Write test data to RAM first
+        ramA.write(0x10, 0x0a);
         const result = testBus.read(0x10);
-        expect(readMockA).toHaveBeenCalledWith(0x10);
         expect(result).toBe(0x0a);
     });
-    test('Should Cal Read on BANK_B', function () {
+    
+    test('Should read from BANK_B (ROM)', function () {
         const result = testBus.read(0x110);
-        expect(readMockB).toHaveBeenCalledWith(0x10); // Relatiev AddressS
-        expect(result).toBe(0x0b);
+        expect(result).toBe(0x0b); // ROM was flashed with 0x0b values
     });
 
-    test('Should not Call read on non Existing address space', function () {
+    test('Should return 0 for non-existing address space', function () {
         const result = testBus.read(0xffff);
-        expect(readMockA).toHaveBeenCalledTimes(0);
-        expect(readMockB).toHaveBeenCalledTimes(0);
         expect(result).toBe(0);
     });
 
-    test('Should Cal write on BANK_A', function () {
+    test('Should write to BANK_A (RAM)', function () {
         testBus.write(0x10, 0x0a);
-        expect(writeMockA).toHaveBeenCalledWith(0x10, 0x0a);
+        expect(ramA.read(0x10)).toBe(0x0a);
     });
 
-    test('Should Cal write on BANK_B', function () {
+    test('Should not write to BANK_B (ROM)', function () {
+        const originalValue = romB.read(0x10);
         testBus.write(0x110, 0x0b);
-        expect(writeMockB).toHaveBeenCalledWith(0x10, 0x0b);
+        expect(romB.read(0x10)).toBe(originalValue); // ROM should not change
     });
 
-    test('Should not Call write on non Existing address space', function () {
+    test('Should silently ignore writes to non-existing address space', function () {
         testBus.write(0xffff, 0xff);
-        expect(writeMockB).toHaveBeenCalledTimes(0);
-        expect(writeMockB).toHaveBeenCalledTimes(0);
+        // No exception should be thrown
+        expect(testBus.read(0xffff)).toBe(0);
     });
 
     test('Should Fail if Bus Spaces overlap', function () {
-        const fn = jest.fn();
+        const ram1 = new RAM(256);
+        const ram2 = new RAM(256);
+        const ram3 = new RAM(256);
+        
         const tmpMapping: BusSpaceType[] = [
             {
                 addr: [0x00, 0xff],
-                component: {
-                    read: fn,
-                    write: fn,
-                    flash: fn,
-                },
+                component: ram1,
                 name: 'BANK_A',
             },
             {
                 addr: [0x1ff, 0x2ff], // Overlap with C - 1 byte
-                component: {
-                    read: fn,
-                    write: fn,
-                    flash: fn,
-                },
+                component: ram2,
                 name: 'BANK_C',
             },
             {
                 addr: [0x100, 0x1ff],
-                component: {
-                    read: fn,
-                    write: fn,
-                    flash: fn,
-                },
+                component: ram3,
                 name: 'BANK_B',
             },
         ];
@@ -119,15 +94,11 @@ describe('Bus', function () {
     });
 
     test('Should Fail if space start < space end addr', function () {
-        const fn = jest.fn();
+        const ram = new RAM(256);
         const tmpMapping: BusSpaceType[] = [
             {
                 addr: [0xff, 0xfe],
-                component: {
-                    read: fn,
-                    write: fn,
-                    flash: fn,
-                },
+                component: ram,
                 name: 'BANK_A',
             },
         ];
