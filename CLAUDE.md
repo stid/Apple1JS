@@ -25,6 +25,7 @@ Apple1JS is a TypeScript/React-based Apple 1 computer emulator. It includes a fu
 - Mark completed items with ✅ in the respective analysis document
 
 **Phase 2 Completion Checklist:**
+
 - [ ] All planned changes implemented
 - [ ] Test coverage maintained or improved
 - [ ] No console.log usage (use UI logging system)
@@ -159,8 +160,6 @@ See `@docs/woz_monitor_cheatsheet.md` for Woz monitor overview.
 - WOZ Monitor: Built-in Apple 1 ROM monitor program
 - IInspectableComponent: Interface for debugger integration
 - EmulatorState: Serializable object representing emulator state
-
----
 
 ## 🔗 Reference Materials
 
