@@ -91,7 +91,7 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
         case WORKER_MESSAGES.GET_MEMORY_RANGE: {
             // Handle memory range request for disassembler
             if (data && typeof data === 'object') {
-                const request = data as MemoryRangeRequest;
+                const request = data as MemoryRangeRequest & { mode?: string };
                 const memoryData: number[] = [];
                 for (let i = 0; i < request.length; i++) {
                     const addr = request.start + i;
@@ -101,9 +101,10 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
                         memoryData.push(0);
                     }
                 }
-                const response: MemoryRangeData = {
+                const response: MemoryRangeData & { mode?: string } = {
                     start: request.start,
-                    data: memoryData
+                    data: memoryData,
+                    mode: request.mode
                 };
                 postMessage({ data: response, type: WORKER_MESSAGES.MEMORY_RANGE_DATA });
             }

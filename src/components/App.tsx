@@ -246,7 +246,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             <div className="p-4 text-red-400">Inspector not available - Apple1 instance not connected.</div>
                         )}
                         {rightTab === 'disassembler' && (
-                            <div className="lg:flex-1 lg:overflow-auto">
+                            <div className="flex-1 min-h-0">
                                 <Disassembler worker={worker} />
                             </div>
                         )}
