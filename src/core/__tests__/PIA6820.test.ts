@@ -131,4 +131,53 @@ describe('PIA6820', () => {
         expect(parseInt(debugObj.OPS_SEC)).toBeGreaterThanOrEqual(0);
         expect(parseInt(debugObj.NOTIFICATIONS)).toBeGreaterThan(0);
     });
+
+    test('control line CA1 sets IRQ1 flag on positive edge', () => {
+        // Reset to ensure clean state
+        pia.reset();
+        
+        // Configure for positive edge detection (bit 0 = 1)
+        pia['data'][1] = 0x01; // A_KBDCR
+        
+        // Transition from low to high
+        pia.setCA1(false);
+        pia.setCA1(true);
+        
+        // Check that bit 7 (IRQ1 flag) is set
+        expect(pia['data'][1] & 0x80).toBe(0x80);
+    });
+
+    test('control lines are included in debug output', () => {
+        pia.reset();
+        pia.setCA1(true);
+        pia.setCB2(true);
+        
+        const debugObj = pia.toDebug();
+        expect(debugObj.CA1).toBe('1');
+        expect(debugObj.CA2).toBe('0');
+        expect(debugObj.CB1).toBe('0');
+        expect(debugObj.CB2).toBe('1');
+    });
+
+    test('control lines are saved and restored', () => {
+        pia.setCA1(true);
+        pia.setCB1(true);
+        
+        const state = pia.saveState();
+        
+        // Reset and verify control lines are cleared
+        pia.reset();
+        let controlLines = pia.getControlLines();
+        expect(controlLines.ca1).toBe(false);
+        expect(controlLines.cb1).toBe(false);
+        
+        // Restore and verify control lines are back
+        pia.loadState(state as { data: number[]; controlLines?: { 
+            ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
+            prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean;
+        } });
+        controlLines = pia.getControlLines();
+        expect(controlLines.ca1).toBe(true);
+        expect(controlLines.cb1).toBe(true);
+    });
 });

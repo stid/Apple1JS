@@ -3,12 +3,14 @@ import KeyboardLogic from '../KeyboardLogic';
 
 const mockSetDataA = jest.fn();
 const mockSetBitCtrA = jest.fn();
+const mockSetCA1 = jest.fn();
 
 jest.mock('../../core/PIA6820', () => {
     return jest.fn().mockImplementation(() => {
         return {
             setDataA: mockSetDataA,
             setBitCtrA: mockSetBitCtrA,
+            setCA1: mockSetCA1,
         };
     });
 });
@@ -48,12 +50,12 @@ describe('KeyboardLogic', () => {
         expect(wireResetCallback).toHaveBeenCalled();
     });
 
-    test('write should call setDataA and setBitCtrA if not RESET_CODE', async () => {
+    test('write should call setDataA and setCA1 if not RESET_CODE', async () => {
         const testChar = 65; // ASCII 'A'
 
         await keyboardLogic.write(testChar);
 
         expect(mockSetDataA).toHaveBeenCalledWith(193); // 65 | 128 (bit 7 set)
-        expect(mockSetBitCtrA).toHaveBeenCalledWith(7);
+        expect(mockSetCA1).toHaveBeenCalledWith(true);
     });
 });

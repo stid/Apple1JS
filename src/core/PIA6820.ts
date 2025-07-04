@@ -12,6 +12,14 @@ const A_KBDCR = 0x1;
 const B_DSP = 0x2;
 const B_DSPCR = 0x3;
 
+// Control Register bit definitions
+const CR_IRQ1_FLAG = 7;      // IRQ1 flag (CA1/CB1 active transition occurred)
+const CR_IRQ2_FLAG = 6;      // IRQ2 flag (CA2/CB2 active transition occurred)
+const CR_CA2_CB2_DIR = 5;   // CA2/CB2 direction (0=input, 1=output)
+// const CR_CA2_CB2_CTRL = 3;  // CA2/CB2 control bits (2 bits: 3-4) - Reserved for Phase 4
+// const CR_DDR_ACCESS = 2;     // DDR access (0=DDR, 1=Output Register) - Reserved for Phase 4  
+// const CR_CA1_CB1_CTRL = 0;   // CA1/CB1 control bits (2 bits: 0-1) - Reserved for Phase 4
+
 class PIA6820 implements IInspectableComponent {
     // Performance monitoring
     private stats = {
@@ -23,23 +31,46 @@ class PIA6820 implements IInspectableComponent {
         startTime: performance.now(),
     };
 
+    // Control line states
+    private controlLines = {
+        ca1: false,
+        ca2: false,
+        cb1: false,
+        cb2: false,
+        // Previous states for edge detection
+        prevCa1: false,
+        prevCa2: false,
+        prevCb1: false,
+        prevCb2: false,
+    };
+
     /**
      * Returns a serializable copy of the PIA state.
      */
     saveState(): object {
         return {
             data: [...this.data],
+            controlLines: { ...this.controlLines },
         };
     }
 
     /**
      * Restores PIA state from a previously saved state.
      */
-    loadState(state: { data: number[] }): void {
+    loadState(state: { data: number[]; controlLines?: { 
+        ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
+        prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean;
+    } }): void {
         if (!state || !Array.isArray(state.data) || state.data.length !== this.data.length) {
             throw new Error('Invalid PIA state or size mismatch');
         }
         this.data = [...state.data];
+        
+        // Restore control lines if present (for backward compatibility)
+        if (state.controlLines) {
+            this.controlLines = { ...state.controlLines };
+        }
+        
         // Always clear PB7 (display busy) after restore to avoid stuck display
         this.clearBitDataB(7);
         // Notify all subscribers after restoring state to ensure display logic and others are up to date
@@ -64,7 +95,24 @@ class PIA6820 implements IInspectableComponent {
                     ? child.getInspectable()
                     : { id: child.id, type: child.type },
             ),
-            data: [...this.data],
+            data: {
+                registers: {
+                    'Port A Data (KBD)': `0x${this.data[A_KBD].toString(16).padStart(2, '0').toUpperCase()}`,
+                    'Port A Control (KBDCR)': `0x${this.data[A_KBDCR].toString(16).padStart(2, '0').toUpperCase()}`,
+                    'Port B Data (DSP)': `0x${this.data[B_DSP].toString(16).padStart(2, '0').toUpperCase()}`,
+                    'Port B Control (DSPCR)': `0x${this.data[B_DSPCR].toString(16).padStart(2, '0').toUpperCase()}`,
+                },
+                controlLines: {
+                    'CA1 (Keyboard Strobe)': this.controlLines.ca1 ? 'HIGH' : 'LOW',
+                    'CA2': this.controlLines.ca2 ? 'HIGH' : 'LOW',
+                    'CB1': this.controlLines.cb1 ? 'HIGH' : 'LOW', 
+                    'CB2 (Display)': this.controlLines.cb2 ? 'HIGH' : 'LOW',
+                },
+                controlBits: {
+                    'Port A IRQ Flag': utils.bitTest(this.data[A_KBDCR], 7) ? 'SET' : 'CLEAR',
+                    'Port B IRQ Flag': utils.bitTest(this.data[B_DSPCR], 7) ? 'SET' : 'CLEAR',
+                },
+            },
             stats: {
                 reads: this.stats.reads,
                 writes: this.stats.writes,
@@ -122,6 +170,17 @@ class PIA6820 implements IInspectableComponent {
             bitOperations: 0,
             invalidOperations: 0,
             startTime: performance.now(),
+        };
+        // Reset control lines
+        this.controlLines = {
+            ca1: false,
+            ca2: false,
+            cb1: false,
+            cb2: false,
+            prevCa1: false,
+            prevCa2: false,
+            prevCb1: false,
+            prevCb2: false,
         };
     }
 
@@ -255,6 +314,10 @@ class PIA6820 implements IInspectableComponent {
             A_KBDCR: this.data[1].toString(16).padStart(2, '0').toUpperCase(),
             B_DSP: this.data[2].toString(16).padStart(2, '0').toUpperCase(),
             B_DSPCR: this.data[3].toString(16).padStart(2, '0').toUpperCase(),
+            CA1: this.controlLines.ca1 ? '1' : '0',
+            CA2: this.controlLines.ca2 ? '1' : '0',
+            CB1: this.controlLines.cb1 ? '1' : '0',
+            CB2: this.controlLines.cb2 ? '1' : '0',
             READS: this.stats.reads.toLocaleString(),
             WRITES: this.stats.writes.toLocaleString(),
             OPS_SEC: opsPerSecond.toFixed(0),
@@ -266,6 +329,137 @@ class PIA6820 implements IInspectableComponent {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     flash(_data: Array<number>): void {
         return;
+    }
+
+    // Control line methods
+
+    /**
+     * Set CA1 control line state. Used for keyboard strobe in Apple 1.
+     * @param state - true for high, false for low
+     */
+    setCA1(state: boolean): void {
+        this.controlLines.prevCa1 = this.controlLines.ca1;
+        this.controlLines.ca1 = state;
+        
+        // Check for active edge transition
+        if (this.checkCA1Transition()) {
+            // Set IRQ1 flag in control register A
+            this.setBitCtrA(CR_IRQ1_FLAG);
+            this.stats.bitOperations++;
+        }
+    }
+
+    /**
+     * Set CB1 control line state. Not used in Apple 1 but implemented for completeness.
+     * @param state - true for high, false for low
+     */
+    setCB1(state: boolean): void {
+        this.controlLines.prevCb1 = this.controlLines.cb1;
+        this.controlLines.cb1 = state;
+        
+        // Check for active edge transition
+        if (this.checkCB1Transition()) {
+            // Set IRQ1 flag in control register B
+            this.setBitCtrB(CR_IRQ1_FLAG);
+            this.stats.bitOperations++;
+        }
+    }
+
+    /**
+     * Set CA2 control line state (if configured as input).
+     * @param state - true for high, false for low
+     */
+    setCA2(state: boolean): void {
+        // Only update if CA2 is configured as input
+        if (!utils.bitTest(this.data[A_KBDCR], CR_CA2_CB2_DIR)) {
+            this.controlLines.prevCa2 = this.controlLines.ca2;
+            this.controlLines.ca2 = state;
+            
+            // Check for active edge transition
+            if (this.checkCA2Transition()) {
+                // Set IRQ2 flag in control register A
+                this.setBitCtrA(CR_IRQ2_FLAG);
+                this.stats.bitOperations++;
+            }
+        }
+    }
+
+    /**
+     * Set CB2 control line state (if configured as input).
+     * CB2 is used for display handshaking in Apple 1.
+     * @param state - true for high, false for low
+     */
+    setCB2(state: boolean): void {
+        // Only update if CB2 is configured as input
+        if (!utils.bitTest(this.data[B_DSPCR], CR_CA2_CB2_DIR)) {
+            this.controlLines.prevCb2 = this.controlLines.cb2;
+            this.controlLines.cb2 = state;
+            
+            // Check for active edge transition
+            if (this.checkCB2Transition()) {
+                // Set IRQ2 flag in control register B
+                this.setBitCtrB(CR_IRQ2_FLAG);
+                this.stats.bitOperations++;
+            }
+        }
+    }
+
+    /**
+     * Get current state of control lines (for debugging/inspection)
+     */
+    getControlLines(): { ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean } {
+        return {
+            ca1: this.controlLines.ca1,
+            ca2: this.controlLines.ca2,
+            cb1: this.controlLines.cb1,
+            cb2: this.controlLines.cb2,
+        };
+    }
+
+    // Private helper methods for edge detection
+
+    private checkCA1Transition(): boolean {
+        const ctrl = this.data[A_KBDCR] & 0x03; // Bits 0-1
+        const posEdge = (ctrl & 0x01) !== 0; // Bit 0 determines edge
+        
+        if (posEdge) {
+            return !this.controlLines.prevCa1 && this.controlLines.ca1; // Low to high
+        } else {
+            return this.controlLines.prevCa1 && !this.controlLines.ca1; // High to low
+        }
+    }
+
+    private checkCB1Transition(): boolean {
+        const ctrl = this.data[B_DSPCR] & 0x03; // Bits 0-1
+        const posEdge = (ctrl & 0x01) !== 0; // Bit 0 determines edge
+        
+        if (posEdge) {
+            return !this.controlLines.prevCb1 && this.controlLines.cb1; // Low to high
+        } else {
+            return this.controlLines.prevCb1 && !this.controlLines.cb1; // High to low
+        }
+    }
+
+    private checkCA2Transition(): boolean {
+        const ctrl = (this.data[A_KBDCR] >> 3) & 0x03; // Bits 3-4
+        const posEdge = (ctrl & 0x01) !== 0; // Bit 3 determines edge
+        
+        if (posEdge) {
+            return !this.controlLines.prevCa2 && this.controlLines.ca2; // Low to high
+        } else {
+            return this.controlLines.prevCa2 && !this.controlLines.ca2; // High to low
+        }
+    }
+
+    private checkCB2Transition(): boolean {
+        const ctrl = (this.data[B_DSPCR] >> 3) & 0x03; // Bits 3-4
+        const posEdge = (ctrl & 0x01) !== 0; // Bit 3 determines edge
+        
+        if (posEdge) {
+            return !this.controlLines.prevCb2 && this.controlLines.cb2; // Low to high
+        } else {
+            return this.controlLines.prevCb2 && !this.controlLines.cb2; // High to low
+        }
     }
 }
 
