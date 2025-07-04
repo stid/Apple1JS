@@ -107,9 +107,6 @@ class Clock implements PubSub, IInspectableComponent {
     }
 
     // Logs the clock's debug information.
-    toLog(): void {
-        console.log(this.toDebug());
-    }
 
     // Returns the clock's debug information.
     toDebug(): { [key: string]: number | string | boolean } {

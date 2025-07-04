@@ -49,6 +49,7 @@ import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { InspectableIoComponent } from '../core/InspectableIoComponent';
+import { loggingService } from '../services/LoggingService';
 
 // ROM + Demo Program
 import anniversary from './progs/anniversary';
@@ -296,14 +297,14 @@ class Apple1 implements IInspectableComponent {
         // the related cycles per executed instruction type.
         this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
         this.clock.name = 'System Clock';
-        console.log(`Apple 1`);
+        loggingService.info('Apple1', 'Apple 1 emulator initialized');
 
         this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
 
-        // Debug output
-        this.clock.toLog();
-        this.bus.toLog();
-        this.cpu.toLog();
+        // Debug output - system startup information
+        loggingService.info('Apple1', `System Clock: ${JSON.stringify(this.clock.toDebug())}`);
+        loggingService.info('Apple1', `Bus: ${JSON.stringify(this.bus.toDebug())}`);
+        loggingService.info('Apple1', `CPU: ${JSON.stringify(this.cpu.toDebug())}`);
     }
 
     reset(): void {

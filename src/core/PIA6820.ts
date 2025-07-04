@@ -189,7 +189,9 @@ class PIA6820 implements IInspectableComponent {
                     // (I/O writes are commands, not state changes)
                     this.ora = value;
                     valueChanged = true;
-                    this.ioA?.write(value);
+                    // Note: Port A is typically configured as input (keyboard) in Apple 1
+                    // so we don't forward writes to ioA to prevent circular dependency
+                    // this.ioA?.write(value);
                 } else {
                     // Write to Data Direction Register A
                     if (this.ddra !== value) {

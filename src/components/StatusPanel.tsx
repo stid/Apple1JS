@@ -7,16 +7,22 @@ const StatusPanel: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [levelFilter, setLevelFilter] = useState<LogLevel | 'all'>('all');
 
-    // Auto-collapse info messages after 3 seconds, warnings after 10 seconds
+    // Auto-collapse warnings after 10 seconds, but keep info logs and errors persistent
     useEffect(() => {
+        const timers: ReturnType<typeof setTimeout>[] = [];
+        
         messages.forEach(message => {
-            if (message.level === 'info') {
-                setTimeout(() => removeMessage(message.id), 3000);
-            } else if (message.level === 'warn') {
-                setTimeout(() => removeMessage(message.id), 10000);
+            if (message.level === 'warn') {
+                const timer = setTimeout(() => removeMessage(message.id), 10000);
+                timers.push(timer);
             }
-            // Errors persist until manually cleared
+            // Info logs and errors persist until manually cleared
         });
+        
+        // Cleanup timers when component unmounts or messages change
+        return () => {
+            timers.forEach(timer => clearTimeout(timer));
+        };
     }, [messages, removeMessage]);
 
     const filteredMessages = messages.filter(message => 
@@ -91,30 +97,34 @@ const StatusPanel: React.FC = () => {
                             key={message.id}
                             className={`px-2 py-1 rounded border text-xs ${getMessageStyle(message.level)} animate-fade-in`}
                         >
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-start gap-1 flex-1 min-w-0">
-                                    <span className="text-xs opacity-75">
-                                        {getLevelIcon(message.level)}
-                                    </span>
-                                    <div className="flex-1 min-w-0">
-                                        <span className="text-xs opacity-75">[{message.source}]</span>
-                                        <span className="ml-1">{message.message}</span>
-                                        {message.count > 1 && (
-                                            <span className="ml-1 px-1 rounded bg-black/30 text-xs">
-                                                ×{message.count}
-                                            </span>
-                                        )}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-start gap-1 flex-1 min-w-0">
+                                        <span className="text-xs opacity-75 flex-shrink-0">
+                                            {getLevelIcon(message.level)}
+                                        </span>
+                                        <div className="flex items-baseline gap-1 flex-1 min-w-0">
+                                            <span className="text-xs opacity-75 flex-shrink-0">[{message.source}]</span>
+                                            {message.count > 1 && (
+                                                <span className="px-1 rounded bg-black/30 text-xs flex-shrink-0">
+                                                    ×{message.count}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs opacity-50 flex-shrink-0">
+                                        <span>{message.timestamp.toLocaleTimeString()}</span>
+                                        <button
+                                            onClick={() => removeMessage(message.id)}
+                                            className="hover:opacity-100 hover:text-red-400"
+                                            title="Dismiss"
+                                        >
+                                            ✕
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 text-xs opacity-50">
-                                    <span>{message.timestamp.toLocaleTimeString()}</span>
-                                    <button
-                                        onClick={() => removeMessage(message.id)}
-                                        className="hover:opacity-100 hover:text-red-400"
-                                        title="Dismiss"
-                                    >
-                                        ✕
-                                    </button>
+                                <div className="pl-4 break-all whitespace-pre-wrap overflow-x-auto">
+                                    <span className="font-mono text-xs">{message.message}</span>
                                 </div>
                             </div>
                         </div>
