@@ -1334,9 +1334,6 @@ class CPU6502 implements IClockable, IInspectableComponent {
         return this.cycles;
     }
 
-    toLog(): void {
-        console.log(this.toDebug());
-    }
 
     toDebug(): { [key: string]: string | number | boolean } {
         // Enhanced live state capture with hex formatting - no duplicates

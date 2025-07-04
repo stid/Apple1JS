@@ -70,7 +70,10 @@ describe('PIA6820', () => {
         pia.write(0, 42);
         pia.write(2, 168);
 
-        expect(ioA.write).toHaveBeenCalledWith(42);
+        // Port A is input-only in Apple 1 (keyboard), so writing to it
+        // should NOT trigger ioA.write() to prevent circular dependency
+        expect(ioA.write).not.toHaveBeenCalled();
+        // Port B is output (display), so writing to it should trigger ioB.write()
         expect(ioB.write).toHaveBeenCalledWith(168);
     });
 

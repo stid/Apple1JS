@@ -2,6 +2,7 @@ import Main from './components/Main';
 import { createRoot } from 'react-dom/client';
 import { onCLS, onLCP } from 'web-vitals';
 import { LoggingProvider } from './contexts/LoggingContext';
+import { loggingService } from './services/LoggingService';
 
 const createAppleWorker = (): Worker => {
     return new Worker(new URL('./apple1/Apple.worker.ts', import.meta.url), { type: 'module' });
@@ -30,13 +31,13 @@ const renderApp = (worker: Worker) => {
             </LoggingProvider>
         );
     } else {
-        console.error('ERROR: App Container Not Found!');
+        loggingService.error('App', 'App Container Not Found!');
     }
 };
 
 const initWebVitals = () => {
-    onCLS(console.log);
-    onLCP(console.log);
+    onCLS((metric) => loggingService.info('WebVitals', `CLS: ${JSON.stringify(metric)}`));
+    onLCP((metric) => loggingService.info('WebVitals', `LCP: ${JSON.stringify(metric)}`));
 };
 
 const main = () => {
