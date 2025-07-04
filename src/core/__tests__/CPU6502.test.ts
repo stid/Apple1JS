@@ -1,4 +1,4 @@
-import CPU6502 from '../6502';
+import CPU6502 from '../CPU6502';
 import ROM from '../ROM';
 import RAM from '../RAM';
 import Bus from '../Bus';

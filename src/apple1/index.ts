@@ -39,7 +39,7 @@ export interface EmulatorState {
     pia: PIAState;
     video: VideoState;
 }
-import CPU6502 from '../core/6502';
+import CPU6502 from '../core/CPU6502';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
 import ROM from '../core/ROM';
