@@ -72,6 +72,17 @@ const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseRe
         >
             {isPaused ? 'RESUME' : 'PAUSE'}
         </a>
+        <a
+            onClick={(e) => {
+                e.preventDefault();
+                onRefocus();
+            }}
+            href="#"
+            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-orange-700 text-orange-400 font-mono text-xs tracking-wide transition hover:bg-orange-900/60 hover:text-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
+            tabIndex={0}
+        >
+            FOCUS
+        </a>
     </nav>
 );
 

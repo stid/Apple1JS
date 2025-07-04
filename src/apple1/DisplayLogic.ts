@@ -1,21 +1,16 @@
 import PIA6820 from '../core/PIA6820';
 const RESET_CODE = -255;
-import { IoLogic, WireOptions } from '../core/@types/IoLogic';
+import { IoWriter, WireOptions } from '../core/@types/IoLogic';
 
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high
-class DisplayLogic implements IoLogic {
+class DisplayLogic implements IoWriter {
     private pia: PIA6820;
     private wireReset?: () => void;
     private wireWrite?: (value: number) => Promise<number | string | void>;
 
     constructor(pia: PIA6820) {
         this.pia = pia;
-    }
-
-    async read(): Promise<void> {
-        // Not implemented
-        return;
     }
 
     /**
@@ -33,12 +28,23 @@ class DisplayLogic implements IoLogic {
             this.wireReset?.();
             return;
         }
-        // CB2 is wired to PB7 - set PB7 to indicate display is busy
-        this.pia.setBitDataB(7);
+        
+        // Ensure CRB bit 2 is set to access Output Register B
+        const crb = this.pia.read(3); // Read current CRB
+        if (!(crb & 0x04)) {
+            this.pia.write(3, crb | 0x04); // Set bit 2 to access ORB
+        }
+        
+        // Set PB7 to indicate display is busy
+        const currentOrb = this.pia.read(2);
+        this.pia.write(2, currentOrb | 0x80); // Set bit 7
+        
         await this.wireWrite?.(char);
+        
         // Clear PB7 to indicate display is ready
         // In real hardware, this would take ~500 microseconds
-        this.pia.clearBitDataB(7);
+        const updatedOrb = this.pia.read(2);
+        this.pia.write(2, updatedOrb & 0x7F); // Clear bit 7
     }
 
     wire({ reset, write }: WireOptions): void {

@@ -5,7 +5,7 @@ export declare interface WireOptions {
 }
 
 export declare interface IoComponent {
-    read(address: number): Promise<number | void>;
+    read?(address: number): Promise<number | void>; // Made optional
     write(value: number | string): Promise<number | string | void>;
     wire(options: WireOptions): void;
     reset(): void;

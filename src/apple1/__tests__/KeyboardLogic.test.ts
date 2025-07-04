@@ -1,15 +1,15 @@
 import PIA6820 from '../../core/PIA6820';
 import KeyboardLogic from '../KeyboardLogic';
 
-const mockSetDataA = jest.fn();
-const mockSetBitCtrA = jest.fn();
+const mockRead = jest.fn();
+const mockWrite = jest.fn();
 const mockSetCA1 = jest.fn();
 
 jest.mock('../../core/PIA6820', () => {
     return jest.fn().mockImplementation(() => {
         return {
-            setDataA: mockSetDataA,
-            setBitCtrA: mockSetBitCtrA,
+            read: mockRead,
+            write: mockWrite,
             setCA1: mockSetCA1,
         };
     });
@@ -50,12 +50,15 @@ describe('KeyboardLogic', () => {
         expect(wireResetCallback).toHaveBeenCalled();
     });
 
-    test('write should call setDataA and setCA1 if not RESET_CODE', async () => {
+    test('write should call read, write and setCA1 if not RESET_CODE', async () => {
         const testChar = 65; // ASCII 'A'
+        mockRead.mockReturnValue(0x04); // Mock CRA with bit 2 set
 
         await keyboardLogic.write(testChar);
 
-        expect(mockSetDataA).toHaveBeenCalledWith(193); // 65 | 128 (bit 7 set)
-        expect(mockSetCA1).toHaveBeenCalledWith(true);
+        expect(mockRead).toHaveBeenCalledWith(1); // Read CRA
+        expect(mockWrite).toHaveBeenCalledWith(0, 193); // Write to ORA: 65 | 128 (bit 7 set)
+        expect(mockSetCA1).toHaveBeenCalledWith(false); // First ensure CA1 is low
+        expect(mockSetCA1).toHaveBeenCalledWith(true); // Then raise CA1
     });
 });

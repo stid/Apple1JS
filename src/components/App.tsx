@@ -258,7 +258,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                 ref={hiddenInputRef}
                 className="hidden-input-accessible"
                 aria-hidden="true"
-                tabIndex={-1}
+                tabIndex={0}
                 style={{
                     position: 'fixed',
                     top: 0,
@@ -266,7 +266,6 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                     width: '1px',
                     height: '1px',
                     opacity: 0,
-                    pointerEvents: 'none',
                     overflow: 'hidden',
                     zIndex: -1,
                 }}

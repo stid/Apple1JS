@@ -34,11 +34,6 @@ class Keyboard implements IoComponent, IInspectableComponent {
         return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async read(_address: number): Promise<void> {
-        // Not implemented
-    }
-
     async write(key: string): Promise<number | void> {
         this.lastKey = key;
         const wireWrite = this.wireWrite;

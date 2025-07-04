@@ -67,6 +67,40 @@ class PIA6820 implements IInspectableComponent {
         startTime: performance.now(),
     };
 
+    // Performance optimization properties
+    private registerCache: Map<string, number>;
+    private pendingNotification: boolean;
+    private notificationBatch: Set<string>;
+
+    constructor() {
+        // Initialize PIA registers to proper Apple 1 state
+        this.ora = 0x00;
+        this.orb = 0x00;
+        // Apple 1 specific DDR configuration:
+        // Port A: all inputs (keyboard)
+        this.ddra = 0x00;
+        // Port B: bits 0-6 outputs (display data), bit 7 input (display status)
+        this.ddrb = 0x7F;
+        // Set CRA and CRB bit 2 to access Output Registers (not DDR)
+        this.cra = 0x04; // Bit 2 = 1 to access ORA
+        this.crb = 0x04; // Bit 2 = 1 to access ORB
+        
+        // Initialize control lines
+        this.ca1 = false;
+        this.ca2 = false;
+        this.cb1 = false;
+        this.cb2 = false;
+        this.prevCa1 = false;
+        this.prevCa2 = false;
+        this.prevCb1 = false;
+        this.prevCb2 = false;
+
+        // Initialize performance optimization
+        this.registerCache = new Map();
+        this.pendingNotification = false;
+        this.notificationBatch = new Set();
+    }
+
     get children() {
         const children = [];
         if (this.ioA && typeof this.ioA === 'object' && 'type' in this.ioA && 'id' in this.ioA) {
@@ -89,28 +123,57 @@ class PIA6820 implements IInspectableComponent {
             return 0;
         }
 
+        // Create cache key including DDR access state for proper caching
+        const ddrAccess = (address === REG_ORA_DDRA) ? (this.cra & (1 << CR_DDR_ACCESS)) : 
+                         (address === REG_ORB_DDRB) ? (this.crb & (1 << CR_DDR_ACCESS)) : 0;
+        const cacheKey = `${address}:${ddrAccess}`;
+        
+        // Check cache first (skip for registers that have side effects)
+        if (address === REG_CRA || address === REG_CRB) {
+            const cached = this.registerCache.get(cacheKey);
+            if (cached !== undefined) {
+                return cached;
+            }
+        }
+
+        let result: number;
         switch (address) {
             case REG_ORA_DDRA:
                 // Clear CA1 interrupt flag when reading port A
                 this.cra &= ~(1 << CR_IRQ1);
+                // Invalidate CRA cache when IRQ flag changes
+                this.registerCache.delete(`${REG_CRA}:0`);
                 // Return DDR or Output Register based on CRA bit 2
-                return (this.cra & (1 << CR_DDR_ACCESS)) ? this.readPortA() : this.ddra;
+                result = (this.cra & (1 << CR_DDR_ACCESS)) ? this.readPortA() : this.ddra;
+                break;
 
             case REG_CRA:
-                return this.cra;
+                result = this.cra;
+                break;
 
             case REG_ORB_DDRB:
                 // Clear CB1 interrupt flag when reading port B
                 this.crb &= ~(1 << CR_IRQ1);
+                // Invalidate CRB cache when IRQ flag changes
+                this.registerCache.delete(`${REG_CRB}:0`);
                 // Return DDR or Output Register based on CRB bit 2
-                return (this.crb & (1 << CR_DDR_ACCESS)) ? this.readPortB() : this.ddrb;
+                result = (this.crb & (1 << CR_DDR_ACCESS)) ? this.readPortB() : this.ddrb;
+                break;
 
             case REG_CRB:
-                return this.crb;
+                result = this.crb;
+                break;
 
             default:
-                return 0;
+                result = 0;
         }
+
+        // Cache control register reads only
+        if (address === REG_CRA || address === REG_CRB) {
+            this.registerCache.set(cacheKey, result);
+        }
+
+        return result;
     }
 
     /**
@@ -127,43 +190,80 @@ class PIA6820 implements IInspectableComponent {
         // Ensure 8-bit value
         value = value & 0xFF;
 
+        // Track if we need to notify
+        let valueChanged = false;
+
         switch (address) {
             case REG_ORA_DDRA:
                 if (this.cra & (1 << CR_DDR_ACCESS)) {
                     // Write to Output Register A
-                    this.ora = value;
-                    this.ioA?.write(value);
+                    if (this.ora !== value) {
+                        this.ora = value;
+                        valueChanged = true;
+                        this.ioA?.write(value);
+                    }
                 } else {
                     // Write to Data Direction Register A
-                    this.ddra = value;
+                    if (this.ddra !== value) {
+                        this.ddra = value;
+                        valueChanged = true;
+                    }
                 }
+                // Invalidate cache for this register
+                this.registerCache.delete(`${address}:${this.cra & (1 << CR_DDR_ACCESS)}`);
                 break;
 
-            case REG_CRA:
+            case REG_CRA: {
                 // Bits 6-7 are read-only interrupt flags
-                this.cra = (this.cra & 0xC0) | (value & 0x3F);
-                this.updateCA2Output();
+                const newCra = (this.cra & 0xC0) | (value & 0x3F);
+                if (this.cra !== newCra) {
+                    this.cra = newCra;
+                    valueChanged = true;
+                    this.updateCA2Output();
+                }
+                // Invalidate cache
+                this.registerCache.delete(`${address}:0`);
                 break;
+            }
 
             case REG_ORB_DDRB:
                 if (this.crb & (1 << CR_DDR_ACCESS)) {
                     // Write to Output Register B
-                    this.orb = value;
-                    this.ioB?.write(value);
+                    if (this.orb !== value) {
+                        this.orb = value;
+                        valueChanged = true;
+                        this.ioB?.write(value);
+                    }
                 } else {
                     // Write to Data Direction Register B
-                    this.ddrb = value;
+                    if (this.ddrb !== value) {
+                        this.ddrb = value;
+                        valueChanged = true;
+                    }
                 }
+                // Invalidate cache for this register
+                this.registerCache.delete(`${address}:${this.crb & (1 << CR_DDR_ACCESS)}`);
                 break;
 
-            case REG_CRB:
+            case REG_CRB: {
                 // Bits 6-7 are read-only interrupt flags
-                this.crb = (this.crb & 0xC0) | (value & 0x3F);
-                this.updateCB2Output();
+                const newCrb = (this.crb & 0xC0) | (value & 0x3F);
+                if (this.crb !== newCrb) {
+                    this.crb = newCrb;
+                    valueChanged = true;
+                    this.updateCB2Output();
+                }
+                // Invalidate cache
+                this.registerCache.delete(`${address}:0`);
                 break;
+            }
         }
 
-        this._notifySubscribers();
+        // Only notify if value actually changed
+        if (valueChanged) {
+            this.notificationBatch.add(address.toString());
+            this.scheduleNotification();
+        }
     }
 
     /**
@@ -261,8 +361,9 @@ class PIA6820 implements IInspectableComponent {
         this.ddra = 0x00;
         // Port B: bits 0-6 outputs (display data), bit 7 input (display status)
         this.ddrb = 0x7F;
-        this.cra = 0x00;
-        this.crb = 0x00;
+        // Set CRA and CRB bit 2 to access Output Registers (not DDR)
+        this.cra = 0x04; // Bit 2 = 1 to access ORA
+        this.crb = 0x04; // Bit 2 = 1 to access ORB
         
         this.ca1 = false;
         this.ca2 = false;
@@ -280,6 +381,11 @@ class PIA6820 implements IInspectableComponent {
             controlLineChanges: 0,
             startTime: performance.now(),
         };
+
+        // Clear performance optimization state
+        this.registerCache.clear();
+        this.notificationBatch.clear();
+        this.pendingNotification = false;
 
         this._notifySubscribers();
     }
@@ -312,6 +418,7 @@ class PIA6820 implements IInspectableComponent {
      */
     saveState(): object {
         return {
+            version: '2.0', // File format version for future compatibility
             // Core registers
             ora: this.ora,
             orb: this.orb,
@@ -330,8 +437,6 @@ class PIA6820 implements IInspectableComponent {
                 prevCb1: this.prevCb1,
                 prevCb2: this.prevCb2,
             },
-            // Legacy format for backward compatibility
-            data: [this.ora, this.cra, this.orb, this.crb],
         };
     }
 
@@ -339,42 +444,41 @@ class PIA6820 implements IInspectableComponent {
      * Load PIA state
      */
     loadState(state: { 
-        ora?: number; orb?: number; ddra?: number; ddrb?: number; 
-        cra?: number; crb?: number; data?: number[]; 
-        controlLines?: { ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
-            prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean; }
+        version?: string;
+        ora: number; 
+        orb: number; 
+        ddra: number; 
+        ddrb: number; 
+        cra: number; 
+        crb: number; 
+        controlLines: { 
+            ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
+            prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean; 
+        }
     }): void {
-        // Try new format first
-        if (state.ora !== undefined) {
-            this.ora = state.ora;
-            this.orb = state.orb || 0x00;
-            this.ddra = state.ddra || 0x00;
-            this.ddrb = state.ddrb || 0x00;
-            this.cra = state.cra || 0x00;
-            this.crb = state.crb || 0x00;
+        const version = state.version || '2.0';
+        
+        if (version < '2.0') {
+            throw new Error(`Unsupported PIA save state version: ${version}. Please use a newer save state.`);
         }
-        // Fall back to legacy format
-        else if (state.data && Array.isArray(state.data)) {
-            this.ora = state.data[0] || 0;
-            this.cra = state.data[1] || 0;
-            this.orb = state.data[2] || 0;
-            this.crb = state.data[3] || 0;
-            // Default DDRs for Apple 1: Port A all inputs, Port B bits 0-6 outputs, bit 7 input
-            this.ddra = 0x00;
-            this.ddrb = 0x7F;
-        }
+        
+        // Load v2.0+ format with DDR support
+        this.ora = state.ora;
+        this.orb = state.orb;
+        this.ddra = state.ddra;
+        this.ddrb = state.ddrb;
+        this.cra = state.cra;
+        this.crb = state.crb;
 
-        // Load control lines if present
-        if (state.controlLines) {
-            this.ca1 = state.controlLines.ca1;
-            this.ca2 = state.controlLines.ca2;
-            this.cb1 = state.controlLines.cb1;
-            this.cb2 = state.controlLines.cb2;
-            this.prevCa1 = state.controlLines.prevCa1;
-            this.prevCa2 = state.controlLines.prevCa2;
-            this.prevCb1 = state.controlLines.prevCb1;
-            this.prevCb2 = state.controlLines.prevCb2;
-        }
+        // Load control lines
+        this.ca1 = state.controlLines.ca1;
+        this.ca2 = state.controlLines.ca2;
+        this.cb1 = state.controlLines.cb1;
+        this.cb2 = state.controlLines.cb2;
+        this.prevCa1 = state.controlLines.prevCa1;
+        this.prevCa2 = state.controlLines.prevCa2;
+        this.prevCb1 = state.controlLines.prevCb1;
+        this.prevCb2 = state.controlLines.prevCb2;
 
         // Always clear PB7 after restore (display ready)
         this.orb &= 0x7F;
@@ -426,6 +530,8 @@ class PIA6820 implements IInspectableComponent {
                 notifications: this.stats.notificationCount,
                 controlLineChanges: this.stats.controlLineChanges,
                 opsPerSecond: opsPerSecond.toFixed(2),
+                cacheSize: this.registerCache.size,
+                cacheHit: this.registerCache.size > 0 ? 'Active' : 'Empty',
             },
         };
     }
@@ -437,11 +543,14 @@ class PIA6820 implements IInspectableComponent {
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 
+        // Lazy evaluation - only format when requested
+        const formatHex = (value: number) => value.toString(16).padStart(2, '0').toUpperCase();
+
         return {
-            ORA: this.ora.toString(16).padStart(2, '0').toUpperCase(),
-            CRA: this.cra.toString(16).padStart(2, '0').toUpperCase(),
-            ORB: this.orb.toString(16).padStart(2, '0').toUpperCase(),
-            CRB: this.crb.toString(16).padStart(2, '0').toUpperCase(),
+            ORA: formatHex(this.ora),
+            CRA: formatHex(this.cra),
+            ORB: formatHex(this.orb),
+            CRB: formatHex(this.crb),
             CA1: this.ca1 ? '1' : '0',
             CA2: this.ca2 ? '1' : '0',
             CB1: this.cb1 ? '1' : '0',
@@ -449,42 +558,8 @@ class PIA6820 implements IInspectableComponent {
             IRQA: this.getIRQA() ? '1' : '0',
             IRQB: this.getIRQB() ? '1' : '0',
             OPS_SEC: opsPerSecond.toFixed(0),
+            CACHE_SIZE: this.registerCache.size.toString(),
         };
-    }
-
-    // Legacy compatibility methods (will be removed after updating dependencies)
-
-    setDataA(value: number): void {
-        this.ora = value & 0xFF;
-        this.ioA?.write(this.ora);
-        this._notifySubscribers();
-    }
-
-    setDataB(value: number): void {
-        this.orb = value & 0xFF;
-        this.ioB?.write(this.orb);
-        this._notifySubscribers();
-    }
-
-    setBitDataB(bit: number): void {
-        if (bit >= 0 && bit <= 7) {
-            this.orb |= (1 << bit);
-            this._notifySubscribers();
-        }
-    }
-
-    clearBitDataB(bit: number): void {
-        if (bit >= 0 && bit <= 7) {
-            this.orb &= ~(1 << bit);
-            this._notifySubscribers();
-        }
-    }
-
-    // Stub for interface compatibility
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    flash(_data: Array<number>): void {
-        // Not used in PIA
-        return;
     }
 
     /**
@@ -569,6 +644,23 @@ class PIA6820 implements IInspectableComponent {
     private _notifySubscribers(): void {
         this.stats.notificationCount++;
         this.subscribers.forEach((sub) => sub(this.getCurrentState()));
+    }
+
+    /**
+     * Batch notification system for multi-bit operations
+     */
+    private scheduleNotification(): void {
+        if (this.pendingNotification) return;
+        
+        this.pendingNotification = true;
+        // Use microtask to batch notifications within the same execution cycle
+        globalThis.queueMicrotask(() => {
+            this.pendingNotification = false;
+            if (this.notificationBatch.size > 0) {
+                this.notificationBatch.clear();
+                this._notifySubscribers();
+            }
+        });
     }
 }
 

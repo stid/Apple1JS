@@ -1165,9 +1165,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.opcode = state.opcode;
         this.address = state.address;
         this.data = state.data;
-        // Load interrupt state if present (for backward compatibility)
-        this.pendingIrq = (state as unknown as { pendingIrq?: boolean }).pendingIrq || false;
-        this.pendingNmi = (state as unknown as { pendingNmi?: boolean }).pendingNmi || false;
+        // Load interrupt state
+        this.pendingIrq = state.pendingIrq;
+        this.pendingNmi = state.pendingNmi;
     }
 
     getInspectable?() {
