@@ -41,6 +41,7 @@ Apple1JS is a TypeScript/React-based Apple 1 computer emulator. It includes a fu
 - Avoid `console.log`; use the UI-based logging system.
 - Ask for clarification when unsure.
 - Never alter code inside src/progs unless explicitly instructed to do so. This is original Apple 1 code and should not be modified. You may analyze it as needed to inform your thinking and validate any code changes.
+-   - **MANDATORY: Update `src/version.ts` with semantic versioning before opening a PR**
 
 ---
 
