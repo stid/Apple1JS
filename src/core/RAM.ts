@@ -1,8 +1,7 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
 import { IoAddressable } from './@types/IoAddressable';
 import { loggingService } from '../services/LoggingService';
-
-const DEFAULT_RAM_BANK_SIZE = 4096;
+import { DEFAULT_RAM_BANK_SIZE, MIN_BYTE_VALUE, MAX_BYTE_VALUE, BYTE_MASK } from './constants/memory';
 class RAM implements IoAddressable, IInspectableComponent {
     /**
      * Returns a serializable copy of the RAM contents.
@@ -71,9 +70,9 @@ class RAM implements IoAddressable, IInspectableComponent {
             loggingService.warn('RAM', `Invalid write address ${address} (size: ${this.data.length})`);
             return;
         }
-        if (value < 0 || value > 255) {
-            loggingService.info('RAM', `Value ${value} masked to 8-bit: ${value & 0xFF}`);
-            value = value & 0xFF;
+        if (value < MIN_BYTE_VALUE || value > MAX_BYTE_VALUE) {
+            loggingService.info('RAM', `Value ${value} masked to 8-bit: ${value & BYTE_MASK}`);
+            value = value & BYTE_MASK;
         }
         this.data[address] = value;
     }
@@ -114,7 +113,7 @@ class RAM implements IoAddressable, IInspectableComponent {
                 loggingService.warn('RAM', `Non-numeric data at index ${index}, using 0`);
                 return 0;
             }
-            const masked = byte & 0xFF;
+            const masked = byte & BYTE_MASK;
             if (byte !== masked) {
                 loggingService.info('RAM', `Data byte ${byte} masked to ${masked}`);
             }

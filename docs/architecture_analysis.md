@@ -126,7 +126,7 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 
 ### Phase 1 - Quick Wins (1-2 days)
 - [x] Standardize naming conventions
-- [ ] Extract magic numbers
+- [x] Extract magic numbers
 - [ ] Replace console.log usage
 
 ### Phase 2 - Type Safety (3-4 days)

@@ -1,8 +1,17 @@
-export const BS = 95; // Backspace key, arrow left key
-export const CR = 13; // Carriage Return
-export const ESC = 27; // ESC key
-export const CLEAR = 12;
+import {
+    CHAR_BACKSPACE,
+    CHAR_CARRIAGE_RETURN,
+    CHAR_ESCAPE,
+    CHAR_CLEAR_SCREEN,
+    DISPLAY_DELAY_MS,
+    BIT_7_MASK
+} from './constants/system';
 
-export const DISPLAY_DELAY = 17; // Around 300 boud
+export const BS = CHAR_BACKSPACE; // Backspace key, arrow left key
+export const CR = CHAR_CARRIAGE_RETURN; // Carriage Return
+export const ESC = CHAR_ESCAPE; // ESC key
+export const CLEAR = CHAR_CLEAR_SCREEN;
 
-export const B7 = 0x7f;
+export const DISPLAY_DELAY = DISPLAY_DELAY_MS; // Around 300 baud
+
+export const B7 = BIT_7_MASK;
