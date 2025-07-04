@@ -1352,7 +1352,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         console.log(this.toDebug());
     }
 
-    toDebug(): { REG: string; HW: string } {
+    toDebug(): { REG: string; HW: string; [key: string]: string | number | boolean } {
         let reg: string = 'nPC=' + this.PC.toString(16).padStart(4, '0').toUpperCase();
         reg += ' cyc=' + this.cycles;
         reg += ' [' + this.opcode.toString(16).padStart(2, '0').toUpperCase() + '] ';
@@ -1369,7 +1369,38 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
         let hw = 'ADDR=' + this.address.toString(16).padStart(4, '0').toUpperCase();
         hw += ' DATA=' + this.data.toString(16).padStart(4, '0').toUpperCase();
-        return { REG: reg, HW: hw };
+        
+        // Enhanced live state capture with hex formatting
+        return { 
+            REG: reg, 
+            HW: hw,
+            // Registers as hex values for inspector
+            REG_PC: '$' + this.PC.toString(16).padStart(4, '0').toUpperCase(),
+            REG_A: '$' + this.A.toString(16).padStart(2, '0').toUpperCase(),
+            REG_X: '$' + this.X.toString(16).padStart(2, '0').toUpperCase(),
+            REG_Y: '$' + this.Y.toString(16).padStart(2, '0').toUpperCase(),
+            REG_S: '$' + this.S.toString(16).padStart(2, '0').toUpperCase(),
+            // Processor flags as clear indicators
+            FLAG_N: this.N ? 'SET' : 'CLR',
+            FLAG_Z: this.Z ? 'SET' : 'CLR',
+            FLAG_C: this.C ? 'SET' : 'CLR',
+            FLAG_V: this.V ? 'SET' : 'CLR',
+            FLAG_I: this.I ? 'SET' : 'CLR',
+            FLAG_D: this.D ? 'SET' : 'CLR',
+            // Hardware state in hex
+            HW_ADDR: '$' + this.address.toString(16).padStart(4, '0').toUpperCase(),
+            HW_DATA: '$' + this.data.toString(16).padStart(2, '0').toUpperCase(),
+            HW_OPCODE: '$' + this.opcode.toString(16).padStart(2, '0').toUpperCase(),
+            HW_CYCLES: this.cycles.toLocaleString(),
+            // Interrupt state as clear indicators
+            IRQ_LINE: this.irq ? 'ACTIVE' : 'INACTIVE',
+            NMI_LINE: this.nmi ? 'ACTIVE' : 'INACTIVE',
+            IRQ_PENDING: this.pendingIrq ? 'YES' : 'NO',
+            NMI_PENDING: this.pendingNmi ? 'YES' : 'NO',
+            // Instruction execution state in hex
+            EXEC_TMP: '$' + this.tmp.toString(16).padStart(2, '0').toUpperCase(),
+            EXEC_ADDR: '$' + this.addr.toString(16).padStart(4, '0').toUpperCase()
+        };
     }
 
     ////////////////////////////////////////////////////////////////////////////////

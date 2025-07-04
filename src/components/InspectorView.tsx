@@ -63,16 +63,17 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         
         const domainData = debugInfo[debugDomain];
         
-        // For CPU, flatten REG and HW data
+        // Handle CPU debug data (could be flat or nested depending on source)
         if (debugDomain === 'cpu' && typeof domainData === 'object') {
             const result: Record<string, string | number | boolean> = {};
             Object.entries(domainData).forEach(([key, value]) => {
                 if (typeof value === 'object' && value !== null) {
-                    // Flatten nested objects like REG and HW
+                    // Flatten nested objects like REG: { PC: '0x1234' } -> REG_PC: '0x1234'
                     Object.entries(value).forEach(([subKey, subValue]) => {
                         result[`${key}_${subKey}`] = subValue as string | number | boolean;
                     });
                 } else {
+                    // Keep flat values as-is (like REG_PC: '$1234')
                     result[key] = value as string | number | boolean;
                 }
             });
