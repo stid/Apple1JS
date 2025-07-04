@@ -43,7 +43,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
      * Public method to force a video update to all subscribers.
      */
     forceUpdate() {
-        this._notifySubscribers();
+        this.notifySubscribers();
     }
     /**
      * Returns a serializable copy of the video state (buffer, row, column).
@@ -68,7 +68,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
         this.column = state.column;
         if (typeof state.rowShift === 'number') this.rowShift = state.rowShift;
         // Always notify subscribers, even if buffer looks the same
-        this._notifySubscribers();
+        this.notifySubscribers();
     }
     id: string = 'crtvideo';
     type: string = 'IoComponent';
@@ -105,7 +105,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
 
     onClear(): void {
         this.buffer = Array.from({ length: NUM_ROWS }, (_, i) => [i, Array(NUM_COLUMNS).fill(' ')]);
-        this._notifySubscribers();
+        this.notifySubscribers();
     }
 
     subscribe(subFunc: subscribeFunction<WebCrtVideoSubFuncVideoType>): void {
@@ -117,21 +117,21 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
         this.subscribers = this.subscribers.filter((subItem) => subItem !== subFunc);
     }
 
-    private _notifySubscribers() {
+    private notifySubscribers() {
         this.subscribers.forEach((subFunc) => subFunc({ buffer: this.buffer, row: this.row, column: this.column }));
     }
 
-    private _newLine() {
+    private newLine() {
         this.row += 1;
         this.column = 0;
     }
 
-    private _onChar(char: string) {
-        this._updateBuffer((draftBuffer) => {
+    private onChar(char: string) {
+        this.updateBuffer((draftBuffer) => {
             // NEW LINE
             switch (char) {
                 case '\n':
-                    this._newLine();
+                    this.newLine();
                     break;
                 case '\b':
                     if (this.column > 0) {
@@ -148,7 +148,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
             }
             // End of line
             if (this.column >= NUM_COLUMNS) {
-                this._newLine();
+                this.newLine();
             }
             // End of Screen - shift up
             if (this.row >= NUM_ROWS) {
@@ -177,18 +177,18 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
             case appleConstants.ESC:
                 break;
             case appleConstants.CR:
-                this._onChar('\n');
+                this.onChar('\n');
                 break;
             case appleConstants.BS:
                 if (this.supportBS) {
-                    this._onChar('\b');
+                    this.onChar('\b');
                 } else {
-                    this._onChar('_');
+                    this.onChar('_');
                 }
                 break;
             default:
                 if (bitChar >= 13) {
-                    this._onChar(String.fromCharCode(bitChar));
+                    this.onChar(String.fromCharCode(bitChar));
                 }
                 break;
             case appleConstants.CLEAR:
@@ -198,7 +198,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
         await wait(appleConstants.DISPLAY_DELAY);
     }
 
-    private _updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
+    private updateBuffer(updateFunction: (draftBuffer: VideoBuffer) => void) {
         // Deep clone buffer for immutability
         const draftBuffer = cloneBuffer(this.buffer);
         updateFunction(draftBuffer);
@@ -220,7 +220,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
         if (changed) {
             this.buffer = draftBuffer;
         }
-        this._notifySubscribers();
+        this.notifySubscribers();
     }
 }
 

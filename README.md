@@ -5,6 +5,9 @@
 
 A modern TypeScript/React-based Apple 1 computer emulator featuring complete 6502 CPU emulation, memory management, peripheral interface adapter (PIA 6820), and a CRT-style display interface. Built with Vite and modern web technologies.
 
+🧠 This project uses agentic AI tools (e.g., Claude Console) to accelerate development and experimentation.
+All AI-generated contributions are reviewed and curated by me to ensure quality and alignment with project goals.
+
 ## Demo
 
 You can try out the emulator in your browser with the [Interactive Demo](https://stid.me).
@@ -13,7 +16,7 @@ You can try out the emulator in your browser with the [Interactive Demo](https:/
 
 To run the emulator locally on your computer, you'll need to install the required packages with the following command in the repo folder:
 
-``` ssh
+```ssh
 yarn install
 ```
 

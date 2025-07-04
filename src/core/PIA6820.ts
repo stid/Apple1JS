@@ -391,7 +391,7 @@ class PIA6820 implements IInspectableComponent {
         this.notificationBatch.clear();
         this.pendingNotification = false;
 
-        this._notifySubscribers();
+        this.notifySubscribers();
     }
 
     /**
@@ -490,7 +490,7 @@ class PIA6820 implements IInspectableComponent {
         // Load hardware-controlled input pins (with default for backward compatibility)
         this.pb7InputState = state.pb7InputState ?? false; // Default to display ready
         
-        this._notifySubscribers();
+        this.notifySubscribers();
     }
 
     /**
@@ -646,7 +646,7 @@ class PIA6820 implements IInspectableComponent {
         return [this.ora, this.cra, this.orb, this.crb];
     }
 
-    private _notifySubscribers(): void {
+    private notifySubscribers(): void {
         this.stats.notificationCount++;
         this.subscribers.forEach((sub) => sub(this.getCurrentState()));
     }
@@ -663,7 +663,7 @@ class PIA6820 implements IInspectableComponent {
             this.pendingNotification = false;
             if (this.notificationBatch.size > 0) {
                 this.notificationBatch.clear();
-                this._notifySubscribers();
+                this.notifySubscribers();
             }
         });
     }

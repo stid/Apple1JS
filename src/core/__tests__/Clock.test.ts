@@ -189,7 +189,7 @@ describe('Clock', () => {
 
         clock.unsubscribe(subscriber1);
 
-        clock['_notifySubscribers']();
+        clock['notifySubscribers']();
 
         expect(subscriber1).toHaveBeenCalledTimes(1);
         expect(subscriber2).toHaveBeenCalledTimes(2);

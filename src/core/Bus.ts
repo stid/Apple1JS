@@ -47,8 +47,8 @@ class Bus implements IInspectableComponent {
      */
     constructor(busMapping: Array<BusSpaceType>) {
         this.busMapping = busMapping;
-        this.sortedAddrs = this._sortAddresses(busMapping);
-        this._validate();
+        this.sortedAddrs = this.sortAddresses(busMapping);
+        this.validate();
     }
 
     /**
@@ -73,7 +73,7 @@ class Bus implements IInspectableComponent {
      * @param busMapping - An array of BusSpaceType objects to be sorted.
      * @returns A sorted array of BusSpaceType objects.
      */
-    private _sortAddresses(busMapping: Array<BusSpaceType>): Array<BusSpaceType> {
+    private sortAddresses(busMapping: Array<BusSpaceType>): Array<BusSpaceType> {
         return busMapping.sort((itemA: BusSpaceType, itemB: BusSpaceType): number => itemA.addr[0] - itemB.addr[0]);
     }
 
@@ -81,7 +81,7 @@ class Bus implements IInspectableComponent {
      * Validate the bus mapping by checking that start < end and there is no overlap between address ranges.
      * @throws Will throw an error if any validation fails.
      */
-    private _validate(): void {
+    private validate(): void {
         this.sortedAddrs.forEach((item: BusSpaceType) => {
             if (item.addr[0] > item.addr[1]) {
                 throw Error(`"${item.name}": Starting address is greater than ending address`);
@@ -100,7 +100,7 @@ class Bus implements IInspectableComponent {
      * @param address - The memory address to search for.
      * @returns The BusSpaceType object containing the address, or undefined if not found.
      */
-    private _findInstanceWithAddress(address: number): BusSpaceType | undefined {
+    private findInstanceWithAddress(address: number): BusSpaceType | undefined {
         this.cacheAccesses++;
 
         // Try cache first
@@ -120,7 +120,7 @@ class Bus implements IInspectableComponent {
 
             if (address >= current.addr[0] && address <= current.addr[1]) {
                 // Cache the result
-                this._cacheAddress(address, current);
+                this.cacheAddress(address, current);
                 return current;
             } else if (address < current.addr[0]) {
                 right = mid - 1;
@@ -137,7 +137,7 @@ class Bus implements IInspectableComponent {
      * @param address - The memory address to cache.
      * @param busSpace - The BusSpaceType containing this address.
      */
-    private _cacheAddress(address: number, busSpace: BusSpaceType): void {
+    private cacheAddress(address: number, busSpace: BusSpaceType): void {
         if (this.addressCache.size >= this.maxCacheSize) {
             // Simple LRU: remove the first (oldest) entry
             const firstKey = this.addressCache.keys().next().value;
@@ -154,7 +154,7 @@ class Bus implements IInspectableComponent {
      * @returns The value at the specified address, or 0 if the address is not found.
      */
     read(address: number): number {
-        const addrInstance = this._findInstanceWithAddress(address);
+        const addrInstance = this.findInstanceWithAddress(address);
         return addrInstance ? addrInstance.component.read(address - addrInstance.addr[0]) : 0;
     }
 
@@ -164,7 +164,7 @@ class Bus implements IInspectableComponent {
      * @param value - The value to be written.
      */
     write(address: number, value: number): void {
-        const addrInstance = this._findInstanceWithAddress(address);
+        const addrInstance = this.findInstanceWithAddress(address);
         if (addrInstance) {
             addrInstance.component.write(address - addrInstance.addr[0], value);
         }

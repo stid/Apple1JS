@@ -10,7 +10,6 @@ junit.xml
 tmp
 
 *.tsbuildinfo
-CLAUDE.md
 
 # Environment files
 .env*

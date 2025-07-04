@@ -102,7 +102,7 @@ class Clock implements PubSub, IInspectableComponent {
     }
 
     // Notify all subscribers about the current provisioned cycles.
-    private _notifySubscribers() {
+    private notifySubscribers() {
         this.subscribers.forEach((subFunc) => subFunc(this.provisionedCycles));
     }
 
@@ -248,7 +248,7 @@ class Clock implements PubSub, IInspectableComponent {
                 this.updateDriftCompensation();
             }
 
-            this._notifySubscribers();
+            this.notifySubscribers();
 
             await wait(this.dynamicWaitTime);
         }
