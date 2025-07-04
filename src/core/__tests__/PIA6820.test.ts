@@ -50,7 +50,7 @@ describe('PIA6820', () => {
         // Read back - note that reading port A/B clears IRQ flags
         expect(pia.read(0)).toBe(42 | 0x80); // Port A has bit 7 always high
         expect(pia.read(1)).toBe(84 & 0x3F); // IRQ flags are cleared
-        expect(pia.read(2)).toBe(168); // Port B preserves bit 7 for Apple 1 display status
+        expect(pia.read(2)).toBe(168 & 0x7F); // Port B output bits only (bit 7 is hardware-controlled input)
         expect(pia.read(3)).toBe(5 & 0x3F); // IRQ flags are cleared
     });
 
@@ -182,37 +182,49 @@ describe('PIA6820', () => {
             controlLines: { 
                 ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
                 prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean; 
-            }
+            };
+            pb7InputState?: boolean;
         });
         controlLines = pia.getControlLines();
         expect(controlLines.ca1).toBe(true);
         expect(controlLines.cb1).toBe(true);
     });
 
+    test('PB7 display status hardware control works correctly', () => {
+        // Initially display should be ready (PB7 = 0)
+        pia.write(3, 0x04); // Set CRB bit 2 to access ORB
+        expect(pia.read(2) & 0x80).toBe(0x00); // PB7 should be 0 (ready)
+        
+        // Set display busy
+        pia.setPB7DisplayStatus(true);
+        expect(pia.read(2) & 0x80).toBe(0x80); // PB7 should be 1 (busy)
+        
+        // Set display ready
+        pia.setPB7DisplayStatus(false);
+        expect(pia.read(2) & 0x80).toBe(0x00); // PB7 should be 0 (ready)
+    });
+
     describe('Performance Optimizations', () => {
-        test('control register reads are cached', () => {
+        test('control registers are not cached (due to dynamic interrupt flags)', () => {
             pia.reset();
             
             // Write control register values
             pia.write(1, 0x04); // CRA
             pia.write(3, 0x04); // CRB
             
-            // First read should populate cache
+            // Read control registers multiple times
             const cra1 = pia.read(1);
             const crb1 = pia.read(3);
-            
-            // Get initial stats
-            const stats1 = pia.getInspectable().stats;
-            
-            // Subsequent reads should use cache
             const cra2 = pia.read(1);
             const crb2 = pia.read(3);
             
+            // Values should be consistent
             expect(cra1).toBe(cra2);
             expect(crb1).toBe(crb2);
             
-            // Cache should be active
-            expect(stats1.cacheSize).toBeGreaterThan(0);
+            // Control registers should not be cached (cache remains empty)
+            const stats = pia.getInspectable().stats;
+            expect(stats.cacheSize).toBe(0);
         });
 
         test('cache is invalidated on writes', () => {
@@ -259,7 +271,7 @@ describe('PIA6820', () => {
             });
         });
 
-        test('notifications only fire when values change', () => {
+        test('I/O writes always trigger notifications (even for same value)', () => {
             const subscriber = jest.fn();
             pia.subscribe(subscriber);
             
@@ -278,13 +290,15 @@ describe('PIA6820', () => {
                     // Clear any pending notifications
                     subscriber.mockClear();
                     
-                    // Write current value (0) - should not notify
-                    pia.write(0, 0x00);
+                    // Write same value multiple times - should trigger notifications each time
+                    // (I/O writes are commands, not state changes)
+                    pia.write(0, 0x42);
                     
                     globalThis.queueMicrotask(() => {
-                        expect(subscriber).not.toHaveBeenCalled();
+                        expect(subscriber).toHaveBeenCalledTimes(1);
+                        subscriber.mockClear();
                         
-                        // Write different value - should notify
+                        // Write same value again - should notify again
                         pia.write(0, 0x42);
                         
                         globalThis.queueMicrotask(() => {
@@ -300,14 +314,14 @@ describe('PIA6820', () => {
             const inspectable = pia.getInspectable();
             expect(inspectable.stats).toHaveProperty('cacheSize');
             expect(inspectable.stats).toHaveProperty('cacheHit');
-            expect(inspectable.stats.cacheHit).toBe('Empty'); // Initially empty
+            expect(inspectable.stats.cacheHit).toBe('Empty'); // Control registers are not cached
             
-            // Do some reads to populate cache
+            // Control register reads don't populate cache
             pia.read(1);
             pia.read(3);
             
             const inspectable2 = pia.getInspectable();
-            expect(inspectable2.stats.cacheHit).toBe('Active');
+            expect(inspectable2.stats.cacheHit).toBe('Empty'); // Still empty since control registers aren't cached
         });
     });
 });

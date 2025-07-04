@@ -29,22 +29,14 @@ class DisplayLogic implements IoWriter {
             return;
         }
         
-        // Ensure CRB bit 2 is set to access Output Register B
-        const crb = this.pia.read(3); // Read current CRB
-        if (!(crb & 0x04)) {
-            this.pia.write(3, crb | 0x04); // Set bit 2 to access ORB
-        }
-        
-        // Set PB7 to indicate display is busy
-        const currentOrb = this.pia.read(2);
-        this.pia.write(2, currentOrb | 0x80); // Set bit 7
+        // Set PB7 to indicate display is busy (hardware-controlled input pin)
+        this.pia.setPB7DisplayStatus(true);
         
         await this.wireWrite?.(char);
         
         // Clear PB7 to indicate display is ready
         // In real hardware, this would take ~500 microseconds
-        const updatedOrb = this.pia.read(2);
-        this.pia.write(2, updatedOrb & 0x7F); // Clear bit 7
+        this.pia.setPB7DisplayStatus(false);
     }
 
     wire({ reset, write }: WireOptions): void {

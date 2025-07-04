@@ -53,6 +53,9 @@ class PIA6820 implements IInspectableComponent {
     private prevCb1 = false;
     private prevCb2 = false;
 
+    // Hardware-controlled input pins (separate from ORB register)
+    private pb7InputState = false; // Display busy/ready status (controlled by display hardware)
+
     // I/O connections
     private ioA?: IoComponent;
     private ioB?: IoComponent;
@@ -95,6 +98,9 @@ class PIA6820 implements IInspectableComponent {
         this.prevCb1 = false;
         this.prevCb2 = false;
 
+        // Initialize hardware-controlled input pins
+        this.pb7InputState = false; // Display ready (not busy)
+
         // Initialize performance optimization
         this.registerCache = new Map();
         this.pendingNotification = false;
@@ -123,26 +129,13 @@ class PIA6820 implements IInspectableComponent {
             return 0;
         }
 
-        // Create cache key including DDR access state for proper caching
-        const ddrAccess = (address === REG_ORA_DDRA) ? (this.cra & (1 << CR_DDR_ACCESS)) : 
-                         (address === REG_ORB_DDRB) ? (this.crb & (1 << CR_DDR_ACCESS)) : 0;
-        const cacheKey = `${address}:${ddrAccess}`;
-        
-        // Check cache first (skip for registers that have side effects)
-        if (address === REG_CRA || address === REG_CRB) {
-            const cached = this.registerCache.get(cacheKey);
-            if (cached !== undefined) {
-                return cached;
-            }
-        }
+        // Control registers (CRA/CRB) are never cached due to dynamic interrupt flags
 
         let result: number;
         switch (address) {
             case REG_ORA_DDRA:
                 // Clear CA1 interrupt flag when reading port A
                 this.cra &= ~(1 << CR_IRQ1);
-                // Invalidate CRA cache when IRQ flag changes
-                this.registerCache.delete(`${REG_CRA}:0`);
                 // Return DDR or Output Register based on CRA bit 2
                 result = (this.cra & (1 << CR_DDR_ACCESS)) ? this.readPortA() : this.ddra;
                 break;
@@ -154,8 +147,6 @@ class PIA6820 implements IInspectableComponent {
             case REG_ORB_DDRB:
                 // Clear CB1 interrupt flag when reading port B
                 this.crb &= ~(1 << CR_IRQ1);
-                // Invalidate CRB cache when IRQ flag changes
-                this.registerCache.delete(`${REG_CRB}:0`);
                 // Return DDR or Output Register based on CRB bit 2
                 result = (this.crb & (1 << CR_DDR_ACCESS)) ? this.readPortB() : this.ddrb;
                 break;
@@ -168,10 +159,7 @@ class PIA6820 implements IInspectableComponent {
                 result = 0;
         }
 
-        // Cache control register reads only
-        if (address === REG_CRA || address === REG_CRB) {
-            this.registerCache.set(cacheKey, result);
-        }
+        // Control registers are never cached due to dynamic interrupt flags
 
         return result;
     }
@@ -197,11 +185,11 @@ class PIA6820 implements IInspectableComponent {
             case REG_ORA_DDRA:
                 if (this.cra & (1 << CR_DDR_ACCESS)) {
                     // Write to Output Register A
-                    if (this.ora !== value) {
-                        this.ora = value;
-                        valueChanged = true;
-                        this.ioA?.write(value);
-                    }
+                    // Always update register and trigger I/O, even for same value
+                    // (I/O writes are commands, not state changes)
+                    this.ora = value;
+                    valueChanged = true;
+                    this.ioA?.write(value);
                 } else {
                     // Write to Data Direction Register A
                     if (this.ddra !== value) {
@@ -209,8 +197,6 @@ class PIA6820 implements IInspectableComponent {
                         valueChanged = true;
                     }
                 }
-                // Invalidate cache for this register
-                this.registerCache.delete(`${address}:${this.cra & (1 << CR_DDR_ACCESS)}`);
                 break;
 
             case REG_CRA: {
@@ -221,19 +207,17 @@ class PIA6820 implements IInspectableComponent {
                     valueChanged = true;
                     this.updateCA2Output();
                 }
-                // Invalidate cache
-                this.registerCache.delete(`${address}:0`);
                 break;
             }
 
             case REG_ORB_DDRB:
                 if (this.crb & (1 << CR_DDR_ACCESS)) {
                     // Write to Output Register B
-                    if (this.orb !== value) {
-                        this.orb = value;
-                        valueChanged = true;
-                        this.ioB?.write(value);
-                    }
+                    // Always update register and trigger I/O, even for same value
+                    // (display writes are commands, not state changes)
+                    this.orb = value;
+                    valueChanged = true;
+                    this.ioB?.write(value);
                 } else {
                     // Write to Data Direction Register B
                     if (this.ddrb !== value) {
@@ -241,8 +225,6 @@ class PIA6820 implements IInspectableComponent {
                         valueChanged = true;
                     }
                 }
-                // Invalidate cache for this register
-                this.registerCache.delete(`${address}:${this.crb & (1 << CR_DDR_ACCESS)}`);
                 break;
 
             case REG_CRB: {
@@ -253,8 +235,6 @@ class PIA6820 implements IInspectableComponent {
                     valueChanged = true;
                     this.updateCB2Output();
                 }
-                // Invalidate cache
-                this.registerCache.delete(`${address}:0`);
                 break;
             }
         }
@@ -276,7 +256,9 @@ class PIA6820 implements IInspectableComponent {
 
         if (this.detectCA1Transition()) {
             this.cra |= (1 << CR_IRQ1);
-            this._notifySubscribers();
+            // Use batched notification to prevent recursion
+            this.notificationBatch.add('ca1');
+            this.scheduleNotification();
         }
     }
 
@@ -290,7 +272,9 @@ class PIA6820 implements IInspectableComponent {
 
         if (this.detectCB1Transition()) {
             this.crb |= (1 << CR_IRQ1);
-            this._notifySubscribers();
+            // Use batched notification to prevent recursion
+            this.notificationBatch.add('cb1');
+            this.scheduleNotification();
         }
     }
 
@@ -305,7 +289,9 @@ class PIA6820 implements IInspectableComponent {
 
             if (this.detectCA2Transition()) {
                 this.cra |= (1 << CR_IRQ2);
-                this._notifySubscribers();
+                // Use batched notification to prevent recursion
+                this.notificationBatch.add('ca2');
+                this.scheduleNotification();
             }
         }
     }
@@ -321,8 +307,23 @@ class PIA6820 implements IInspectableComponent {
 
             if (this.detectCB2Transition()) {
                 this.crb |= (1 << CR_IRQ2);
-                this._notifySubscribers();
+                // Use batched notification to prevent recursion
+                this.notificationBatch.add('cb2');
+                this.scheduleNotification();
             }
+        }
+    }
+
+    /**
+     * Set PB7 input state (controlled by display hardware in Apple 1)
+     * This simulates the display circuit controlling the PB7 line directly
+     */
+    setPB7DisplayStatus(busy: boolean): void {
+        if (this.pb7InputState !== busy) {
+            this.pb7InputState = busy;
+            // Use batched notification to prevent recursion
+            this.notificationBatch.add('pb7');
+            this.scheduleNotification();
         }
     }
 
@@ -373,6 +374,9 @@ class PIA6820 implements IInspectableComponent {
         this.prevCa2 = false;
         this.prevCb1 = false;
         this.prevCb2 = false;
+
+        // Reset hardware-controlled input pins
+        this.pb7InputState = false; // Display ready (not busy)
 
         this.stats = {
             reads: 0,
@@ -437,6 +441,8 @@ class PIA6820 implements IInspectableComponent {
                 prevCb1: this.prevCb1,
                 prevCb2: this.prevCb2,
             },
+            // Hardware-controlled input pins
+            pb7InputState: this.pb7InputState,
         };
     }
 
@@ -454,7 +460,8 @@ class PIA6820 implements IInspectableComponent {
         controlLines: { 
             ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
             prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean; 
-        }
+        };
+        pb7InputState?: boolean;
     }): void {
         const version = state.version || '2.0';
         
@@ -480,8 +487,9 @@ class PIA6820 implements IInspectableComponent {
         this.prevCb1 = state.controlLines.prevCb1;
         this.prevCb2 = state.controlLines.prevCb2;
 
-        // Always clear PB7 after restore (display ready)
-        this.orb &= 0x7F;
+        // Load hardware-controlled input pins (with default for backward compatibility)
+        this.pb7InputState = state.pb7InputState ?? false; // Default to display ready
+        
         this._notifySubscribers();
     }
 
@@ -585,16 +593,13 @@ class PIA6820 implements IInspectableComponent {
     private readPortB(): number {
         // In Apple 1, Port B is display output (bits 0-6) and status input (bit 7)
         // Output bits (DDR=1) come from ORB
-        // Input bits (DDR=0) come from external sources
-        // For Apple 1: bit 7 is display status (controlled by display hardware)
-        let result = this.orb & this.ddrb; // Output bits
+        // Input bits (DDR=0) come from external hardware sources
+        let result = this.orb & this.ddrb; // Output bits only
         
-        // Bit 7 is special - it's the display ready status
-        // The display logic sets/clears this via setBitDataB/clearBitDataB
-        // We need to read it even though it's an input
+        // Bit 7 is special - it's the display ready status controlled by display hardware
         if ((this.ddrb & 0x80) === 0) {
-            // Bit 7 is input, read the actual state
-            result |= (this.orb & 0x80);
+            // Bit 7 is input, read the hardware-controlled state
+            result |= this.pb7InputState ? 0x80 : 0x00;
         }
         
         return result;

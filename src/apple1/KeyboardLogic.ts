@@ -32,7 +32,8 @@ class KeyboardLogic implements IoWriter {
             // Then raise it to trigger the edge
             this.pia.setCA1(true);
             // In real hardware, CA1 would go low when key is released
-            // For now we'll leave it high until next key press
+            // Return CA1 to low to complete the pulse
+            this.pia.setCA1(false);
         }
     }
 

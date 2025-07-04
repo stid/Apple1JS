@@ -257,7 +257,6 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                 type="text"
                 ref={hiddenInputRef}
                 className="hidden-input-accessible"
-                aria-hidden="true"
                 tabIndex={0}
                 style={{
                     position: 'fixed',
@@ -267,7 +266,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                     height: '1px',
                     opacity: 0,
                     overflow: 'hidden',
-                    zIndex: -1,
+                    zIndex: 1,
                 }}
             />
         </ErrorBoundary>
