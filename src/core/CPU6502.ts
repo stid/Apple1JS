@@ -1804,41 +1804,35 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     cmp(): void {
         const result = this.A - this.read(this.addr);
-        this.Z = (result & 0xff) === 0 ? 1 : 0;
-        this.N = (result & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(result);
         this.C = (result & 0x100) === 0 ? 1 : 0;
     }
 
     cpx(): void {
         const result = this.X - this.read(this.addr);
-        this.Z = (result & 0xff) === 0 ? 1 : 0;
-        this.N = (result & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(result);
         this.C = (result & 0x100) === 0 ? 1 : 0;
     }
 
     cpy(): void {
         const result = this.Y - this.read(this.addr);
-        this.Z = (result & 0xff) === 0 ? 1 : 0;
-        this.N = (result & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(result);
         this.C = (result & 0x100) === 0 ? 1 : 0;
     }
 
     dec(): void {
         this.tmp = (this.read(this.addr) - 1) & 0xff;
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.tmp);
     }
 
     dex(): void {
         this.X = (this.X - 1) & 0xff;
-        this.Z = (this.X & 0xff) === 0 ? 1 : 0;
-        this.N = (this.X & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.X);
     }
 
     dey(): void {
         this.Y = (this.Y - 1) & 0xff;
-        this.Z = (this.Y & 0xff) === 0 ? 1 : 0;
-        this.N = (this.Y & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.Y);
     }
 
     eor(): void {
@@ -1848,20 +1842,17 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     inc(): void {
         this.tmp = (this.read(this.addr) + 1) & 0xff;
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.tmp);
     }
 
     inx(): void {
         this.X = (this.X + 1) & 0xff;
-        this.Z = (this.X & 0xff) === 0 ? 1 : 0;
-        this.N = (this.X & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.X);
     }
 
     iny(): void {
         this.Y = (this.Y + 1) & 0xff;
-        this.Z = (this.Y & 0xff) === 0 ? 1 : 0;
-        this.N = (this.Y & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.Y);
     }
 
     jmp(): void {
@@ -1912,32 +1903,24 @@ class CPU6502 implements IClockable, IInspectableComponent {
     ror(): void {
         this.tmp = this.read(this.addr);
         this.tmp = ((this.tmp & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.tmp >> 1);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.tmp &= 0xff;
     }
     rora(): void {
         this.tmp = ((this.A & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.A >> 1);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
     lsr(): void {
         this.tmp = this.read(this.addr);
         this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.tmp &= 0xff;
     }
     lsra(): void {
         this.tmp = ((this.A & 1) << 8) | (this.A >> 1);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
@@ -1967,8 +1950,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
     pla(): void {
         this.S = (this.S + 1) & 0xff;
         this.A = this.read(this.stackBase + this.S);
-        this.Z = (this.A & 0xff) === 0 ? 1 : 0;
-        this.N = (this.A & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.A);
         this.cycles += 2;
     }
 
@@ -2046,9 +2028,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
     slo(): void {
         this.tmp = this.read(this.addr) << 1;
         this.tmp |= this.A;
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
@@ -2076,8 +2056,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     tsx(): void {
         this.X = this.S;
-        this.Z = (this.X & 0xff) === 0 ? 1 : 0;
-        this.N = (this.X & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.X);
     }
 
     txa(): void {
@@ -2242,9 +2221,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     rla(): void {
         this.tmp = (this.A << 1) | (this.C ? 1 : 0);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
@@ -2252,26 +2229,20 @@ class CPU6502 implements IClockable, IInspectableComponent {
         const v = this.read(this.addr);
         this.tmp = ((v & 1) << 8) | (v >> 1);
         this.tmp ^= this.A;
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
     alr(): void {
         this.tmp = this.read(this.addr) & this.A;
         this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
     rra(): void {
         this.tmp = ((this.A & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.A >> 1);
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
+        this.setNZCFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
@@ -2281,8 +2252,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     lax(): void {
         this.X = this.A = this.read(this.addr);
-        this.Z = (this.A & 0xff) === 0 ? 1 : 0;
-        this.N = (this.A & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.A);
     }
 
     arr(): void {
@@ -2301,8 +2271,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
             }
             this.tmp = (ah << 4) | al;
         }
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.tmp);
         this.A = this.tmp & 0xff;
     }
 
@@ -2314,15 +2283,13 @@ class CPU6502 implements IClockable, IInspectableComponent {
     dcp(): void {
         this.tmp = (this.read(this.addr) - 1) & 0xff;
         this.tmp = this.A - this.tmp;
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.tmp);
         this.C = (this.tmp & 0x100) === 0 ? 1 : 0;
     }
 
     las(): void {
         this.S = this.X = this.A = this.read(this.addr) & this.S;
-        this.Z = (this.A & 0xff) === 0 ? 1 : 0;
-        this.N = (this.A & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.A);
     }
 
     ahx(): void {
@@ -2359,8 +2326,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         const v = this.read(this.addr);
         this.tmp = (this.A & this.X) - v;
         this.X = this.tmp & 0xff;
-        this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.tmp);
         this.C = (this.tmp & 0x100) === 0 ? 1 : 0;
     }
 
@@ -2370,8 +2336,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         // Note: This opcode is highly unstable on real hardware and behavior
         // varies between different 6502 variants. This is a simplified implementation.
         this.A = this.X & this.read(this.addr);
-        this.Z = (this.A & 0xff) === 0 ? 1 : 0;
-        this.N = (this.A & 0x80) !== 0 ? 1 : 0;
+        this.setNZFlags(this.A);
     }
 }
 
