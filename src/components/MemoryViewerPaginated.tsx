@@ -143,7 +143,12 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const handleAddressSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             const addr = parseInt(addressInput || '0', 16);
-            setCurrentAddress(addr);
+            if (!isNaN(addr) && addr >= 0 && addr <= 0xFFFF) {
+                // Ensure the address won't cause the view to exceed memory bounds
+                const maxStartAddr = Math.max(0, 0xFFFF - size + 1);
+                const validAddr = Math.min(addr, maxStartAddr);
+                setCurrentAddress(validAddr);
+            }
         }
     };
 
@@ -153,8 +158,19 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     }, [currentAddress, size]);
 
     const navigateDown = useCallback(() => {
-        const newAddr = Math.min(0xFFFF - size + 1, currentAddress + size);
-        setCurrentAddress(newAddr);
+        // Calculate the maximum valid starting address
+        const maxStartAddr = Math.max(0, 0xFFFF - size + 1);
+        
+        // Calculate next address
+        const nextAddr = currentAddress + size;
+        
+        // Ensure we don't go past the maximum valid start address
+        if (nextAddr > maxStartAddr) {
+            // Snap to the last valid page that shows up to 0xFFFF
+            setCurrentAddress(maxStartAddr);
+        } else {
+            setCurrentAddress(nextAddr);
+        }
     }, [currentAddress, size]);
 
     // Keyboard navigation

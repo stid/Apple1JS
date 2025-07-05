@@ -114,15 +114,29 @@ export function usePaginatedTable(options: UsePaginatedTableOptions = {}): UsePa
     }, [currentAddress, size]);
     
     const navigateDown = useCallback(() => {
-        const newAddr = Math.min(0xFFFF - size + 1, currentAddress + size);
-        setCurrentAddress(newAddr);
+        // Calculate the maximum valid starting address
+        const maxStartAddr = Math.max(0, 0xFFFF - size + 1);
+        
+        // Calculate next address
+        const nextAddr = currentAddress + size;
+        
+        // Ensure we don't go past the maximum valid start address
+        if (nextAddr > maxStartAddr) {
+            // Snap to the last valid page that shows up to 0xFFFF
+            setCurrentAddress(maxStartAddr);
+        } else {
+            setCurrentAddress(nextAddr);
+        }
     }, [currentAddress, size]);
     
     const navigateTo = useCallback((address: number) => {
         if (address >= 0 && address <= 0xFFFF) {
-            setCurrentAddress(address);
+            // Ensure the address won't cause the view to exceed memory bounds
+            const maxStartAddr = Math.max(0, 0xFFFF - size + 1);
+            const validAddr = Math.min(address, maxStartAddr);
+            setCurrentAddress(validAddr);
         }
-    }, []);
+    }, [size]);
     
     const getAddressRange = useCallback(() => {
         const start = currentAddress.toString(16).padStart(4, '0').toUpperCase();
