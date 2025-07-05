@@ -13,7 +13,7 @@ interface DisassemblyLine {
 }
 
 // 6502 opcode definitions for disassembly
-const OPCODES: Record<number, { name: string; mode: string; bytes: number }> = {
+export const OPCODES: Record<number, { name: string; mode: string; bytes: number }> = {
     0x00: { name: 'BRK', mode: 'imp', bytes: 1 },
     0x01: { name: 'ORA', mode: 'izx', bytes: 2 },
     0x05: { name: 'ORA', mode: 'zp', bytes: 2 },

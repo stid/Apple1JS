@@ -31,6 +31,7 @@ export enum WORKER_MESSAGES {
     GET_MEMORY_RANGE, // Request memory range for disassembly
     MEMORY_RANGE_DATA, // Response with memory range data
     DEBUG_DATA, // Debug data for components
+    SET_CPU_PROFILING, // Enable/disable CPU performance profiling
 }
 
 // Enum for indexing the VideoBuffer row tuple

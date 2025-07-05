@@ -1400,9 +1400,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
         };
     }
 
-    toDebug(): { [key: string]: string | number | boolean } {
+    toDebug(): { [key: string]: string | number | boolean | object } {
         // Enhanced live state capture with hex formatting - no duplicates
-        return { 
+        const debugData: { [key: string]: string | number | boolean | object } = { 
             // Registers as hex values for inspector
             REG_PC: '$' + this.PC.toString(16).padStart(4, '0').toUpperCase(),
             REG_A: '$' + this.A.toString(16).padStart(2, '0').toUpperCase(),
@@ -1430,6 +1430,41 @@ class CPU6502 implements IClockable, IInspectableComponent {
             EXEC_TMP: '$' + this.tmp.toString(16).padStart(2, '0').toUpperCase(),
             EXEC_ADDR: '$' + this.addr.toString(16).padStart(4, '0').toUpperCase()
         };
+
+        // Add performance profiling data if enabled
+        if (this.enableProfiling) {
+            const stats = this.getPerformanceStats();
+            const profileData = this.getProfilingData();
+            
+            // Add summary stats
+            debugData.PERF_ENABLED = 'YES';
+            debugData.PERF_INSTRUCTIONS = stats.instructionCount.toLocaleString();
+            debugData.PERF_UNIQUE_OPCODES = stats.totalInstructions.toString();
+            
+            // Add top 5 most frequent instructions
+            const sortedOpcodes = Object.entries(profileData)
+                .sort(([,a], [,b]) => b.count - a.count)
+                .slice(0, 5);
+                
+            debugData.PERF_TOP_OPCODES = sortedOpcodes.map(([opcode, data]) => 
+                `${opcode}:${data.count}`
+            ).join(', ');
+            
+            // Add performance data for detailed analysis
+            debugData._PERF_DATA = {
+                stats,
+                topOpcodes: sortedOpcodes.map(([opcode, data]) => ({
+                    opcode,
+                    count: data.count,
+                    cycles: data.cycles,
+                    avgCycles: data.avgCycles
+                }))
+            };
+        } else {
+            debugData.PERF_ENABLED = 'NO';
+        }
+
+        return debugData;
     }
 
     ////////////////////////////////////////////////////////////////////////////////

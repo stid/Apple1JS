@@ -110,6 +110,13 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
             }
             break;
         }
+        case WORKER_MESSAGES.SET_CPU_PROFILING: {
+            // Enable/disable CPU performance profiling
+            if (typeof data === 'boolean') {
+                apple1.cpu.setProfilingEnabled(data);
+            }
+            break;
+        }
     }
 };
 

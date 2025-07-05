@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
+import { OPCODES } from './Disassembler';
 
 import type { InspectableArchView } from '../core/@types/InspectableArchView';
 
@@ -11,6 +12,15 @@ interface InspectorViewProps {
 
 const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
+
+    // Helper function to translate hex opcode to human-readable mnemonic
+    const getOpcodeMnemonic = (opcodeHex: string): string => {
+        // Convert hex string like "$30" to number
+        const opcodeNum = parseInt(opcodeHex.replace('$', ''), 16);
+        const opcodeInfo = OPCODES[opcodeNum];
+        return opcodeInfo ? opcodeInfo.name : opcodeHex; // Fall back to hex if not found
+    };
 
     // Set up an interval to request debug information from the worker.
     useEffect(() => {
@@ -68,6 +78,11 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         if (debugDomain === 'cpu' && typeof domainData === 'object') {
             const result: Record<string, string | number | boolean> = {};
             Object.entries(domainData).forEach(([key, value]) => {
+                // Skip performance data - it's handled separately in the UI
+                if (key === '_PERF_DATA') {
+                    return;
+                }
+                
                 if (typeof value === 'object' && value !== null) {
                     // Flatten nested objects like REG: { PC: '0x1234' } -> REG_PC: '0x1234'
                     Object.entries(value).forEach(([subKey, subValue]) => {
@@ -236,8 +251,78 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         return [row, ...childrenRows];
     }
 
+    // Handler for profiling toggle
+    const handleProfilingToggle = () => {
+        const newProfilingState = !profilingEnabled;
+        setProfilingEnabled(newProfilingState);
+        if (worker) {
+            worker.postMessage({
+                data: newProfilingState,
+                type: WORKER_MESSAGES.SET_CPU_PROFILING
+            });
+        }
+    };
+
+    // Get CPU performance data if available
+    const cpuDebugData = debugInfo.cpu || {};
+    const perfData = cpuDebugData._PERF_DATA as { 
+        stats?: { instructionCount: number; totalInstructions: number; profilingEnabled: boolean };
+        topOpcodes?: Array<{ opcode: string; count: number; cycles: number; avgCycles: number }>;
+    } | undefined;
+
     return (
         <div className="flex flex-col lg:h-full lg:overflow-hidden">
+            {/* Performance Profiling Controls */}
+            <div className="bg-neutral-900 border-t border-slate-800 px-4 py-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-green-300">CPU Performance Profiling</h3>
+                    <button
+                        onClick={handleProfilingToggle}
+                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                            profilingEnabled
+                                ? 'bg-green-600 text-white hover:bg-green-700'
+                                : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                        }`}
+                    >
+                        {profilingEnabled ? 'Disable Profiling' : 'Enable Profiling'}
+                    </button>
+                </div>
+                
+                {profilingEnabled && perfData && (
+                    <div className="mt-3 space-y-2">
+                        <div className="grid grid-cols-3 gap-4 text-xs">
+                            <div className="bg-neutral-800 px-2 py-1 rounded">
+                                <div className="text-neutral-400">Instructions</div>
+                                <div className="text-green-300 font-mono">{perfData.stats?.instructionCount.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-neutral-800 px-2 py-1 rounded">
+                                <div className="text-neutral-400">Unique Opcodes</div>
+                                <div className="text-green-300 font-mono">{perfData.stats?.totalInstructions}</div>
+                            </div>
+                            <div className="bg-neutral-800 px-2 py-1 rounded">
+                                <div className="text-neutral-400">Status</div>
+                                <div className="text-green-300 font-mono">ACTIVE</div>
+                            </div>
+                        </div>
+                        
+                        {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
+                            <div className="bg-neutral-800 px-2 py-1 rounded">
+                                <div className="text-neutral-400 text-xs mb-1">Top Instructions</div>
+                                <div className="space-y-1">
+                                    {perfData.topOpcodes.slice(0, 3).map((opcode) => (
+                                        <div key={opcode.opcode} className="flex justify-between text-xs font-mono">
+                                            <span className="text-blue-300">{getOpcodeMnemonic(opcode.opcode)}</span>
+                                            <span className="text-green-300">{opcode.count.toLocaleString()}</span>
+                                            <span className="text-yellow-300">{opcode.avgCycles}c</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            
             <div className="lg:flex-1 lg:overflow-auto bg-black border-t border-slate-800 rounded-xl px-4 py-4">
                 <table className="text-xs border border-neutral-700 rounded w-full bg-neutral-950">
                     <thead className="lg:sticky lg:top-0 lg:z-10 bg-neutral-800">
