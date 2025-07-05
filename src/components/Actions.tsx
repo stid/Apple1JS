@@ -9,9 +9,11 @@ export type ActionsProps = {
     onPauseResume: React.MouseEventHandler<HTMLAnchorElement>;
     isPaused: boolean;
     onRefocus: () => void;
+    onCycleAccurateTiming: React.MouseEventHandler<HTMLAnchorElement>;
+    cycleAccurateTiming: boolean;
 };
 
-const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseResume, isPaused, onRefocus }: ActionsProps) => (
+const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseResume, isPaused, onRefocus, onCycleAccurateTiming, cycleAccurateTiming }: ActionsProps) => (
     <nav className="flex flex-wrap gap-2 justify-center my-4">
         <a
             onClick={(e) => {
@@ -71,6 +73,17 @@ const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseRe
             tabIndex={0}
         >
             {isPaused ? 'RESUME' : 'PAUSE'}
+        </a>
+        <a
+            onClick={(e) => {
+                onCycleAccurateTiming(e);
+                onRefocus();
+            }}
+            href="#"
+            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-orange-700 text-orange-400 font-mono text-xs tracking-wide transition hover:bg-orange-900/60 hover:text-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
+            tabIndex={0}
+        >
+            CYCLE TIMING [{cycleAccurateTiming ? 'ACCURATE' : 'FAST'}]
         </a>
     </nav>
 );

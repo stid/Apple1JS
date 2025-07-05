@@ -117,6 +117,13 @@ onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | 
             }
             break;
         }
+        case WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING: {
+            // Enable/disable cycle-accurate timing mode
+            if (typeof data === 'boolean') {
+                apple1.cpu.setCycleAccurateMode(data);
+            }
+            break;
+        }
     }
 };
 
