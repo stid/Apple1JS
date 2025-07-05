@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DisassemblerPaginatedV2 from './DisassemblerPaginatedV2';
+import DisassemblerPaginated from './DisassemblerPaginated';
 import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
@@ -212,7 +212,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
 
                 {activeView === 'disassembly' && (
                     <div className="h-full">
-                        <DisassemblerPaginatedV2 worker={worker} />
+                        <DisassemblerPaginated worker={worker} />
                     </div>
                 )}
             </div>
