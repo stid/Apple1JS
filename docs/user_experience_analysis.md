@@ -44,7 +44,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 
 ## Next Priority: Phase 4 - Advanced Debugging
 
-### Execution Control (Effort: M, ~3 days)
+### Execution Control
 
 **Why critical**: Current debugger is read-only. Power users need precise control for debugging vintage software.
 
@@ -59,7 +59,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - Need UI integration in DebuggerLayout
 - Store breakpoints in worker for performance
 
-### Memory Analysis (Effort: M, ~3 days)
+### Memory Analysis
 
 **Why critical**: Finding specific data in 64KB is tedious without search.
 
@@ -74,7 +74,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - Use worker for efficient searching
 - Maintain result indices for navigation
 
-### Watch Expressions (Effort: S, ~1 day)
+### Watch Expressions
 
 **Why useful**: Monitor specific values without constantly navigating.
 
@@ -85,7 +85,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 
 ## Phase 5: Hardware Authenticity
 
-### Audio Package (Effort: S, ~1 day)
+### Audio Package
 
 **Quick wins for authenticity**:
 - [ ] Keyboard click sounds (mechanical switches)
@@ -94,14 +94,14 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 
 **Implementation**: Web Audio API with pre-recorded samples
 
-### Visual Enhancements (Effort: M, ~3 days)
+### Visual Enhancements
 
 **Complete the vintage experience**:
 - [ ] Power-on sequence (degauss animation)
 - [ ] Activity LEDs for I/O operations
 - [ ] Phosphor burn-in simulation
 
-### Cassette Interface (Effort: L, ~1 week)
+### Cassette Interface
 
 **Preserve software history**:
 - [ ] Audio generation for tape save

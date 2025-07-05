@@ -45,7 +45,7 @@ This document captures the architectural analysis of the Apple1JS project, ident
 
 ### Recommended UI Improvements
 
-**1. Typography System (Effort: S)**
+**1. Typography System**
 
 ```typescript
 // Design tokens for consistent typography
@@ -71,7 +71,7 @@ const typography = {
 };
 ```
 
-**2. Color System Enhancement (Effort: S)**
+**2. Color System Enhancement**
 
 ```typescript
 // Semantic color palette
@@ -100,7 +100,7 @@ const colors = {
 };
 ```
 
-**3. Spacing System (Effort: S)**
+**3. Spacing System**
 
 ```typescript
 // Consistent spacing scale
@@ -114,7 +114,7 @@ const spacing = {
 };
 ```
 
-**4. Component Layout Improvements (Effort: M)**
+**4. Component Layout Improvements**
 
 _Inspector Panel Structure:_
 
@@ -148,7 +148,7 @@ _Inspector Panel Structure:_
 </div>
 ```
 
-**5. Data Display Components (Effort: M)**
+**5. Data Display Components**
 
 ```typescript
 // Consistent data formatting
@@ -270,7 +270,7 @@ const RegisterRow = ({ label, value, type }: RegisterRowProps) => (
 
 ## High-Priority Recommendations
 
-### 1. Standardize Naming Conventions (Effort: S)
+### 1. Standardize Naming Conventions
 
 ```typescript
 // Before
@@ -284,13 +284,13 @@ private validateAddress()
 getInspectable()
 ```
 
-### 2. Improve Type Safety (Effort: M)
+### 2. Improve Type Safety
 
 - Replace `unknown` with proper types
 - Create shared type definitions file
 - Remove legacy type conversions
 
-### 3. Extract Magic Numbers (Effort: S)
+### 3. Extract Magic Numbers
 
 ```typescript
 // Before
@@ -300,13 +300,13 @@ if (address >= 0x0100 && address <= 0x01FF) { ... }
 if (address >= STACK_START && address <= STACK_END) { ... }
 ```
 
-### 4. Consolidate Logging (Effort: S)
+### 4. Consolidate Logging
 
 - Replace all console.log with LoggingService
 - Add log levels and categories
 - Implement production log filtering
 
-### 5. Standardize IInspectableComponent (Effort: M)
+### 5. Standardize IInspectableComponent
 
 - Define consistent return structure
 - Document expected properties
@@ -314,7 +314,7 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 
 ## UI Layout Implementation Plan
 
-### Phase 1 - Design System Foundation (Effort: S, 1-2 days)
+### Phase 1 - Design System Foundation
 
 - [x] Create design tokens file (`src/styles/tokens.ts`)
 - [x] Implement typography scale in Tailwind config
@@ -322,7 +322,7 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 - [x] Create spacing system constants
 - [x] Add utility CSS classes for common patterns
 
-### Phase 2 - Component Refactoring (Effort: M, 2-3 days)
+### Phase 2 - Component Refactoring
 
 - [x] Refactor InspectorView with improved layout
 - [x] Create reusable MetricCard component
@@ -330,7 +330,7 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 - [x] Add section containers with proper spacing
 - [x] Enhance visual hierarchy with borders/backgrounds
 
-### Phase 3 - Data Display Enhancement (Effort: M, 2-3 days)
+### Phase 3 - Data Display Enhancement
 
 - [x] Implement color coding for data types
 - [x] Add status indicators with appropriate colors
@@ -338,7 +338,7 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 - [x] Improve alignment and spacing in data grids
 - [x] Add hover states and transitions
 
-### Phase 4 - Responsive & Accessibility (Effort: S, 1 day)
+### Phase 4 - Responsive & Accessibility
 
 - [x] Ensure mobile-friendly layout
 - [x] Add focus indicators
@@ -348,19 +348,19 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 
 ## Legacy Implementation Priority & Status
 
-### Phase 1 - Quick Wins (1-2 days)
+### Phase 1 - Quick Wins
 
 - [x] Standardize naming conventions
 - [x] Extract magic numbers
 - [x] Replace console.log usage
 
-### Phase 2 - Type Safety (3-4 days)
+### Phase 2 - Type Safety
 
 - [x] Define proper types for all `unknown` usage
 - [x] Consolidate type definitions
 - [x] Add strict type checking
 
-### Phase 3 - Pattern Consistency (2-3 days)
+### Phase 3 - Pattern Consistency
 
 - [x] Standardize IInspectableComponent
 - [x] Implement consistent error handling
