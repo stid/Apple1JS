@@ -1,5 +1,6 @@
 import wait from 'waait';
-import { WEB_VIDEO_BUFFER_ROW, VideoBuffer } from './TSTypes';
+import { WEB_VIDEO_BUFFER_ROW, VideoBuffer, WebCrtVideoSubFuncVideoType } from './@types/VideoTypes';
+import { VideoState } from './@types/EmulatorState';
 import * as appleConstants from './const';
 import { CONFIG } from '../config';
 import { IoComponent } from '@/core/@types/IoComponent';
@@ -25,11 +26,6 @@ const NUM_ROWS = 24;
 // The CPU was free to execute in the meantime. In fact Apple 1 was faster than
 // the Apple II in this sense.
 
-export interface VideoOut {
-    onChange: (buffer: VideoBuffer, row: number, column: number) => void;
-}
-
-export type WebCrtVideoSubFuncVideoType = { buffer: VideoBuffer; row: number; column: number };
 
 function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
     // Deep clone: each row and its data array
@@ -38,7 +34,7 @@ function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
 
 import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
 
-class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
+class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVideoType>, IInspectableComponent {
     /**
      * Public method to force a video update to all subscribers.
      */
@@ -61,7 +57,7 @@ class CRTVideo implements IoComponent, PubSub, IInspectableComponent {
     /**
      * Restores the video state (buffer, row, column) from a saved state.
      */
-    setState(state: { buffer: VideoBuffer; row: number; column: number; rowShift?: number }) {
+    setState(state: VideoState) {
         if (!state) throw new Error('Invalid video state');
         this.buffer = cloneBuffer(state.buffer);
         this.row = state.row;

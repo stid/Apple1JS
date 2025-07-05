@@ -1,13 +1,11 @@
-// Type for RAM state (expandable for more components)
-export interface RAMBankState {
-    id: string;
-    state: { data: number[] };
-}
+// Import consolidated types
+import type { EmulatorState, RAMBankState } from './@types/EmulatorState';
+import type { VideoBuffer, VideoData } from './@types/VideoTypes';
+import { WEB_VIDEO_BUFFER_ROW } from './@types/VideoTypes';
 
-export interface EmulatorState {
-    ram: RAMBankState[];
-    // Add more components here later
-}
+// Re-export for backward compatibility
+export type { EmulatorState, RAMBankState, VideoBuffer, VideoData };
+export { WEB_VIDEO_BUFFER_ROW };
 
 // Message for state save/load
 export type StateMessage = {
@@ -35,21 +33,6 @@ export enum WORKER_MESSAGES {
     SET_CYCLE_ACCURATE_TIMING, // Enable/disable cycle-accurate timing mode
 }
 
-// Enum for indexing the VideoBuffer row tuple
-export enum WEB_VIDEO_BUFFER_ROW {
-    KEY = 0, // Key index
-    DATA = 1, // Data index
-}
-
-// Type for VideoBuffer: an array of tuples with a key and an array of strings
-export type VideoBuffer = Array<[number, string[]]>;
-
-// Interface for VideoData: contains buffer, row, and column information
-export interface VideoData {
-    buffer: VideoBuffer;
-    row: number;
-    column: number;
-}
 
 // Interface for DebugData: a dictionary of debugging information
 export interface DebugData {

@@ -1,6 +1,6 @@
 import { LogLevel } from '../types/logging';
-
-export type LogHandler = (level: LogLevel, source: string, message: string) => void;
+import type { LogHandler } from './@types/LoggingTypes';
+export type { LogHandler };
 
 class LoggingService {
     private handlers: LogHandler[] = [];

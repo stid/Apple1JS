@@ -1,4 +1,5 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { WithBusMetadata } from './@types/BusComponent';
 import { IoAddressable } from './@types/IoAddressable';
 import { loggingService } from '../services/LoggingService';
 import { DEFAULT_RAM_BANK_SIZE, MIN_BYTE_VALUE, MAX_BYTE_VALUE, BYTE_MASK } from './constants/memory';
@@ -33,7 +34,7 @@ class RAM implements IoAddressable, IInspectableComponent {
      */
     getInspectable() {
         // Always include address info if present
-        const self = this as unknown as { __address?: string; __addressName?: string };
+        const self = this as WithBusMetadata<typeof this>;
         return {
             id: this.id,
             type: this.type,
@@ -46,7 +47,7 @@ class RAM implements IoAddressable, IInspectableComponent {
     private data: Uint8Array;
     get details() {
         // Use optional chaining and unknown type for safer, typed access
-        const self = this as unknown as { __address?: string; __addressName?: string };
+        const self = this as WithBusMetadata<typeof this>;
         return {
             size: this.data.length,
             address: self.__address,

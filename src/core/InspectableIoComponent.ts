@@ -1,7 +1,7 @@
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
-import { IoComponent } from '../core/@types/IoComponent';
+import { IoComponent, IoComponentState } from '../core/@types/IoComponent';
 
-export class InspectableIoComponent implements IInspectableComponent {
+export class InspectableIoComponent<TState = IoComponentState> implements IInspectableComponent {
     /**
      * Returns a serializable architecture view of the IO component, suitable for inspectors.
      */
@@ -22,8 +22,8 @@ export class InspectableIoComponent implements IInspectableComponent {
     }
     id: string;
     type: string;
-    ref: IoComponent;
-    constructor(id: string, type: string, ref: IoComponent) {
+    ref: IoComponent<TState>;
+    constructor(id: string, type: string, ref: IoComponent<TState>) {
         this.id = id;
         this.type = type;
         this.ref = ref;

@@ -15,17 +15,10 @@ const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
  */
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { WithBusMetadata } from './@types/BusComponent';
+import { TimingStats } from './@types/ClockTypes';
 
-interface TimingStats {
-    actualFrequency: number;
-    targetFrequency: number;
-    drift: number;
-    avgCycleTime: number;
-    totalCycles: number;
-    totalTime: number;
-}
-
-class Clock implements PubSub, IInspectableComponent {
+class Clock implements PubSub<number>, IInspectableComponent {
     id = 'clock';
     type = 'Clock';
     name?: string;
@@ -71,7 +64,7 @@ class Clock implements PubSub, IInspectableComponent {
      * Returns a serializable architecture view of the Clock, suitable for inspectors.
      */
     getInspectable() {
-        const self = this as unknown as { __address?: string; __addressName?: string };
+        const self = this as WithBusMetadata<typeof this>;
         const stats = this.getTimingStats();
         return {
             id: this.id,

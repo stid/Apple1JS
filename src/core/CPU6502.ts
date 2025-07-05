@@ -2,6 +2,7 @@ import type { IClockable } from './@types/clockable';
 import type { IInspectableComponent } from './@types/IInspectableComponent';
 import type Bus from './Bus';
 import type { CPU6502State } from './@types/CPU6502State';
+import type { CPU6502WithDebug, DisassemblyLine, TraceEntry } from './@types/CPU6502Debug';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Opcode table
@@ -1199,15 +1200,14 @@ class CPU6502 implements IClockable, IInspectableComponent {
     }
 
     getInspectable?() {
+        const self = this as CPU6502WithDebug<typeof this>;
+        
         // Disassemble current and next instruction (if possible)
-        let disasm: unknown = undefined;
+        let disasm: DisassemblyLine[] | undefined = undefined;
         // Type guard for disassemble method
-        if (typeof (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble === 'function') {
+        if (typeof self.disassemble === 'function') {
             try {
-                disasm = (this as Partial<{ disassemble: (pc: number, n: number) => unknown }>).disassemble!(
-                    this.PC,
-                    3,
-                ); // e.g., 3 instructions
+                disasm = self.disassemble(this.PC, 3); // e.g., 3 instructions
             } catch {
                 // ignore disassembly errors
             }
@@ -1222,9 +1222,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
             }
         }
         // Recent instruction trace (if available)
-        let trace: unknown = undefined;
-        if (Array.isArray((this as Partial<{ trace: unknown[] }>).trace)) {
-            trace = (this as Partial<{ trace: unknown[] }>).trace!.slice(-8);
+        let trace: TraceEntry[] | undefined = undefined;
+        if (Array.isArray(self.trace)) {
+            trace = self.trace.slice(-8);
         }
         return {
             id: this.id,

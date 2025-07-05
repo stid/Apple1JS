@@ -1,4 +1,5 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { WithBusMetadata } from './@types/BusComponent';
 import { IoComponent } from './@types/IoComponent';
 import { subscribeFunction } from './@types/PubSub';
 import { loggingService } from '../services/LoggingService';
@@ -499,7 +500,7 @@ class PIA6820 implements IInspectableComponent {
      * Get inspectable state
      */
     getInspectable() {
-        const self = this as unknown as { __address?: string; __addressName?: string };
+        const self = this as WithBusMetadata<typeof this>;
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 

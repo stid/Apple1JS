@@ -1,5 +1,6 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
 import { BusSpaceType } from './@types/IoAddressable';
+import { WithBusMetadata } from './@types/BusComponent';
 
 class Bus implements IInspectableComponent {
     id = 'bus';
@@ -16,7 +17,7 @@ class Bus implements IInspectableComponent {
      * Returns a serializable architecture view of the Bus and its children, suitable for inspectors.
      */
     getInspectable() {
-        const self = this as unknown as { __address?: string; __addressName?: string };
+        const self = this as WithBusMetadata<typeof this>;
         return {
             id: this.id,
             type: this.type,

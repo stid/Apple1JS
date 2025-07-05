@@ -4,12 +4,17 @@ export declare interface WireOptions {
     reset?: () => void;
 }
 
-export declare interface IoComponent {
+/**
+ * Generic state type for IoComponents that support state save/restore
+ */
+export type IoComponentState = Record<string, unknown>;
+
+export declare interface IoComponent<TState = IoComponentState> {
     read?(address: number): Promise<number | void>; // Made optional
     write(value: number | string): Promise<number | string | void>;
     wire(options: WireOptions): void;
     reset(): void;
-    // Optional: for video components that support state save/restore
-    getState?(): unknown;
-    setState?(state: unknown): void;
+    // Optional: for components that support state save/restore
+    getState?(): TState;
+    setState?(state: TState): void;
 }
