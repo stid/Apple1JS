@@ -36,7 +36,11 @@ const CRTCursor: React.FC<CRTCursorProps> = ({ row, column }) => {
     }, []);
 
     return (
-        <div className="absolute" data-testid="cursor" style={getCursorStyle(row, column, visible)}>
+        <div 
+            className="absolute crt-char-glow" 
+            data-testid="cursor" 
+            style={getCursorStyle(row, column, visible)}
+        >
             <CRTRowChar x={0} char="@" />
         </div>
     );

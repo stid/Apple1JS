@@ -9,20 +9,23 @@ type Props = {
 };
 const CRT = ({ videoData }: Props): JSX.Element => (
     <div
-        className="relative bg-teal-900 rounded-lg shadow-2xl border-2 border-teal-700 overflow-hidden crt-effect"
-        style={{ width: CRTConstants.MONITOR_WIDTH, height: CRTConstants.MONITOR_HEIGHT }}
+        className="crt-container crt-bloom crt-barrel rounded-lg shadow-2xl shadow-green-500/20 border-2 border-teal-800 overflow-hidden crt-power-on"
+        style={{ 
+            width: CRTConstants.MONITOR_WIDTH, 
+            height: CRTConstants.MONITOR_HEIGHT,
+            backgroundColor: '#0A3A3A' // Darker teal background
+        }}
     >
-        {/* Optional scanline overlay */}
+        {/* Enhanced scanline overlay with wobble effect */}
+        <div className="crt-scanlines crt-scanline-wobble" />
+        
+        {/* Main display content with phosphor effect */}
         <div
-            className="pointer-events-none absolute inset-0 z-10 opacity-20 mix-blend-overlay"
-            style={{
-                background:
-                    'repeating-linear-gradient(180deg, transparent, transparent 2px, #000 3px, transparent 4px)',
+            className="text-[13px] relative text-green-400 tracking-normal font-mono z-20 select-text crt-phosphor crt-chromatic"
+            style={{ 
+                right: '3px', 
+                position: 'relative'
             }}
-        />
-        <div
-            className="text-[13px] relative text-green-400 tracking-normal font-mono z-20 select-text"
-            style={{ right: '3px', position: 'relative' }}
         >
             <CRTCursor row={videoData.row} column={videoData.column} />
             {videoData.buffer.map((line, index) => (
