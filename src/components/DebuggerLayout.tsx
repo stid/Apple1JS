@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Disassembler from './Disassembler';
+import DisassemblerPaginated from './DisassemblerPaginated';
 import MemoryViewer from './MemoryViewer';
 import StackViewer from './StackViewer';
+import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 
@@ -80,6 +81,9 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-md h-full overflow-auto">
                         {/* Left Column */}
                         <div className="space-y-md">
+                            {/* Execution Controls */}
+                            <ExecutionControls worker={worker} />
+                            
                             {/* CPU State */}
                             <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
                                 <div className="flex items-center justify-between mb-sm">
@@ -211,7 +215,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
 
                 {activeView === 'disassembly' && (
                     <div className="h-full">
-                        <Disassembler worker={worker} />
+                        <DisassemblerPaginated worker={worker} />
                     </div>
                 )}
             </div>

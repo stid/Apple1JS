@@ -31,6 +31,13 @@ export enum WORKER_MESSAGES {
     DEBUG_DATA, // Debug data for components
     SET_CPU_PROFILING, // Enable/disable CPU performance profiling
     SET_CYCLE_ACCURATE_TIMING, // Enable/disable cycle-accurate timing mode
+    STEP, // Execute a single CPU instruction
+    SET_BREAKPOINT, // Set a breakpoint at an address
+    CLEAR_BREAKPOINT, // Clear a breakpoint at an address
+    CLEAR_ALL_BREAKPOINTS, // Clear all breakpoints
+    GET_BREAKPOINTS, // Request current breakpoints
+    BREAKPOINTS_DATA, // Response with current breakpoints
+    BREAKPOINT_HIT, // Notification when breakpoint is hit
 }
 
 

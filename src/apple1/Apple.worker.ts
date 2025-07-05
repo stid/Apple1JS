@@ -21,6 +21,10 @@ loggingService.addHandler((level, source, message) => {
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
 
+// Breakpoint management
+const breakpoints = new Set<number>();
+let isPaused = false;
+
 import type { WorkerMessage } from './@types/WorkerMessages';
 
 onmessage = function (e: MessageEvent<WorkerMessage>) {
@@ -79,11 +83,17 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
         case WORKER_MESSAGES.PAUSE_EMULATION: {
             // Pause the clock/emulation
             apple1.clock.pause();
+            isPaused = true;
+            // Send status update
+            postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
             break;
         }
         case WORKER_MESSAGES.RESUME_EMULATION: {
             // Resume the clock/emulation
             apple1.clock.resume();
+            isPaused = false;
+            // Send status update
+            postMessage({ data: 'running', type: WORKER_MESSAGES.EMULATION_STATUS });
             break;
         }
         case WORKER_MESSAGES.GET_MEMORY_RANGE: {
@@ -122,6 +132,69 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             }
             break;
         }
+        case WORKER_MESSAGES.STEP: {
+            // Execute a single CPU instruction
+            // First pause the clock to prevent concurrent execution
+            apple1.clock.pause();
+            isPaused = true;
+            // Execute one instruction
+            apple1.cpu.performSingleStep();
+            
+            // Check if we hit a breakpoint after stepping
+            if (breakpoints.has(apple1.cpu.PC)) {
+                postMessage({
+                    data: apple1.cpu.PC,
+                    type: WORKER_MESSAGES.BREAKPOINT_HIT
+                });
+            }
+            
+            // Send updated debug info after step
+            postMessage({
+                data: {
+                    cpu: apple1.cpu.toDebug(),
+                    pia: apple1.pia.toDebug(),
+                    Bus: apple1.bus.toDebug(),
+                    clock: apple1.clock.toDebug(),
+                },
+                type: WORKER_MESSAGES.DEBUG_INFO,
+            });
+            break;
+        }
+        case WORKER_MESSAGES.SET_BREAKPOINT: {
+            if (typeof data === 'number') {
+                breakpoints.add(data);
+                postMessage({
+                    data: Array.from(breakpoints),
+                    type: WORKER_MESSAGES.BREAKPOINTS_DATA
+                });
+            }
+            break;
+        }
+        case WORKER_MESSAGES.CLEAR_BREAKPOINT: {
+            if (typeof data === 'number') {
+                breakpoints.delete(data);
+                postMessage({
+                    data: Array.from(breakpoints),
+                    type: WORKER_MESSAGES.BREAKPOINTS_DATA
+                });
+            }
+            break;
+        }
+        case WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS: {
+            breakpoints.clear();
+            postMessage({
+                data: [],
+                type: WORKER_MESSAGES.BREAKPOINTS_DATA
+            });
+            break;
+        }
+        case WORKER_MESSAGES.GET_BREAKPOINTS: {
+            postMessage({
+                data: Array.from(breakpoints),
+                type: WORKER_MESSAGES.BREAKPOINTS_DATA
+            });
+            break;
+        }
     }
 };
 
@@ -136,4 +209,22 @@ setInterval(() => {
     });
 }, 100); // Every 100ms
 
+// Check for breakpoints during execution
+let lastPC = -1;
+setInterval(() => {
+    const currentPC = apple1.cpu.PC;
+    // Only check if PC changed and we're running
+    if (currentPC !== lastPC && !isPaused && breakpoints.has(currentPC)) {
+        // Hit a breakpoint - pause execution
+        apple1.clock.pause();
+        isPaused = true;
+        postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
+        postMessage({ data: currentPC, type: WORKER_MESSAGES.BREAKPOINT_HIT });
+        loggingService.log('info', 'Breakpoint', `Hit breakpoint at $${currentPC.toString(16).padStart(4, '0').toUpperCase()}`);
+    }
+    lastPC = currentPC;
+}, 10); // Check every 10ms for responsive breakpoint detection
+
 apple1.startLoop();
+// Start in running state
+isPaused = false;

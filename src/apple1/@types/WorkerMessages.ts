@@ -22,7 +22,12 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.RESUME_EMULATION>
     | BaseWorkerMessage<WORKER_MESSAGES.GET_MEMORY_RANGE, MemoryRangeRequest>
     | BaseWorkerMessage<WORKER_MESSAGES.SET_CPU_PROFILING, boolean>
-    | BaseWorkerMessage<WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING, boolean>;
+    | BaseWorkerMessage<WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING, boolean>
+    | BaseWorkerMessage<WORKER_MESSAGES.STEP>
+    | BaseWorkerMessage<WORKER_MESSAGES.SET_BREAKPOINT, number>
+    | BaseWorkerMessage<WORKER_MESSAGES.CLEAR_BREAKPOINT, number>
+    | BaseWorkerMessage<WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS>
+    | BaseWorkerMessage<WORKER_MESSAGES.GET_BREAKPOINTS>;
 
 /**
  * Type guard to check if a message is a valid WorkerMessage
