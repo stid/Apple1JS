@@ -33,7 +33,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             const content = contentRef.current;
             
             // Wait a frame for layout to complete
-            requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
                 const table = content.querySelector('table');
                 if (!table) return;
                 
