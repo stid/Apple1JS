@@ -4,6 +4,7 @@ import { WithBusMetadata } from './@types/BusComponent';
 import { IoComponent } from './@types/IoComponent';
 import { subscribeFunction } from './@types/PubSub';
 import { loggingService } from '../services/LoggingService';
+import { StateError } from './errors';
 
 // Use global performance API
 declare const performance: { now(): number };
@@ -471,7 +472,7 @@ class PIA6820 implements IInspectableComponent {
         const version = state.version || '2.0';
         
         if (version < '2.0') {
-            throw new Error(`Unsupported PIA save state version: ${version}. Please use a newer save state.`);
+            throw new StateError(`Unsupported PIA save state version: ${version}. Please use a newer save state.`, 'PIA6820');
         }
         
         // Load v2.0+ format with DDR support

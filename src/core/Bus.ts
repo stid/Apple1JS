@@ -2,6 +2,7 @@ import { IInspectableComponent } from './@types/IInspectableComponent';
 import { InspectableData, InspectableChild, formatAddress } from './@types/InspectableTypes';
 import { BusSpaceType } from './@types/IoAddressable';
 import { WithBusMetadata } from './@types/BusComponent';
+import { BusError } from './errors';
 
 class Bus implements IInspectableComponent {
     id = 'bus';
@@ -97,13 +98,13 @@ class Bus implements IInspectableComponent {
     private validate(): void {
         this.sortedAddrs.forEach((item: BusSpaceType) => {
             if (item.addr[0] > item.addr[1]) {
-                throw Error(`"${item.name}": Starting address is greater than ending address`);
+                throw new BusError(`"${item.name}": Starting address is greater than ending address`);
             }
         });
 
         for (let i = 0; i < this.sortedAddrs.length - 1; i++) {
             if (this.sortedAddrs[i].addr[1] >= this.sortedAddrs[i + 1].addr[0]) {
-                throw Error(`Space "${this.sortedAddrs[i].name}" overlaps with "${this.sortedAddrs[i + 1].name}"`);
+                throw new BusError(`Space "${this.sortedAddrs[i].name}" overlaps with "${this.sortedAddrs[i + 1].name}"`);
             }
         }
     }

@@ -5,6 +5,7 @@ import { formatAddress, formatByte } from './@types/InspectableTypes';
 import type Bus from './Bus';
 import type { CPU6502State } from './@types/CPU6502State';
 import type { CPU6502WithDebug, DisassemblyLine, TraceEntry } from './@types/CPU6502Debug';
+import { StateError } from './errors';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Opcode table
@@ -1174,7 +1175,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
      * Restores CPU state from a previously saved state.
      */
     loadState(state: CPU6502State): void {
-        if (!state) throw new Error('Invalid CPU state');
+        if (!state) throw new StateError('Invalid CPU state', 'CPU6502');
         this.PC = state.PC;
         this.A = state.A;
         this.X = state.X;
@@ -1223,7 +1224,8 @@ class CPU6502 implements IClockable, IInspectableComponent {
             try {
                 disasm = self.disassemble(this.PC, 3);
             } catch {
-                // ignore disassembly errors
+                // Disassembly errors are expected at memory boundaries
+                // Continue without disassembly data
             }
         }
         

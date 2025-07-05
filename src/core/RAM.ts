@@ -4,6 +4,7 @@ import { WithBusMetadata } from './@types/BusComponent';
 import { IoAddressable } from './@types/IoAddressable';
 import { loggingService } from '../services/LoggingService';
 import { DEFAULT_RAM_BANK_SIZE, MIN_BYTE_VALUE, MAX_BYTE_VALUE, BYTE_MASK } from './constants/memory';
+import { StateError } from './errors';
 class RAM implements IoAddressable, IInspectableComponent {
     /**
      * Returns a serializable copy of the RAM contents.
@@ -19,7 +20,7 @@ class RAM implements IoAddressable, IInspectableComponent {
      */
     loadState(state: { data: number[] }): void {
         if (!state || !Array.isArray(state.data) || state.data.length !== this.data.length) {
-            throw new Error('Invalid RAM state or size mismatch');
+            throw new StateError('Invalid RAM state or size mismatch', 'RAM');
         }
         this.data.set(state.data);
     }

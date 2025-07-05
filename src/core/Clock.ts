@@ -1,5 +1,6 @@
 import wait from 'waait';
 import { PubSub, subscribeFunction } from './@types/PubSub';
+import { ErrorHandler } from './errors';
 
 declare const performance: { now(): number };
 
@@ -144,7 +145,7 @@ class Clock implements PubSub<number>, IInspectableComponent {
         this.running = true;
         // Reset timing data when starting to ensure clean state
         this.resetTiming();
-        await this.loop();
+        await ErrorHandler.handleAsync(this.loop());
     }
 
     // Stops the main loop for the clock.
