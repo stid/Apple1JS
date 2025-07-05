@@ -33,7 +33,100 @@ This document analyzes the user experience of Apple1JS from the perspective of t
 
 ## Key Improvement Opportunities
 
-### 1. Enhanced Visual Authenticity
+### 1. UI Layout & Design System (Effort: M)
+
+**Current Layout Issues from Screenshot Analysis:**
+- Typography hierarchy unclear - mixed font sizes without purpose
+- No visual separation between performance stats and CPU registers
+- Poor alignment in data columns (addresses, values, flags)
+- Inconsistent spacing between sections
+- Limited color coding for different data types
+- No status indicators or visual feedback
+
+**Proposed Layout Improvements:**
+
+*Visual Hierarchy Enhancement:*
+- Create distinct sections with subtle borders/backgrounds
+- Use typography scale: headers (lg), labels (sm), values (base)
+- Add section separators and consistent spacing
+- Implement color coding for addresses (blue), values (green), flags (amber)
+
+*Data Display Consistency:*
+- Align all numeric values to the right
+- Use monospace font for all technical data
+- Add subtle hover states for interactive elements
+- Implement status badges with appropriate colors
+
+*Component Structure:*
+```jsx
+<div className="space-y-6">
+  {/* Performance Section */}
+  <section className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+    <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center">
+      <CpuIcon className="mr-2" />
+      CPU Performance Profiling
+    </h3>
+    <div className="grid grid-cols-3 gap-4">
+      <MetricCard label="Instructions" value="4,297,966" />
+      <MetricCard label="Opcodes" value="1" />
+      <MetricCard label="Status" value="ACTIVE" status="success" />
+    </div>
+  </section>
+  
+  {/* CPU Registers Section */}
+  <section className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+    <h3 className="text-lg font-semibold text-green-400 mb-3">
+      CPU Registers
+    </h3>
+    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+      <RegisterRow label="REG_PC" value="$0000" type="address" />
+      <RegisterRow label="REG_A" value="$00" type="value" />
+      <RegisterRow label="REG_X" value="$00" type="value" />
+      <RegisterRow label="REG_Y" value="$00" type="value" />
+    </div>
+  </section>
+  
+  {/* Memory & I/O Section */}
+  <section className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+    <h3 className="text-lg font-semibold text-green-400 mb-3">
+      Memory & I/O
+    </h3>
+    <div className="space-y-2">
+      <AddressRow label="ramBank2Address" range="$F000 - $FFFF" />
+      <AddressRow label="piaAddress" range="$D010 - $D013" />
+    </div>
+  </section>
+</div>
+```
+
+*Reusable Components:*
+```jsx
+const MetricCard = ({ label, value, status }) => (
+  <div className="bg-black/40 rounded p-3 border border-gray-600">
+    <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+      {label}
+    </div>
+    <div className={`text-base font-mono font-medium ${
+      status === 'success' ? 'text-green-400' : 'text-gray-200'
+    }`}>
+      {value}
+    </div>
+  </div>
+);
+
+const RegisterRow = ({ label, value, type }) => (
+  <div className="flex justify-between items-center py-1">
+    <span className="text-sm text-gray-300">{label}:</span>
+    <span className={`text-sm font-mono ${
+      type === 'address' ? 'text-blue-400' : 'text-green-400'
+    }`}>
+      {value}
+    </span>
+  </div>
+);
+```
+
+### 2. Enhanced Visual Authenticity
 
 **CRT Effects Package (Effort: M)**
 - **Phosphor Persistence**: Implement decay trails for moving text
@@ -125,25 +218,35 @@ This document analyzes the user experience of Apple1JS from the perspective of t
 
 ## Implementation Roadmap & Status
 
-### Phase 1: Visual Polish (1 week)
+### Phase 1: UI Layout & Design System (Effort: M, 2-3 days)
+- [x] Create design tokens and CSS variables
+- [x] Implement typography scale in Tailwind config
+- [x] Refactor InspectorView component with new layout
+- [x] Create MetricCard and RegisterRow components
+- [x] Add section containers with proper spacing
+- [x] Implement color coding for data types
+- [x] Add status indicators and visual feedback
+- [x] Test responsive behavior on different screen sizes
+
+### Phase 2: Visual Polish (1 week)
 - [ ] Implement advanced CRT effects (phosphor persistence, bloom, barrel distortion)
 - [ ] Standardize UI color palette
 - [ ] Add period-appropriate UI elements
 - [ ] Create unified dark mode
 
-### Phase 2: Power Tools (2 weeks)
+### Phase 3: Power Tools (2 weeks)
 - [ ] Build integrated debugger layout
 - [ ] Add execution control features
 - [ ] Implement memory search/edit tools
 - [ ] Create performance profiler
 
-### Phase 3: Hardware Authenticity (1 week)
+### Phase 4: Hardware Authenticity (1 week)
 - [ ] Add keyboard click sounds
 - [ ] Implement power-on sequence
 - [ ] Create cassette interface stub
 - [ ] Add visual activity indicators
 
-### Phase 4: Community (2 weeks)
+### Phase 5: Community (2 weeks)
 - [ ] Build program library system
 - [ ] Implement state sharing
 - [ ] Add tutorial programs

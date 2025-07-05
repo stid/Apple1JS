@@ -14,42 +14,47 @@ export type ActionsProps = {
 };
 
 const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseResume, isPaused, onRefocus, onCycleAccurateTiming, cycleAccurateTiming }: ActionsProps) => (
-    <nav className="flex flex-wrap gap-2 justify-center my-4">
+    <nav className="flex flex-wrap gap-sm justify-center">
+        {/* Control Actions Group */}
         <a
             onClick={(e) => {
                 onReset(e);
                 onRefocus();
             }}
             href="#"
-            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-green-700 text-green-400 font-mono text-xs tracking-wide transition hover:bg-green-900/60 hover:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+            className="inline-block px-md py-sm rounded-lg bg-success/10 border border-success/30 text-success font-mono text-xs tracking-wide transition-colors hover:bg-success/20 hover:border-success hover:text-success focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2"
             tabIndex={0}
         >
             RESET
         </a>
         <a
             onClick={(e) => {
-                onBS(e);
+                onPauseResume(e);
                 onRefocus();
             }}
             href="#"
-            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-green-700 text-green-400 font-mono text-xs tracking-wide transition hover:bg-green-900/60 hover:text-green-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+            className="inline-block px-md py-sm rounded-lg bg-success/10 border border-success/30 text-success font-mono text-xs tracking-wide transition-colors hover:bg-success/20 hover:border-success hover:text-success focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2"
             tabIndex={0}
         >
-            SUPPORT BACKSPACE [{supportBS ? 'ON' : 'OFF'}]
+            {isPaused ? 'RESUME' : 'PAUSE'}
         </a>
+        
+        {/* State Management Group */}
         <a
             onClick={(e) => {
                 onSaveState(e);
                 onRefocus();
             }}
             href="#"
-            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-blue-700 text-blue-400 font-mono text-xs tracking-wide transition hover:bg-blue-900/60 hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+            className="inline-block px-md py-sm rounded-lg bg-data-address/10 border border-data-address/30 text-data-address font-mono text-xs tracking-wide transition-colors hover:bg-data-address/20 hover:border-data-address hover:text-data-address focus:outline-none focus:ring-2 focus:ring-data-address focus:ring-offset-2 no-underline"
+            style={{ color: '#60A5FA' }}
             tabIndex={0}
         >
             SAVE STATE
         </a>
         <label
-            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-yellow-700 text-yellow-400 font-mono text-xs tracking-wide transition hover:bg-yellow-900/60 hover:text-yellow-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 cursor-pointer"
+            className="inline-block px-md py-sm rounded-lg bg-data-address/10 border border-data-address/30 text-data-address font-mono text-xs tracking-wide transition-colors hover:bg-data-address/20 hover:border-data-address hover:text-data-address focus:outline-none focus:ring-2 focus:ring-data-address focus:ring-offset-2 cursor-pointer"
+            style={{ color: '#60A5FA' }}
             tabIndex={0}
         >
             LOAD STATE
@@ -63,16 +68,18 @@ const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseRe
                 }}
             />
         </label>
+        
+        {/* Configuration Group */}
         <a
             onClick={(e) => {
-                onPauseResume(e);
+                onBS(e);
                 onRefocus();
             }}
             href="#"
-            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-purple-700 text-purple-400 font-mono text-xs tracking-wide transition hover:bg-purple-900/60 hover:text-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+            className="inline-block px-md py-sm rounded-lg bg-warning/10 border border-warning/30 text-warning font-mono text-xs tracking-wide transition-colors hover:bg-warning/20 hover:border-warning hover:text-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
             tabIndex={0}
         >
-            {isPaused ? 'RESUME' : 'PAUSE'}
+            SUPPORT BACKSPACE [{supportBS ? 'ON' : 'OFF'}]
         </a>
         <a
             onClick={(e) => {
@@ -80,7 +87,7 @@ const Actions = ({ onReset, onBS, supportBS, onSaveState, onLoadState, onPauseRe
                 onRefocus();
             }}
             href="#"
-            className="inline-block px-4 py-1 rounded-full bg-black/70 border border-orange-700 text-orange-400 font-mono text-xs tracking-wide transition hover:bg-orange-900/60 hover:text-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
+            className="inline-block px-md py-sm rounded-lg bg-warning/10 border border-warning/30 text-warning font-mono text-xs tracking-wide transition-colors hover:bg-warning/20 hover:border-warning hover:text-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
             tabIndex={0}
         >
             CYCLE TIMING [{cycleAccurateTiming ? 'ACCURATE' : 'FAST'}]

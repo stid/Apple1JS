@@ -4,6 +4,173 @@
 
 This document captures the architectural analysis of the Apple1JS project, identifying opportunities for improvement in code organization, consistency, and maintainability.
 
+## UI Layout & Design System Analysis
+
+### Current State Assessment
+
+**Styling Architecture:**
+- **Framework**: Tailwind CSS with utility-first approach
+- **Typography**: Monospace font family (`font-mono`) throughout
+- **Color Scheme**: Green phosphor theme with neutral grays
+- **Layout**: Flexbox-based responsive design
+- **Component Structure**: Well-organized React components in `/src/components/`
+
+**Identified Layout Issues:**
+
+1. **Typography Inconsistencies**
+   - Mixed font sizes: `text-xs`, `text-sm`, `text-lg` without clear hierarchy
+   - No consistent text scaling system
+   - Inconsistent line heights and spacing
+
+2. **Color Usage Problems**
+   - Limited color coding for different data types
+   - No semantic color system for status/values
+   - Inconsistent opacity values (`/60`, `/70`, `/950`)
+
+3. **Spacing & Layout Issues**
+   - Inconsistent padding/margins between sections
+   - No grid system for aligned data columns
+   - Poor visual hierarchy in the inspector panel
+
+4. **Visual Hierarchy Problems**
+   - Performance stats blend with CPU registers
+   - No clear section separators
+   - Uniform styling makes important data hard to distinguish
+
+5. **Responsive Design Gaps**
+   - Fixed widths may not work on all screen sizes
+   - No fluid typography scaling
+   - Limited mobile optimization
+
+### Recommended UI Improvements
+
+**1. Typography System (Effort: S)**
+```typescript
+// Design tokens for consistent typography
+const typography = {
+  // Scale: 12px, 14px, 16px, 20px, 24px
+  sizes: {
+    xs: '0.75rem',   // Labels, metadata
+    sm: '0.875rem',  // Body text, values
+    base: '1rem',    // Main content
+    lg: '1.25rem',   // Headers, important data
+    xl: '1.5rem'     // Section titles
+  },
+  weights: {
+    normal: 400,
+    medium: 500,
+    bold: 700
+  },
+  lineHeights: {
+    tight: 1.25,
+    normal: 1.5,
+    relaxed: 1.75
+  }
+};
+```
+
+**2. Color System Enhancement (Effort: S)**
+```typescript
+// Semantic color palette
+const colors = {
+  // Data types
+  address: '#60A5FA',    // Blue for memory addresses
+  value: '#34D399',      // Green for data values
+  flag: '#F59E0B',       // Amber for CPU flags
+  status: '#8B5CF6',     // Purple for status info
+  
+  // States
+  active: '#10B981',     // Green for active/running
+  inactive: '#6B7280',   // Gray for inactive
+  error: '#EF4444',      // Red for errors
+  warning: '#F59E0B',    // Amber for warnings
+  
+  // UI Elements
+  background: '#000000',
+  surface: '#1F2937',
+  border: '#374151',
+  text: {
+    primary: '#F3F4F6',
+    secondary: '#9CA3AF',
+    accent: '#10B981'
+  }
+};
+```
+
+**3. Spacing System (Effort: S)**
+```typescript
+// Consistent spacing scale
+const spacing = {
+  xs: '0.25rem',   // 4px
+  sm: '0.5rem',    // 8px
+  md: '1rem',      // 16px
+  lg: '1.5rem',    // 24px
+  xl: '2rem',      // 32px
+  xxl: '3rem'      // 48px
+};
+```
+
+**4. Component Layout Improvements (Effort: M)**
+
+*Inspector Panel Structure:*
+```typescript
+// Improved visual hierarchy
+<div className="space-y-lg">
+  {/* Performance Section */}
+  <section className="bg-surface rounded-lg p-md border border-border">
+    <h3 className="text-lg font-medium text-primary mb-md">
+      CPU Performance Profiling
+    </h3>
+    <div className="grid grid-cols-3 gap-md">
+      <MetricCard label="Instructions" value="4,297,966" />
+      <MetricCard label="Unique Opcodes" value="1" />
+      <MetricCard label="Status" value="ACTIVE" status="active" />
+    </div>
+  </section>
+  
+  {/* CPU Registers Section */}
+  <section className="bg-surface rounded-lg p-md border border-border">
+    <h3 className="text-lg font-medium text-primary mb-md">
+      CPU Registers
+    </h3>
+    <div className="space-y-sm">
+      <RegisterRow label="PC" value="$0000" type="address" />
+      <RegisterRow label="A" value="$00" type="value" />
+      <RegisterRow label="X" value="$00" type="value" />
+      <RegisterRow label="Y" value="$00" type="value" />
+    </div>
+  </section>
+</div>
+```
+
+**5. Data Display Components (Effort: M)**
+```typescript
+// Consistent data formatting
+const MetricCard = ({ label, value, status }: MetricCardProps) => (
+  <div className="bg-background rounded p-sm border border-border">
+    <div className="text-xs text-secondary uppercase tracking-wide">
+      {label}
+    </div>
+    <div className={`text-base font-medium ${
+      status === 'active' ? 'text-active' : 'text-primary'
+    }`}>
+      {value}
+    </div>
+  </div>
+);
+
+const RegisterRow = ({ label, value, type }: RegisterRowProps) => (
+  <div className="flex justify-between items-center py-xs">
+    <span className="text-sm text-secondary font-medium">{label}:</span>
+    <span className={`text-sm font-mono ${
+      type === 'address' ? 'text-address' : 'text-value'
+    }`}>
+      {value}
+    </span>
+  </div>
+);
+```
+
 ## Architecture & Consistency Issues
 
 ### 1. Naming Inconsistencies
@@ -122,7 +289,37 @@ if (address >= STACK_START && address <= STACK_END) { ... }
 - Document expected properties
 - Add TypeScript interface enforcement
 
-## Implementation Priority & Status
+## UI Layout Implementation Plan
+
+### Phase 1 - Design System Foundation (Effort: S, 1-2 days)
+- [x] Create design tokens file (`src/styles/tokens.ts`)
+- [x] Implement typography scale in Tailwind config
+- [x] Define semantic color palette
+- [x] Create spacing system constants
+- [x] Add utility CSS classes for common patterns
+
+### Phase 2 - Component Refactoring (Effort: M, 2-3 days)
+- [x] Refactor InspectorView with improved layout
+- [x] Create reusable MetricCard component
+- [x] Implement RegisterRow component
+- [x] Add section containers with proper spacing
+- [x] Enhance visual hierarchy with borders/backgrounds
+
+### Phase 3 - Data Display Enhancement (Effort: M, 2-3 days)
+- [x] Implement color coding for data types
+- [x] Add status indicators with appropriate colors
+- [x] Create consistent number formatting
+- [x] Improve alignment and spacing in data grids
+- [x] Add hover states and transitions
+
+### Phase 4 - Responsive & Accessibility (Effort: S, 1 day)
+- [x] Ensure mobile-friendly layout
+- [x] Add focus indicators
+- [x] Implement proper ARIA labels
+- [x] Test with screen readers
+- [x] Optimize for different screen sizes
+
+## Legacy Implementation Priority & Status
 
 ### Phase 1 - Quick Wins (1-2 days)
 - [x] Standardize naming conventions

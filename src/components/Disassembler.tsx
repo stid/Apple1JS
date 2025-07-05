@@ -334,74 +334,95 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
     }, [jumpToAddress]);
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex-none p-4 bg-black border-b border-slate-800">
-                <div className="flex gap-2 items-center">
-                    <label className="text-green-400">Address:</label>
+        <div className="h-full flex flex-col overflow-auto space-y-md">
+            {/* Navigation Section */}
+            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
+                    <span className="mr-2">🗺️</span>
+                    Memory Navigation
+                </h3>
+                <div className="flex gap-sm items-center flex-wrap">
+                    <label className="text-sm text-text-secondary font-medium">Address:</label>
                     <input
                         type="text"
                         value={inputAddress}
                         onChange={handleAddressChange}
                         onKeyDown={handleAddressSubmit}
-                        className="bg-black border border-green-700 text-green-300 px-2 py-1 w-20 font-mono"
+                        className="bg-black/40 border border-border-primary text-data-address px-sm py-1 w-20 font-mono text-xs rounded transition-colors focus:border-border-accent focus:outline-none"
                         placeholder="0000"
                         maxLength={4}
                     />
-                    <span className="text-green-600 text-xs">(Press Enter to jump)</span>
+                    <span className="text-text-muted text-xs">(Press Enter to jump)</span>
                     {lines.length > 0 && (
-                        <span className="text-green-500 text-xs ml-4">
-                            Showing: ${lines[0].address.toString(16).padStart(4, '0').toUpperCase()} - 
-                            ${(lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1).toString(16).padStart(4, '0').toUpperCase()} 
-                            ({lines.length} instructions)
+                        <span className="text-text-secondary text-xs">
+                            Showing: 
+                            <span className="text-data-address font-mono">
+                                ${lines[0].address.toString(16).padStart(4, '0').toUpperCase()}
+                            </span>
+                            {' - '}
+                            <span className="text-data-address font-mono">
+                                ${(lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1).toString(16).padStart(4, '0').toUpperCase()}
+                            </span>
+                            {' '}({lines.length} instructions)
                         </span>
                     )}
                 </div>
-            </div>
+            </section>
 
-            <div 
-                ref={scrollContainerRef}
-                className="flex-1 overflow-auto bg-black border-t border-slate-800 rounded-xl px-4 py-4"
-            >
-                <table className="text-xs border border-neutral-700 rounded w-full bg-neutral-950 text-green-300 font-mono table-auto">
-                    <thead className="sticky top-0 z-10 bg-neutral-800">
-                        <tr className="text-green-200">
-                            <th className="text-left px-2 py-1 bg-neutral-800">Address</th>
-                            <th className="text-left px-2 py-1 bg-neutral-800">Bytes</th>
-                            <th className="text-left px-2 py-1 bg-neutral-800">Instruction</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {lines.map((line, index) => {
-                            const isCurrentPC = line.address === currentPC;
-                            const addressHex = line.address.toString(16).padStart(4, '0').toUpperCase();
-                            const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-                            
-                            return (
-                                <tr
-                                    key={`${line.address}-${index}`}
-                                    className={isCurrentPC 
-                                        ? 'bg-yellow-600/30 text-yellow-100' 
-                                        : 'hover:bg-green-950/40'
-                                    }
-                                >
-                                    <td className="px-2 py-1 text-green-400 align-top">
-                                        {isCurrentPC && '►'} ${addressHex}
-                                    </td>
-                                    <td className="px-2 py-1 text-green-300 align-top font-mono">
-                                        {bytesHex}
-                                    </td>
-                                    <td className="px-2 py-1 align-top">
-                                        <span className="text-cyan-300">{line.instruction}</span>
-                                        {line.operand && (
-                                            <span className="text-green-300 ml-1">{line.operand}</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+            {/* Disassembly Section */}
+            <section className="bg-surface-primary rounded-lg border border-border-primary flex-1 flex flex-col min-h-0">
+                <div className="p-md border-b border-border-subtle flex-shrink-0">
+                    <h3 className="text-sm font-medium text-text-accent flex items-center">
+                        <span className="mr-2">📜</span>
+                        Assembly Code
+                    </h3>
+                </div>
+                <div 
+                    ref={scrollContainerRef}
+                    className="overflow-auto p-md flex-1"
+                >
+                    <table className="text-xs border border-border-subtle rounded w-full bg-black/20 font-mono table-auto">
+                        <thead className="sticky top-0 z-10 bg-surface-secondary">
+                            <tr className="text-text-accent">
+                                <th className="text-left px-sm py-1 bg-surface-secondary border-b border-border-subtle">Address</th>
+                                <th className="text-left px-sm py-1 bg-surface-secondary border-b border-border-subtle">Bytes</th>
+                                <th className="text-left px-sm py-1 bg-surface-secondary border-b border-border-subtle">Instruction</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {lines.map((line, index) => {
+                                const isCurrentPC = line.address === currentPC;
+                                const addressHex = line.address.toString(16).padStart(4, '0').toUpperCase();
+                                const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                                
+                                return (
+                                    <tr
+                                        key={`${line.address}-${index}`}
+                                        className={isCurrentPC 
+                                            ? 'bg-warning/20 text-warning border-l-2 border-warning' 
+                                            : 'hover:bg-surface-secondary/50 transition-colors'
+                                        }
+                                    >
+                                        <td className="px-sm py-1 text-data-address align-top font-medium">
+                                            {isCurrentPC && <span className="text-warning mr-1">▶</span>} 
+                                            <span className="font-mono">${addressHex}</span>
+                                        </td>
+                                        <td className="px-sm py-1 text-data-value align-top font-mono text-xs">
+                                            {bytesHex}
+                                        </td>
+                                        <td className="px-sm py-1 align-top">
+                                            <span className="text-data-status font-medium">{line.instruction}</span>
+                                            {line.operand && (
+                                                <span className="text-data-value ml-1">{line.operand}</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     );
 };
