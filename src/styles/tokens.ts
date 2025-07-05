@@ -37,7 +37,7 @@ export const designTokens = {
     // Color system - Apple 1 inspired palette
     colors: {
         // Data type colors
-        address: '#60A5FA', // Blue for memory addresses
+        address: '#34D399', // Green for memory addresses (matches CRT phosphor)
         value: '#34D399', // Green for data values
         flag: '#F59E0B', // Amber for CPU flags
         status: '#8B5CF6', // Purple for status info

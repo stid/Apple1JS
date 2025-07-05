@@ -31,7 +31,7 @@ module.exports = {
             // Color system
             colors: {
                 // Data type colors
-                'data-address': '#60A5FA',
+                'data-address': '#34D399',
                 'data-value': '#34D399',
                 'data-flag': '#F59E0B',
                 'data-status': '#8B5CF6',
