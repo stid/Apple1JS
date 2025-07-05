@@ -132,9 +132,9 @@ describe('PIA6820', () => {
         
         // Get stats from inspectable data
         const inspectable = pia.getInspectable();
-        expect(inspectable.stats.reads).toBe(2);
-        expect(inspectable.stats.writes).toBe(1);
-        expect(parseInt(inspectable.stats.opsPerSecond)).toBeGreaterThanOrEqual(0);
+        expect(inspectable.stats?.reads).toBe(2);
+        expect(inspectable.stats?.writes).toBe(1);
+        expect(parseInt(String(inspectable.stats?.opsPerSecond))).toBeGreaterThanOrEqual(0);
     });
 
     test('control line CA1 sets IRQ1 flag on positive edge', () => {
@@ -227,7 +227,7 @@ describe('PIA6820', () => {
             
             // Control registers should not be cached (cache remains empty)
             const stats = pia.getInspectable().stats;
-            expect(stats.cacheSize).toBe(0);
+            expect(stats?.cacheSize).toBe(0);
         });
 
         test('cache is invalidated on writes', () => {
@@ -316,15 +316,15 @@ describe('PIA6820', () => {
         test('performance metrics are included in stats', () => {
             const inspectable = pia.getInspectable();
             expect(inspectable.stats).toHaveProperty('cacheSize');
-            expect(inspectable.stats).toHaveProperty('cacheHit');
-            expect(inspectable.stats.cacheHit).toBe('Empty'); // Control registers are not cached
+            expect(inspectable.stats).toHaveProperty('cacheStatus');
+            expect(inspectable.stats?.cacheStatus).toBe('Empty'); // Control registers are not cached
             
             // Control register reads don't populate cache
             pia.read(1);
             pia.read(3);
             
             const inspectable2 = pia.getInspectable();
-            expect(inspectable2.stats.cacheHit).toBe('Empty'); // Still empty since control registers aren't cached
+            expect(inspectable2.stats?.cacheStatus).toBe('Empty'); // Still empty since control registers aren't cached
         });
     });
 });

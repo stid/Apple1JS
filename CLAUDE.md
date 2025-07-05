@@ -77,6 +77,7 @@ Refer to `@README.md` for full descriptions. Key scripts include:
 - **I/O Abstraction**: Keyboard and display via `IoComponent` interfaces.
 - **Performance**: Use performance tests for core logic changes.
 - **Open Source**: No sensitive info; clarity over cleverness unless performance demands it.
+- MANDATORY: Core components must maintain a strict separation of concerns from presentational components.
 
 ---
 

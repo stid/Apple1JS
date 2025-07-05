@@ -1,5 +1,6 @@
 import wait from 'waait';
 import { PubSub, subscribeFunction } from './@types/PubSub';
+import { ErrorHandler } from './errors';
 
 declare const performance: { now(): number };
 
@@ -15,17 +16,11 @@ const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
  */
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { InspectableData, formatFrequency } from './@types/InspectableTypes';
+import { WithBusMetadata } from './@types/BusComponent';
+import { TimingStats } from './@types/ClockTypes';
 
-interface TimingStats {
-    actualFrequency: number;
-    targetFrequency: number;
-    drift: number;
-    avgCycleTime: number;
-    totalCycles: number;
-    totalTime: number;
-}
-
-class Clock implements PubSub, IInspectableComponent {
+class Clock implements PubSub<number>, IInspectableComponent {
     id = 'clock';
     type = 'Clock';
     name?: string;
@@ -68,17 +63,33 @@ class Clock implements PubSub, IInspectableComponent {
     }
 
     /**
-     * Returns a serializable architecture view of the Clock, suitable for inspectors.
+     * Returns a standardized view of the Clock component.
      */
-    getInspectable() {
-        const self = this as unknown as { __address?: string; __addressName?: string };
+    getInspectable(): InspectableData {
+        const self = this as WithBusMetadata<typeof this>;
         const stats = this.getTimingStats();
+        
         return {
             id: this.id,
             type: this.type,
             name: this.name,
             address: self.__address,
             addressName: self.__addressName,
+            state: {
+                mhz: this.mhz,
+                stepChunk: this.stepChunk,
+                running: this.running,
+                paused: this.paused,
+            },
+            stats: {
+                actualFrequency: formatFrequency(stats.actualFrequency * 1_000_000),
+                targetFrequency: formatFrequency(stats.targetFrequency * 1_000_000),
+                drift: (stats.drift * 100).toFixed(2) + '%',
+                avgCycleTime: stats.avgCycleTime.toFixed(2) + 'ms',
+                totalCycles: stats.totalCycles,
+                totalTime: stats.totalTime.toFixed(2) + 's'
+            },
+            // Backward compatibility - flat properties
             mhz: this.mhz,
             stepChunk: this.stepChunk,
             running: this.running,
@@ -134,7 +145,7 @@ class Clock implements PubSub, IInspectableComponent {
         this.running = true;
         // Reset timing data when starting to ensure clean state
         this.resetTiming();
-        await this.loop();
+        await ErrorHandler.handleAsync(this.loop());
     }
 
     // Stops the main loop for the clock.

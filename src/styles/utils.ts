@@ -33,7 +33,7 @@ export const letterSpacing = (spacing: keyof typeof designTokens.typography.lett
 };
 
 /**
- * Get color token value
+ * Get color token value using safe nested access
  */
 export const color = (colorPath: string): string => {
     const paths = colorPath.split('.');

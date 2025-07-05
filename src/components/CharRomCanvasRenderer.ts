@@ -1,4 +1,4 @@
-type CHARROM = { [key: number]: number[] };
+import type { CHARROM } from './@types/CharRomTypes';
 
 class CharRomCanvasRenderer {
     private rom: CHARROM;

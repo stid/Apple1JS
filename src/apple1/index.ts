@@ -1,44 +1,5 @@
 // Emulator state type for save/load
-import type { CPU6502State } from '../core/@types/CPU6502State';
-
-export interface RAMBankState {
-    id: string;
-    state: { data: number[] };
-}
-
-export interface PIAState {
-    version?: string;
-    ora: number;
-    orb: number;
-    ddra: number;
-    ddrb: number;
-    cra: number;
-    crb: number;
-    controlLines: {
-        ca1: boolean;
-        ca2: boolean;
-        cb1: boolean;
-        cb2: boolean;
-        prevCa1: boolean;
-        prevCa2: boolean;
-        prevCb1: boolean;
-        prevCb2: boolean;
-    };
-}
-
-export interface VideoState {
-    buffer: unknown; // Use VideoBuffer if type is available
-    row: number;
-    column: number;
-    rowShift?: number;
-}
-
-export interface EmulatorState {
-    ram: RAMBankState[];
-    cpu: CPU6502State;
-    pia: PIAState;
-    video: VideoState;
-}
+import type { EmulatorState, PIAState, VideoState } from './@types/EmulatorState';
 import CPU6502 from '../core/CPU6502';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
@@ -88,8 +49,8 @@ class Apple1 implements IInspectableComponent {
             pia: this.pia.saveState() as PIAState,
             video:
                 typeof this.video.getState === 'function'
-                    ? (this.video.getState() as VideoState)
-                    : (undefined as unknown as VideoState),
+                    ? this.video.getState()
+                    : undefined,
         };
     }
 
@@ -140,7 +101,7 @@ class Apple1 implements IInspectableComponent {
             this.clock,
         ];
         if (this.video) {
-            children.push(new InspectableIoComponent('video', 'IoComponent', this.video));
+            children.push(new InspectableIoComponent<VideoState>('video', 'IoComponent', this.video));
         }
         if (this.keyboard) {
             children.push(new InspectableIoComponent('keyboard', 'IoComponent', this.keyboard));
@@ -201,7 +162,7 @@ class Apple1 implements IInspectableComponent {
     pia: PIA6820;
     keyboardLogic: KeyboardLogic;
     displayLogic: DisplayLogic;
-    video: IoComponent;
+    video: IoComponent<VideoState>;
     keyboard: IoComponent;
     rom: ROM;
     ramBank1: RAM;
@@ -211,7 +172,7 @@ class Apple1 implements IInspectableComponent {
     cpu: CPU6502;
     clock: Clock;
 
-    constructor({ video, keyboard }: { video: IoComponent; keyboard: IoComponent }) {
+    constructor({ video, keyboard }: { video: IoComponent<VideoState>; keyboard: IoComponent }) {
         // Keyboard & Video are injected from the outside (browser vs nodejs). This make this core
         // implementation agnostic. They just need to conform to IOComponent interfaces.
         this.video = video;

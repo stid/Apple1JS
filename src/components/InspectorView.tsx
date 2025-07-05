@@ -5,6 +5,7 @@ import { OPCODES } from './Disassembler';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
 
+import type { InspectableData } from '../core/@types/InspectableTypes';
 import type { InspectableArchView } from '../core/@types/InspectableArchView';
 
 interface InspectorViewProps {
@@ -76,7 +77,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     }
 
     // Use getInspectable() for architecture view
-    const archRoot: InspectableArchView =
+    const archRoot: InspectableData | InspectableArchView =
         typeof root.getInspectable === 'function' ? root.getInspectable() : (root as unknown as InspectableArchView);
 
     // Helper function to get debug data for a component based on its type and id

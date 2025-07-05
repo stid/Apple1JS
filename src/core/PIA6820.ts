@@ -1,7 +1,10 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { InspectableData, InspectableChild, formatByte } from './@types/InspectableTypes';
+import { WithBusMetadata } from './@types/BusComponent';
 import { IoComponent } from './@types/IoComponent';
 import { subscribeFunction } from './@types/PubSub';
 import { loggingService } from '../services/LoggingService';
+import { StateError } from './errors';
 
 // Use global performance API
 declare const performance: { now(): number };
@@ -108,12 +111,13 @@ class PIA6820 implements IInspectableComponent {
     }
 
     get children() {
-        const children = [];
-        if (this.ioA && typeof this.ioA === 'object' && 'type' in this.ioA && 'id' in this.ioA) {
-            children.push(this.ioA as IInspectableComponent);
+        const children: IInspectableComponent[] = [];
+        // Only include IoComponents that also implement IInspectableComponent
+        if (this.ioA && 'getInspectable' in this.ioA && typeof this.ioA.getInspectable === 'function') {
+            children.push(this.ioA as IoComponent & IInspectableComponent);
         }
-        if (this.ioB && typeof this.ioB === 'object' && 'type' in this.ioB && 'id' in this.ioB) {
-            children.push(this.ioB as IInspectableComponent);
+        if (this.ioB && 'getInspectable' in this.ioB && typeof this.ioB.getInspectable === 'function') {
+            children.push(this.ioB as IoComponent & IInspectableComponent);
         }
         return children;
     }
@@ -468,7 +472,7 @@ class PIA6820 implements IInspectableComponent {
         const version = state.version || '2.0';
         
         if (version < '2.0') {
-            throw new Error(`Unsupported PIA save state version: ${version}. Please use a newer save state.`);
+            throw new StateError(`Unsupported PIA save state version: ${version}. Please use a newer save state.`, 'PIA6820');
         }
         
         // Load v2.0+ format with DDR support
@@ -492,16 +496,32 @@ class PIA6820 implements IInspectableComponent {
         // Load hardware-controlled input pins (with default for backward compatibility)
         this.pb7InputState = state.pb7InputState ?? false; // Default to display ready
         
+        // CRITICAL: Always clear the display busy bit after loading state
+        // If the state was saved while the display was processing a character (pb7InputState = true),
+        // the WOZ Monitor will be stuck in an infinite loop waiting for the display to become ready.
+        // Since we're loading a saved state, any pending display operation would have been lost anyway,
+        // so it's safe to mark the display as ready.
+        this.pb7InputState = false;
+        
         this.notifySubscribers();
     }
 
     /**
-     * Get inspectable state
+     * Returns a standardized view of the PIA6820 component.
      */
-    getInspectable() {
-        const self = this as unknown as { __address?: string; __addressName?: string };
+    getInspectable(): InspectableData {
+        const self = this as WithBusMetadata<typeof this>;
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
+
+        const children: InspectableChild[] = this.children.map((child) => ({
+            id: child.id,
+            type: child.type || 'IoComponent',
+            name: child.name,
+            component: typeof child.getInspectable === 'function'
+                ? child.getInspectable()
+                : undefined
+        }));
 
         return {
             id: this.id,
@@ -509,40 +529,33 @@ class PIA6820 implements IInspectableComponent {
             name: this.name,
             address: self.__address,
             addressName: self.__addressName,
-            children: this.children.map((child) =>
-                typeof child.getInspectable === 'function'
-                    ? child.getInspectable()
-                    : { id: child.id, type: child.type },
-            ),
-            data: {
-                registers: {
-                    'Port A Data': `0x${this.ora.toString(16).padStart(2, '0').toUpperCase()}`,
-                    'Port A DDR': `0x${this.ddra.toString(16).padStart(2, '0').toUpperCase()}`,
-                    'Port A Control': `0x${this.cra.toString(16).padStart(2, '0').toUpperCase()}`,
-                    'Port B Data': `0x${this.orb.toString(16).padStart(2, '0').toUpperCase()}`,
-                    'Port B DDR': `0x${this.ddrb.toString(16).padStart(2, '0').toUpperCase()}`,
-                    'Port B Control': `0x${this.crb.toString(16).padStart(2, '0').toUpperCase()}`,
-                },
-                controlLines: {
-                    'CA1 (Kbd Strobe)': this.ca1 ? 'HIGH' : 'LOW',
-                    'CA2': this.ca2 ? 'HIGH' : 'LOW',
-                    'CB1': this.cb1 ? 'HIGH' : 'LOW',
-                    'CB2': this.cb2 ? 'HIGH' : 'LOW',
-                },
-                interrupts: {
-                    'IRQA': this.getIRQA() ? 'ACTIVE' : 'INACTIVE',
-                    'IRQB': this.getIRQB() ? 'ACTIVE' : 'INACTIVE',
-                },
+            state: {
+                // Registers
+                'Port A Data': formatByte(this.ora),
+                'Port A DDR': formatByte(this.ddra),
+                'Port A Control': formatByte(this.cra),
+                'Port B Data': formatByte(this.orb),
+                'Port B DDR': formatByte(this.ddrb),
+                'Port B Control': formatByte(this.crb),
+                // Control Lines
+                'CA1 (Kbd Strobe)': this.ca1 ? 'HIGH' : 'LOW',
+                'CA2': this.ca2 ? 'HIGH' : 'LOW',
+                'CB1': this.cb1 ? 'HIGH' : 'LOW',
+                'CB2': this.cb2 ? 'HIGH' : 'LOW',
+                // Interrupts
+                'IRQA': this.getIRQA() ? 'ACTIVE' : 'INACTIVE',
+                'IRQB': this.getIRQB() ? 'ACTIVE' : 'INACTIVE',
             },
             stats: {
                 reads: this.stats.reads,
                 writes: this.stats.writes,
                 notifications: this.stats.notificationCount,
                 controlLineChanges: this.stats.controlLineChanges,
-                opsPerSecond: opsPerSecond.toFixed(2),
+                opsPerSecond: opsPerSecond.toFixed(2) + ' ops/s',
                 cacheSize: this.registerCache.size,
-                cacheHit: this.registerCache.size > 0 ? 'Active' : 'Empty',
+                cacheStatus: this.registerCache.size > 0 ? 'Active' : 'Empty',
             },
+            children: children.length > 0 ? children : undefined
         };
     }
 

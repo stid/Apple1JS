@@ -1,6 +1,7 @@
 import { LogLevel } from '../types/logging';
-
-export type LogHandler = (level: LogLevel, source: string, message: string) => void;
+import type { LogHandler } from './@types/LoggingTypes';
+import { ErrorHandler } from '../core/errors';
+export type { LogHandler };
 
 class LoggingService {
     private handlers: LogHandler[] = [];
@@ -54,3 +55,6 @@ class LoggingService {
 
 // Singleton instance
 export const loggingService = new LoggingService();
+
+// Initialize ErrorHandler with LoggingService
+ErrorHandler.setLoggingService(loggingService);

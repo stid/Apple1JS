@@ -1,6 +1,7 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
-import WebCRTVideo, { WebCrtVideoSubFuncVideoType } from './WebCRTVideo';
+import WebCRTVideo from './WebCRTVideo';
+import type { WebCrtVideoSubFuncVideoType } from './@types/VideoTypes';
 import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData } from './TSTypes';
 import { loggingService } from '../services/LoggingService';
 
@@ -20,18 +21,15 @@ loggingService.addHandler((level, source, message) => {
 
 const apple1 = new Apple1({ video: video, keyboard: keyboard });
 
-import type { StateMessage } from './TSTypes';
+import type { WorkerMessage } from './@types/WorkerMessages';
 
-onmessage = function (e: MessageEvent<{ data: string; type: WORKER_MESSAGES } | StateMessage>) {
-    let type: WORKER_MESSAGES;
-    let data: unknown;
-    if (typeof e.data === 'object' && e.data !== null && 'type' in e.data) {
-        type = (e.data as StateMessage).type;
-        data = (e.data as StateMessage).data;
-    } else {
-        type = (e.data as { type: WORKER_MESSAGES }).type;
-        data = (e.data as { data: string }).data;
+onmessage = function (e: MessageEvent<WorkerMessage>) {
+    const message = e.data;
+    if (!message || typeof message.type !== 'number') {
+        return;
     }
+
+    const { type, data } = message;
 
     switch (type) {
         case WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG:

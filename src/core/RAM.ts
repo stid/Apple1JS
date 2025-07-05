@@ -1,7 +1,10 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { InspectableData } from './@types/InspectableTypes';
+import { WithBusMetadata } from './@types/BusComponent';
 import { IoAddressable } from './@types/IoAddressable';
 import { loggingService } from '../services/LoggingService';
 import { DEFAULT_RAM_BANK_SIZE, MIN_BYTE_VALUE, MAX_BYTE_VALUE, BYTE_MASK } from './constants/memory';
+import { StateError } from './errors';
 class RAM implements IoAddressable, IInspectableComponent {
     /**
      * Returns a serializable copy of the RAM contents.
@@ -17,7 +20,7 @@ class RAM implements IoAddressable, IInspectableComponent {
      */
     loadState(state: { data: number[] }): void {
         if (!state || !Array.isArray(state.data) || state.data.length !== this.data.length) {
-            throw new Error('Invalid RAM state or size mismatch');
+            throw new StateError('Invalid RAM state or size mismatch', 'RAM');
         }
         this.data.set(state.data);
     }
@@ -31,22 +34,25 @@ class RAM implements IoAddressable, IInspectableComponent {
     /**
      * Returns a serializable architecture view of the RAM, suitable for inspectors.
      */
-    getInspectable() {
-        // Always include address info if present
-        const self = this as unknown as { __address?: string; __addressName?: string };
+    getInspectable(): InspectableData {
+        const self = this as WithBusMetadata<typeof this>;
         return {
             id: this.id,
             type: this.type,
             name: this.name,
-            size: this.data.length,
             address: self.__address,
             addressName: self.__addressName,
+            size: this.data.length,
+            state: {
+                size: this.data.length + ' bytes',
+                initialized: true
+            }
         };
     }
     private data: Uint8Array;
     get details() {
         // Use optional chaining and unknown type for safer, typed access
-        const self = this as unknown as { __address?: string; __addressName?: string };
+        const self = this as WithBusMetadata<typeof this>;
         return {
             size: this.data.length,
             address: self.__address,

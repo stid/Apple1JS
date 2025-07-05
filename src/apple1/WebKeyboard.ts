@@ -1,4 +1,5 @@
 import { IoComponent } from '@/core/@types/IoComponent';
+import { InspectableData } from '@/core/@types/InspectableTypes';
 
 const B7BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const B7ESC = 0x9b; // ESC key (B7 High)
@@ -15,13 +16,15 @@ class Keyboard implements IoComponent, IInspectableComponent {
     name?: string = 'Keyboard Input';
     lastKey?: string;
     connected: boolean = true;
-    getInspectable?() {
+    getInspectable(): InspectableData {
         return {
             id: this.id,
             type: this.type,
             name: this.name,
-            lastKey: this.lastKey ?? '(none)',
-            connected: typeof this.connected === 'boolean' ? this.connected : '(n/a)',
+            state: {
+                lastKey: this.lastKey ?? '(none)',
+                connected: this.connected
+            }
         };
     }
     private wireWrite?: (value: number) => Promise<number | void>;
