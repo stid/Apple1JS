@@ -25,6 +25,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [isPaused, setIsPaused] = useState(false);
+    const [isSteppingMode, setIsSteppingMode] = useState(false);
     
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
@@ -165,6 +166,19 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                         ? parseInt(debugData.cpu.PC.replace('$', ''), 16)
                         : debugData.cpu.PC;
                     setCurrentPC(pc);
+                    
+                    // Auto-follow PC during stepping
+                    if (isSteppingMode && executionState === 'paused') {
+                        // Check if PC is visible in current view
+                        const firstVisibleAddr = lines[0]?.address || currentAddress;
+                        const lastVisibleAddr = lines[lines.length - 1]?.address || currentAddress;
+                        
+                        if (pc < firstVisibleAddr || pc > lastVisibleAddr) {
+                            // PC is outside visible range, navigate to it
+                            navigateTo(pc);
+                        }
+                        setIsSteppingMode(false); // Reset stepping mode
+                    }
                 }
             }
             
@@ -181,7 +195,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
 
         worker.addEventListener('message', handleWorkerMessage);
         return () => worker.removeEventListener('message', handleWorkerMessage);
-    }, [worker, disassembleMemory, navigateTo, visibleRows]);
+    }, [worker, disassembleMemory, navigateTo, visibleRows, isSteppingMode, executionState, lines, currentAddress]);
     
     // Listen for emulation status updates
     useEffect(() => {
@@ -282,6 +296,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     // Execution controls
     const handleStep = useCallback(() => {
         setExecutionState('stepping');
+        setIsSteppingMode(true);  // Mark that we're stepping
         worker.postMessage({ type: WORKER_MESSAGES.STEP });
         setTimeout(() => {
             setExecutionState('paused');
