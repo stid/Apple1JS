@@ -19,6 +19,7 @@ type Props = {
 const App = ({ worker, apple1Instance }: Props): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [isPaused, setIsPaused] = useState<boolean>(false);
+    const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
     // Right panel tab: 'info', 'inspector', or 'disassembler'
     const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'disassembler'>('info');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
@@ -193,6 +194,18 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             onPauseResume={handlePauseResume}
                             isPaused={isPaused}
                             onRefocus={focusHiddenInput}
+                            cycleAccurateTiming={cycleAccurateTiming}
+                            onCycleAccurateTiming={useCallback(
+                                (e) => {
+                                    e.preventDefault();
+                                    worker.postMessage({
+                                        data: !cycleAccurateTiming,
+                                        type: WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING,
+                                    });
+                                    setCycleAccurateTiming((prev) => !prev);
+                                },
+                                [worker, cycleAccurateTiming],
+                            )}
                         />
                     </div>
                 </div>

@@ -20,4 +20,7 @@ export interface CPU6502State {
     // Interrupt handling state
     pendingIrq: number;
     pendingNmi: number;
+    // Cycle-accurate timing state (optional)
+    cycleAccurateMode?: boolean;
+    currentInstructionCycles?: number;
 }

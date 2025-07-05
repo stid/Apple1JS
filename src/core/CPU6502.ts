@@ -80,8 +80,19 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 /*  BPL rel */ CPU6502op[0x10] = (m: CPU6502) => {
-    m.rel();
-    m.bpl();
+    // Inline rel() logic for better performance
+    m.addr = m.read(m.PC++);
+    if (m.addr & 0x80) {
+        m.addr -= 0x100;
+    }
+    m.addr += m.PC;
+    m.cycles += 2;
+    
+    // Inline BPL branch logic (branch if N flag is clear)
+    if (m.N === 0) {
+        m.cycles += (m.addr & 0xff00) !== (m.PC & 0xff00) ? 2 : 1;
+        m.PC = m.addr;
+    }
 };
 /*  ORA izy */ CPU6502op[0x11] = (m: CPU6502) => {
     m.izy();
@@ -221,8 +232,19 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 /*  BMI rel */ CPU6502op[0x30] = (m: CPU6502) => {
-    m.rel();
-    m.bmi();
+    // Inline rel() logic for better performance
+    m.addr = m.read(m.PC++);
+    if (m.addr & 0x80) {
+        m.addr -= 0x100;
+    }
+    m.addr += m.PC;
+    m.cycles += 2;
+    
+    // Inline BMI branch logic (branch if N flag is set)
+    if (m.N !== 0) {
+        m.cycles += (m.addr & 0xff00) !== (m.PC & 0xff00) ? 2 : 1;
+        m.PC = m.addr;
+    }
 };
 /*  AND izy */ CPU6502op[0x31] = (m: CPU6502) => {
     m.izy();
@@ -1140,6 +1162,8 @@ class CPU6502 implements IClockable, IInspectableComponent {
             data: this.data,
             pendingIrq: this.pendingIrq,
             pendingNmi: this.pendingNmi,
+            cycleAccurateMode: this.cycleAccurateMode,
+            currentInstructionCycles: this.currentInstructionCycles,
         };
     }
 
@@ -1169,6 +1193,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
         // Load interrupt state with backward compatibility
         this.pendingIrq = typeof state.pendingIrq === 'boolean' ? (state.pendingIrq ? 1 : 0) : state.pendingIrq;
         this.pendingNmi = typeof state.pendingNmi === 'boolean' ? (state.pendingNmi ? 1 : 0) : state.pendingNmi;
+        // Load cycle-accurate timing state (optional, for backward compatibility)
+        this.cycleAccurateMode = state.cycleAccurateMode ?? true;
+        this.currentInstructionCycles = state.currentInstructionCycles ?? 0;
     }
 
     getInspectable?() {
@@ -1249,6 +1276,11 @@ class CPU6502 implements IClockable, IInspectableComponent {
     private instructionCount: number = 0;
     private profileData: Map<number, { count: number; cycles: number }> = new Map();
     private enableProfiling: boolean = false;
+    
+    // Cycle-accurate timing mode for debugging
+    private cycleAccurateMode: boolean = true;
+    private busAccesses: Array<{ address: number; type: 'read' | 'write'; value?: number }> = [];
+    private currentInstructionCycles: number = 0;
 
     constructor(bus: Bus) {
         this.bus = bus;
@@ -1308,6 +1340,12 @@ class CPU6502 implements IClockable, IInspectableComponent {
     performSingleStep(): number {
         const startCycles = this.cycles;
         
+        // Initialize cycle-accurate timing if enabled
+        if (this.cycleAccurateMode) {
+            this.busAccesses = [];
+            this.currentInstructionCycles = 0;
+        }
+        
         // Check for interrupts before executing next instruction
         this.checkInterrupts();
         
@@ -1325,6 +1363,11 @@ class CPU6502 implements IClockable, IInspectableComponent {
         }
         
         CPU6502op[this.opcode](this);
+        
+        // Update cycle-accurate timing
+        if (this.cycleAccurateMode) {
+            this.currentInstructionCycles = this.cycles - startCycles;
+        }
         
         // Update cycle profiling
         if (this.enableProfiling) {
@@ -1346,6 +1389,12 @@ class CPU6502 implements IClockable, IInspectableComponent {
     read(address: number): number {
         this.address = address;
         this.data = this.bus.read(address);
+        
+        // Track bus access for cycle-accurate timing
+        if (this.cycleAccurateMode) {
+            this.busAccesses.push({ address, type: 'read', value: this.data });
+        }
+        
         return this.data;
     }
 
@@ -1353,6 +1402,11 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.address = address;
         this.data = value;
         this.bus.write(address, value);
+        
+        // Track bus access for cycle-accurate timing
+        if (this.cycleAccurateMode) {
+            this.busAccesses.push({ address, type: 'write', value });
+        }
     }
 
     getCompletedCycles(): number {
@@ -1399,10 +1453,41 @@ class CPU6502 implements IClockable, IInspectableComponent {
             profilingEnabled: this.enableProfiling
         };
     }
+    
+    /**
+     * Enable or disable cycle-accurate timing mode for debugging
+     */
+    setCycleAccurateMode(enabled: boolean): void {
+        this.cycleAccurateMode = enabled;
+        if (!enabled) {
+            this.busAccesses = [];
+        }
+    }
+    
+    /**
+     * Get cycle-accurate timing mode status
+     */
+    getCycleAccurateMode(): boolean {
+        return this.cycleAccurateMode;
+    }
+    
+    /**
+     * Get detailed bus access history for current instruction (when cycle-accurate mode is enabled)
+     */
+    getBusAccessHistory(): Array<{ address: number; type: 'read' | 'write'; value?: number }> {
+        return [...this.busAccesses];
+    }
+    
+    /**
+     * Get current instruction cycle count (when cycle-accurate mode is enabled)
+     */
+    getCurrentInstructionCycles(): number {
+        return this.currentInstructionCycles;
+    }
 
-    toDebug(): { [key: string]: string | number | boolean } {
+    toDebug(): { [key: string]: string | number | boolean | object } {
         // Enhanced live state capture with hex formatting - no duplicates
-        return { 
+        const debugData: { [key: string]: string | number | boolean | object } = { 
             // Registers as hex values for inspector
             REG_PC: '$' + this.PC.toString(16).padStart(4, '0').toUpperCase(),
             REG_A: '$' + this.A.toString(16).padStart(2, '0').toUpperCase(),
@@ -1430,6 +1515,41 @@ class CPU6502 implements IClockable, IInspectableComponent {
             EXEC_TMP: '$' + this.tmp.toString(16).padStart(2, '0').toUpperCase(),
             EXEC_ADDR: '$' + this.addr.toString(16).padStart(4, '0').toUpperCase()
         };
+
+        // Add performance profiling data if enabled
+        if (this.enableProfiling) {
+            const stats = this.getPerformanceStats();
+            const profileData = this.getProfilingData();
+            
+            // Add summary stats
+            debugData.PERF_ENABLED = 'YES';
+            debugData.PERF_INSTRUCTIONS = stats.instructionCount.toLocaleString();
+            debugData.PERF_UNIQUE_OPCODES = stats.totalInstructions.toString();
+            
+            // Add top 5 most frequent instructions
+            const sortedOpcodes = Object.entries(profileData)
+                .sort(([,a], [,b]) => b.count - a.count)
+                .slice(0, 5);
+                
+            debugData.PERF_TOP_OPCODES = sortedOpcodes.map(([opcode, data]) => 
+                `${opcode}:${data.count}`
+            ).join(', ');
+            
+            // Add performance data for detailed analysis
+            debugData._PERF_DATA = {
+                stats,
+                topOpcodes: sortedOpcodes.map(([opcode, data]) => ({
+                    opcode,
+                    count: data.count,
+                    cycles: data.cycles,
+                    avgCycles: data.avgCycles
+                }))
+            };
+        } else {
+            debugData.PERF_ENABLED = 'NO';
+        }
+
+        return debugData;
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -1538,8 +1658,24 @@ class CPU6502 implements IClockable, IInspectableComponent {
     ////////////////////////////////////////////////////////////////////////////////
 
     rmw(): void {
-        this.write(this.addr, this.tmp & 0xff);
-        this.cycles += 2;
+        // In cycle-accurate mode, simulate the actual RMW bus timing
+        if (this.cycleAccurateMode) {
+            // RMW operations have these phases:
+            // 1. Write the original value back (1 cycle)
+            // 2. Write the modified value (1 cycle)
+            // The "read" phase was already handled in the addressing mode
+            
+            // Phase 1: Write original value back (internal cycle)
+            this.cycles += 1;
+            
+            // Phase 2: Write modified value
+            this.write(this.addr, this.tmp & 0xff);
+            this.cycles += 1;
+        } else {
+            // Standard timing - simplified for performance
+            this.write(this.addr, this.tmp & 0xff);
+            this.cycles += 2;
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -1600,9 +1736,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     bit(): void {
         this.tmp = this.read(this.addr);
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.V = (this.tmp & 0x40) !== 0 ? 1 : 0;
-        this.Z = (this.tmp & this.A) === 0 ? 1 : 0;
+        // Optimized flag setting using bit operations
+        this.N = (this.tmp >> 7) & 1;        // Extract bit 7 directly
+        this.V = (this.tmp >> 6) & 1;        // Extract bit 6 directly
+        this.Z = (this.tmp & this.A) === 0 ? 1 : 0;  // Z flag logic unchanged
     }
 
     brk(): void {

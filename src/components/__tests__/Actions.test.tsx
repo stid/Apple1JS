@@ -12,6 +12,8 @@ describe('Actions component', () => {
         onPauseResume: jest.fn(),
         isPaused: false,
         onRefocus: jest.fn(),
+        onCycleAccurateTiming: jest.fn(),
+        cycleAccurateTiming: true,
     };
 
     afterEach(() => {
@@ -65,5 +67,22 @@ describe('Actions component', () => {
         const pauseAnchor = screen.getByText('PAUSE');
         fireEvent.click(pauseAnchor);
         expect(props.onPauseResume).toHaveBeenCalledTimes(1);
+    });
+
+    it('should show the correct text in the "CYCLE TIMING" anchor depending on the cycleAccurateTiming prop', () => {
+        const { rerender } = render(<Actions {...props} />);
+        let timingAnchor = screen.getByText('CYCLE TIMING [ACCURATE]');
+        expect(timingAnchor).toBeInTheDocument();
+
+        rerender(<Actions {...props} cycleAccurateTiming={false} />);
+        timingAnchor = screen.getByText('CYCLE TIMING [FAST]');
+        expect(timingAnchor).toBeInTheDocument();
+    });
+
+    it('should call the onCycleAccurateTiming prop when the "CYCLE TIMING" anchor is clicked', () => {
+        render(<Actions {...props} />);
+        const timingAnchor = screen.getByText('CYCLE TIMING [ACCURATE]');
+        fireEvent.click(timingAnchor);
+        expect(props.onCycleAccurateTiming).toHaveBeenCalledTimes(1);
     });
 });
