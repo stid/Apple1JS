@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import DisassemblerPaginated from './DisassemblerPaginated';
-import MemoryViewer from './MemoryViewer';
+import DisassemblerPaginatedNoScroll from './DisassemblerPaginatedNoScroll';
+import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
@@ -202,20 +202,17 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                 )}
 
                 {activeView === 'memory' && (
-                    <div className="h-full bg-surface-primary rounded-lg border border-border-primary p-md">
-                        <div className="h-full">
-                            <MemoryViewer
-                                worker={worker}
-                                startAddress={memoryViewAddress}
-                                size={768} // Show more in dedicated view
-                            />
-                        </div>
+                    <div className="h-full">
+                        <MemoryViewerPaginated
+                            worker={worker}
+                            startAddress={memoryViewAddress}
+                        />
                     </div>
                 )}
 
                 {activeView === 'disassembly' && (
                     <div className="h-full">
-                        <DisassemblerPaginated worker={worker} />
+                        <DisassemblerPaginatedNoScroll worker={worker} />
                     </div>
                 )}
             </div>
