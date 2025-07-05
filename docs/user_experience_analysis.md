@@ -49,8 +49,9 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 **Why critical**: Current debugger is read-only. Power users need precise control for debugging vintage software.
 
 **Tasks**:
-- [ ] Step-by-step execution (CPU already supports it)
-- [ ] Breakpoint UI with visual indicators
+
+- [x] Step-by-step execution (CPU already supports it) ✅
+- [x] Breakpoint UI with visual indicators ✅
 - [ ] Run-to-cursor in disassembler
 - [ ] Conditional breakpoints (e.g., "break when A=$FF")
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
+import CompactExecutionControls from './CompactExecutionControls';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -171,8 +172,10 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [currentPC, setCurrentPC] = useState<number>(0);
     const [inputAddress, setInputAddress] = useState<string>('0000');
+    const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const pcRowRef = useRef<HTMLTableRowElement>(null);
 
     const disassembleMemory = useCallback((startAddr: number, length: number, memory: number[]): DisassemblyLine[] => {
         const result: DisassemblyLine[] = [];
@@ -305,6 +308,25 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
         }
     }, [inputAddress, jumpToAddress]);
 
+    // Toggle breakpoint at address
+    const toggleBreakpoint = useCallback((address: number) => {
+        const newBreakpoints = new Set(breakpoints);
+        if (newBreakpoints.has(address)) {
+            newBreakpoints.delete(address);
+            worker.postMessage({
+                type: WORKER_MESSAGES.CLEAR_BREAKPOINT,
+                data: address
+            });
+        } else {
+            newBreakpoints.add(address);
+            worker.postMessage({
+                type: WORKER_MESSAGES.SET_BREAKPOINT,
+                data: address
+            });
+        }
+        setBreakpoints(newBreakpoints);
+    }, [breakpoints, worker]);
+
 
     // Handle worker messages
     useEffect(() => {
@@ -322,52 +344,78 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                     setCurrentPC(debugData.cpu.PC);
                 }
             }
+            
+            if (event.data?.type === WORKER_MESSAGES.BREAKPOINTS_DATA) {
+                const bpData = event.data.data as number[];
+                setBreakpoints(new Set(bpData));
+            }
+            
+            if (event.data?.type === WORKER_MESSAGES.BREAKPOINT_HIT) {
+                const hitPC = event.data.data as number;
+                // Jump to the breakpoint location
+                jumpToAddress(hitPC);
+                setTimeout(() => {
+                    pcRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
         };
 
         worker.addEventListener('message', handleWorkerMessage);
         return () => worker.removeEventListener('message', handleWorkerMessage);
-    }, [worker, disassembleMemory]);
+    }, [worker, disassembleMemory, jumpToAddress]);
 
-    // Initial load
+    // Initial load and request breakpoints
     useEffect(() => {
         jumpToAddress(0);
-    }, [jumpToAddress]);
+        worker.postMessage({ type: WORKER_MESSAGES.GET_BREAKPOINTS });
+    }, [jumpToAddress, worker]);
+    
+    // Jump to PC function
+    const jumpToPC = useCallback(() => {
+        if (currentPC !== undefined && currentPC >= 0) {
+            jumpToAddress(currentPC);
+            // Scroll to PC after jump
+            setTimeout(() => {
+                pcRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 150);
+        }
+    }, [currentPC, jumpToAddress]);
+    
+    // Keyboard shortcuts and window messages
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'F9' && currentPC !== undefined) {
+                e.preventDefault();
+                toggleBreakpoint(currentPC);
+            } else if (e.key === 'F8') {
+                e.preventDefault();
+                jumpToPC();
+            }
+        };
+        
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data?.type === 'JUMP_TO_PC') {
+                jumpToPC();
+            }
+        };
+        
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('message', handleMessage);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('message', handleMessage);
+        };
+    }, [currentPC, toggleBreakpoint, jumpToPC]);
 
     return (
         <div className="h-full flex flex-col overflow-auto space-y-md">
-            {/* Navigation Section */}
-            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
-                    <span className="mr-2">🗺️</span>
-                    Memory Navigation
-                </h3>
-                <div className="flex gap-sm items-center flex-wrap">
-                    <label className="text-sm text-text-secondary font-medium">Address:</label>
-                    <input
-                        type="text"
-                        value={inputAddress}
-                        onChange={handleAddressChange}
-                        onKeyDown={handleAddressSubmit}
-                        className="bg-black/40 border border-border-primary text-data-address px-sm py-1 w-20 font-mono text-xs rounded transition-colors focus:border-border-accent focus:outline-none"
-                        placeholder="0000"
-                        maxLength={4}
-                    />
-                    <span className="text-text-muted text-xs">(Press Enter to jump)</span>
-                    {lines.length > 0 && (
-                        <span className="text-text-secondary text-xs">
-                            Showing: 
-                            <span className="text-data-address font-mono">
-                                ${lines[0].address.toString(16).padStart(4, '0').toUpperCase()}
-                            </span>
-                            {' - '}
-                            <span className="text-data-address font-mono">
-                                ${(lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1).toString(16).padStart(4, '0').toUpperCase()}
-                            </span>
-                            {' '}({lines.length} instructions)
-                        </span>
-                    )}
-                </div>
-            </section>
+            {/* Combined Navigation & Execution Controls */}
+            <CompactExecutionControls 
+                worker={worker}
+                address={inputAddress}
+                onAddressChange={handleAddressChange}
+                onAddressSubmit={handleAddressSubmit}
+            />
 
             {/* Disassembly Section */}
             <section className="bg-surface-primary rounded-lg border border-border-primary flex-1 flex flex-col min-h-0">
@@ -375,6 +423,18 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                     <h3 className="text-sm font-medium text-text-accent flex items-center">
                         <span className="mr-2">📜</span>
                         Assembly Code
+                        {lines.length > 0 && (
+                            <span className="text-text-secondary text-xs ml-auto font-normal">
+                                <span className="text-data-address font-mono">
+                                    ${lines[0].address.toString(16).padStart(4, '0').toUpperCase()}
+                                </span>
+                                {' - '}
+                                <span className="text-data-address font-mono">
+                                    ${(lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1).toString(16).padStart(4, '0').toUpperCase()}
+                                </span>
+                                {' '}({lines.length} instructions)
+                            </span>
+                        )}
                     </h3>
                 </div>
                 <div 
@@ -384,6 +444,7 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                     <table className="text-xs border border-border-subtle rounded w-full bg-black/20 font-mono table-auto">
                         <thead className="sticky top-0 z-10 bg-surface-secondary">
                             <tr className="text-text-accent">
+                                <th className="text-left px-xs py-1 bg-surface-secondary border-b border-border-subtle w-8">BP</th>
                                 <th className="text-left px-sm py-1 bg-surface-secondary border-b border-border-subtle">Address</th>
                                 <th className="text-left px-sm py-1 bg-surface-secondary border-b border-border-subtle">Bytes</th>
                                 <th className="text-left px-sm py-1 bg-surface-secondary border-b border-border-subtle">Instruction</th>
@@ -392,17 +453,32 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                         <tbody>
                             {lines.map((line, index) => {
                                 const isCurrentPC = line.address === currentPC;
+                                const hasBreakpoint = breakpoints.has(line.address);
                                 const addressHex = line.address.toString(16).padStart(4, '0').toUpperCase();
                                 const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
                                 
                                 return (
                                     <tr
                                         key={`${line.address}-${index}`}
+                                        ref={isCurrentPC ? pcRowRef : undefined}
                                         className={isCurrentPC 
                                             ? 'bg-warning/20 text-warning border-l-2 border-warning' 
                                             : 'hover:bg-surface-secondary/50 transition-colors'
                                         }
                                     >
+                                        <td 
+                                            className="px-xs py-1 align-top cursor-pointer text-center"
+                                            onClick={() => toggleBreakpoint(line.address)}
+                                            title={hasBreakpoint ? "Remove breakpoint" : "Set breakpoint"}
+                                        >
+                                            <span className={`inline-block w-3 h-3 rounded-full ${
+                                                hasBreakpoint 
+                                                    ? 'bg-error/80 border border-error' 
+                                                    : 'bg-transparent border border-border-subtle hover:border-error/50'
+                                            }`}>
+                                                {hasBreakpoint && <span className="text-[8px] leading-none block text-center">●</span>}
+                                            </span>
+                                        </td>
                                         <td className="px-sm py-1 text-data-address align-top font-medium">
                                             {isCurrentPC && <span className="text-warning mr-1">▶</span>} 
                                             <span className="font-mono">${addressHex}</span>
