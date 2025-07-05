@@ -80,8 +80,19 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 /*  BPL rel */ CPU6502op[0x10] = (m: CPU6502) => {
-    m.rel();
-    m.bpl();
+    // Inline rel() logic for better performance
+    m.addr = m.read(m.PC++);
+    if (m.addr & 0x80) {
+        m.addr -= 0x100;
+    }
+    m.addr += m.PC;
+    m.cycles += 2;
+    
+    // Inline BPL branch logic (branch if N flag is clear)
+    if (m.N === 0) {
+        m.cycles += (m.addr & 0xff00) !== (m.PC & 0xff00) ? 2 : 1;
+        m.PC = m.addr;
+    }
 };
 /*  ORA izy */ CPU6502op[0x11] = (m: CPU6502) => {
     m.izy();
@@ -221,8 +232,19 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
 };
 
 /*  BMI rel */ CPU6502op[0x30] = (m: CPU6502) => {
-    m.rel();
-    m.bmi();
+    // Inline rel() logic for better performance
+    m.addr = m.read(m.PC++);
+    if (m.addr & 0x80) {
+        m.addr -= 0x100;
+    }
+    m.addr += m.PC;
+    m.cycles += 2;
+    
+    // Inline BMI branch logic (branch if N flag is set)
+    if (m.N !== 0) {
+        m.cycles += (m.addr & 0xff00) !== (m.PC & 0xff00) ? 2 : 1;
+        m.PC = m.addr;
+    }
 };
 /*  AND izy */ CPU6502op[0x31] = (m: CPU6502) => {
     m.izy();
@@ -1635,9 +1657,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
 
     bit(): void {
         this.tmp = this.read(this.addr);
-        this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-        this.V = (this.tmp & 0x40) !== 0 ? 1 : 0;
-        this.Z = (this.tmp & this.A) === 0 ? 1 : 0;
+        // Optimized flag setting using bit operations
+        this.N = (this.tmp >> 7) & 1;        // Extract bit 7 directly
+        this.V = (this.tmp >> 6) & 1;        // Extract bit 6 directly
+        this.Z = (this.tmp & this.A) === 0 ? 1 : 0;  // Z flag logic unchanged
     }
 
     brk(): void {
