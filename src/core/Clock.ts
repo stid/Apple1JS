@@ -15,6 +15,7 @@ const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
  */
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { InspectableData, formatFrequency } from './@types/InspectableTypes';
 import { WithBusMetadata } from './@types/BusComponent';
 import { TimingStats } from './@types/ClockTypes';
 
@@ -61,17 +62,33 @@ class Clock implements PubSub<number>, IInspectableComponent {
     }
 
     /**
-     * Returns a serializable architecture view of the Clock, suitable for inspectors.
+     * Returns a standardized view of the Clock component.
      */
-    getInspectable() {
+    getInspectable(): InspectableData {
         const self = this as WithBusMetadata<typeof this>;
         const stats = this.getTimingStats();
+        
         return {
             id: this.id,
             type: this.type,
             name: this.name,
             address: self.__address,
             addressName: self.__addressName,
+            state: {
+                mhz: this.mhz,
+                stepChunk: this.stepChunk,
+                running: this.running,
+                paused: this.paused,
+            },
+            stats: {
+                actualFrequency: formatFrequency(stats.actualFrequency * 1_000_000),
+                targetFrequency: formatFrequency(stats.targetFrequency * 1_000_000),
+                drift: (stats.drift * 100).toFixed(2) + '%',
+                avgCycleTime: stats.avgCycleTime.toFixed(2) + 'ms',
+                totalCycles: stats.totalCycles,
+                totalTime: stats.totalTime.toFixed(2) + 's'
+            },
+            // Backward compatibility - flat properties
             mhz: this.mhz,
             stepChunk: this.stepChunk,
             running: this.running,

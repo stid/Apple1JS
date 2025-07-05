@@ -33,6 +33,7 @@ function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
 }
 
 import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
+import type { InspectableData } from '@/core/@types/InspectableTypes';
 
 class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVideoType>, IInspectableComponent {
     /**
@@ -69,14 +70,18 @@ class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVide
     id: string = 'crtvideo';
     type: string = 'IoComponent';
     name?: string = 'Video Output';
-    getInspectable?() {
+    getInspectable(): InspectableData {
         return {
             id: this.id,
             type: this.type,
             name: this.name,
-            row: typeof this.row === 'number' ? this.row : '(n/a)',
-            column: typeof this.column === 'number' ? this.column : '(n/a)',
-            supportBS: typeof this.supportBS === 'boolean' ? this.supportBS : '(n/a)',
+            state: {
+                row: this.row,
+                column: this.column,
+                supportBS: this.supportBS,
+                rowShift: this.rowShift,
+                bufferSize: this.buffer.length
+            }
         };
     }
     row: number;

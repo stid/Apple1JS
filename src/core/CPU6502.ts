@@ -1,5 +1,7 @@
 import type { IClockable } from './@types/clockable';
 import type { IInspectableComponent } from './@types/IInspectableComponent';
+import type { InspectableData } from './@types/InspectableTypes';
+import { formatAddress, formatByte } from './@types/InspectableTypes';
 import type Bus from './Bus';
 import type { CPU6502State } from './@types/CPU6502State';
 import type { CPU6502WithDebug, DisassemblyLine, TraceEntry } from './@types/CPU6502Debug';
@@ -1199,42 +1201,81 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.currentInstructionCycles = state.currentInstructionCycles ?? 0;
     }
 
-    getInspectable?() {
+    getInspectable(): InspectableData {
         const self = this as CPU6502WithDebug<typeof this>;
         
-        // Disassemble current and next instruction (if possible)
-        let disasm: DisassemblyLine[] | undefined = undefined;
-        // Type guard for disassemble method
-        if (typeof self.disassemble === 'function') {
-            try {
-                disasm = self.disassemble(this.PC, 3); // e.g., 3 instructions
-            } catch {
-                // ignore disassembly errors
-            }
-        }
         // Stack dump (top 8 bytes)
         let stack: Array<{ addr: string; value: number }> | undefined = undefined;
         if (typeof this.S === 'number' && this.bus && typeof this.bus.read === 'function') {
             stack = [];
             for (let i = 0; i < 8; ++i) {
                 const addr = 0x0100 + ((this.S - i) & 0xff);
-                stack.push({ addr: addr.toString(16).padStart(4, '0').toUpperCase(), value: this.bus.read(addr) });
+                stack.push({ 
+                    addr: formatAddress(addr), 
+                    value: this.bus.read(addr) 
+                });
             }
         }
+        
+        // Disassemble current and next instruction (if possible)
+        let disasm: DisassemblyLine[] | undefined = undefined;
+        if (typeof self.disassemble === 'function') {
+            try {
+                disasm = self.disassemble(this.PC, 3);
+            } catch {
+                // ignore disassembly errors
+            }
+        }
+        
         // Recent instruction trace (if available)
         let trace: TraceEntry[] | undefined = undefined;
         if (Array.isArray(self.trace)) {
             trace = self.trace.slice(-8);
         }
+        
         return {
             id: this.id,
             type: this.type,
             name: this.name,
-            // Advanced debugging data (for debugger, not Inspector UI)
-            stack,
-            disasm,
-            trace,
-            children: this.children,
+            state: {
+                PC: formatAddress(this.PC),
+                A: formatByte(this.A),
+                X: formatByte(this.X),
+                Y: formatByte(this.Y),
+                S: formatByte(this.S),
+                // Flags (combined into P register display)
+                P: formatByte(
+                    (this.N ? 0x80 : 0) |
+                    (this.V ? 0x40 : 0) |
+                    0x20 | // unused, always 1
+                    0x10 | // B flag always set except on stack
+                    (this.D ? 0x08 : 0) |
+                    (this.I ? 0x04 : 0) |
+                    (this.Z ? 0x02 : 0) |
+                    (this.C ? 0x01 : 0)
+                ),
+                // Individual flags
+                N: this.N,
+                V: this.V,
+                D: this.D,
+                I: this.I,
+                Z: this.Z,
+                C: this.C,
+                // Performance
+                cycles: this.cycles,
+                profiling: this.enableProfiling
+            },
+            stats: this.enableProfiling ? {
+                instructions: this.instructionCount,
+                uniqueOpcodes: this.profileData.size,
+                cycleAccurate: this.cycleAccurateMode ? 'Enabled' : 'Disabled'
+            } : undefined,
+            debug: {
+                stack,
+                disasm,
+                trace
+            },
+            children: []
         };
     }
     id = 'cpu6502';

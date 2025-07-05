@@ -1,4 +1,5 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { InspectableData, InspectableChild, formatAddress } from './@types/InspectableTypes';
 import { BusSpaceType } from './@types/IoAddressable';
 import { WithBusMetadata } from './@types/BusComponent';
 
@@ -14,27 +15,38 @@ class Bus implements IInspectableComponent {
     private cacheAccesses = 0;
 
     /**
-     * Returns a serializable architecture view of the Bus and its children, suitable for inspectors.
+     * Returns a standardized view of the Bus component.
      */
-    getInspectable() {
+    getInspectable(): InspectableData {
         const self = this as WithBusMetadata<typeof this>;
+        
+        const children: InspectableChild[] = this.busMapping.map((b) => ({
+            id: b.name || 'unknown',
+            type: 'BusMapping',
+            name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`,
+            component: b.component && typeof b.component.getInspectable === 'function'
+                ? b.component.getInspectable()
+                : undefined
+        }));
+        
         return {
             id: this.id,
             type: this.type,
             name: this.name,
             address: self.__address,
             addressName: self.__addressName,
-            mapping: this.busMapping.map((b) => {
-                const child =
-                    b.component && typeof b.component.getInspectable === 'function'
-                        ? b.component.getInspectable()
-                        : undefined;
-                return {
-                    name: b.name,
-                    addr: b.addr,
-                    child,
-                };
-            }),
+            state: {
+                mappingCount: this.busMapping.length,
+                sorted: this.sortedAddrs.length > 0,
+                cacheSize: this.addressCache.size,
+            },
+            stats: {
+                cacheHitRate: this.getCacheHitRate().toFixed(1) + '%',
+                cacheAccesses: this.cacheAccesses,
+                cacheHits: this.cacheHits
+            },
+            children,
+            // Backward compatibility - flat properties
             mappingCount: this.busMapping.length,
             sorted: this.sortedAddrs.length > 0,
             cacheSize: this.addressCache.size,

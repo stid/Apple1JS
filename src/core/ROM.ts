@@ -1,4 +1,5 @@
 import { IInspectableComponent } from './@types/IInspectableComponent';
+import { InspectableData } from './@types/InspectableTypes';
 import { WithBusMetadata } from './@types/BusComponent';
 import { IoAddressable } from './@types/IoAddressable';
 import { loggingService } from '../services/LoggingService';
@@ -15,15 +16,19 @@ class ROM implements IoAddressable, IInspectableComponent {
     /**
      * Returns a serializable architecture view of the ROM, suitable for inspectors.
      */
-    getInspectable() {
+    getInspectable(): InspectableData {
         const self = this as WithBusMetadata<typeof this>;
         return {
             id: this.id,
             type: this.type,
             name: this.name,
-            size: this.data.length,
             address: self.__address,
             addressName: self.__addressName,
+            size: this.data.length,
+            state: {
+                size: this.data.length + ' bytes',
+                readOnly: true
+            }
         };
     }
     private data: Uint8Array;
