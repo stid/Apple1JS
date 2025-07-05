@@ -3,13 +3,13 @@ module.exports = {
     content: ['./src/**/*.{html,js,ts,jsx,tsx}'],
     theme: {
         extend: {
-            // Typography system (reduced by 1-2 points)
+            // Typography system - keeping for legacy components not yet migrated
             fontSize: {
-                'xs': '0.6875rem',  // 11px - Labels, metadata
-                'sm': '0.75rem',    // 12px - Body text, values
-                'base': '0.875rem', // 14px - Main content
-                'lg': '1.125rem',   // 18px - Headers, important data
-                'xl': '1.25rem',    // 20px - Section titles
+                'xs': '0.875rem',   // 14px - Labels, metadata
+                'sm': '1rem',       // 16px - Body text, values
+                'base': '1.125rem', // 18px - Main content
+                'lg': '1.5rem',     // 24px - Headers, important data
+                'xl': '1.75rem',    // 28px - Section titles
             },
             fontWeight: {
                 'normal': 400,

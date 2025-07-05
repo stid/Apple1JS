@@ -10,27 +10,27 @@ describe('RegisterRow component', () => {
         expect(screen.getByText('$1234')).toBeInTheDocument();
     });
 
-    it('should apply correct type color classes', () => {
+    it('should apply correct type color styles', () => {
         const { rerender } = render(
             <RegisterRow label="PC" value="$1234" type="address" />
         );
         
-        expect(screen.getByText('$1234')).toHaveClass('text-data-address');
+        expect(screen.getByText('$1234')).toHaveStyle('color: #60A5FA');
         
         rerender(<RegisterRow label="A" value="$56" type="value" />);
-        expect(screen.getByText('$56')).toHaveClass('text-data-value');
+        expect(screen.getByText('$56')).toHaveStyle('color: #34D399');
         
         rerender(<RegisterRow label="FLAG_N" value="SET" type="flag" />);
-        expect(screen.getByText('SET')).toHaveClass('text-data-flag');
+        expect(screen.getByText('SET')).toHaveStyle('color: #F59E0B');
         
         rerender(<RegisterRow label="STATUS" value="ACTIVE" type="status" />);
-        expect(screen.getByText('ACTIVE')).toHaveClass('text-data-status');
+        expect(screen.getByText('ACTIVE')).toHaveStyle('color: #8B5CF6');
     });
 
     it('should use default value type when no type provided', () => {
         render(<RegisterRow label="X" value="$00" />);
         
-        expect(screen.getByText('$00')).toHaveClass('text-data-value');
+        expect(screen.getByText('$00')).toHaveStyle('color: #34D399');
     });
 
     it('should apply custom className', () => {

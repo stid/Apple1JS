@@ -10,24 +10,24 @@ describe('MetricCard component', () => {
         expect(screen.getByText('4,297,966')).toBeInTheDocument();
     });
 
-    it('should apply correct status color classes', () => {
+    it('should apply correct status color styles', () => {
         const { rerender } = render(
             <MetricCard label="Status" value="ACTIVE" status="success" />
         );
         
-        expect(screen.getByText('ACTIVE')).toHaveClass('text-success');
+        expect(screen.getByText('ACTIVE')).toHaveStyle('color: #10B981');
         
         rerender(<MetricCard label="Status" value="ERROR" status="error" />);
-        expect(screen.getByText('ERROR')).toHaveClass('text-error');
+        expect(screen.getByText('ERROR')).toHaveStyle('color: #EF4444');
         
         rerender(<MetricCard label="Status" value="WARNING" status="warning" />);
-        expect(screen.getByText('WARNING')).toHaveClass('text-warning');
+        expect(screen.getByText('WARNING')).toHaveStyle('color: #F59E0B');
     });
 
     it('should use default info status when no status provided', () => {
         render(<MetricCard label="Count" value="100" />);
         
-        expect(screen.getByText('100')).toHaveClass('text-info');
+        expect(screen.getByText('100')).toHaveStyle('color: #3B82F6');
     });
 
     it('should apply custom className', () => {

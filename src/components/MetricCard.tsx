@@ -1,4 +1,5 @@
 import React from 'react';
+import { typography, color, styles } from '../styles/utils';
 
 interface MetricCardProps {
   label: string;
@@ -8,12 +9,12 @@ interface MetricCardProps {
 }
 
 const statusColors = {
-  success: 'text-success',
-  warning: 'text-warning',
-  error: 'text-error',
-  info: 'text-info',
-  active: 'text-success',
-  inactive: 'text-text-muted',
+  success: color('success'),
+  warning: color('warning'),
+  error: color('error'),
+  info: color('info'),
+  active: color('success'),
+  inactive: color('text.muted'),
 } as const;
 
 export const MetricCard: React.FC<MetricCardProps> = ({ 
@@ -23,11 +24,39 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   className = '' 
 }) => {
   return (
-    <div className={`bg-black/40 rounded-lg p-3 border border-border-primary transition-colors hover:border-border-secondary ${className}`}>
-      <div className="text-xs text-text-secondary uppercase tracking-wide mb-1 font-medium">
+    <div 
+      className={className}
+      style={{
+        ...styles.metricCard,
+        border: `1px solid ${color('border.primary')}`,
+        transition: 'border-color 150ms ease-in-out',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = color('border.secondary');
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = color('border.primary');
+      }}
+    >
+      <div 
+        style={{
+          ...typography.xs,
+          color: color('text.secondary'),
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: '0.25rem',
+          fontWeight: 500,
+        }}
+      >
         {label}
       </div>
-      <div className={`text-sm font-mono font-medium ${statusColors[status]}`}>
+      <div 
+        style={{
+          ...typography.sm,
+          color: statusColors[status],
+          fontWeight: 500,
+        }}
+      >
         {value}
       </div>
     </div>

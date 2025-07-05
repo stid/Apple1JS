@@ -1,4 +1,5 @@
 import React from 'react';
+import { typography, color } from '../styles/utils';
 
 interface RegisterRowProps {
   label: string;
@@ -8,10 +9,10 @@ interface RegisterRowProps {
 }
 
 const typeColors = {
-  address: 'text-data-address',
-  value: 'text-data-value',
-  flag: 'text-data-flag',
-  status: 'text-data-status',
+  address: color('address'),
+  value: color('value'),
+  flag: color('flag'),
+  status: color('status'),
 } as const;
 
 export const RegisterRow: React.FC<RegisterRowProps> = ({ 
@@ -21,11 +22,27 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
   className = '' 
 }) => {
   return (
-    <div className={`flex justify-between items-center py-1 ${className}`}>
-      <span className="text-xs text-text-secondary font-medium">
+    <div 
+      className={className}
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.25rem 0',
+      }}
+    >
+      <span style={{
+        ...typography.xs,
+        color: color('text.secondary'),
+        fontWeight: 500,
+      }}>
         {label}:
       </span>
-      <span className={`text-xs font-mono font-medium ${typeColors[type]}`}>
+      <span style={{
+        ...typography.xs,
+        color: typeColors[type],
+        fontWeight: 500,
+      }}>
         {value}
       </span>
     </div>
