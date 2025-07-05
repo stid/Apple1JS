@@ -20,9 +20,9 @@
 
   /* Link styles */
   a {
-    @apply text-green-600;             /* Text color */
-    @apply hover:text-green-300;       /* Hover text color */
-    @apply visited:text-green-600;     /* Visited text color */
+    @apply text-phosphor-secondary;       /* Text color - using phosphor secondary for links */
+    @apply hover:text-phosphor-primary;   /* Hover text color - brighter on hover */
+    @apply visited:text-phosphor-secondary; /* Visited text color - same as default */
   }
 
   /* Heading 3 styles */

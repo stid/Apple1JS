@@ -94,6 +94,18 @@ export const designTokens = {
             accent: '#10B981', // Green accent
             muted: '#6B7280', // Darker gray
         },
+
+        // Component type colors for consistent mapping
+        componentColors: {
+            RAM: '#3B82F6',      // Blue (info color)
+            ROM: '#F59E0B',      // Amber (warning color)
+            Bus: '#10B981',      // Green (success color)
+            CPU: '#EF4444',      // Red (error color)
+            CPU6502: '#EF4444',  // Red (error color)
+            PIA6820: '#8B5CF6',  // Purple (status color)
+            IoComponent: '#06B6D4', // Cyan
+            Clock: '#F97316',    // Orange
+        },
     },
 
     // Spacing system - consistent spacing scale

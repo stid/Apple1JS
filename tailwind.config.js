@@ -28,7 +28,7 @@ module.exports = {
                 'wider': '0.05em',
             },
             
-            // Color system
+            // Color system - aligned with design tokens
             colors: {
                 // Data type colors
                 'data-address': '#34D399',
@@ -53,7 +53,7 @@ module.exports = {
                 // Surface colors
                 'surface': {
                     'primary': '#1E293B',
-                    'secondary': '#334155',
+                    'secondary': '#0F172A', // Updated to match design tokens background.secondary
                     'overlay': '#00000060',
                 },
                 
@@ -71,6 +71,17 @@ module.exports = {
                     'secondary': '#9CA3AF',
                     'accent': '#10B981',
                     'muted': '#6B7280',
+                },
+                
+                // Component type colors
+                'component': {
+                    'ram': '#3B82F6',      // Blue (info color)
+                    'rom': '#F59E0B',      // Amber (warning color)
+                    'bus': '#10B981',      // Green (success color)
+                    'cpu': '#EF4444',      // Red (error color)
+                    'pia': '#8B5CF6',      // Purple (status color)
+                    'io': '#06B6D4',       // Cyan
+                    'clock': '#F97316',    // Orange
                 },
             },
             

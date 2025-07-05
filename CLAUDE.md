@@ -155,6 +155,36 @@ See `@docs/woz_monitor_cheatsheet.md` for Woz monitor overview.
 
 ---
 
+## 🎨 Color Usage Guidelines
+
+The codebase uses a centralized design token system for colors. All colors should be sourced from `src/styles/tokens.ts`:
+
+### Color Categories
+
+- **Phosphor Colors**: For CRT display (`phosphor.primary`, `phosphor.secondary`, etc.)
+- **Data Type Colors**: For displaying different data (`data-address`, `data-value`, `data-flag`)
+- **Semantic Colors**: For status messages (`success`, `warning`, `error`, `info`)
+- **Component Colors**: For component type indicators (`component-ram`, `component-cpu`, etc.)
+- **Surface/Border Colors**: For containers and borders (`surface-primary`, `border-primary`, etc.)
+
+### Usage Rules
+
+1. **Never hardcode hex colors** - Always use design tokens or Tailwind classes (except CRT components)
+2. **CRT Display Exception** - CRT components use specific colors for authentic look:
+   - CRTRowCharRom: `#68D391` (character rendering)
+   - CRT background: `#0A3A3A` (teal background)
+   - CRT text: `text-green-400` class
+3. **Data Display** - Use semantic data type colors
+4. **Status Messages** - Use semantic status colors
+5. **Component Types** - Use component-specific colors from tokens
+6. **Container Hierarchy** - Outer containers use darker backgrounds than inner ones
+
+### Implementation
+
+- Modern components: Import and use `designTokens` directly
+- Tailwind components: Use custom color classes defined in `tailwind.config.js`
+- Canvas rendering: Access colors via `designTokens.colors`
+
 ## 📚 Glossary
 
 - PIA: Peripheral Interface Adapter (6820), handles I/O
