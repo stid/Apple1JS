@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import MemoryViewerPaginated from '../MemoryViewerPaginated';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
 
@@ -24,12 +24,14 @@ describe('MemoryViewerPaginated', () => {
 
     const simulateMemoryData = (start: number, length: number) => {
         const data = new Array(length).fill(0).map((_, i) => (start + i) % 256);
-        messageHandler(new MessageEvent('message', {
-            data: {
-                type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
-                data: { start, data }
-            }
-        }));
+        act(() => {
+            messageHandler(new MessageEvent('message', {
+                data: {
+                    type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
+                    data: { start, data }
+                }
+            }));
+        });
     };
 
     it('renders with initial address', () => {
