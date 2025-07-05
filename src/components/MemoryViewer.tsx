@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 
 interface MemoryViewerProps {
@@ -18,11 +18,18 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
 }) => {
     const [memoryData, setMemoryData] = useState<MemoryData>({});
     const [currentAddress, setCurrentAddress] = useState(startAddress);
+    const [addressInput, setAddressInput] = useState(startAddress.toString(16).padStart(4, '0').toUpperCase());
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const bytesPerRow = 16;
     const numRows = Math.ceil(size / bytesPerRow);
+
+    // Update address input when currentAddress changes
+    useEffect(() => {
+        setAddressInput(currentAddress.toString(16).padStart(4, '0').toUpperCase());
+    }, [currentAddress]);
 
     // Request memory data
     useEffect(() => {
@@ -64,10 +71,23 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     }, [worker]);
 
     const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.replace(/[^0-9A-Fa-f]/g, '');
+        const value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
         if (value.length <= 4) {
-            const addr = parseInt(value || '0', 16);
+            setAddressInput(value);
+        }
+    };
+
+    const handleAddressSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            const addr = parseInt(addressInput || '0', 16);
             setCurrentAddress(addr);
+            setAddressInput(addr.toString(16).padStart(4, '0').toUpperCase());
+            // Reset scroll to top when jumping to a new address
+            setTimeout(() => {
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTop = 0;
+                }
+            }, 50);
         }
     };
 
@@ -173,20 +193,45 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                 <label className="text-xs text-text-secondary">Address:</label>
                 <input
                     type="text"
-                    value={currentAddress.toString(16).padStart(4, '0').toUpperCase()}
+                    value={addressInput}
                     onChange={handleAddressChange}
-                    className="w-20 px-2 py-1 text-xs font-mono bg-surface-primary border border-border-primary rounded text-data-address"
+                    onKeyDown={handleAddressSubmit}
+                    className="w-20 px-2 py-1 text-xs font-mono bg-surface-primary border border-border-primary rounded text-data-address focus:border-border-accent focus:outline-none"
                     placeholder="0000"
                 />
+                <span className="text-xs text-text-muted ml-sm">(Press Enter)</span>
+                <div className="flex-1 text-xs text-text-secondary text-center font-mono">
+                    ${currentAddress.toString(16).padStart(4, '0').toUpperCase()} - ${(currentAddress + size - 1).toString(16).padStart(4, '0').toUpperCase()}
+                </div>
                 <div className="flex gap-xs">
                     <button
-                        onClick={() => setCurrentAddress(Math.max(0, currentAddress - size))}
+                        onClick={() => {
+                            const newAddr = Math.max(0, currentAddress - size);
+                            setCurrentAddress(newAddr);
+                            setAddressInput(newAddr.toString(16).padStart(4, '0').toUpperCase());
+                            // Scroll to bottom when going up (to show continuity)
+                            setTimeout(() => {
+                                if (scrollContainerRef.current) {
+                                    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                                }
+                            }, 50);
+                        }}
                         className="px-2 py-1 text-xs bg-surface-primary border border-border-primary rounded hover:bg-surface-hover"
                     >
                         ↑
                     </button>
                     <button
-                        onClick={() => setCurrentAddress(Math.min(0xFFFF - size + 1, currentAddress + size))}
+                        onClick={() => {
+                            const newAddr = Math.min(0xFFFF - size + 1, currentAddress + size);
+                            setCurrentAddress(newAddr);
+                            setAddressInput(newAddr.toString(16).padStart(4, '0').toUpperCase());
+                            // Scroll to top when going down (to show continuity)
+                            setTimeout(() => {
+                                if (scrollContainerRef.current) {
+                                    scrollContainerRef.current.scrollTop = 0;
+                                }
+                            }, 50);
+                        }}
                         className="px-2 py-1 text-xs bg-surface-primary border border-border-primary rounded hover:bg-surface-hover"
                     >
                         ↓
@@ -195,7 +240,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
             </div>
 
             {/* Memory Table */}
-            <div className="flex-1 overflow-auto bg-black/20 rounded border border-border-subtle">
+            <div ref={scrollContainerRef} className="flex-1 overflow-auto bg-black/20 rounded border border-border-subtle">
                 <table className="w-full">
                     <thead className="sticky top-0 bg-surface-primary border-b border-border-primary">
                         <tr>
