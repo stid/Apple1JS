@@ -495,6 +495,13 @@ class PIA6820 implements IInspectableComponent {
         // Load hardware-controlled input pins (with default for backward compatibility)
         this.pb7InputState = state.pb7InputState ?? false; // Default to display ready
         
+        // CRITICAL: Always clear the display busy bit after loading state
+        // If the state was saved while the display was processing a character (pb7InputState = true),
+        // the WOZ Monitor will be stuck in an infinite loop waiting for the display to become ready.
+        // Since we're loading a saved state, any pending display operation would have been lost anyway,
+        // so it's safe to mark the display as ready.
+        this.pb7InputState = false;
+        
         this.notifySubscribers();
     }
 
