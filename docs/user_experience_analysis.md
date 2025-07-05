@@ -13,8 +13,9 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 **Why it mattered**: Previously, colors and spacing were hardcoded throughout components, making theme changes impossible and creating visual inconsistency.
 
 **Key components**:
+
 - `MetricCard`: Standardized data display cards
-- `RegisterRow`: Consistent register visualization  
+- `RegisterRow`: Consistent register visualization
 - Design tokens in `src/styles/tokens.ts`
 - Typography scale for visual hierarchy
 
@@ -23,6 +24,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 **Advanced CRT Effects**: Authentic phosphor persistence, bloom, and barrel distortion.
 
 **Technical implementation**:
+
 - Phosphor decay: 150ms CSS transitions
 - Bloom: Radial gradient overlays
 - Barrel distortion: CSS transforms
@@ -33,11 +35,13 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 **Problem solved**: Initial debugger crammed everything into one view - users complained "too compressed".
 
 **Solution implemented**:
+
 - **DebuggerLayout**: Tabbed interface (Overview/Memory/Disassembly)
 - **MemoryViewer**: 768-byte hex view with address navigation
 - **StackViewer**: Real-time 6502 stack monitor ($0100-$01FF)
 
 **Key learnings**:
+
 - Users need focused views, not information density
 - Consistent navigation patterns matter (address input like disassembler)
 - Smart scrolling improves navigation (up=bottom, down=top)
@@ -55,7 +59,8 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - [ ] Run-to-cursor in disassembler
 - [ ] Conditional breakpoints (e.g., "break when A=$FF")
 
-**Implementation notes**: 
+**Implementation notes**:
+
 - Worker messages exist: STEP, SET_BREAKPOINT
 - Need UI integration in DebuggerLayout
 - Store breakpoints in worker for performance
@@ -65,12 +70,14 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 **Why critical**: Finding specific data in 64KB is tedious without search.
 
 **Tasks**:
+
 - [ ] Search for bytes/ASCII strings
 - [ ] Highlight results in MemoryViewer
 - [ ] Navigate between matches
 - [ ] Memory write support (UI ready, needs worker)
 
 **Implementation approach**:
+
 - Add search bar to MemoryViewer
 - Use worker for efficient searching
 - Maintain result indices for navigation
@@ -80,6 +87,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 **Why useful**: Monitor specific values without constantly navigating.
 
 **Tasks**:
+
 - [ ] Add/remove watch expressions
 - [ ] Support memory addresses and registers
 - [ ] Update values in real-time
@@ -89,6 +97,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 ### Audio Package
 
 **Quick wins for authenticity**:
+
 - [ ] Keyboard click sounds (mechanical switches)
 - [ ] System beeps for errors
 - [ ] Volume controls
@@ -98,6 +107,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 ### Visual Enhancements
 
 **Complete the vintage experience**:
+
 - [ ] Power-on sequence (degauss animation)
 - [ ] Activity LEDs for I/O operations
 - [ ] Phosphor burn-in simulation
@@ -105,6 +115,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 ### Cassette Interface
 
 **Preserve software history**:
+
 - [ ] Audio generation for tape save
 - [ ] WAV file loading support
 - [ ] Visual tape deck UI
@@ -112,16 +123,19 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 ## Technical Architecture Notes
 
 ### Color System
+
 - Design tokens centralize all colors except CRT
 - CRT uses hardcoded #68D391 for authentic phosphor
 - Semantic colors: addresses (blue), values (green), flags (amber)
 
-### Debugger Architecture  
+### Debugger Architecture
+
 - Tabs reduce cognitive load vs all-in-one view
 - 500ms refresh balances responsiveness/performance
 - 768-byte memory view fits typical debug scenarios
 
 ### Performance Considerations
+
 - Web Worker isolation keeps UI responsive
 - Message batching reduces overhead
 - Virtual scrolling for large data sets
@@ -131,6 +145,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 1. **Memory Write**: UI complete but worker lacks implementation
 2. **Component Colors**: Some legacy components still hardcode colors
 3. **Markdown Formatting**: This file has linting warnings
+4. **Tab State Persistence**: ✅ FIXED - Views now maintain their address position when switching tabs
 
 ## Success Metrics
 
