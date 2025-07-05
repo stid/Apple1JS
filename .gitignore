@@ -13,3 +13,6 @@ tmp
 
 # Environment files
 .env*
+
+# Test coverage reports
+coverage/
