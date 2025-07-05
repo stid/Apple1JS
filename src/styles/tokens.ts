@@ -37,7 +37,7 @@ export const designTokens = {
     // Color system - Apple 1 inspired palette
     colors: {
         // Data type colors
-        address: '#60A5FA', // Blue for memory addresses
+        address: '#34D399', // Green for memory addresses (matches CRT phosphor)
         value: '#34D399', // Green for data values
         flag: '#F59E0B', // Amber for CPU flags
         status: '#8B5CF6', // Purple for status info
@@ -93,6 +93,18 @@ export const designTokens = {
             secondary: '#9CA3AF', // Medium gray
             accent: '#10B981', // Green accent
             muted: '#6B7280', // Darker gray
+        },
+
+        // Component type colors for consistent mapping
+        componentColors: {
+            RAM: '#3B82F6',      // Blue (info color)
+            ROM: '#F59E0B',      // Amber (warning color)
+            Bus: '#10B981',      // Green (success color)
+            CPU: '#EF4444',      // Red (error color)
+            CPU6502: '#EF4444',  // Red (error color)
+            PIA6820: '#8B5CF6',  // Purple (status color)
+            IoComponent: '#06B6D4', // Cyan
+            Clock: '#F97316',    // Orange
         },
     },
 

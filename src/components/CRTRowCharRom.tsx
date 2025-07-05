@@ -4,7 +4,7 @@ import CharRomCanvasRenderer from './CharRomCanvasRenderer';
 import apple1vid from '../apple1/roms/apple1vid';
 
 const pixelSize = 2;
-const defaultColor = '#68D391';
+const defaultColor = '#68D391'; // Softer green-400 from Tailwind
 const canvasRenderer = new CharRomCanvasRenderer(apple1vid, pixelSize, defaultColor);
 
 type CRTRowCharRomProps = {

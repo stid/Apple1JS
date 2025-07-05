@@ -126,14 +126,14 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     // Color legend for component types
     const getComponentColor = (type: string): string => {
         const colorMap: Record<string, string> = {
-            RAM: 'text-blue-400',
-            ROM: 'text-yellow-400',
-            Bus: 'text-green-400',
-            CPU: 'text-red-400',
-            CPU6502: 'text-red-400',
-            PIA6820: 'text-purple-400',
-            IoComponent: 'text-cyan-400',
-            Clock: 'text-orange-400',
+            RAM: 'text-component-ram',
+            ROM: 'text-component-rom',
+            Bus: 'text-component-bus',
+            CPU: 'text-component-cpu',
+            CPU6502: 'text-component-cpu',
+            PIA6820: 'text-component-pia',
+            IoComponent: 'text-component-io',
+            Clock: 'text-component-clock',
             default: 'text-text-primary',
         };
         return colorMap[type] || colorMap.default;

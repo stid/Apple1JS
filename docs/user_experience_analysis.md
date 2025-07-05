@@ -2,283 +2,153 @@
 
 ## Overview
 
-This document analyzes the user experience of Apple1JS from the perspective of technically savvy vintage computing enthusiasts, identifying opportunities to enhance authenticity, usability, and delight.
+This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emulation experience and powerful debugging tools for vintage computing enthusiasts and developers.
 
-## Target Audience Profile
+## Current State (July 2025)
 
-- **Technical Background**: Programming experience, understands hardware concepts
-- **Interests**: Vintage computing, retro gaming, hardware emulation
-- **Expectations**: Historical accuracy, authentic feel, powerful debugging tools
-- **Values**: Preservation, education, nostalgia, technical excellence
+### ✅ Phase 1: UI Layout & Design System (COMPLETED)
 
-## Current Strengths
+**What we built**: Comprehensive design token system establishing visual consistency.
 
-### 1. Core Emulation Quality
-- Accurate 6502 CPU emulation with cycle-exact timing
-- Authentic memory mapping matching original Apple 1
-- Working WOZ Monitor and BASIC interpreter
-- Proper keyboard input handling with realistic delays
+**Why it mattered**: Previously, colors and spacing were hardcoded throughout components, making theme changes impossible and creating visual inconsistency.
 
-### 2. Visual Authenticity
-- Green phosphor CRT display captures the essence
-- Scanline effects add to the retro aesthetic
-- Monospace font appropriate for the era
-- 40x24 character display matches original specs
+**Key components**:
+- `MetricCard`: Standardized data display cards
+- `RegisterRow`: Consistent register visualization  
+- Design tokens in `src/styles/tokens.ts`
+- Typography scale for visual hierarchy
 
-### 3. Developer Tools
-- Real-time inspector shows component states
-- Disassembler with syntax highlighting
-- Memory viewer with navigation
-- State save/load functionality
+### ✅ Phase 2: Visual Polish (COMPLETED)
 
-## Key Improvement Opportunities
+**Advanced CRT Effects**: Authentic phosphor persistence, bloom, and barrel distortion.
 
-### 1. UI Layout & Design System (Effort: M)
+**Technical implementation**:
+- Phosphor decay: 150ms CSS transitions
+- Bloom: Radial gradient overlays
+- Barrel distortion: CSS transforms
+- Performance: Maintains 60fps
 
-**Current Layout Issues from Screenshot Analysis:**
-- Typography hierarchy unclear - mixed font sizes without purpose
-- No visual separation between performance stats and CPU registers
-- Poor alignment in data columns (addresses, values, flags)
-- Inconsistent spacing between sections
-- Limited color coding for different data types
-- No status indicators or visual feedback
+### ✅ Phase 3: Integrated Debugger (COMPLETED)
 
-**Proposed Layout Improvements:**
+**Problem solved**: Initial debugger crammed everything into one view - users complained "too compressed".
 
-*Visual Hierarchy Enhancement:*
-- Create distinct sections with subtle borders/backgrounds
-- Use typography scale: headers (lg), labels (sm), values (base)
-- Add section separators and consistent spacing
-- Implement color coding for addresses (blue), values (green), flags (amber)
+**Solution implemented**:
+- **DebuggerLayout**: Tabbed interface (Overview/Memory/Disassembly)
+- **MemoryViewer**: 768-byte hex view with address navigation
+- **StackViewer**: Real-time 6502 stack monitor ($0100-$01FF)
 
-*Data Display Consistency:*
-- Align all numeric values to the right
-- Use monospace font for all technical data
-- Add subtle hover states for interactive elements
-- Implement status badges with appropriate colors
+**Key learnings**:
+- Users need focused views, not information density
+- Consistent navigation patterns matter (address input like disassembler)
+- Smart scrolling improves navigation (up=bottom, down=top)
 
-*Component Structure:*
-```jsx
-<div className="space-y-6">
-  {/* Performance Section */}
-  <section className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-    <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center">
-      <CpuIcon className="mr-2" />
-      CPU Performance Profiling
-    </h3>
-    <div className="grid grid-cols-3 gap-4">
-      <MetricCard label="Instructions" value="4,297,966" />
-      <MetricCard label="Opcodes" value="1" />
-      <MetricCard label="Status" value="ACTIVE" status="success" />
-    </div>
-  </section>
-  
-  {/* CPU Registers Section */}
-  <section className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-    <h3 className="text-lg font-semibold text-green-400 mb-3">
-      CPU Registers
-    </h3>
-    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-      <RegisterRow label="REG_PC" value="$0000" type="address" />
-      <RegisterRow label="REG_A" value="$00" type="value" />
-      <RegisterRow label="REG_X" value="$00" type="value" />
-      <RegisterRow label="REG_Y" value="$00" type="value" />
-    </div>
-  </section>
-  
-  {/* Memory & I/O Section */}
-  <section className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-    <h3 className="text-lg font-semibold text-green-400 mb-3">
-      Memory & I/O
-    </h3>
-    <div className="space-y-2">
-      <AddressRow label="ramBank2Address" range="$F000 - $FFFF" />
-      <AddressRow label="piaAddress" range="$D010 - $D013" />
-    </div>
-  </section>
-</div>
-```
+## Next Priority: Phase 4 - Advanced Debugging
 
-*Reusable Components:*
-```jsx
-const MetricCard = ({ label, value, status }) => (
-  <div className="bg-black/40 rounded p-3 border border-gray-600">
-    <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">
-      {label}
-    </div>
-    <div className={`text-base font-mono font-medium ${
-      status === 'success' ? 'text-green-400' : 'text-gray-200'
-    }`}>
-      {value}
-    </div>
-  </div>
-);
+### Execution Control (Effort: M, ~3 days)
 
-const RegisterRow = ({ label, value, type }) => (
-  <div className="flex justify-between items-center py-1">
-    <span className="text-sm text-gray-300">{label}:</span>
-    <span className={`text-sm font-mono ${
-      type === 'address' ? 'text-blue-400' : 'text-green-400'
-    }`}>
-      {value}
-    </span>
-  </div>
-);
-```
+**Why critical**: Current debugger is read-only. Power users need precise control for debugging vintage software.
 
-### 2. Enhanced Visual Authenticity
+**Tasks**:
+- [ ] Step-by-step execution (CPU already supports it)
+- [ ] Breakpoint UI with visual indicators
+- [ ] Run-to-cursor in disassembler
+- [ ] Conditional breakpoints (e.g., "break when A=$FF")
 
-**CRT Effects Package (Effort: M)**
-- **Phosphor Persistence**: Implement decay trails for moving text
-- **CRT Bloom**: Add subtle glow around bright characters
-- **Barrel Distortion**: Slight screen curvature for realism
-- **Scan Line Wobble**: Minor horizontal instability
-- **Power-On Effects**: Degaussing animation, warm-up sequence
+**Implementation notes**: 
+- Worker messages exist: STEP, SET_BREAKPOINT
+- Need UI integration in DebuggerLayout
+- Store breakpoints in worker for performance
 
-**Implementation Approach:**
-```css
-/* Phosphor persistence with CSS */
-.crt-character {
-  transition: opacity 150ms ease-out;
-  text-shadow: 0 0 3px currentColor;
-}
+### Memory Analysis (Effort: M, ~3 days)
 
-/* Bloom effect */
-.crt-display::after {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  background: radial-gradient(ellipse at center, 
-    transparent 40%, 
-    rgba(0, 255, 0, 0.1) 100%);
-  pointer-events: none;
-}
-```
+**Why critical**: Finding specific data in 64KB is tedious without search.
 
-### 2. Power User Features
+**Tasks**:
+- [ ] Search for bytes/ASCII strings
+- [ ] Highlight results in MemoryViewer
+- [ ] Navigate between matches
+- [ ] Memory write support (UI ready, needs worker)
 
-**Integrated Debugging Suite (Effort: L)**
-- **Unified Layout**: Single view combining registers, memory, disassembly
-- **Execution Control**: Step, run-to-address, conditional breakpoints
-- **Watch Expressions**: Monitor memory locations or expressions
-- **Trace Recording**: Record and replay execution sequences
-- **Performance Profiling**: Cycle counting, hotspot analysis
+**Implementation approach**:
+- Add search bar to MemoryViewer
+- Use worker for efficient searching
+- Maintain result indices for navigation
 
-**Memory Tools (Effort: M)**
-- **Hex Editor**: In-place memory modification
-- **Search**: Find byte sequences or ASCII strings
-- **Compare**: Diff memory regions
-- **Fill/Copy**: Block operations
-- **Annotations**: Label memory regions
+### Watch Expressions (Effort: S, ~1 day)
 
-### 3. Missing Hardware Features
+**Why useful**: Monitor specific values without constantly navigating.
 
-**Cassette Interface (Effort: M)**
-- **Audio Generation**: Authentic FSK modulation
-- **Visual Tape Deck**: Play/stop/rewind controls
-- **File Support**: Load .wav or .cas files
-- **Recording**: Save programs to virtual cassette
+**Tasks**:
+- [ ] Add/remove watch expressions
+- [ ] Support memory addresses and registers
+- [ ] Update values in real-time
 
-**Authentic Audio (Effort: S)**
-- **Keyboard Clicks**: Mechanical switch sounds
-- **System Beeps**: Speaker simulation
-- **Cassette Audio**: Loading/saving sounds
-- **CRT Hum**: Subtle background ambience
+## Phase 5: Hardware Authenticity
 
-### 4. UI/UX Refinements
+### Audio Package (Effort: S, ~1 day)
 
-**Visual Consistency (Effort: S)**
-- **Unified Color Palette**: 
-  - Primary: Apple 1 green (#00FF00)
-  - Secondary: Amber option (#FFB000)
-  - Accent: Period-appropriate blue (#0080FF)
-- **Retro UI Elements**:
-  - Beveled buttons with drop shadows
-  - LED-style indicators
-  - Nixie tube font for counters
-  - Toggle switches for options
+**Quick wins for authenticity**:
+- [ ] Keyboard click sounds (mechanical switches)
+- [ ] System beeps for errors
+- [ ] Volume controls
 
-**Dark Mode Plus (Effort: S)**
-- **OLED Black**: True black background option
-- **Reduced Blue Light**: Evening mode with warmer phosphor
-- **High Contrast**: Accessibility mode
+**Implementation**: Web Audio API with pre-recorded samples
 
-### 5. Community Features
+### Visual Enhancements (Effort: M, ~3 days)
 
-**Built-in Program Library (Effort: M)**
-- **Categories**: Games, demos, utilities, tutorials
-- **Metadata**: Descriptions, instructions, historical context
-- **Quick Load**: One-click program loading
-- **Contributions**: User-submitted programs
+**Complete the vintage experience**:
+- [ ] Power-on sequence (degauss animation)
+- [ ] Activity LEDs for I/O operations
+- [ ] Phosphor burn-in simulation
 
-**State Sharing (Effort: M)**
-- **Export URLs**: Share emulator state via link
-- **Session Recording**: Record and share interactions
-- **Challenges**: Programming puzzles with solutions
+### Cassette Interface (Effort: L, ~1 week)
 
-## Implementation Roadmap & Status
+**Preserve software history**:
+- [ ] Audio generation for tape save
+- [ ] WAV file loading support
+- [ ] Visual tape deck UI
 
-### Phase 1: UI Layout & Design System (Effort: M, 2-3 days)
-- [x] Create design tokens and CSS variables
-- [x] Implement typography scale in Tailwind config
-- [x] Refactor InspectorView component with new layout
-- [x] Create MetricCard and RegisterRow components
-- [x] Add section containers with proper spacing
-- [x] Implement color coding for data types
-- [x] Add status indicators and visual feedback
-- [x] Test responsive behavior on different screen sizes
+## Technical Architecture Notes
 
-### Phase 2: Visual Polish (1 week)
-- [ ] Implement advanced CRT effects (phosphor persistence, bloom, barrel distortion)
-- [ ] Standardize UI color palette
-- [ ] Add period-appropriate UI elements
-- [ ] Create unified dark mode
+### Color System
+- Design tokens centralize all colors except CRT
+- CRT uses hardcoded #68D391 for authentic phosphor
+- Semantic colors: addresses (blue), values (green), flags (amber)
 
-### Phase 3: Power Tools (2 weeks)
-- [ ] Build integrated debugger layout
-- [ ] Add execution control features
-- [ ] Implement memory search/edit tools
-- [ ] Create performance profiler
+### Debugger Architecture  
+- Tabs reduce cognitive load vs all-in-one view
+- 500ms refresh balances responsiveness/performance
+- 768-byte memory view fits typical debug scenarios
 
-### Phase 4: Hardware Authenticity (1 week)
-- [ ] Add keyboard click sounds
-- [ ] Implement power-on sequence
-- [ ] Create cassette interface stub
-- [ ] Add visual activity indicators
+### Performance Considerations
+- Web Worker isolation keeps UI responsive
+- Message batching reduces overhead
+- Virtual scrolling for large data sets
 
-### Phase 5: Community (2 weeks)
-- [ ] Build program library system
-- [ ] Implement state sharing
-- [ ] Add tutorial programs
-- [ ] Create challenge system
+## Known Issues & Technical Debt
 
-## Completed Enhancements
-
-### ✅ Core Emulation
-- Accurate 6502 CPU with cycle-exact timing
-- Working PIA 6820 with proper I/O handling
-- WOZ Monitor and BASIC interpreter support
-- State save/load functionality
-
-### ✅ UI Components
-- CRT display with basic scanline effects
-- Real-time inspector with component tree
-- Disassembler with syntax highlighting
-- Keyboard input with paste support
+1. **Memory Write**: UI complete but worker lacks implementation
+2. **Component Colors**: Some legacy components still hardcode colors
+3. **Markdown Formatting**: This file has linting warnings
 
 ## Success Metrics
 
-- **User Engagement**: Time spent in debugger, programs loaded
-- **Visual Fidelity**: Comparison with real Apple 1 photos
-- **Performance**: Maintain 60fps with all effects enabled
-- **Accessibility**: Keyboard navigation, screen reader support
+- ✅ 60fps with all effects enabled
+- ✅ Positive feedback on tabbed debugger
+- ✅ CRT effects match reference photos
+- ⏳ Execution control adoption (after implementation)
+- ⏳ Memory search usage metrics
 
-## Conclusion
+## Implementation Priority Order
 
-Apple1JS provides a solid foundation for Apple 1 emulation. The proposed enhancements focus on three key areas:
+1. **Execution Control** - Highest user value, enables precise debugging
+2. **Memory Search** - Most requested feature in feedback
+3. **Audio Effects** - Quick wins for authenticity
+4. **Watch Expressions** - Improves debugging workflow
+5. **Cassette Interface** - Preserves software history
 
-1. **Authenticity**: Making the visual and audio experience more true to the original
-2. **Power Tools**: Providing advanced debugging capabilities for enthusiasts
-3. **Community**: Enabling sharing and discovery of programs
+## References
 
-These improvements would position Apple1JS as the premier Apple 1 emulation experience for vintage computing enthusiasts while maintaining its educational value and technical accuracy.
+- [6502 Instruction Set](http://www.6502.org/tutorials/6502opcodes.html)
+- [Apple 1 Memory Map](http://www.applefritter.com/node/2824)
+- Original user feedback threads (internal)

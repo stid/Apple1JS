@@ -32,13 +32,13 @@ const StatusPanel: React.FC = () => {
     const getMessageStyle = (level: LogLevel): string => {
         switch (level) {
             case 'info':
-                return 'border-green-700 bg-green-900/20 text-green-400';
+                return 'border-success bg-success/10 text-success';
             case 'warn':
-                return 'border-yellow-700 bg-yellow-900/20 text-yellow-400';
+                return 'border-warning bg-warning/10 text-warning';
             case 'error':
-                return 'border-red-700 bg-red-900/20 text-red-400';
+                return 'border-error bg-error/10 text-error';
             default:
-                return 'border-gray-700 bg-gray-900/20 text-gray-400';
+                return 'border-border-primary bg-surface-secondary text-text-secondary';
         }
     };
 
@@ -64,7 +64,7 @@ const StatusPanel: React.FC = () => {
             <div className="flex items-center justify-between mb-1">
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-gray-400 hover:text-gray-200 flex items-center gap-1"
+                    className="text-text-secondary hover:text-text-primary flex items-center gap-1"
                 >
                     <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
                     <span>System Status ({filteredMessages.length})</span>
@@ -73,7 +73,7 @@ const StatusPanel: React.FC = () => {
                     <select
                         value={levelFilter}
                         onChange={(e) => setLevelFilter(e.target.value as LogLevel | 'all')}
-                        className="bg-black/50 border border-gray-700 text-gray-400 rounded px-1 py-0 text-xs"
+                        className="bg-black/50 border border-border-primary text-text-secondary rounded px-1 py-0 text-xs"
                     >
                         <option value="all">All</option>
                         <option value="info">Info</option>
@@ -82,7 +82,7 @@ const StatusPanel: React.FC = () => {
                     </select>
                     <button
                         onClick={clearMessages}
-                        className="text-gray-500 hover:text-red-400 text-xs px-1"
+                        className="text-text-muted hover:text-error text-xs px-1"
                         title="Clear all messages"
                     >
                         ✕

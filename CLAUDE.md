@@ -2,168 +2,186 @@
 
 ## 🧠 Project Overview
 
-Apple1JS is a TypeScript/React-based Apple 1 computer emulator. It includes a full 6502 CPU emulation, memory management, PIA 6820 I/O, and a CRT-style display.
-
----
+Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/React. Features cycle-accurate 6502 CPU emulation, authentic CRT display with phosphor effects, and full debugging capabilities. The architecture separates emulation logic (Web Worker) from UI for performance.
 
 ## 🧠 Claude Instructions
 
 **Phase 1 – Analysis & Proposal**
-
-- Analyze and document findings in:
-    - `@docs/architecture_analysis.md` for code/architecture improvements
-    - `@docs/user_experience_analysis.md` for UX/UI enhancements
-- List tasks with effort estimates (S/M/L) and implementation phases
-- **MANDATORY: Wait for explicit "✅ Phase 1 Approved" before ANY coding begins.**
+- Document findings in `@docs/architecture_analysis.md` or `@docs/user_experience_analysis.md`
+- Provide effort estimates (S=hours, M=days, L=week)
+- **CRITICAL**: Wait for "✅ Phase 1 Approved" - prevents wasted work and ensures alignment
 
 **Phase 2 – Implementation**
+- Follow approved plan exactly - deviations require discussion
+- Run tests before/after changes to ensure no regression
+- Update `src/version.ts` ONLY after all tasks complete (semantic versioning)
+- Run full CI pipeline: `yarn run lint && yarn run type-check && yarn run test:ci`
+- Mark completed items with ✅ in analysis docs for tracking
 
-- After approval, implement changes per plan.
-- **MANDATORY: Run test coverage analysis before and after changes**
-- **MANDATORY: Update `src/version.ts` with semantic versioning ONLY after all tasks complete**
-- **MANDATORY: Run full CI pipeline (lint, type-check, test:ci) before version bump**
-- Mark completed items with ✅ in the respective analysis document
-
-**Phase 2 Completion Checklist:**
-
-- [ ] All planned changes implemented
-- [ ] Test coverage maintained or improved
-- [ ] No console.log usage (use UI logging system)
-- [ ] CI pipeline passes (yarn run lint && yarn run type-check && yarn run test:ci)
-- [ ] Version updated with appropriate semantic bump
-- [ ] Analysis document updated with ✅ markers
-
-**General Guidelines**
-
-- Follow architectural patterns above.
-- Prefer minimal, non-breaking changes.
-- Use `IInspectableComponent` for new core components.
-- Avoid `console.log`; use the UI-based logging system.
-- Ask for clarification when unsure.
-- Never alter code inside src/progs unless explicitly instructed to do so. This is original Apple 1 code and should not be modified. You may analyze it as needed to inform your thinking and validate any code changes.
--   - **MANDATORY: Update `src/version.ts` with semantic versioning before opening a PR**
-
----
+**Key Principles**
+- `IInspectableComponent` enables debugger integration for any component
+- UI logging preserves history and aids debugging (no console.log)
+- src/progs contains original Apple 1 code - read-only for historical accuracy
+- Version bump signals release readiness
 
 ## 🛠 Development Commands
 
-Refer to `@README.md` for full descriptions. Key scripts include:
-
-- `yarn run dev` / `build` / `preview` – Core development
-- `yarn run test` / `test:ci` / `pretest` – Testing & CI
-- `yarn run lint` / `lint:fix` / `type-check` / `format` – Code quality
-
----
+- `yarn run dev` / `build` / `preview`
+- `yarn run test` / `test:ci` 
+- `yarn run lint` / `type-check` / `format`
 
 ## 🧱 Architecture Overview
 
-- **src/core/**: 6502 CPU, memory (RAM/ROM), clock, bus, PIA emulation
-- **src/apple1/**: System orchestration, I/O logic, Web Worker, built-in programs
-- **src/components/**: React UI (CRT display, debugger, inspector)
-- **src/core/@types/**: TypeScript interfaces for emulation and inspection
-- **src/services/**: Services like UI Logging
-
----
+- **src/core/**: Emulation engine - 6502 CPU, memory subsystem, clock, bus, PIA 6820
+  - Pure TypeScript, no UI dependencies for testability
+  - Implements `IInspectableComponent` for runtime introspection
+- **src/apple1/**: System integration layer
+  - Web Worker isolation prevents UI blocking during emulation
+  - Message-based communication via WORKER_MESSAGES protocol
+  - Contains original ROM/program data
+- **src/components/**: React UI layer
+  - CRT display with authentic phosphor rendering
+  - Integrated debugger (memory viewer, disassembler, CPU state)
+  - Component inspector shows real-time system state
+- **src/styles/**: Design token system for consistent theming
+- **src/services/**: Cross-cutting concerns (logging, state management)
 
 ## 🧩 Key Architectural Patterns
 
-- **Component Inspection**: Implements `IInspectableComponent` for debugger integration.
-- **State Management**: Serializable `EmulatorState`; Web Worker separates UI/emulation.
-- **Memory Mapping**:
-    - `$0000–$0FFF`: RAM
-    - `$E000–$EFFF`: Extended RAM (BASIC)
-    - `$D010–$D013`: PIA (I/O)
-    - `$FF00–$FFFF`: ROM (WOZ Monitor)
-- **I/O Abstraction**: Keyboard and display via `IoComponent` interfaces.
-- **Performance**: Use performance tests for core logic changes.
-- **Open Source**: No sensitive info; clarity over cleverness unless performance demands it.
-- MANDATORY: Core components must maintain a strict separation of concerns from presentational components.
+**Memory Architecture** (Apple 1 authentic layout):
+- `$0000-$0FFF`: 4KB RAM (includes zero page, stack at $0100-$01FF)
+- `$D010-$D013`: PIA 6820 for keyboard/display I/O
+- `$E000-$EFFF`: Extended RAM for BASIC interpreter
+- `$FF00-$FFFF`: WOZ Monitor ROM
 
----
+**State Management**: 
+- `EmulatorState` captures complete system state for save/restore
+- Web Worker maintains authoritative state, UI reflects via messages
+- Prevents race conditions and ensures consistency
 
-## 🚀 Continuous Integration
+**Component Inspection**:
+- `IInspectableComponent` provides `inspect()` method returning debug info
+- Enables real-time debugging without performance impact
+- Tree structure mirrors hardware architecture
 
-Before merging, ensure:
+**Performance Considerations**:
+- Worker isolation prevents UI blocking during emulation
+- Message batching reduces overhead
+- TypeScript strict mode catches errors at compile time
 
-- `yarn run lint`
-- `yarn run type-check`
-- `yarn run test:ci`
+## 🚀 Testing & Quality Requirements
 
-Refer to `.github/workflows/ci.yml` for CI configuration.
-
----
-
-## 🧪 Testing Strategy
-
-- Unit tests for core emulation (CPU, Bus, RAM, PIA)
-- Integration tests for Web Worker and UI
-- Canvas mocking for CRT display
-- TypeScript strict mode enforced
-- Preserve existing tests; update only for new requirements
-- Avoid mocking unless strictly required
-- All new features must include tests and TypeScript types
-- Cover legacy features with tests before refactoring
-
----
-
-## 📊 Test Coverage Expectations
-
-- ≥ 90% line and branch coverage for core logic
-- UI components tested for rendering and interaction
-- Emulation logic includes regression tests for Apple 1 programs
-
----
-
-## 🔢 Version Bump Guidelines
-
-| Change Type     | Bump Level | Example                                  |
-| --------------- | ---------- | ---------------------------------------- |
-| Breaking change | Major      | Removed or changed public API signatures |
-| New feature     | Minor      | Added illegal-opcode tracing in CPU6502  |
-| Bugfix          | Patch      | Fixed off-by-one in memory map logic     |
-
----
-
-## 📝 Commit Message Template
-
-```markdown
-<type>(<scope>): <short description>
-
-Body:
-
-- What changed
-- Why it changed
-- How to test
-
-Footer (if needed):
-
-- BREAKING CHANGE: <description>
-- Closes #<issue>
+**Before ANY commit**:
+```bash
+yarn run lint && yarn run type-check && yarn run test:ci
 ```
 
----
+**Coverage Requirements**:
+- Core emulation (CPU, memory, bus): ≥ 90% line/branch coverage
+- New features: Must include tests demonstrating functionality
+- Bug fixes: Must include regression test
 
-## 🖥️ UI Logging System
+**Why These Matter**:
+- TypeScript strict mode catches ~40% of bugs at compile time
+- Tests ensure emulation accuracy (critical for vintage software)
+- Linting maintains code consistency across contributors
 
-See `@docs/ui_logging_summary.md` for the UI-based logging system overview.
+## 🔢 Version Bumps
 
----
+- **Major**: Breaking changes
+- **Minor**: New features  
+- **Patch**: Bug fixes
 
-## 🖥️ Woz Monitor
+## 🎨 Design System & Colors
 
-See `@docs/woz_monitor_cheatsheet.md` for Woz monitor overview.
+**Centralized Design Tokens** (`src/styles/tokens.ts`):
+All colors flow from this single source to ensure consistency and enable theming.
 
----
+**Color Categories & Purpose**:
+- **Phosphor**: CRT authenticity (green glow variations)
+- **Data Types**: Visual distinction for debugging
+  - `data-address` (blue): Memory locations
+  - `data-value` (green): Data/registers  
+  - `data-flag` (amber): CPU flags
+- **Semantic**: System status at a glance
+- **Component**: Hardware type identification in inspector
+- **Surface/Border**: Visual hierarchy through depth
 
-## 📚 Glossary
+**Critical Exception - CRT Display**:
+CRT components use hardcoded colors for historical accuracy:
+- `#68D391` for character rendering (matches period CRTs)
+- `#0A3A3A` for background (authentic phosphor coating)
+These are intentionally outside the token system.
 
-- PIA: Peripheral Interface Adapter (6820), handles I/O
-- CRT: Cathode Ray Tube-style display rendered in browser
-- WOZ Monitor: Built-in Apple 1 ROM monitor program
-- IInspectableComponent: Interface for debugger integration
-- EmulatorState: Serializable object representing emulator state
+**Implementation Pattern**:
+```typescript
+// Modern components
+import { designTokens } from '@/styles/tokens';
+const color = designTokens.colors.data.address;
+
+// Tailwind (when tokens not available)
+<div className="text-data-address" />
+```
+
+## 🛠️ Debugger System (July 2025 Implementation)
+
+**DebuggerLayout** (`src/components/DebuggerLayout.tsx`):
+- Tabbed interface replacing previous cramped layout
+- Three views: Overview (CPU/Stack), Memory, Disassembly
+- Maintains state across tab switches for workflow continuity
+
+**MemoryViewer** (`src/components/MemoryViewer.tsx`):
+- Hex editor showing 768 bytes (48 rows × 16 bytes)
+- Address input with Enter to navigate (like disassembler)
+- Arrow navigation with smart scrolling (up=bottom, down=top)
+- ASCII representation sidebar
+- Ready for edit functionality (infrastructure complete)
+
+**StackViewer** (`src/components/StackViewer.tsx`):
+- Real-time 6502 stack visualization ($0100-$01FF)
+- Shows active portion only (SP to $FF)
+- Usage indicator with color coding (green/yellow/red)
+- Current SP position highlighted
+
+**Key Design Decisions**:
+- Tabs prevent information overload while keeping tools accessible
+- 500ms refresh rate balances responsiveness with performance
+- Consistent color coding via design tokens aids quick scanning
+- Memory viewer size (768 bytes) fits common use cases without scrolling
+
+## 📍 Current State & Recent Work (July 2025)
+
+**Recently Completed**:
+- ✅ **Integrated Debugger**: Replaced cramped layout with tabbed interface after user feedback
+  - Previous: All debug info crammed in one view (unusable)
+  - Current: Clean tabs for Overview/Memory/Disassembly
+  - Key learning: Users need focused views, not information density
+- ✅ **Memory Viewer Fixes**: 
+  - Added address input (was missing, unlike disassembler)
+  - Smart scrolling for navigation continuity
+  - 768-byte view based on typical debugging sessions
+- ✅ **UI Standardization**: Design tokens ensure consistency
+  - Except CRT display (intentionally authentic)
+
+**Next Priorities** (from user_experience_analysis.md):
+- **Execution Control**: Step/breakpoints/run-to-cursor (infrastructure exists)
+- **Memory Search**: Find bytes/strings in memory
+- **Watch Expressions**: Monitor memory/register values
+- **Hardware Authenticity**: Keyboard sounds, power-on sequence
+
+**Known Issues**:
+- Memory editing UI ready but write operations not implemented in worker
+- Some linting warnings in user_experience_analysis.md (formatting)
+
+## 📚 Key Concepts
+
+- **PIA 6820**: Peripheral Interface Adapter - handles keyboard input and display output
+- **WOZ Monitor**: Steve Wozniak's original ROM monitor program
+- **IInspectableComponent**: Our interface enabling any component to provide debug info
+- **Design Tokens**: Centralized theme system preventing color chaos
+- **Web Worker**: Isolates CPU emulation from UI thread for smooth performance
 
 ## 🔗 Reference Materials
 
-- [Apple-1 Operation Manual (1976)](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
-- [Apple-1 Manual PDF (Asimov Archive)](https://mirrors.apple2.org.za/ftp.apple.asimov.net/documentation/apple1/apple1manual_alt.pdf)
+- [Apple-1 Operation Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
+- [6502 Instruction Set](http://www.6502.org/tutorials/6502opcodes.html)

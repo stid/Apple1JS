@@ -15,7 +15,7 @@ describe('RegisterRow component', () => {
             <RegisterRow label="PC" value="$1234" type="address" />
         );
         
-        expect(screen.getByText('$1234')).toHaveStyle('color: #60A5FA');
+        expect(screen.getByText('$1234')).toHaveStyle('color: #34D399');
         
         rerender(<RegisterRow label="A" value="$56" type="value" />);
         expect(screen.getByText('$56')).toHaveStyle('color: #34D399');

@@ -14,7 +14,7 @@ describe('CRT', () => {
             column: 2,
         };
         const { container } = render(<CRT videoData={videoData} />);
-        const crtDiv = container.querySelector('div.relative.bg-teal-900');
+        const crtDiv = container.querySelector('div.crt-container');
         expect(crtDiv).toBeInTheDocument();
         // Should render CRTCursor and CRTRow components
         expect(container.querySelectorAll('div.absolute').length).toBeGreaterThan(0);

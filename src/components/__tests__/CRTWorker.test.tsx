@@ -10,8 +10,8 @@ describe('CRTWorker', () => {
             removeEventListener: jest.fn(),
         } as unknown as Worker;
         const { container } = render(<CRTWorker worker={worker} />);
-        // CRT should be rendered: look for CRT root div with class 'relative bg-teal-900'
-        const crtDiv = container.querySelector('div.relative.bg-teal-900');
+        // CRT should be rendered: look for CRT root div with class 'crt-container'
+        const crtDiv = container.querySelector('div.crt-container');
         expect(crtDiv).toBeInTheDocument();
     });
 });
