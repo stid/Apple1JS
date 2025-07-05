@@ -225,7 +225,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         for (let i = 0; i < bytesPerRow; i++) {
             const addr = baseAddr + i;
             if (addr > 0xFFFF) {
-                cells.push(<td key={`hex-${i}`} className="px-1 py-1"></td>);
+                cells.push(<td key={`hex-${i}`} className="px-2 py-1"></td>);
                 asciiChars.push(' ');
                 continue;
             }
@@ -237,7 +237,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             cells.push(
                 <td 
                     key={`hex-${i}`} 
-                    className="px-1 py-1 text-center cursor-pointer hover:bg-surface-hover"
+                    className="px-2 py-1 text-center cursor-pointer hover:bg-surface-hover"
                     onClick={() => handleCellClick(addr)}
                 >
                     {isEditing ? (
@@ -265,7 +265,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
 
         // ASCII column
         cells.push(
-            <td key="ascii" className="px-2 py-1 text-text-secondary font-mono text-xs border-l border-border-subtle whitespace-nowrap">
+            <td key="ascii" className="px-3 py-1 text-text-secondary font-mono text-xs border-l border-border-subtle whitespace-nowrap">
                 {asciiChars.join('')}
             </td>
         );
@@ -321,11 +321,11 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                         <tr>
                             <th className="px-2 py-1 text-left text-xs text-text-secondary font-normal whitespace-nowrap">Addr</th>
                             {Array.from({ length: bytesPerRow }, (_, i) => (
-                                <th key={i} className="px-1 py-1 text-center text-xs text-text-secondary font-normal">
+                                <th key={i} className="px-2 py-1 text-center text-xs text-text-secondary font-normal">
                                     {i.toString(16).toUpperCase()}
                                 </th>
                             ))}
-                            <th className="px-2 py-1 text-left text-xs text-text-secondary font-normal border-l border-border-subtle whitespace-nowrap">
+                            <th className="px-3 py-1 text-left text-xs text-text-secondary font-normal border-l border-border-subtle whitespace-nowrap">
                                 ASCII
                             </th>
                         </tr>
