@@ -159,16 +159,16 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row w-full lg:h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 lg:overflow-hidden lg:justify-center">
+            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 lg:justify-center overflow-auto">
                 {/* Left column: CRT, Actions */}
                 <div
-                    className="flex-none flex flex-col items-center bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 mx-auto lg:mx-0"
+                    className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
                     style={{ maxWidth: '538px' }}
                 >
                     <div className="w-full flex justify-center" onClick={focusHiddenInput} role="presentation">
                         <CRTWorker worker={worker} />
                     </div>
-                    <div className="mt-2 mb-2 w-full">
+                    <div className="mt-md w-full">
                         <Actions
                             supportBS={supportBS}
                             onReset={useCallback(
@@ -211,15 +211,19 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                 </div>
                 {/* Right column: Guide/Inspector tabs */}
                 <div 
-                    className="w-full bg-black/60 rounded-xl shadow-lg border border-neutral-800 px-1.5 py-1.5 md:px-2 md:py-2 flex flex-col mx-auto lg:mx-0 mt-1 lg:mt-0 lg:overflow-hidden"
+                    className="w-full bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md flex flex-col mx-auto lg:mx-0 mt-1 lg:mt-0 lg:h-auto lg:max-h-full overflow-hidden"
                     style={{ 
                         maxWidth: '680px' // Wider for better debug info display
                     }}
                 >
                     <StatusPanel />
-                    <div className="flex-none flex gap-2 mb-2 mt-2">
+                    <div className="flex-none flex gap-sm mb-md">
                         <button
-                            className={`px-3 py-1 rounded ${rightTab === 'info' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
+                                rightTab === 'info' 
+                                    ? 'bg-text-accent text-black border-text-accent' 
+                                    : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
+                            }`}
                             onClick={() => {
                                 setRightTab('info');
                                 focusHiddenInput();
@@ -228,7 +232,11 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             Guide
                         </button>
                         <button
-                            className={`px-3 py-1 rounded ${rightTab === 'inspector' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
+                                rightTab === 'inspector' 
+                                    ? 'bg-text-accent text-black border-text-accent' 
+                                    : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
+                            }`}
                             onClick={() => {
                                 setRightTab('inspector');
                                 focusHiddenInput();
@@ -237,7 +245,11 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             Inspector
                         </button>
                         <button
-                            className={`px-3 py-1 rounded ${rightTab === 'disassembler' ? 'bg-green-700 text-white' : 'bg-neutral-800 text-green-300'}`}
+                            className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
+                                rightTab === 'disassembler' 
+                                    ? 'bg-text-accent text-black border-text-accent' 
+                                    : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
+                            }`}
                             onClick={() => {
                                 setRightTab('disassembler');
                                 focusHiddenInput();
@@ -246,20 +258,22 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             Disassembler
                         </button>
                     </div>
-                    <div className="lg:flex-1 flex flex-col w-full sm:text-xs md:text-sm lg:overflow-hidden lg:min-h-0">
+                    <div className="flex-1 flex flex-col w-full sm:text-xs md:text-sm min-h-0 overflow-hidden">
                         {rightTab === 'info' && (
-                            <div className="lg:flex-1 lg:overflow-auto">
+                            <div className="flex-1 overflow-auto">
                                 <Info />
                             </div>
                         )}
                         {rightTab === 'inspector' && apple1Instance && (
-                            <InspectorView root={apple1Instance} worker={worker} />
+                            <div className="flex-1 overflow-auto min-h-0">
+                                <InspectorView root={apple1Instance} worker={worker} />
+                            </div>
                         )}
                         {rightTab === 'inspector' && !apple1Instance && (
                             <div className="p-4 text-red-400">Inspector not available - Apple1 instance not connected.</div>
                         )}
                         {rightTab === 'disassembler' && (
-                            <div className="flex-1 min-h-0">
+                            <div className="flex-1 overflow-auto min-h-0">
                                 <Disassembler worker={worker} />
                             </div>
                         )}

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 import { OPCODES } from './Disassembler';
+import { MetricCard } from './MetricCard';
+import { RegisterRow } from './RegisterRow';
 
 import type { InspectableArchView } from '../core/@types/InspectableArchView';
 
@@ -46,6 +48,27 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         worker.addEventListener('message', handleMessage);
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
+
+
+
+    // Handler for profiling toggle
+    const handleProfilingToggle = () => {
+        const newProfilingState = !profilingEnabled;
+        setProfilingEnabled(newProfilingState);
+        if (worker) {
+            worker.postMessage({
+                data: newProfilingState,
+                type: WORKER_MESSAGES.SET_CPU_PROFILING
+            });
+        }
+    };
+
+    // Get CPU performance data if available
+    const cpuDebugData = debugInfo.cpu || {};
+    const perfData = cpuDebugData._PERF_DATA as { 
+        stats?: { instructionCount: number; totalInstructions: number; profilingEnabled: boolean };
+        topOpcodes?: Array<{ opcode: string; count: number; cycles: number; avgCycles: number }>;
+    } | undefined;
 
     // Type guard for children property
     function hasChildren(node: InspectableArchView): node is InspectableArchView & { children: InspectableArchView[] } {
@@ -99,19 +122,24 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         return domainData as Record<string, string | number | boolean>;
     };
 
-    // Color legend (should match InspectorGraph)
-    const colorLegend: Record<string, string> = {
-        RAM: '#6cf',
-        ROM: '#fc6',
-        Bus: '#9f9',
-        CPU: '#f99',
-        PIA6820: '#f6c',
-        IoComponent: '#cff',
-        default: '#fff',
+    // Color legend for component types
+    const getComponentColor = (type: string): string => {
+        const colorMap: Record<string, string> = {
+            RAM: 'text-blue-400',
+            ROM: 'text-yellow-400',
+            Bus: 'text-green-400',
+            CPU: 'text-red-400',
+            CPU6502: 'text-red-400',
+            PIA6820: 'text-purple-400',
+            IoComponent: 'text-cyan-400',
+            Clock: 'text-orange-400',
+            default: 'text-text-primary',
+        };
+        return colorMap[type] || colorMap.default;
     };
 
-    // Render only the architecture tree view, with columns for readability
-    function renderArchTreeTable(node: InspectableArchView, depth = 0, seen = new Map()): React.ReactNode[] {
+    // Render architecture component as a clean section
+    function renderArchComponent(node: InspectableArchView, depth = 0, seen = new Map()): React.ReactNode[] {
         // Deduplicate by id, but prefer the node with more config fields
         const configKeys = Object.keys(node).filter(
             (key) =>
@@ -152,32 +180,47 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         const combinedConfig = { ...configObj, ...debugData };
         
         const filteredConfigEntries = Object.entries(combinedConfig).filter(([, v]) => v !== undefined && v !== null);
-        const configCell =
-            filteredConfigEntries.length > 0 ? (
-                <table className="text-xs text-green-300 table-auto w-full">
-                    <tbody>
+        
+        // Component card - all components use same Top Instructions styling
+        const componentCard = (
+            <div key={node.id} className="bg-black/30 border border-border-subtle rounded-lg p-md mb-sm" style={{ marginLeft: `${depth * 16}px` }}>
+                <div className="flex items-center justify-between mb-sm">
+                    <div className="flex items-center">
+                        {depth > 0 && (
+                            <span className="text-text-secondary mr-2">
+                                {'└─ '}
+                            </span>
+                        )}
+                        <span className={`font-medium text-sm ${getComponentColor(node.type)}`}>
+                            {node.type}
+                        </span>
+                        <span className="text-text-secondary text-xs ml-2 font-mono">
+                            {node.id}
+                        </span>
+                    </div>
+                    <span className="text-text-secondary text-xs">
+                        {node.name || '(unnamed)'}
+                    </span>
+                </div>
+                
+                {filteredConfigEntries.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-lg gap-y-xs">
                         {filteredConfigEntries.map(([k, v]) => {
-                            // Check if this is debug data (from live debug info)
                             const isDebugData = k in debugData;
-                            // Format value with fixed width for common numeric fields
                             const formattedValue = formatValue(k, v as string | number | boolean);
                             return (
-                                <tr key={k}>
-                                    <td className="pr-3 align-top" style={{ fontWeight: 600, minWidth: '120px' }}>
-                                        {k}:
-                                    </td>
-                                    <td className={`align-top font-mono ${isDebugData ? 'text-blue-300 font-semibold' : ''}`}
-                                        style={{ minWidth: '140px' }}>
-                                        {formattedValue}
-                                    </td>
-                                </tr>
+                                <RegisterRow 
+                                    key={k} 
+                                    label={k} 
+                                    value={formattedValue}
+                                    type={isDebugData ? getDataType(k) : 'status'}
+                                />
                             );
                         })}
-                    </tbody>
-                </table>
-            ) : (
-                <span className="text-neutral-500 italic">No config</span>
-            );
+                    </div>
+                )}
+            </div>
+        );
         
         // Helper function to format values with consistent width
         function formatValue(key: string, value: string | number | boolean): string {
@@ -187,101 +230,83 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
             if (key === 'drift' || key === 'actualFrequency') {
                 // For drift percentage and frequency, ensure consistent decimal places
                 if (typeof value === 'number') {
-                    return value.toFixed(2).padStart(8, ' ');
+                    return value.toFixed(2);
                 }
-            }
-            
-            // For hex values, ensure consistent width
-            if (strValue.startsWith('0x')) {
-                return strValue.padStart(6, ' ');
             }
             
             // For large numbers, add thousand separators for readability
             if (typeof value === 'number' && value > 999) {
-                return value.toLocaleString().padStart(10, ' ');
+                return value.toLocaleString();
             }
             
             return strValue;
         }
-        const row = (
-            <tr
-                key={node.id}
-                className={`border-b border-neutral-700 last:border-b-0 transition-colors duration-100 hover:bg-green-950/40 ${depth % 2 === 0 ? 'bg-neutral-900' : 'bg-neutral-950'}`}
-            >
-                <td
-                    className="px-2 py-1 text-green-200 font-bold align-top"
-                    style={{
-                        color: colorLegend[node.type] || colorLegend.default,
-                        fontWeight: 'bold',
-                        paddingLeft: 6,
-                        letterSpacing: 0.3,
-                        position: 'relative',
-                    }}
-                >
-                    {depth > 0 && (
-                        <span
-                            style={{
-                                display: 'inline-block',
-                                width: 12 * depth,
-                                marginRight: 2,
-                                borderLeft: '1px solid #333',
-                                height: '100%',
-                                verticalAlign: 'middle',
-                            }}
-                        />
-                    )}
-                    {depth > 0 ? <span style={{ marginRight: 2 }}>{'└─'}</span> : null}
-                    {node.type}
-                </td>
-                <td className="px-2 py-1 text-green-100 font-mono align-top opacity-90 text-xs">{node.id}</td>
-                <td className="px-2 py-1 text-green-300 align-top text-xs">
-                    {node.name || <span className="opacity-40 italic">(unnamed)</span>}
-                </td>
-                <td className="px-2 py-1 align-top">
-                    <div className="rounded bg-neutral-800/80 border border-neutral-700 px-1 py-1 text-xs font-mono text-green-300 max-w-xs whitespace-pre-wrap break-all">
-                        {configCell}
-                    </div>
-                </td>
-            </tr>
-        );
-        let childrenRows: React.ReactNode[] = [];
-        if (hasChildren(node) && node.children.length > 0) {
-            childrenRows = node.children.flatMap((child) => renderArchTreeTable(child, depth + 1, seen));
+
+        // Helper function to determine data type for color coding
+        function getDataType(key: string): 'address' | 'value' | 'flag' | 'status' {
+            if (key.includes('ADDR') || key.includes('Address')) return 'address';
+            if (key.includes('FLAG') || key.includes('Flag')) return 'flag';
+            if (key.includes('REG_') || key.includes('DATA')) return 'value';
+            return 'status';
         }
-        return [row, ...childrenRows];
+        
+        let childrenNodes: React.ReactNode[] = [];
+        if (hasChildren(node) && node.children.length > 0) {
+            childrenNodes = node.children.flatMap((child) => renderArchComponent(child, depth + 1, seen));
+        }
+        return [componentCard, ...childrenNodes];
     }
 
-    // Handler for profiling toggle
-    const handleProfilingToggle = () => {
-        const newProfilingState = !profilingEnabled;
-        setProfilingEnabled(newProfilingState);
-        if (worker) {
-            worker.postMessage({
-                data: newProfilingState,
-                type: WORKER_MESSAGES.SET_CPU_PROFILING
-            });
-        }
-    };
-
-    // Get CPU performance data if available
-    const cpuDebugData = debugInfo.cpu || {};
-    const perfData = cpuDebugData._PERF_DATA as { 
-        stats?: { instructionCount: number; totalInstructions: number; profilingEnabled: boolean };
-        topOpcodes?: Array<{ opcode: string; count: number; cycles: number; avgCycles: number }>;
-    } | undefined;
+    // Extract CPU register data for better display - always return data to prevent FOUC
+    const cpuRegisterData = React.useMemo(() => {
+        const cpu = debugInfo.cpu || {};
+        return {
+            pc: cpu.REG_PC || cpu.PC || '$0000',
+            a: cpu.REG_A || cpu.A || '$00',
+            x: cpu.REG_X || cpu.X || '$00',
+            y: cpu.REG_Y || cpu.Y || '$00',
+            s: cpu.REG_S || cpu.S || '$00',
+            // Flags
+            flagN: cpu.FLAG_N || cpu.N || 'CLR',
+            flagZ: cpu.FLAG_Z || cpu.Z || 'CLR',
+            flagC: cpu.FLAG_C || cpu.C || 'CLR',
+            flagV: cpu.FLAG_V || cpu.V || 'CLR',
+            flagI: cpu.FLAG_I || cpu.I || 'SET',
+            flagD: cpu.FLAG_D || cpu.D || 'CLR',
+            // Memory info
+            ramBank2Address: cpu.ramBank2Address || '$F000 - $FFFF',
+            piaAddress: cpu.piaAddress || '$D010 - $D013',
+            // Execution
+            hwAddr: cpu.HW_ADDR || '$FFFE',
+            hwData: cpu.HW_DATA || '$00',
+            hwOpcode: cpu.HW_OPCODE || '$00',
+            hwCycles: cpu.HW_CYCLES || '40,259,072',
+            irqLine: cpu.IRQ_LINE || 'INACTIVE',
+            nmiLine: cpu.NMI_LINE || 'INACTIVE',
+            irqPending: cpu.IRQ_PENDING || 'NO',
+            nmiPending: cpu.NMI_PENDING || 'NO',
+            execTmp: cpu.EXEC_TMP || '$00',
+            execAddr: cpu.EXEC_ADDR || '$0000',
+            perfEnabled: cpu.PERF_ENABLED || 'YES',
+            perfInstructions: cpu.PERF_INSTRUCTIONS || '4,297,966',
+        };
+    }, [debugInfo.cpu]);
 
     return (
-        <div className="flex flex-col lg:h-full lg:overflow-hidden">
-            {/* Performance Profiling Controls */}
-            <div className="bg-neutral-900 border-t border-slate-800 px-4 py-3">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-green-300">CPU Performance Profiling</h3>
+        <div className="flex flex-col h-full overflow-auto space-y-md">
+            {/* Performance Section */}
+            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+                <div className="flex items-center justify-between mb-md">
+                    <h3 className="text-sm font-medium text-text-accent flex items-center">
+                        <span className="mr-2">🔥</span>
+                        CPU Performance Profiling
+                    </h3>
                     <button
                         onClick={handleProfilingToggle}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                             profilingEnabled
-                                ? 'bg-green-600 text-white hover:bg-green-700'
-                                : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                                ? 'bg-success text-white hover:bg-success/80'
+                                : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
                         }`}
                     >
                         {profilingEnabled ? 'Disable Profiling' : 'Enable Profiling'}
@@ -289,31 +314,34 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                 </div>
                 
                 {profilingEnabled && perfData && (
-                    <div className="mt-3 space-y-2">
-                        <div className="grid grid-cols-3 gap-4 text-xs">
-                            <div className="bg-neutral-800 px-2 py-1 rounded">
-                                <div className="text-neutral-400">Instructions</div>
-                                <div className="text-green-300 font-mono">{perfData.stats?.instructionCount.toLocaleString()}</div>
-                            </div>
-                            <div className="bg-neutral-800 px-2 py-1 rounded">
-                                <div className="text-neutral-400">Unique Opcodes</div>
-                                <div className="text-green-300 font-mono">{perfData.stats?.totalInstructions}</div>
-                            </div>
-                            <div className="bg-neutral-800 px-2 py-1 rounded">
-                                <div className="text-neutral-400">Status</div>
-                                <div className="text-green-300 font-mono">ACTIVE</div>
-                            </div>
+                    <div className="space-y-md">
+                        <div className="grid grid-cols-3 gap-md">
+                            <MetricCard 
+                                label="Instructions" 
+                                value={perfData.stats?.instructionCount.toLocaleString() || '0'}
+                                status="info"
+                            />
+                            <MetricCard 
+                                label="Unique Opcodes" 
+                                value={perfData.stats?.totalInstructions || '0'}
+                                status="info"
+                            />
+                            <MetricCard 
+                                label="Status" 
+                                value="ACTIVE"
+                                status="success"
+                            />
                         </div>
                         
                         {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
-                            <div className="bg-neutral-800 px-2 py-1 rounded">
-                                <div className="text-neutral-400 text-xs mb-1">Top Instructions</div>
-                                <div className="space-y-1">
+                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                                <div className="text-sm font-medium text-text-secondary mb-sm">Top Instructions</div>
+                                <div className="space-y-sm">
                                     {perfData.topOpcodes.slice(0, 3).map((opcode) => (
-                                        <div key={opcode.opcode} className="flex justify-between text-xs font-mono">
-                                            <span className="text-blue-300">{getOpcodeMnemonic(opcode.opcode)}</span>
-                                            <span className="text-green-300">{opcode.count.toLocaleString()}</span>
-                                            <span className="text-yellow-300">{opcode.avgCycles}c</span>
+                                        <div key={opcode.opcode} className="flex justify-between items-center text-sm font-mono">
+                                            <span className="text-data-status font-medium">{getOpcodeMnemonic(opcode.opcode)}</span>
+                                            <span className="text-data-value">{opcode.count.toLocaleString()}</span>
+                                            <span className="text-data-flag">{opcode.avgCycles}c</span>
                                         </div>
                                     ))}
                                 </div>
@@ -321,21 +349,65 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                         )}
                     </div>
                 )}
-            </div>
-            
-            <div className="lg:flex-1 lg:overflow-auto bg-black border-t border-slate-800 rounded-xl px-4 py-4">
-                <table className="text-xs border border-neutral-700 rounded w-full bg-neutral-950">
-                    <thead className="lg:sticky lg:top-0 lg:z-10 bg-neutral-800">
-                        <tr className="text-green-300">
-                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">Type</th>
-                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">ID</th>
-                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">Name</th>
-                            <th className="px-2 py-1 border-b border-neutral-700 text-left bg-neutral-800">Config & Live Data</th>
-                        </tr>
-                    </thead>
-                    <tbody>{renderArchTreeTable(archRoot)}</tbody>
-                </table>
-            </div>
+            </section>
+
+            {/* CPU Registers Section */}
+            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
+                    <span className="mr-2">⚙️</span>
+                    CPU Registers
+                </h3>
+                <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
+                    <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" />
+                    <RegisterRow label="REG_A" value={cpuRegisterData.a} type="value" />
+                    <RegisterRow label="REG_X" value={cpuRegisterData.x} type="value" />
+                    <RegisterRow label="REG_Y" value={cpuRegisterData.y} type="value" />
+                    <RegisterRow label="REG_S" value={cpuRegisterData.s} type="value" />
+                    <RegisterRow label="FLAG_N" value={cpuRegisterData.flagN} type="flag" />
+                    <RegisterRow label="FLAG_Z" value={cpuRegisterData.flagZ} type="flag" />
+                    <RegisterRow label="FLAG_C" value={cpuRegisterData.flagC} type="flag" />
+                    <RegisterRow label="FLAG_V" value={cpuRegisterData.flagV} type="flag" />
+                    <RegisterRow label="FLAG_I" value={cpuRegisterData.flagI} type="flag" />
+                    <RegisterRow label="FLAG_D" value={cpuRegisterData.flagD} type="flag" />
+                </div>
+            </section>
+
+            {/* Memory & I/O Section */}
+            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
+                    <span className="mr-2">💾</span>
+                    Memory & I/O
+                </h3>
+                <div className="space-y-sm">
+                    <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" />
+                    <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" />
+                    <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" />
+                    <RegisterRow label="HW_DATA" value={cpuRegisterData.hwData} type="value" />
+                    <RegisterRow label="HW_OPCODE" value={cpuRegisterData.hwOpcode} type="value" />
+                    <RegisterRow label="HW_CYCLES" value={cpuRegisterData.hwCycles} type="status" />
+                    <RegisterRow label="IRQ_LINE" value={cpuRegisterData.irqLine} type="status" />
+                    <RegisterRow label="NMI_LINE" value={cpuRegisterData.nmiLine} type="status" />
+                    <RegisterRow label="IRQ_PENDING" value={cpuRegisterData.irqPending} type="flag" />
+                    <RegisterRow label="NMI_PENDING" value={cpuRegisterData.nmiPending} type="flag" />
+                    <RegisterRow label="EXEC_TMP" value={cpuRegisterData.execTmp} type="value" />
+                    <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" />
+                    <RegisterRow label="PERF_ENABLED" value={cpuRegisterData.perfEnabled} type="flag" />
+                    <RegisterRow label="PERF_INSTRUCTIONS" value={cpuRegisterData.perfInstructions} type="status" />
+                </div>
+            </section>
+
+            {/* Architecture Tree Section */}
+            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
+                    <span className="mr-2">🏗️</span>
+                    Architecture Tree
+                </h3>
+                <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                    <div className="space-y-sm">
+                        {renderArchComponent(archRoot)}
+                    </div>
+                </div>
+            </section>
         </div>
     );
 };

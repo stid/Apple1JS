@@ -59,7 +59,7 @@ describe('InspectorView component', () => {
         
         expect(screen.getByText('Apple1')).toBeInTheDocument();
         expect(screen.getByText('Test Apple1')).toBeInTheDocument();
-        expect(screen.getByText('Type')).toBeInTheDocument(); // Table header
+        expect(screen.getByText('Architecture Tree')).toBeInTheDocument(); // Section header
     });
 
     it('should render child components in architecture tree', () => {
@@ -89,9 +89,9 @@ describe('InspectorView component', () => {
         expect(screen.queryByText('Architecture')).not.toBeInTheDocument();
         expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
         
-        // But should have the table structure
-        expect(screen.getByText('Type')).toBeInTheDocument();
-        expect(screen.getByText('Config & Live Data')).toBeInTheDocument();
+        // But should have the new architecture tree structure
+        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
+        expect(screen.getByText('Apple1')).toBeInTheDocument();
     });
 
     it('should set up interval to request debug info when worker is provided', () => {
@@ -163,14 +163,14 @@ describe('InspectorView component', () => {
         rerender(<InspectorView root={mockInspectableWithCPU} worker={mockWorker} />);
         
         // Check that CPU debug data is integrated into the architecture tree
-        expect(screen.getByText('REG_PC:')).toBeInTheDocument();
-        expect(screen.getByText('$1234')).toBeInTheDocument();
-        expect(screen.getByText('REG_A:')).toBeInTheDocument();
-        expect(screen.getByText('$56')).toBeInTheDocument();
-        expect(screen.getByText('HW_ADDR:')).toBeInTheDocument();
-        expect(screen.getByText('$1000')).toBeInTheDocument();
-        expect(screen.getByText('FLAG_Z:')).toBeInTheDocument();
-        expect(screen.getByText('SET')).toBeInTheDocument();
+        expect(screen.getAllByText('REG_PC:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('$1234').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('REG_A:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('$56').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('HW_ADDR:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('$1000').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLAG_Z:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('SET').length).toBeGreaterThanOrEqual(1);
     });
 
     it('should handle empty debug data gracefully', () => {
@@ -191,8 +191,8 @@ describe('InspectorView component', () => {
         }
 
         // Should still show architecture tree
-        expect(screen.getByText('Type')).toBeInTheDocument();
-        expect(screen.getByText('Config & Live Data')).toBeInTheDocument();
+        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
+        expect(screen.getByText('Apple1')).toBeInTheDocument();
     });
 
     it('should clean up intervals and event listeners on unmount', () => {
@@ -234,7 +234,8 @@ describe('InspectorView component', () => {
 
         render(<InspectorView root={mockInspectableWithoutConfig} />);
         
-        expect(screen.getByText('No config')).toBeInTheDocument();
+        // With the new card layout, components without config don't show extra fields
+        expect(screen.getByText('Apple1')).toBeInTheDocument();
     });
 
     it('should handle duplicate component IDs by prioritizing those with more config fields', () => {
@@ -327,16 +328,16 @@ describe('InspectorView component', () => {
         // Force re-render to show updated state
         rerender(<InspectorView root={mockInspectableWithCPU6502} worker={mockWorker} />);
         
-        // Check that CPU6502 debug data is integrated into the architecture tree
-        expect(screen.getByText('REG_PC:')).toBeInTheDocument();
-        expect(screen.getByText('$1234')).toBeInTheDocument();
-        expect(screen.getByText('REG_A:')).toBeInTheDocument();
-        expect(screen.getByText('$56')).toBeInTheDocument();
-        expect(screen.getByText('HW_ADDR:')).toBeInTheDocument();
-        expect(screen.getByText('$1000')).toBeInTheDocument();
-        expect(screen.getByText('FLAG_N:')).toBeInTheDocument();
-        expect(screen.getByText('SET')).toBeInTheDocument();
-        expect(screen.getByText('FLAG_Z:')).toBeInTheDocument();
-        expect(screen.getByText('CLR')).toBeInTheDocument();
+        // Check that CPU6502 debug data is integrated - now appears in both CPU Registers section and architecture tree
+        expect(screen.getAllByText('REG_PC:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('$1234').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('REG_A:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('$56').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('HW_ADDR:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('$1000').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLAG_N:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('SET').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLAG_Z:').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('CLR').length).toBeGreaterThanOrEqual(1);
     });
 });
