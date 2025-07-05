@@ -4,6 +4,8 @@ import { WORKER_MESSAGES } from '../apple1/TSTypes';
 interface MemoryViewerProps {
     worker: Worker;
     startAddress?: number;
+    currentAddress?: number;
+    onAddressChange?: (address: number) => void;
 }
 
 interface MemoryData {
@@ -12,11 +14,13 @@ interface MemoryData {
 
 const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({ 
     worker, 
-    startAddress = 0x0000
+    startAddress = 0x0000,
+    currentAddress: externalAddress,
+    onAddressChange
 }) => {
     const [memoryData, setMemoryData] = useState<MemoryData>({});
-    const [currentAddress, setCurrentAddress] = useState(startAddress);
-    const [addressInput, setAddressInput] = useState(startAddress.toString(16).padStart(4, '0').toUpperCase());
+    const [currentAddress, setCurrentAddress] = useState(externalAddress ?? startAddress);
+    const [addressInput, setAddressInput] = useState((externalAddress ?? startAddress).toString(16).padStart(4, '0').toUpperCase());
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
 
@@ -91,6 +95,22 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const effectiveRows = visibleRows;
     const size = effectiveRows * bytesPerRow;
 
+    // Only sync initial external address
+    const hasInitialized = useRef(false);
+    useEffect(() => {
+        if (externalAddress !== undefined && !hasInitialized.current) {
+            setCurrentAddress(externalAddress);
+            hasInitialized.current = true;
+        }
+    }, [externalAddress]);
+    
+    // Notify parent of address changes
+    useEffect(() => {
+        if (onAddressChange) {
+            onAddressChange(currentAddress);
+        }
+    }, [currentAddress, onAddressChange]);
+    
     // Update address input when currentAddress changes
     useEffect(() => {
         setAddressInput(currentAddress.toString(16).padStart(4, '0').toUpperCase());

@@ -16,7 +16,8 @@ type DebugView = 'overview' | 'memory' | 'disassembly';
 const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
     const [activeView, setActiveView] = useState<DebugView>('overview');
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
-    const [memoryViewAddress] = useState(0x0000);
+    const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
+    const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
 
     // Listen for debug info updates
     useEffect(() => {
@@ -205,14 +206,19 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                     <div className="h-full">
                         <MemoryViewerPaginated
                             worker={worker}
-                            startAddress={memoryViewAddress}
+                            currentAddress={memoryViewAddress}
+                            onAddressChange={setMemoryViewAddress}
                         />
                     </div>
                 )}
 
                 {activeView === 'disassembly' && (
                     <div className="h-full">
-                        <DisassemblerPaginated worker={worker} />
+                        <DisassemblerPaginated 
+                            worker={worker}
+                            currentAddress={disassemblerAddress}
+                            onAddressChange={setDisassemblerAddress}
+                        />
                     </div>
                 )}
             </div>

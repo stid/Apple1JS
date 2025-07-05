@@ -8,4 +8,8 @@ module.exports = {
     testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$',
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     setupFiles: ['jest-canvas-mock'],
+    setupFilesAfterEnv: ['<rootDir>/src/test-support/setupTests.ts'],
+    moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+    },
 };

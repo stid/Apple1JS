@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, DebugData } from '../apple1/TSTypes';
 import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
@@ -6,6 +6,8 @@ import { usePaginatedTable } from '../hooks/usePaginatedTable';
 
 interface DisassemblerProps {
     worker: Worker;
+    currentAddress?: number;
+    onAddressChange?: (address: number) => void;
 }
 
 interface DisassemblyLine {
@@ -17,7 +19,7 @@ interface DisassemblyLine {
 
 type ExecutionState = 'running' | 'paused' | 'stepping';
 
-const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker }) => {
+const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAddress: externalAddress, onAddressChange }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [currentPC, setCurrentPC] = useState<number>(0);
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
@@ -36,7 +38,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker }) => {
         contentRef,
         getAddressRange
     } = usePaginatedTable({
-        initialAddress: 0x0000,
+        initialAddress: externalAddress ?? 0x0000,
         bytesPerRow: 1, // Not really used for disassembly
         rowHeight: 24, // Same as memory viewer
         onDataRequest: (addr) => {
@@ -200,11 +202,30 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker }) => {
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
     
+    // Only sync initial external address
+    useEffect(() => {
+        if (externalAddress !== undefined && !hasInitialized.current) {
+            navigateTo(externalAddress);
+            hasInitialized.current = true;
+        }
+    }, [externalAddress, navigateTo]);
+    
+    const hasInitialized = useRef(false);
+    
+    // Notify parent of address changes
+    useEffect(() => {
+        if (onAddressChange) {
+            onAddressChange(currentAddress);
+        }
+    }, [currentAddress, onAddressChange]);
+    
     // Initial load and request breakpoints
     useEffect(() => {
-        navigateTo(0);
+        if (externalAddress === undefined) {
+            navigateTo(0);
+        }
         worker.postMessage({ type: WORKER_MESSAGES.GET_BREAKPOINTS });
-    }, [navigateTo, worker]);
+    }, [navigateTo, worker, externalAddress]);
     
     // Request debug info periodically
     useEffect(() => {
