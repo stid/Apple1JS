@@ -1,5 +1,19 @@
 # CLAUDE.md
 
+## 🚨 CRITICAL: Git Workflow Rules
+
+**NEVER commit directly to master!** Always follow this workflow:
+
+1. **Check branch**: `git branch --show-current`
+2. **If on master**: `git checkout -b <type>/<description>` (e.g., feat/add-feature, fix/bug-fix)
+3. **Make changes**: Edit files as needed
+4. **Stage & commit**: `git add -A && git commit -m "<type>: <description>"`
+5. **Update version**: Edit `src/version.ts` BEFORE creating PR
+6. **Push branch**: `git push -u origin <branch-name>`
+7. **Create PR**: `gh pr create --title "..." --body "..."`
+
+**Branch types**: feat/, fix/, perf/, docs/, refactor/, test/, chore/
+
 ## 🧠 Project Overview
 
 Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/React. Features cycle-accurate 6502 CPU emulation, authentic CRT display with phosphor effects, and full debugging capabilities. The architecture separates emulation logic (Web Worker) from UI for performance.
