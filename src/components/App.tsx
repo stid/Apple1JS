@@ -97,13 +97,6 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
 
         worker.addEventListener('message', handleWorkerMessage);
         
-        // Test logging system on mount
-        setTimeout(() => {
-            addMessage({ level: 'info', source: 'Test', message: 'UI Logging system initialized' });
-            addMessage({ level: 'warn', source: 'Test', message: 'This is a test warning' });
-            addMessage({ level: 'error', source: 'Test', message: 'This is a test error' });
-        }, 1000);
-        
         return () => {
             worker.removeEventListener('message', handleWorkerMessage);
         };
