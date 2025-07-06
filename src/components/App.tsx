@@ -100,6 +100,23 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
         };
     }, [worker, addMessage]);
 
+    // Listen for emulation status updates
+    useEffect(() => {
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data.type === WORKER_MESSAGES.EMULATION_STATUS) {
+                const status = e.data.data;
+                setIsPaused(status === 'paused');
+            }
+        };
+
+        worker.addEventListener('message', handleMessage);
+        
+        // Query current status on mount
+        worker.postMessage({ type: WORKER_MESSAGES.GET_EMULATION_STATUS });
+        
+        return () => worker.removeEventListener('message', handleMessage);
+    }, [worker]);
+
     // --- State Save/Load Handlers ---
     const handleSaveState = useCallback(
         (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -156,7 +173,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
             } else {
                 worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
             }
-            setIsPaused((prev) => !prev);
+            // Don't toggle state here - it will be updated by EMULATION_STATUS message
         },
         [worker, isPaused],
     );

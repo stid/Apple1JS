@@ -39,6 +39,7 @@ export enum WORKER_MESSAGES {
     BREAKPOINTS_DATA, // Response with current breakpoints
     BREAKPOINT_HIT, // Notification when breakpoint is hit
     SET_DEBUGGER_ACTIVE, // Set debugger visibility state
+    GET_EMULATION_STATUS, // Request current emulation status
 }
 
 
