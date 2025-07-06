@@ -16,7 +16,10 @@ class LoggingService {
 
     log(level: LogLevel, source: string, message: string): void {
         // Always log to console in development
-        if (process.env.NODE_ENV === 'development') {
+        // Using a simple approach that works in both browser and tests
+        const isDev = true; // For now, always log to console
+        
+        if (isDev) {
             switch (level) {
                 case 'info':
                     console.log(`[${source}] ${message}`);

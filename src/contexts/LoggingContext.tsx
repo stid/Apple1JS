@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { LogMessage, LoggingContextType, LogLevel } from '../types/logging';
 import { loggingService } from '../services/LoggingService';
+
+const MAX_MESSAGES = 1000;
+const BATCH_UPDATE_DELAY = 10; // ms - reduced from 100ms for more responsive UI
 
 const LoggingContext = createContext<LoggingContextType | undefined>(undefined);
 
@@ -14,40 +17,87 @@ export const useLogging = (): LoggingContextType => {
 
 export const LoggingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [messages, setMessages] = useState<LogMessage[]>([]);
+    const pendingMessages = useRef<Map<string, Omit<LogMessage, 'id' | 'timestamp'>>>(new Map());
+    const batchUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const addMessage = useCallback((newMessage: Omit<LogMessage, 'id' | 'timestamp' | 'count'>) => {
-        const now = new Date();
-        const id = `${now.getTime()}-${Math.random().toString(36).substr(2, 9)}`;
-        
+    // Process pending messages in batch
+    const processPendingMessages = useCallback(() => {
+        if (pendingMessages.current.size === 0) return;
+
         setMessages(prevMessages => {
-            // Check for duplicate messages (same source and message)
-            const existingIndex = prevMessages.findIndex(
-                msg => msg.source === newMessage.source && msg.message === newMessage.message
-            );
-            
-            if (existingIndex >= 0) {
-                // Update existing message with new timestamp and increment count
-                const updatedMessages = [...prevMessages];
-                updatedMessages[existingIndex] = {
-                    ...updatedMessages[existingIndex],
-                    timestamp: now,
-                    count: updatedMessages[existingIndex].count + 1,
-                };
-                return updatedMessages;
-            } else {
-                // Add new message
-                const message: LogMessage = {
-                    ...newMessage,
-                    id,
-                    timestamp: now,
-                    count: 1,
-                };
-                return [...prevMessages, message];
+            let updatedMessages = [...prevMessages];
+            const now = new Date();
+
+            // Process all pending messages
+            pendingMessages.current.forEach((pendingMsg) => {
+                const existingIndex = updatedMessages.findIndex(
+                    msg => msg.source === pendingMsg.source && msg.message === pendingMsg.message
+                );
+
+                if (existingIndex >= 0) {
+                    // Update existing message
+                    updatedMessages[existingIndex] = {
+                        ...updatedMessages[existingIndex],
+                        timestamp: now,
+                        count: updatedMessages[existingIndex].count + pendingMsg.count,
+                    };
+                } else {
+                    // Add new message
+                    const id = `${now.getTime()}-${Math.random().toString(36).substring(2, 11)}`;
+                    updatedMessages.push({
+                        ...pendingMsg,
+                        id,
+                        timestamp: now,
+                    } as LogMessage);
+                }
+            });
+
+            // Clear pending messages
+            pendingMessages.current.clear();
+
+            // Enforce message limit (keep most recent)
+            if (updatedMessages.length > MAX_MESSAGES) {
+                updatedMessages = updatedMessages.slice(-MAX_MESSAGES);
             }
+
+            return updatedMessages;
         });
     }, []);
 
+    const addMessage = useCallback((newMessage: Omit<LogMessage, 'id' | 'timestamp' | 'count'>) => {
+        const key = `${newMessage.source}-${newMessage.message}`;
+        
+        
+        // Add or update pending message
+        const existing = pendingMessages.current.get(key);
+        if (existing) {
+            existing.count = (existing.count || 1) + 1;
+        } else {
+            pendingMessages.current.set(key, {
+                ...newMessage,
+                count: 1,
+            });
+        }
+
+        // Clear existing timer
+        if (batchUpdateTimer.current) {
+            clearTimeout(batchUpdateTimer.current);
+        }
+
+        // Set new timer for batch update
+        batchUpdateTimer.current = setTimeout(() => {
+            processPendingMessages();
+            batchUpdateTimer.current = null;
+        }, BATCH_UPDATE_DELAY);
+    }, [processPendingMessages]);
+
     const clearMessages = useCallback(() => {
+        // Clear any pending updates
+        if (batchUpdateTimer.current) {
+            clearTimeout(batchUpdateTimer.current);
+            batchUpdateTimer.current = null;
+        }
+        pendingMessages.current.clear();
         setMessages([]);
     }, []);
 
@@ -65,8 +115,13 @@ export const LoggingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         return () => {
             loggingService.removeHandler(handler);
+            // Clean up any pending timer
+            if (batchUpdateTimer.current) {
+                clearTimeout(batchUpdateTimer.current);
+                processPendingMessages();
+            }
         };
-    }, [addMessage]);
+    }, [addMessage, processPendingMessages]);
 
     const value: LoggingContextType = {
         messages,

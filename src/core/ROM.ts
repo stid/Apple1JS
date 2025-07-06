@@ -54,7 +54,9 @@ class ROM implements IoAddressable, IInspectableComponent {
     }
 
     write(address: number, value: number): void {
-        loggingService.warn('ROM', `Attempt to write ${value} to read-only memory at address ${address}`);
+        const hexAddr = `0x${address.toString(16).toUpperCase()}`;
+        const hexValue = `0x${value.toString(16).toUpperCase()}`;
+        loggingService.warn('ROM', `Attempt to write ${hexValue} to read-only memory at address ${hexAddr}`);
     }
 
     flash(data: Array<number>): void {

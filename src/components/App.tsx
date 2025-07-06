@@ -7,10 +7,12 @@ import { CONFIG } from '../config';
 import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
 import Actions from './Actions';
 import ErrorBoundary from './Error';
-import StatusPanel from './StatusPanel';
+import AlertBadges from './AlertBadges';
+import AlertPanel from './AlertPanel';
 import { useLogging } from '../contexts/LoggingContext';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { DebuggerNavigationProvider } from '../contexts/DebuggerNavigationContext';
+import { LogLevel } from '../types/logging';
 
 type Props = {
     worker: Worker;
@@ -23,6 +25,8 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
     // Right panel tab: 'info', 'inspector', or 'debugger'
     const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
+    const [alertPanelOpen, setAlertPanelOpen] = useState<boolean>(false);
+    const [alertFilter, setAlertFilter] = useState<LogLevel | 'all'>('all');
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
 
@@ -48,8 +52,6 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
         (e: ClipboardEvent) => {
             e.preventDefault();
             const pastedText = e.clipboardData?.getData('text') || '';
-            // Optionally, add a debug flag if you want to keep this log
-            // console.log('Pasting:', pastedText);
             pastedText.split('').forEach((char, index) => {
                 setTimeout(() => {
                     const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
@@ -92,6 +94,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
         };
 
         worker.addEventListener('message', handleWorkerMessage);
+        
         return () => {
             worker.removeEventListener('message', handleWorkerMessage);
         };
@@ -255,17 +258,31 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                             Debugger
                         </button>
                         </div>
+                        <div className="ml-auto">
+                            <AlertBadges
+                                onInfoClick={() => {
+                                    setAlertFilter('info');
+                                    setAlertPanelOpen(true);
+                                }}
+                                onWarnClick={() => {
+                                    setAlertFilter('warn');
+                                    setAlertPanelOpen(true);
+                                }}
+                                onErrorClick={() => {
+                                    setAlertFilter('error');
+                                    setAlertPanelOpen(true);
+                                }}
+                            />
+                        </div>
                     </div>
                     <div className="flex-1 flex flex-col w-full sm:text-xs md:text-sm min-h-0 overflow-hidden">
                         {rightTab === 'info' && (
                             <div className="flex-1 overflow-auto">
-                                <StatusPanel />
                                 <Info />
                             </div>
                         )}
                         {rightTab === 'inspector' && apple1Instance && (
                             <div className="flex-1 overflow-auto min-h-0">
-                                <StatusPanel />
                                 <InspectorView root={apple1Instance} worker={worker} />
                             </div>
                         )}
@@ -298,6 +315,11 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                     overflow: 'hidden',
                     zIndex: 1,
                 }}
+            />
+            <AlertPanel
+                isOpen={alertPanelOpen}
+                initialFilter={alertFilter}
+                onClose={() => setAlertPanelOpen(false)}
             />
             </DebuggerNavigationProvider>
         </ErrorBoundary>
