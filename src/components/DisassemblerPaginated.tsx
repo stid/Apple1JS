@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, DebugData } from '../apple1/TSTypes';
 import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
 import { usePaginatedTable } from '../hooks/usePaginatedTable';
+import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
 
@@ -32,21 +33,26 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     const [isPaused, setIsPaused] = useState(false);
     const [isSteppingMode, setIsSteppingMode] = useState(false);
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
-    const lastExternalAddress = useRef<number | undefined>(externalAddress);
     
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
     
-    // Use the pagination hook - note: bytesPerRow is variable for disassembly
+    // Use navigation hook for external sync
+    const { currentAddress: syncedAddress, navigateInternal } = useNavigableComponent({
+        initialAddress: externalAddress ?? 0x0000,
+        onAddressChange
+    });
+    
+    // Use the pagination hook for internal mechanics
     const {
         currentAddress,
         visibleRows,
-        navigateTo,
+        navigateTo: paginatedNavigateTo,
         containerRef,
         contentRef,
         getAddressRange
     } = usePaginatedTable({
-        initialAddress: externalAddress ?? 0x0000,
+        initialAddress: syncedAddress,
         bytesPerRow: 1, // Not really used for disassembly
         rowHeight: 24, // Same as memory viewer
         onDataRequest: (addr) => {
@@ -59,6 +65,12 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
             });
         }
     });
+    
+    // Wrapper to use internal navigation
+    const navigateTo = useCallback((address: number) => {
+        paginatedNavigateTo(address);
+        navigateInternal(address);
+    }, [paginatedNavigateTo, navigateInternal]);
     
     // Disassemble memory
     const disassembleMemory = useCallback((startAddr: number, length: number, memory: number[]): DisassemblyLine[] => {
@@ -309,20 +321,12 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
     
-    // Sync external address changes only when it actually changes from outside
+    // Sync with navigation hook address
     useEffect(() => {
-        if (externalAddress !== undefined && externalAddress !== lastExternalAddress.current) {
-            lastExternalAddress.current = externalAddress;
-            navigateTo(externalAddress);
+        if (syncedAddress !== currentAddress) {
+            paginatedNavigateTo(syncedAddress);
         }
-    }, [externalAddress, navigateTo]);
-    
-    // Notify parent of address changes only when changed internally
-    useEffect(() => {
-        if (onAddressChange && currentAddress !== lastExternalAddress.current) {
-            onAddressChange(currentAddress);
-        }
-    }, [currentAddress, onAddressChange]);
+    }, [syncedAddress, currentAddress, paginatedNavigateTo]);
     
     // Initial load and request breakpoints
     useEffect(() => {

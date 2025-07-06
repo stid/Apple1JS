@@ -39,10 +39,11 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/Reac
 
 - Run tests before/after changes to ensure no regression
 - **MANDATORY**: Update `src/version.ts` BEFORE creating any pull request
-  - Minor version bump for new features (e.g., 4.11.0 → 4.12.0)
-  - Patch version bump for bug fixes (e.g., 4.11.0 → 4.11.1)
-  - Major version bump for breaking changes (e.g., 4.11.0 → 5.0.0)
+    - Minor version bump for new features (e.g., 4.11.0 → 4.12.0)
+    - Patch version bump for bug fixes (e.g., 4.11.0 → 4.11.1)
+    - Major version bump for breaking changes (e.g., 4.11.0 → 5.0.0)
 - Run quality checks: `yarn run lint && yarn run type-check && yarn run test:ci`
+- **Always ensure new code or components are covered with unit tests following our best practices**
 
 **CRITICAL**: Never create a pull request without updating the version number first!
 
@@ -127,10 +128,11 @@ yarn run lint && yarn run type-check && yarn run test:ci
 **ALWAYS update `src/version.ts` before creating any pull request!**
 
 - **Major**: Breaking changes (e.g., 4.11.0 → 5.0.0)
-- **Minor**: New features (e.g., 4.11.0 → 4.12.0)  
+- **Minor**: New features (e.g., 4.11.0 → 4.12.0)
 - **Patch**: Bug fixes (e.g., 4.11.0 → 4.11.1)
 
 **Examples:**
+
 - UI refactor with new components = Minor bump
 - Fix existing bug = Patch bump
 - Change API that breaks compatibility = Major bump
