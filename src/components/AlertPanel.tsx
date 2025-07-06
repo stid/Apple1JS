@@ -99,7 +99,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
                                 filter === 'info' 
                                     ? 'bg-semantic-info text-surface-primary' 
-                                    : 'bg-surface-tertiary text-text-secondary hover:bg-surface-quaternary'
+                                    : 'bg-semantic-info/20 text-semantic-info hover:bg-semantic-info/30'
                             }`}
                         >
                             Info ({messages.filter(m => m.level === 'info').length})
@@ -109,7 +109,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
                                 filter === 'warn' 
                                     ? 'bg-semantic-warning text-surface-primary' 
-                                    : 'bg-surface-tertiary text-text-secondary hover:bg-surface-quaternary'
+                                    : 'bg-semantic-warning/20 text-semantic-warning hover:bg-semantic-warning/30'
                             }`}
                         >
                             Warn ({messages.filter(m => m.level === 'warn').length})
@@ -119,7 +119,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
                                 filter === 'error' 
                                     ? 'bg-semantic-error text-white' 
-                                    : 'bg-surface-tertiary text-text-secondary hover:bg-surface-quaternary'
+                                    : 'bg-semantic-error/20 text-semantic-error hover:bg-semantic-error/30'
                             }`}
                         >
                             Error ({messages.filter(m => m.level === 'error').length})
