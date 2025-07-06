@@ -10,6 +10,7 @@ import ErrorBoundary from './Error';
 import StatusPanel from './StatusPanel';
 import { useLogging } from '../contexts/LoggingContext';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { DebuggerNavigationProvider } from '../contexts/DebuggerNavigationContext';
 
 type Props = {
     worker: Worker;
@@ -159,7 +160,8 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
 
     return (
         <ErrorBoundary>
-            <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 overflow-auto">
+            <DebuggerNavigationProvider>
+                <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 overflow-auto">
                 {/* Left column: CRT, Actions */}
                 <div
                     className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
@@ -297,6 +299,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
                     zIndex: 1,
                 }}
             />
+            </DebuggerNavigationProvider>
         </ErrorBoundary>
     );
 };

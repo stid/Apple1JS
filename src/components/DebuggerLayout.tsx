@@ -5,6 +5,8 @@ import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
+import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
+import AddressLink from './AddressLink';
 
 interface DebuggerLayoutProps {
     root: IInspectableComponent;
@@ -18,6 +20,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
     const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
     const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
+    const { subscribeToNavigation } = useDebuggerNavigation();
 
     // Listen for debug info updates
     useEffect(() => {
@@ -38,6 +41,21 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
         }, 100);
         return () => clearInterval(interval);
     }, [worker]);
+
+    // Subscribe to navigation events
+    useEffect(() => {
+        const unsubscribe = subscribeToNavigation((event) => {
+            if (event.target === 'disassembly') {
+                setActiveView('disassembly');
+                setDisassemblerAddress(event.address);
+            } else if (event.target === 'memory') {
+                setActiveView('memory');
+                setMemoryViewAddress(event.address);
+            }
+        });
+
+        return unsubscribe;
+    }, [subscribeToNavigation]);
 
 
     return (
@@ -90,7 +108,14 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                                 <div className="flex items-center justify-between mb-sm">
                                     <h3 className="text-sm font-medium text-text-accent">CPU State</h3>
                                     <div className="text-xs font-mono text-text-secondary">
-                                        PC: <span className="text-data-address">{debugInfo.cpu?.REG_PC || '$0000'}</span>
+                                        PC: {debugInfo.cpu?.REG_PC ? (
+                                            <AddressLink 
+                                                address={parseInt(String(debugInfo.cpu.REG_PC).replace('$', ''), 16)} 
+                                                showContextMenu={true}
+                                            />
+                                        ) : (
+                                            <span className="text-data-address">$0000</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-sm text-sm">
@@ -163,11 +188,17 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                                 <div className="space-y-xs text-xs font-mono">
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Zero Page:</span>
-                                        <span className="text-data-address">$0000-$00FF</span>
+                                        <span>
+                                            <AddressLink address={0x0000} showContextMenu={true} /> - 
+                                            <AddressLink address={0x00FF} showContextMenu={true} />
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Stack:</span>
-                                        <span className="text-data-address">$0100-$01FF</span>
+                                        <span>
+                                            <AddressLink address={0x0100} showContextMenu={true} /> - 
+                                            <AddressLink address={0x01FF} showContextMenu={true} />
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">RAM:</span>
@@ -175,7 +206,10 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">PIA I/O:</span>
-                                        <span className="text-data-address">$D010-$D013</span>
+                                        <span>
+                                            <AddressLink address={0xD010} showContextMenu={true} /> - 
+                                            <AddressLink address={0xD013} showContextMenu={true} />
+                                        </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">BASIC:</span>
@@ -183,7 +217,10 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">WOZ Mon:</span>
-                                        <span className="text-data-address">$FF00-$FFFF</span>
+                                        <span>
+                                            <AddressLink address={0xFF00} showContextMenu={true} /> - 
+                                            <AddressLink address={0xFFFF} showContextMenu={true} />
+                                        </span>
                                     </div>
                                 </div>
                             </div>
