@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { DebugData } from '../apple1/TSTypes';
+import AddressLink from './AddressLink';
 
 interface CompactCpuRegistersProps {
     debugInfo: DebugData;
@@ -49,7 +50,11 @@ const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debu
                 <div className="flex items-center gap-md">
                     <div className="flex items-center gap-xs">
                         <span className="text-text-secondary font-medium">PC:</span>
-                        <span className="font-mono text-data-address">{registers.pc}</span>
+                        <AddressLink 
+                            address={parseInt(registers.pc.replace('$', ''), 16)} 
+                            className="font-mono"
+                            showContextMenu={true}
+                        />
                     </div>
                     <div className="flex items-center gap-xs">
                         <span className="text-text-secondary font-medium">A:</span>

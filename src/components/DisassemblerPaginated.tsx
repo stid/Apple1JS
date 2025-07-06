@@ -4,6 +4,7 @@ import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
 import { usePaginatedTable } from '../hooks/usePaginatedTable';
 import CompactCpuRegisters from './CompactCpuRegisters';
+import AddressLink from './AddressLink';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -16,6 +17,8 @@ interface DisassemblyLine {
     bytes: number[];
     instruction: string;
     operand?: string;
+    operandAddress?: number;
+    operandType?: 'absolute' | 'branch' | 'zeropage';
 }
 
 type ExecutionState = 'running' | 'paused' | 'stepping';
@@ -28,6 +31,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     const [isPaused, setIsPaused] = useState(false);
     const [isSteppingMode, setIsSteppingMode] = useState(false);
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    const lastExternalAddress = useRef<number | undefined>(externalAddress);
     
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
@@ -94,9 +98,20 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 case 'imm':
                     operand = `#$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}`;
                     break;
-                case 'zp':
-                    operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}`;
-                    break;
+                case 'zp': {
+                    const zpAddr = bytes[1] || 0;
+                    operand = `$${zpAddr.toString(16).padStart(2, '0').toUpperCase()}`;
+                    result.push({
+                        address: addr,
+                        bytes: bytes,
+                        instruction: opcodeInfo.name,
+                        operand: operand,
+                        operandAddress: zpAddr,
+                        operandType: 'zeropage'
+                    });
+                    addr += opcodeInfo.bytes;
+                    continue;
+                }
                 case 'zpx':
                     operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},X`;
                     break;
@@ -106,22 +121,58 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 case 'abs': {
                     const absAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
                     operand = `$${absAddr.toString(16).padStart(4, '0').toUpperCase()}`;
-                    break;
+                    result.push({
+                        address: addr,
+                        bytes: bytes,
+                        instruction: opcodeInfo.name,
+                        operand: operand,
+                        operandAddress: absAddr,
+                        operandType: 'absolute'
+                    });
+                    addr += opcodeInfo.bytes;
+                    continue;
                 }
                 case 'abx': {
                     const abxAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
                     operand = `$${abxAddr.toString(16).padStart(4, '0').toUpperCase()},X`;
-                    break;
+                    result.push({
+                        address: addr,
+                        bytes: bytes,
+                        instruction: opcodeInfo.name,
+                        operand: operand,
+                        operandAddress: abxAddr,
+                        operandType: 'absolute'
+                    });
+                    addr += opcodeInfo.bytes;
+                    continue;
                 }
                 case 'aby': {
                     const abyAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
                     operand = `$${abyAddr.toString(16).padStart(4, '0').toUpperCase()},Y`;
-                    break;
+                    result.push({
+                        address: addr,
+                        bytes: bytes,
+                        instruction: opcodeInfo.name,
+                        operand: operand,
+                        operandAddress: abyAddr,
+                        operandType: 'absolute'
+                    });
+                    addr += opcodeInfo.bytes;
+                    continue;
                 }
                 case 'ind': {
                     const indAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
                     operand = `($${indAddr.toString(16).padStart(4, '0').toUpperCase()})`;
-                    break;
+                    result.push({
+                        address: addr,
+                        bytes: bytes,
+                        instruction: opcodeInfo.name,
+                        operand: operand,
+                        operandAddress: indAddr,
+                        operandType: 'absolute'
+                    });
+                    addr += opcodeInfo.bytes;
+                    continue;
                 }
                 case 'izx':
                     operand = `($${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},X)`;
@@ -133,7 +184,16 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     const offset = bytes[1] || 0;
                     const target = addr + 2 + (offset > 127 ? offset - 256 : offset);
                     operand = `$${target.toString(16).padStart(4, '0').toUpperCase()}`;
-                    break;
+                    result.push({
+                        address: addr,
+                        bytes: bytes,
+                        instruction: opcodeInfo.name,
+                        operand: operand,
+                        operandAddress: target,
+                        operandType: 'branch'
+                    });
+                    addr += opcodeInfo.bytes;
+                    continue;
                 }
             }
 
@@ -238,19 +298,17 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
     
-    // Only sync initial external address
+    // Sync external address changes only when it actually changes from outside
     useEffect(() => {
-        if (externalAddress !== undefined && !hasInitialized.current) {
+        if (externalAddress !== undefined && externalAddress !== lastExternalAddress.current) {
+            lastExternalAddress.current = externalAddress;
             navigateTo(externalAddress);
-            hasInitialized.current = true;
         }
     }, [externalAddress, navigateTo]);
     
-    const hasInitialized = useRef(false);
-    
-    // Notify parent of address changes
+    // Notify parent of address changes only when changed internally
     useEffect(() => {
-        if (onAddressChange) {
+        if (onAddressChange && currentAddress !== lastExternalAddress.current) {
             onAddressChange(currentAddress);
         }
     }, [currentAddress, onAddressChange]);
@@ -459,9 +517,44 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     </td>
                     <td className="px-sm py-1 align-middle w-48">
                         <span className="text-data-status font-medium">{line.instruction}</span>
-                        {line.operand && (
+                        {line.operand && line.operandAddress !== undefined ? (
+                            <span className="ml-2">
+                                {/* Handle different operand display formats */}
+                                {line.operand.startsWith('(') ? (
+                                    // Indirect addressing: ($XXXX)
+                                    <>
+                                        <span className="text-data-value">(</span>
+                                        <AddressLink 
+                                            address={line.operandAddress} 
+                                            className="text-data-value"
+                                            showContextMenu={true}
+                                        />
+                                        <span className="text-data-value">)</span>
+                                    </>
+                                ) : line.operand.includes(',') ? (
+                                    // Indexed addressing: $XXXX,X or $XXXX,Y
+                                    <>
+                                        <AddressLink 
+                                            address={line.operandAddress} 
+                                            format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
+                                            className="text-data-value"
+                                            showContextMenu={true}
+                                        />
+                                        <span className="text-data-value">{line.operand.slice(line.operand.indexOf(','))}</span>
+                                    </>
+                                ) : (
+                                    // Simple absolute or branch addressing
+                                    <AddressLink 
+                                        address={line.operandAddress} 
+                                        format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
+                                        className="text-data-value"
+                                        showContextMenu={true}
+                                    />
+                                )}
+                            </span>
+                        ) : line.operand ? (
                             <span className="text-data-value ml-2">{line.operand}</span>
-                        )}
+                        ) : null}
                     </td>
                     <td className="px-sm py-1 align-middle text-text-secondary text-xs">
                         {getInstructionInfo(line)}
