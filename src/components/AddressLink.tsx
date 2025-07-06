@@ -55,12 +55,27 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     menu.style.left = `${e.pageX}px`;
     menu.style.top = `${e.pageY}px`;
     
+    // Function to safely remove menu
+    const safeRemoveMenu = () => {
+      if (menu.parentNode) {
+        menu.parentNode.removeChild(menu);
+      }
+      document.removeEventListener('click', removeMenuListener);
+    };
+    
+    // Define the click away listener
+    const removeMenuListener = (e: MouseEvent) => {
+      if (!menu.contains(e.target as Node)) {
+        safeRemoveMenu();
+      }
+    };
+    
     const disassemblyOption = document.createElement('button');
     disassemblyOption.className = 'block w-full text-left px-3 py-1 hover:bg-surface-secondary text-sm text-text-primary hover:text-text-accent transition-colors';
     disassemblyOption.innerHTML = '<span class="mr-2 opacity-60">↗</span>View in Disassembly';
     disassemblyOption.onclick = () => {
       navigate(address, 'disassembly');
-      document.body.removeChild(menu);
+      safeRemoveMenu();
     };
     
     const memoryOption = document.createElement('button');
@@ -68,7 +83,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     memoryOption.innerHTML = '<span class="mr-2 opacity-60">⬡</span>View in Memory Editor';
     memoryOption.onclick = () => {
       navigate(address, 'memory');
-      document.body.removeChild(menu);
+      safeRemoveMenu();
     };
     
     menu.appendChild(disassemblyOption);
@@ -88,21 +103,15 @@ const AddressLink: React.FC<AddressLinkProps> = ({
           type: WORKER_MESSAGES.RUN_TO_ADDRESS,
           data: address
         });
-        document.body.removeChild(menu);
+        safeRemoveMenu();
       };
       menu.appendChild(runToCursorOption);
     }
     document.body.appendChild(menu);
     
-    const removeMenu = (e: MouseEvent) => {
-      if (!menu.contains(e.target as Node)) {
-        document.body.removeChild(menu);
-        document.removeEventListener('click', removeMenu);
-      }
-    };
-    
+    // Add click listener after a tick to avoid immediate removal
     setTimeout(() => {
-      document.addEventListener('click', removeMenu);
+      document.addEventListener('click', removeMenuListener);
     }, 0);
   }, [address, navigate, showContextMenu, worker, showRunToCursor]);
 
