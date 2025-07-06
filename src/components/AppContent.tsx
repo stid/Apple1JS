@@ -315,7 +315,14 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
             <input
                 type="text"
                 ref={hiddenInputRef}
-                className="hidden-input-accessible"
+                style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    width: '1px',
+                    height: '1px',
+                    opacity: 0,
+                    pointerEvents: 'none'
+                }}
                 tabIndex={0}
                 aria-label="Hidden input for keyboard focus"
                 autoComplete="off"
