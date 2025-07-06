@@ -113,6 +113,10 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             // Pause the clock/emulation
             apple1.clock.pause();
             isPaused = true;
+            // Update debug interval if debugger is active
+            if (debuggerActive) {
+                updateDebuggerState(true); // Re-update to use faster interval
+            }
             // Send status update
             postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
             break;
@@ -121,6 +125,10 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             // Resume the clock/emulation
             apple1.clock.resume();
             isPaused = false;
+            // Update debug interval if debugger is active
+            if (debuggerActive) {
+                updateDebuggerState(true); // Re-update to use slower interval
+            }
             // Send status update
             postMessage({ data: 'running', type: WORKER_MESSAGES.EMULATION_STATUS });
             break;
@@ -234,19 +242,41 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             });
             break;
         }
+        case WORKER_MESSAGES.SET_DEBUGGER_ACTIVE: {
+            // Update debugger state based on visibility
+            if (typeof data === 'boolean') {
+                updateDebuggerState(data);
+            }
+            break;
+        }
     }
 };
 
-// Send debug data periodically for disassembler
-setInterval(() => {
-    const { cpu } = apple1;
-    postMessage({
-        data: {
-            cpu: { PC: cpu.PC }
-        },
-        type: WORKER_MESSAGES.DEBUG_DATA,
-    });
-}, 100); // Every 100ms
+// Track debugger state
+let debuggerActive = false;
+let debugUpdateInterval: number | null = null;
+
+// Function to start/stop debug updates based on debugger visibility
+function updateDebuggerState(active: boolean) {
+    debuggerActive = active;
+    
+    if (active && !debugUpdateInterval) {
+        // Start sending debug updates
+        debugUpdateInterval = setInterval(() => {
+            const { cpu } = apple1;
+            postMessage({
+                data: {
+                    cpu: { PC: cpu.PC }
+                },
+                type: WORKER_MESSAGES.DEBUG_DATA,
+            });
+        }, isPaused ? 100 : 250) as unknown as number; // Faster updates when paused
+    } else if (!active && debugUpdateInterval) {
+        // Stop sending debug updates
+        clearInterval(debugUpdateInterval);
+        debugUpdateInterval = null;
+    }
+}
 
 // Initialize breakpoint hook on startup
 updateBreakpointHook();

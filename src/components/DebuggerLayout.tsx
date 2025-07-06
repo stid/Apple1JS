@@ -34,13 +34,26 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
 
-    // Request debug info periodically
+    // Control debugger visibility state in worker
     useEffect(() => {
+        // Notify worker that debugger is active
+        worker.postMessage({ type: WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, data: true });
+        
+        // Cleanup: notify worker that debugger is inactive
+        return () => {
+            worker.postMessage({ type: WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, data: false });
+        };
+    }, [worker]);
+    
+    // Request debug info periodically - but only when on overview tab
+    useEffect(() => {
+        if (activeView !== 'overview') return;
+        
         const interval = setInterval(() => {
             worker.postMessage({ type: WORKER_MESSAGES.DEBUG_INFO, data: '' });
         }, 100);
         return () => clearInterval(interval);
-    }, [worker]);
+    }, [worker, activeView]);
 
     // Subscribe to navigation events
     useEffect(() => {
