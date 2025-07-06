@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useLogging } from '../contexts/LoggingContext';
+import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import AddressLink from './AddressLink';
 
 interface MemoryViewerProps {
@@ -21,7 +22,10 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     onAddressChange
 }) => {
     const [memoryData, setMemoryData] = useState<MemoryData>({});
-    const [currentAddress, setCurrentAddress] = useState(externalAddress ?? startAddress);
+    const { currentAddress, navigateInternal } = useNavigableComponent({
+        initialAddress: externalAddress ?? startAddress,
+        onAddressChange
+    });
     const [addressInput, setAddressInput] = useState((externalAddress ?? startAddress).toString(16).padStart(4, '0').toUpperCase());
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
@@ -97,22 +101,6 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     
     const effectiveRows = visibleRows;
     const size = effectiveRows * bytesPerRow;
-
-    // Only sync initial external address
-    const hasInitialized = useRef(false);
-    useEffect(() => {
-        if (externalAddress !== undefined && !hasInitialized.current) {
-            setCurrentAddress(externalAddress);
-            hasInitialized.current = true;
-        }
-    }, [externalAddress]);
-    
-    // Notify parent of address changes
-    useEffect(() => {
-        if (onAddressChange) {
-            onAddressChange(currentAddress);
-        }
-    }, [currentAddress, onAddressChange]);
     
     // Update address input when currentAddress changes
     useEffect(() => {
@@ -170,15 +158,15 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 // Ensure the address won't cause the view to exceed memory bounds
                 const maxStartAddr = Math.max(0, 0xFFFF - size + 1);
                 const validAddr = Math.min(addr, maxStartAddr);
-                setCurrentAddress(validAddr);
+                navigateInternal(validAddr);
             }
         }
     };
 
     const navigateUp = useCallback(() => {
         const newAddr = Math.max(0, currentAddress - size);
-        setCurrentAddress(newAddr);
-    }, [currentAddress, size]);
+        navigateInternal(newAddr);
+    }, [currentAddress, size, navigateInternal]);
 
     const navigateDown = useCallback(() => {
         // Calculate the maximum valid starting address
@@ -190,11 +178,11 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         // Ensure we don't go past the maximum valid start address
         if (nextAddr > maxStartAddr) {
             // Snap to the last valid page that shows up to 0xFFFF
-            setCurrentAddress(maxStartAddr);
+            navigateInternal(maxStartAddr);
         } else {
-            setCurrentAddress(nextAddr);
+            navigateInternal(nextAddr);
         }
-    }, [currentAddress, size]);
+    }, [currentAddress, size, navigateInternal]);
 
     // Keyboard navigation
     useEffect(() => {
