@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import DebuggerLayout from '../DebuggerLayout';
 import { IInspectableComponent } from '../../core/@types/IInspectableComponent';
+import { DebuggerNavigationProvider } from '../../contexts/DebuggerNavigationContext';
 
 // Mock the child components
 jest.mock('../DisassemblerPaginated', () => ({
@@ -47,7 +48,11 @@ describe('DebuggerLayout', () => {
     });
 
     it('renders overview by default', () => {
-        render(<DebuggerLayout root={mockRoot} worker={mockWorker} />);
+        render(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+            </DebuggerNavigationProvider>
+        );
         
         expect(screen.getByText('Overview')).toBeInTheDocument();
         expect(screen.getByTestId('execution-controls')).toBeInTheDocument();
@@ -55,7 +60,11 @@ describe('DebuggerLayout', () => {
     });
 
     it('switches between tabs', () => {
-        render(<DebuggerLayout root={mockRoot} worker={mockWorker} />);
+        render(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+            </DebuggerNavigationProvider>
+        );
         
         // Click Memory tab
         fireEvent.click(screen.getByText('Memory'));
@@ -69,7 +78,11 @@ describe('DebuggerLayout', () => {
     });
 
     it('maintains memory viewer address state when switching tabs', () => {
-        render(<DebuggerLayout root={mockRoot} worker={mockWorker} />);
+        render(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+            </DebuggerNavigationProvider>
+        );
         
         // Switch to Memory tab
         fireEvent.click(screen.getByText('Memory'));
@@ -90,7 +103,11 @@ describe('DebuggerLayout', () => {
     });
 
     it('maintains disassembler address state when switching tabs', () => {
-        render(<DebuggerLayout root={mockRoot} worker={mockWorker} />);
+        render(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+            </DebuggerNavigationProvider>
+        );
         
         // Switch to Disassembly tab
         fireEvent.click(screen.getByText('Disassembly'));
@@ -111,7 +128,11 @@ describe('DebuggerLayout', () => {
     });
 
     it('maintains separate address states for memory and disassembler', () => {
-        render(<DebuggerLayout root={mockRoot} worker={mockWorker} />);
+        render(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+            </DebuggerNavigationProvider>
+        );
         
         // Set memory address
         fireEvent.click(screen.getByText('Memory'));

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, DebugData } from '../apple1/TSTypes';
 import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
@@ -297,15 +297,12 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
     
-    // Only sync initial external address
+    // Sync external address changes
     useEffect(() => {
-        if (externalAddress !== undefined && !hasInitialized.current) {
+        if (externalAddress !== undefined && externalAddress !== currentAddress) {
             navigateTo(externalAddress);
-            hasInitialized.current = true;
         }
-    }, [externalAddress, navigateTo]);
-    
-    const hasInitialized = useRef(false);
+    }, [externalAddress, navigateTo, currentAddress]);
     
     // Notify parent of address changes
     useEffect(() => {
