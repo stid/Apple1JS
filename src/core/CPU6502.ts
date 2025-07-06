@@ -1320,6 +1320,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
     private profileData: Map<number, { count: number; cycles: number }> = new Map();
     private enableProfiling: boolean = false;
     
+    // Execution hook for debugging (breakpoints, etc)
+    private executionHook?: (pc: number) => boolean;
+    
     // Cycle-accurate timing mode for debugging
     private cycleAccurateMode: boolean = true;
     private busAccesses: Array<{ address: number; type: 'read' | 'write'; value?: number }> = [];
@@ -1387,6 +1390,12 @@ class CPU6502 implements IClockable, IInspectableComponent {
         if (this.cycleAccurateMode) {
             this.busAccesses = [];
             this.currentInstructionCycles = 0;
+        }
+        
+        // Check execution hook (for breakpoints, etc)
+        if (this.executionHook && !this.executionHook(this.PC)) {
+            // Hook returned false - halt execution without advancing
+            return 0;
         }
         
         // Check for interrupts before executing next instruction
@@ -1519,6 +1528,15 @@ class CPU6502 implements IClockable, IInspectableComponent {
      */
     getBusAccessHistory(): Array<{ address: number; type: 'read' | 'write'; value?: number }> {
         return [...this.busAccesses];
+    }
+    
+    /**
+     * Set execution hook for debugging (e.g., breakpoints)
+     * The hook is called before each instruction fetch with the current PC.
+     * Return false to halt execution, true to continue.
+     */
+    setExecutionHook(hook?: (pc: number) => boolean): void {
+        this.executionHook = hook;
     }
     
     /**
