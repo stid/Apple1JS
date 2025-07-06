@@ -87,6 +87,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
         const handleWorkerMessage = (event: MessageEvent) => {
             if (event.data && event.data.type === WORKER_MESSAGES.LOG_MESSAGE) {
                 const logData = event.data.data as LogMessageData;
+                console.debug(`[App] Received log message from worker:`, logData);
                 addMessage({
                     level: logData.level,
                     source: logData.source,

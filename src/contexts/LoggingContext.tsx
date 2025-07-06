@@ -67,6 +67,9 @@ export const LoggingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const addMessage = useCallback((newMessage: Omit<LogMessage, 'id' | 'timestamp' | 'count'>) => {
         const key = `${newMessage.source}-${newMessage.message}`;
         
+        // Debug log
+        console.debug(`[LoggingContext] Adding message: ${newMessage.level} - ${newMessage.source} - ${newMessage.message}`);
+        
         // Add or update pending message
         const existing = pendingMessages.current.get(key);
         if (existing) {

@@ -15,8 +15,21 @@ class LoggingService {
     }
 
     log(level: LogLevel, source: string, message: string): void {
-        // Always log to console in development
-        if (process.env.NODE_ENV === 'development') {
+        // Always log to console for debugging
+        // In workers, import.meta might not be available, so default to logging
+        let isDev = true;
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const meta = import.meta as any;
+            if (meta && meta.env && typeof meta.env.DEV === 'boolean') {
+                isDev = meta.env.DEV;
+            }
+        } catch {
+            // If import.meta is not available (e.g., in worker), default to true
+            isDev = true;
+        }
+        
+        if (isDev) {
             switch (level) {
                 case 'info':
                     console.log(`[${source}] ${message}`);
