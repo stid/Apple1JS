@@ -36,9 +36,9 @@ When badges are clicked:
 2. **LoggingContext.tsx** - Add methods for getting counts by level
 3. Remove **StatusPanel** from inline display
 
-## Implementation Plan
+## How to Build It
 
-### Phase 1: Badge System
+### Badge System
 ```tsx
 // In App.tsx header area (after tab buttons)
 <div className="flex items-center gap-2 ml-auto">

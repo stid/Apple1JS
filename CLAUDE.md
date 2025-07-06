@@ -18,23 +18,31 @@
 
 Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/React. Features cycle-accurate 6502 CPU emulation, authentic CRT display with phosphor effects, and full debugging capabilities. The architecture separates emulation logic (Web Worker) from UI for performance.
 
+**This is a personal hobby project** - I use it to learn about new technologies and patterns, including exploring AI for coding and feature development. There are no deadlines, sprints, or engineering timelines. If an idea seems interesting, we can explore it at our own pace. I enjoy gap analysis and setting goals, but everything remains driven by passion and learning rather than external pressure.
+
 ## 🧠 Claude Instructions
 
-**Phase 1 – Analysis & Proposal**
+**Working Style**
 
-- Document findings in `@docs/architecture_analysis.md` or `@docs/user_experience_analysis.md`
-- **CRITICAL**: Wait for "✅ Phase 1 Approved" - prevents wasted work and ensures alignment
+- Keep documentation informal and focused on learning/exploration
+- Avoid corporate language (sprints, deadlines, action items, etc.)
+- Frame improvements as "ideas to explore" or "things that would be cool"
+- Remember this is a passion project for learning, not a production system
 
-**Phase 2 – Implementation**
+**When Analyzing/Proposing Changes**
 
-- Follow approved plan exactly - deviations require discussion
+- Document findings in `@docs/` folder as informal explorations
+- Feel free to suggest improvements, but frame them as opportunities to learn
+- No rigid phases - we can analyze and implement as we go
+
+**When Implementing**
+
 - Run tests before/after changes to ensure no regression
 - **MANDATORY**: Update `src/version.ts` BEFORE creating any pull request
   - Minor version bump for new features (e.g., 4.11.0 → 4.12.0)
   - Patch version bump for bug fixes (e.g., 4.11.0 → 4.11.1)
   - Major version bump for breaking changes (e.g., 4.11.0 → 5.0.0)
-- Run full CI pipeline: `yarn run lint && yarn run type-check && yarn run test:ci`
-- Mark completed items with ✅ in analysis docs for tracking
+- Run quality checks: `yarn run lint && yarn run type-check && yarn run test:ci`
 
 **CRITICAL**: Never create a pull request without updating the version number first!
 

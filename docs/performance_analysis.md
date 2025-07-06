@@ -1,8 +1,8 @@
 # Performance Analysis: Disassembler & Debug Components
 
-## Overview
+## What's This About
 
-Analysis of performance issues in the disassembler and debug components, particularly CPU overhead when the disassembler tab is open.
+I noticed the CPU usage goes up when the debugger is open, especially with the disassembler tab. Here's what I found when digging into it.
 
 ## Key Findings
 
@@ -56,9 +56,9 @@ Components poll for memory data even when:
 - With multiple tabs: Can reach 5-10% CPU usage
 - During stepping/debugging: Additional spikes
 
-## Recommended Optimizations
+## Ideas to Make It Faster
 
-### 1. Conditional Updates (High Priority)
+### 1. Only Update When Needed
 
 Only send debug data when needed:
 
@@ -73,57 +73,57 @@ if (debuggerActive) {
 }
 ```
 
-### 2. Consolidate Update Mechanisms (High Priority)
+### 2. Combine the Update Messages
 
 - Remove the global 100ms `DEBUG_DATA` timer
 - Use request-based updates only
 - Combine `DEBUG_DATA` and `DEBUG_INFO` into single message type
 
-### 3. Smart Memory Caching (Medium Priority)
+### 3. Cache Memory Reads
 
 - Cache memory reads in components
 - Only re-request when PC changes significantly
 - Implement dirty tracking for memory modifications
 
-### 4. Visibility-Based Updates (Medium Priority)
+### 4. Only Update What's Visible
 
 - Track which debug tab is active
 - Only update visible components
 - Pause updates for hidden tabs
 
-### 5. Throttle Updates During Execution (Medium Priority)
+### 5. Slow Down Updates When Running
 
 - Reduce update frequency when running (not paused)
 - Increase frequency only during stepping/debugging
 - Use 500ms intervals for running state, 100ms for paused
 
-### 6. Batch Worker Messages (Low Priority)
+### 6. Bundle Messages Together
 
 - Combine multiple data requests into single message
 - Reduce message passing overhead
 
-## Implementation Plan
+## How I Might Fix This
 
-### Phase 1: Quick Wins
+### Easy Stuff First
 
-1. Make worker debug timer conditional on debugger visibility
-2. Remove duplicate DEBUG_INFO requests in DisassemblerPaginated when not paused
-3. Increase update interval to 250ms for running state
+1. Only run the debug timer when the debugger is actually open
+2. Stop the duplicate requests when not paused
+3. Use slower updates (250ms) when running
 
-### Phase 2: Architectural Improvements
+### Bigger Changes
 
-1. Implement debugger active state tracking
-2. Add visibility detection for debug tabs
-3. Create unified debug data request system
+1. Track when the debugger is active
+2. Know which tab is visible
+3. Make one unified way to request debug data
 
-### Phase 3: Advanced Optimizations
+### Fancy Stuff (Maybe Later)
 
-1. Implement memory caching layer
-2. Add dirty tracking for memory regions
-3. Create predictive prefetching for disassembly
+1. Cache memory reads
+2. Track which memory changed
+3. Pre-fetch disassembly before it's needed
 
-## Expected Results
+## What This Should Fix
 
-- 50-70% reduction in CPU usage when debugger is open
-- Near-zero overhead when debugger is closed
-- Smoother UI interactions during debugging
+- Cut CPU usage by half or more when debugging
+- Almost no overhead when debugger is closed
+- Smoother UI when stepping through code
