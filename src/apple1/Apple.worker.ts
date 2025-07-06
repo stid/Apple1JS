@@ -23,6 +23,7 @@ const apple1 = new Apple1({ video: video, keyboard: keyboard });
 
 // Breakpoint management
 const breakpoints = new Set<number>();
+let runToCursorTarget: number | null = null; // Track run-to-cursor target
 let isPaused = false;
 let isStepping = false; // Track if we're in a step operation
 
@@ -255,6 +256,77 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                 data: isPaused ? 'paused' : 'running', 
                 type: WORKER_MESSAGES.EMULATION_STATUS 
             });
+            break;
+        }
+        case WORKER_MESSAGES.RUN_TO_ADDRESS: {
+            // Run execution until reaching the target address
+            if (typeof data === 'number') {
+                const targetAddress = data;
+                
+                // Don't run if we're already at the target address
+                if (apple1.cpu.PC === targetAddress) {
+                    loggingService.log('info', 'RunToAddress', `Already at target address $${targetAddress.toString(16).padStart(4, '0').toUpperCase()}`);
+                    break;
+                }
+                
+                // Store the run-to-cursor target
+                runToCursorTarget = targetAddress;
+                
+                // Notify UI about the run-to-cursor target
+                postMessage({ 
+                    data: runToCursorTarget, 
+                    type: WORKER_MESSAGES.RUN_TO_CURSOR_TARGET 
+                });
+                
+                // Set up a temporary execution hook for run-to-address
+                let runToAddressHit = false;
+                
+                apple1.cpu.setExecutionHook((pc: number) => {
+                    // Skip breakpoint check if we're stepping
+                    if (isStepping) {
+                        return true;
+                    }
+                    
+                    // Check existing breakpoints first
+                    if (!isPaused && breakpoints.has(pc)) {
+                        // Hit a breakpoint - pause execution
+                        apple1.clock.pause();
+                        isPaused = true;
+                        postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
+                        postMessage({ data: pc, type: WORKER_MESSAGES.BREAKPOINT_HIT });
+                        loggingService.log('info', 'Breakpoint', `Hit breakpoint at $${pc.toString(16).padStart(4, '0').toUpperCase()}`);
+                        return false; // Halt execution
+                    }
+                    
+                    // Check if we've reached the target address
+                    if (pc === targetAddress && !runToAddressHit) {
+                        runToAddressHit = true;
+                        // Clear run-to-cursor target
+                        runToCursorTarget = null;
+                        // Pause execution
+                        apple1.clock.pause();
+                        isPaused = true;
+                        // Restore normal breakpoint hook
+                        updateBreakpointHook();
+                        // Send notifications
+                        postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
+                        postMessage({ data: null, type: WORKER_MESSAGES.RUN_TO_CURSOR_TARGET });
+                        loggingService.log('info', 'RunToAddress', `Reached target address $${targetAddress.toString(16).padStart(4, '0').toUpperCase()}`);
+                        return false; // Halt execution
+                    }
+                    
+                    return true; // Continue execution
+                });
+                
+                // Resume execution to run to the target
+                if (isPaused) {
+                    apple1.clock.resume();
+                    isPaused = false;
+                    postMessage({ data: 'running', type: WORKER_MESSAGES.EMULATION_STATUS });
+                }
+                
+                loggingService.log('info', 'RunToAddress', `Running to address $${targetAddress.toString(16).padStart(4, '0').toUpperCase()}`);
+            }
             break;
         }
     }

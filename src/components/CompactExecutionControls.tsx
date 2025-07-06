@@ -166,7 +166,7 @@ const CompactExecutionControls: React.FC<CompactExecutionControlsProps> = ({
                     }`}>
                         {executionState.toUpperCase()}
                     </span>
-                    <span className="text-xs text-text-muted ml-sm hidden sm:inline">F10: Step • F5: Run/Pause • F8: Jump to PC • F9: Breakpoint</span>
+                    <span className="text-xs text-text-muted ml-sm hidden sm:inline">F10: Step • F5: Run/Pause • F7: Run to PC • F8: Jump to PC • F9: Breakpoint</span>
                 </div>
             </div>
         </section>

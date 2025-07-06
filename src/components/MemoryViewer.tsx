@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useLogging } from '../contexts/LoggingContext';
+import AddressLink from './AddressLink';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -137,8 +138,17 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
 
         // Address column
         cells.push(
-            <td key="addr" className="px-2 py-1 text-data-address font-mono text-xs">
-                {baseAddr.toString(16).padStart(4, '0').toUpperCase()}:
+            <td key="addr" className="px-2 py-1 font-mono text-xs">
+                <AddressLink
+                    address={baseAddr}
+                    format="hex4"
+                    prefix=""
+                    worker={worker}
+                    showContextMenu={true}
+                    showRunToCursor={true}
+                    className="font-mono text-xs"
+                />
+                <span className="text-data-address">:</span>
             </td>
         );
 

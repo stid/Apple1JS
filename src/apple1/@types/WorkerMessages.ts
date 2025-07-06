@@ -29,7 +29,9 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS>
     | BaseWorkerMessage<WORKER_MESSAGES.GET_BREAKPOINTS>
     | BaseWorkerMessage<WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, boolean>
-    | BaseWorkerMessage<WORKER_MESSAGES.GET_EMULATION_STATUS>;
+    | BaseWorkerMessage<WORKER_MESSAGES.GET_EMULATION_STATUS>
+    | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_ADDRESS, number>
+    | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_CURSOR_TARGET, number | null>;
 
 /**
  * Type guard to check if a message is a valid WorkerMessage
