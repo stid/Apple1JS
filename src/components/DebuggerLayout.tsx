@@ -11,16 +11,32 @@ import AddressLink from './AddressLink';
 interface DebuggerLayoutProps {
     root: IInspectableComponent;
     worker: Worker;
+    initialNavigation?: { address: number; target: 'memory' | 'disassembly' } | null;
+    onNavigationHandled?: () => void;
 }
 
 type DebugView = 'overview' | 'memory' | 'disassembly';
 
-const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker }) => {
+const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigation, onNavigationHandled }) => {
     const [activeView, setActiveView] = useState<DebugView>('overview');
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
     const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
     const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
     const { subscribeToNavigation } = useDebuggerNavigation();
+    
+    // Handle initial navigation from parent
+    useEffect(() => {
+        if (initialNavigation) {
+            if (initialNavigation.target === 'disassembly') {
+                setActiveView('disassembly');
+                setDisassemblerAddress(initialNavigation.address);
+            } else if (initialNavigation.target === 'memory') {
+                setActiveView('memory');
+                setMemoryViewAddress(initialNavigation.address);
+            }
+            onNavigationHandled?.();
+        }
+    }, [initialNavigation, onNavigationHandled]);
 
     // Listen for debug info updates
     useEffect(() => {

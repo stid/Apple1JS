@@ -27,10 +27,14 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
     const { subscribeToNavigation } = useDebuggerNavigation();
+    
+    // Store the pending navigation for when debugger tab is activated
+    const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
 
     // Subscribe to navigation events and switch to debugger tab
     useEffect(() => {
-        const unsubscribe = subscribeToNavigation(() => {
+        const unsubscribe = subscribeToNavigation((event) => {
+            setPendingNavigation({ address: event.address, target: event.target });
             setRightTab('debugger');
         });
         return unsubscribe;
@@ -178,7 +182,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
     );
 
     return (
-        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1 overflow-auto">
+        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
             {/* Left column: CRT, Actions */}
             <div
                 className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
@@ -230,7 +234,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
             </div>
 
             {/* Right column */}
-            <div className="flex-1 bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md flex flex-col mx-auto lg:mx-0 mt-1 lg:mt-0 lg:h-auto lg:max-h-full overflow-hidden">
+            <div className="flex-1 bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md flex flex-col mt-1 lg:mt-0 overflow-hidden">
                 <div className="flex-none flex items-center justify-between mb-md">
                     <div className="flex gap-sm">
                         <button
@@ -295,7 +299,12 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                     )}
                     {rightTab === 'debugger' && apple1Instance && (
                         <div className="h-full" style={{ overflow: 'hidden' }}>
-                            <DebuggerLayout root={apple1Instance} worker={worker} />
+                            <DebuggerLayout 
+                                root={apple1Instance} 
+                                worker={worker} 
+                                initialNavigation={pendingNavigation}
+                                onNavigationHandled={() => setPendingNavigation(null)}
+                            />
                         </div>
                     )}
                     {rightTab === 'debugger' && !apple1Instance && (
