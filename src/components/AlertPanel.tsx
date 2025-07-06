@@ -47,11 +47,11 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
     const getLevelIcon = (level: LogLevel) => {
         switch (level) {
             case 'info':
-                return 'ℹ️';
+                return '•';
             case 'warn':
-                return '⚠️';
+                return '▲';
             case 'error':
-                return '❌';
+                return '■';
         }
     };
 
@@ -98,7 +98,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             onClick={() => setFilter('info')}
                             className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
                                 filter === 'info' 
-                                    ? 'bg-text-accent text-black' 
+                                    ? 'bg-semantic-info text-surface-primary' 
                                     : 'bg-surface-tertiary text-text-secondary hover:bg-surface-quaternary'
                             }`}
                         >
@@ -108,7 +108,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             onClick={() => setFilter('warn')}
                             className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
                                 filter === 'warn' 
-                                    ? 'bg-text-accent text-black' 
+                                    ? 'bg-semantic-warning text-surface-primary' 
                                     : 'bg-surface-tertiary text-text-secondary hover:bg-surface-quaternary'
                             }`}
                         >
@@ -118,7 +118,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             onClick={() => setFilter('error')}
                             className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
                                 filter === 'error' 
-                                    ? 'bg-text-accent text-black' 
+                                    ? 'bg-semantic-error text-white' 
                                     : 'bg-surface-tertiary text-text-secondary hover:bg-surface-quaternary'
                             }`}
                         >
@@ -147,13 +147,9 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                                <span className={`text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded ${
-                                                    message.level === 'info' ? 'bg-semantic-info text-surface-primary' :
-                                                    message.level === 'warn' ? 'bg-semantic-warning text-surface-primary' :
-                                                    'bg-semantic-error text-white'
-                                                }`}>
-                                                    <span>{getLevelIcon(message.level)}</span>
-                                                    <span className="font-bold uppercase">{message.level}</span>
+                                                <span className={`text-xs ${getLevelColor(message.level)} flex items-center gap-1`}>
+                                                    <span className="text-[10px]">{getLevelIcon(message.level)}</span>
+                                                    <span className="text-[10px] font-bold uppercase">{message.level}</span>
                                                 </span>
                                                 <span className="text-[10px] text-text-secondary font-mono">
                                                     {message.source}
