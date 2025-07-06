@@ -485,4 +485,68 @@ describe('CPU6502', function () {
     // Load/Store operations tests are now in CPU6502-LoadStore.test.ts
     // Arithmetic operations tests are now in CPU6502-Arithmetic.test.ts  
     // Branch operations tests are now in CPU6502-Branch.test.ts
+
+    describe('Cycle-accurate mode', function() {
+        test('Bus access tracking when enabled', function() {
+            // Setup a simple program
+            const romData = Array(255).fill(0xff + 2);
+            romData[2 + 0xfd] = 0xff;
+            romData[2 + 0xfc] = 0x00;
+            
+            // Simple program: NOP
+            const prog = [0xea];
+            romData.splice(0, prog.length, ...prog);
+            romInstance.flash(romData);
+            
+            cpu.reset();
+            
+            // Verify cycle-accurate mode is disabled by default
+            cpu.performSingleStep();
+            expect(cpu.getBusAccessHistory().length).toBe(0);
+            
+            // Enable cycle-accurate mode
+            cpu.setCycleAccurateMode(true);
+            
+            // Execute NOP - should track read access
+            cpu.performSingleStep();
+            let history = cpu.getBusAccessHistory();
+            expect(history.length).toBeGreaterThan(0);
+            expect(history.some(h => h.type === 'read')).toBe(true);
+            
+            // Disable cycle-accurate mode
+            cpu.setCycleAccurateMode(false);
+            
+            // Execute another instruction and verify no new accesses are tracked
+            cpu.performSingleStep();
+            expect(cpu.getBusAccessHistory().length).toBe(0);
+            
+            // Re-enable and verify it starts tracking again
+            cpu.setCycleAccurateMode(true);
+            cpu.performSingleStep();
+            expect(cpu.getBusAccessHistory().length).toBeGreaterThan(0);
+        });
+        
+        test('Bus access history limit', function() {
+            // Enable cycle-accurate mode
+            cpu.setCycleAccurateMode(true);
+            
+            // Create a program with many memory accesses
+            const romData = Array(255).fill(0xea); // NOPs
+            romData[255] = 0x00; // Reset vector low
+            romData[254] = 0xff; // Reset vector high
+            romInstance.flash(romData);
+            
+            cpu.reset();
+            
+            // Execute many instructions to exceed the limit
+            for (let i = 0; i < 2000; i++) {
+                cpu.performSingleStep();
+            }
+            
+            // Verify history is limited to MAX_BUS_ACCESS_HISTORY (1000)
+            const history = cpu.getBusAccessHistory();
+            expect(history.length).toBeLessThanOrEqual(1000);
+            expect(history.length).toBeGreaterThan(0);
+        });
+    });
 });
