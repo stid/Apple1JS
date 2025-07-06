@@ -3,7 +3,7 @@ import { LogMessage, LoggingContextType, LogLevel } from '../types/logging';
 import { loggingService } from '../services/LoggingService';
 
 const MAX_MESSAGES = 1000;
-const BATCH_UPDATE_DELAY = 100; // ms
+const BATCH_UPDATE_DELAY = 10; // ms - reduced from 100ms for more responsive UI
 
 const LoggingContext = createContext<LoggingContextType | undefined>(undefined);
 

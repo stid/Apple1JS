@@ -15,7 +15,6 @@ video.subscribe((data: WebCrtVideoSubFuncVideoType) => {
 
 // Set up worker-to-main thread log message forwarding
 loggingService.addHandler((level, source, message) => {
-    console.log(`[Worker] Forwarding log: ${level} - ${source} - ${message}`);
     const logData: LogMessageData = { level, source, message };
     postMessage({ data: logData, type: WORKER_MESSAGES.LOG_MESSAGE });
 });
