@@ -2,15 +2,15 @@
 
 ## Overview
 
-This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emulation experience and powerful debugging tools for vintage computing enthusiasts and developers.
+This is where I keep notes about UX/UI improvements I've made or want to explore. The focus is on making the emulator feel authentic while adding useful debugging features.
 
-## Current State (July 2025)
+## What's Been Done (July 2025)
 
-### ✅ Phase 1: UI Layout & Design System (COMPLETED)
+### ✅ UI Layout & Design System
 
-**What we built**: Comprehensive design token system establishing visual consistency.
+**What I built**: A design token system to keep colors and spacing consistent.
 
-**Why it mattered**: Previously, colors and spacing were hardcoded throughout components, making theme changes impossible and creating visual inconsistency.
+**Why I did it**: Colors and spacing were hardcoded everywhere, making it a pain to change anything.
 
 **Key components**:
 
@@ -19,7 +19,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - Design tokens in `src/styles/tokens.ts`
 - Typography scale for visual hierarchy
 
-### ✅ Phase 2: Visual Polish (COMPLETED)
+### ✅ Visual Polish
 
 **Advanced CRT Effects**: Authentic phosphor persistence, bloom, and barrel distortion.
 
@@ -30,7 +30,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - Barrel distortion: CSS transforms
 - Performance: Maintains 60fps
 
-### ✅ Phase 3: Integrated Debugger (COMPLETED)
+### ✅ Integrated Debugger
 
 **Problem solved**: Initial debugger crammed everything into one view - users complained "too compressed".
 
@@ -40,19 +40,19 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - **MemoryViewer**: 768-byte hex view with address navigation
 - **StackViewer**: Real-time 6502 stack monitor ($0100-$01FF)
 
-**Key learnings**:
+**What I learned**:
 
-- Users need focused views, not information density
-- Consistent navigation patterns matter (address input like disassembler)
-- Smart scrolling improves navigation (up=bottom, down=top)
+- People want focused views, not everything crammed together
+- Navigation should work the same way everywhere
+- Smart scrolling makes navigation feel better
 
-## Next Priority: Phase 4 - Advanced Debugging
+## Ideas to Explore Next
 
 ### Execution Control
 
-**Why critical**: Current debugger is read-only. Power users need precise control for debugging vintage software.
+**The goal**: The debugger is currently read-only. Would be cool to have precise control for debugging vintage software.
 
-**Tasks**:
+**Things to try**:
 
 - [x] Step-by-step execution (CPU already supports it) ✅
 - [x] Breakpoint UI with visual indicators ✅
@@ -60,55 +60,55 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - [x] Run-to-cursor in disassembler ✅
 - [ ] Conditional breakpoints (e.g., "break when A=$FF")
 
-**Implementation notes**:
+**Notes to self**:
 
 - Worker messages exist: STEP, SET_BREAKPOINT
 - Need UI integration in DebuggerLayout
 - Store breakpoints in worker for performance
-- Auto-follow PC: Implemented to track PC during stepping, automatically navigates view when PC jumps outside visible range
+- Auto-follow PC: Done! It tracks PC during stepping and scrolls automatically
 
 ### Memory Analysis
 
-**Why critical**: Finding specific data in 64KB is tedious without search.
+**The problem**: Finding specific data in 64KB is tedious without search.
 
-**Tasks**:
+**Would be nice to have**:
 
 - [ ] Search for bytes/ASCII strings
 - [ ] Highlight results in MemoryViewer
 - [ ] Navigate between matches
 - [ ] Memory write support (UI ready, needs worker)
 
-**Implementation approach**:
+**How I might do it**:
 
 - Add search bar to MemoryViewer
 - Use worker for efficient searching
-- Maintain result indices for navigation
+- Keep track of results for navigation
 
 ### Watch Expressions
 
-**Why useful**: Monitor specific values without constantly navigating.
+**The idea**: Monitor specific values without constantly navigating.
 
-**Tasks**:
+**Features to explore**:
 
 - [ ] Add/remove watch expressions
 - [ ] Support memory addresses and registers
 - [ ] Update values in real-time
 
-## Phase 5: Hardware Authenticity
+## Fun Hardware Authenticity Ideas
 
 ### Audio Package
 
-**Quick wins for authenticity**:
+**Easy things that would add atmosphere**:
 
 - [ ] Keyboard click sounds (mechanical switches)
 - [ ] System beeps for errors
 - [ ] Volume controls
 
-**Implementation**: Web Audio API with pre-recorded samples
+**How to do it**: Web Audio API with pre-recorded samples
 
 ### Visual Enhancements
 
-**Complete the vintage experience**:
+**More vintage touches**:
 
 - [ ] Power-on sequence (degauss animation)
 - [ ] Activity LEDs for I/O operations
@@ -116,7 +116,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 
 ### Cassette Interface
 
-**Preserve software history**:
+**For preserving old software**:
 
 - [ ] Audio generation for tape save
 - [ ] WAV file loading support
@@ -142,31 +142,30 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - Message batching reduces overhead
 - Virtual scrolling for large data sets
 
-## Known Issues & Technical Debt
+## Things That Bug Me
 
 1. **Memory Write**: UI complete but worker lacks implementation
 2. **Component Colors**: Some legacy components still hardcode colors
 3. **Markdown Formatting**: This file has linting warnings
 4. **Tab State Persistence**: ✅ FIXED - Views now maintain their address position when switching tabs
 
-## Success Metrics
+## Things I'm Happy About
 
-- ✅ 60fps with all effects enabled
-- ✅ Positive feedback on tabbed debugger
-- ✅ CRT effects match reference photos
-- ⏳ Execution control adoption (after implementation)
-- ⏳ Memory search usage metrics
+- ✅ Runs at 60fps with all effects enabled
+- ✅ People like the tabbed debugger layout
+- ✅ CRT effects look authentic compared to real photos
+- 💭 Curious to see if people will use execution control when I add it
+- 💭 Memory search seems like it would be really useful
 
-## Implementation Priority Order
+## What I'd Like to Work on Next (in rough order of coolness)
 
-1. **Execution Control** - Highest user value, enables precise debugging
-2. **Memory Search** - Most requested feature in feedback
-3. **Audio Effects** - Quick wins for authenticity
-4. **Watch Expressions** - Improves debugging workflow
-5. **Cassette Interface** - Preserves software history
+1. **Execution Control** - Would make debugging way more powerful
+2. **Memory Search** - People keep asking for this
+3. **Audio Effects** - Easy to add and would be fun
+4. **Watch Expressions** - Nice quality of life improvement
+5. **Cassette Interface** - Would be cool to load real Apple 1 software
 
 ## References
 
 - [6502 Instruction Set](http://www.6502.org/tutorials/6502opcodes.html)
 - [Apple 1 Memory Map](http://www.applefritter.com/node/2824)
-- Original user feedback threads (internal)
