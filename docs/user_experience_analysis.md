@@ -56,6 +56,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 
 - [x] Step-by-step execution (CPU already supports it) ✅
 - [x] Breakpoint UI with visual indicators ✅
+- [x] Auto-follow PC during step execution ✅
 - [ ] Run-to-cursor in disassembler
 - [ ] Conditional breakpoints (e.g., "break when A=$FF")
 
@@ -64,6 +65,7 @@ This document tracks UX/UI enhancements for Apple1JS, focusing on authentic emul
 - Worker messages exist: STEP, SET_BREAKPOINT
 - Need UI integration in DebuggerLayout
 - Store breakpoints in worker for performance
+- Auto-follow PC: Implemented to track PC during stepping, automatically navigates view when PC jumps outside visible range
 
 ### Memory Analysis
 

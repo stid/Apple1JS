@@ -3,6 +3,7 @@ import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, DebugData } from 
 import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
 import { usePaginatedTable } from '../hooks/usePaginatedTable';
+import CompactCpuRegisters from './CompactCpuRegisters';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -25,6 +26,8 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [isPaused, setIsPaused] = useState(false);
+    const [isSteppingMode, setIsSteppingMode] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<DebugData>({});
     
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
@@ -159,12 +162,28 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
             }
             
             if (event.data?.type === WORKER_MESSAGES.DEBUG_DATA) {
+                // DEBUG_DATA is sent every 100ms by the worker and only contains PC
+                // It's used for tracking PC changes for auto-follow functionality
                 const debugData = event.data.data as DebugData;
+                
                 if (debugData.cpu?.PC !== undefined) {
                     const pc = typeof debugData.cpu.PC === 'string' 
                         ? parseInt(debugData.cpu.PC.replace('$', ''), 16)
                         : debugData.cpu.PC;
                     setCurrentPC(pc);
+                    
+                    // Auto-follow PC during stepping
+                    if (isSteppingMode && executionState === 'paused') {
+                        // Check if PC is visible in current view
+                        const firstVisibleAddr = lines[0]?.address || currentAddress;
+                        const lastVisibleAddr = lines[lines.length - 1]?.address || currentAddress;
+                        
+                        if (pc < firstVisibleAddr || pc > lastVisibleAddr) {
+                            // PC is outside visible range, navigate to it
+                            navigateTo(pc);
+                        }
+                        setIsSteppingMode(false); // Reset stepping mode
+                    }
                 }
             }
             
@@ -175,13 +194,30 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
             
             if (event.data?.type === WORKER_MESSAGES.BREAKPOINT_HIT) {
                 const hitPC = event.data.data as number;
+                setCurrentPC(hitPC); // Update currentPC for highlighting
                 navigateTo(hitPC);
+            }
+            
+            if (event.data?.type === WORKER_MESSAGES.DEBUG_INFO) {
+                // DEBUG_INFO contains full CPU state (all registers, flags, etc)
+                // It's requested only when paused for the register display
+                const debugData = event.data.data as DebugData;
+                setDebugInfo(debugData);
+                
+                // Also update PC from DEBUG_INFO
+                const pcValue = debugData.cpu?.REG_PC || debugData.cpu?.PC;
+                if (pcValue !== undefined) {
+                    const pc = typeof pcValue === 'string' 
+                        ? parseInt(pcValue.replace('$', ''), 16)
+                        : pcValue;
+                    setCurrentPC(pc);
+                }
             }
         };
 
         worker.addEventListener('message', handleWorkerMessage);
         return () => worker.removeEventListener('message', handleWorkerMessage);
-    }, [worker, disassembleMemory, navigateTo, visibleRows]);
+    }, [worker, disassembleMemory, navigateTo, visibleRows, isSteppingMode, executionState, lines, currentAddress]);
     
     // Listen for emulation status updates
     useEffect(() => {
@@ -227,13 +263,15 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         worker.postMessage({ type: WORKER_MESSAGES.GET_BREAKPOINTS });
     }, [navigateTo, worker, externalAddress]);
     
-    // Request debug info periodically
+    // Request debug info periodically - but only when paused (for register display)
     useEffect(() => {
+        if (!isPaused) return; // Only request when paused
+        
         const interval = setInterval(() => {
             worker.postMessage({ type: WORKER_MESSAGES.DEBUG_INFO, data: '' });
         }, 100);
         return () => clearInterval(interval);
-    }, [worker]);
+    }, [worker, isPaused]);
     
     // Navigation overrides for instruction-aware navigation
     const handleNavigateUp = useCallback(() => {
@@ -282,6 +320,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     // Execution controls
     const handleStep = useCallback(() => {
         setExecutionState('stepping');
+        setIsSteppingMode(true);  // Mark that we're stepping
         worker.postMessage({ type: WORKER_MESSAGES.STEP });
         setTimeout(() => {
             setExecutionState('paused');
@@ -521,21 +560,31 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     }, [currentPC, isPaused, handleStep, handleRunPause, jumpToPC, toggleBreakpoint]);
     
     return (
-        <PaginatedTableView
-            currentAddress={currentAddress}
-            onAddressChange={navigateTo}
-            onNavigateUp={handleNavigateUp}
-            onNavigateDown={handleNavigateDown}
-            addressRange={getCustomAddressRange()}
-            rowCount={lines.length}
-            renderTableHeader={renderTableHeader}
-            renderTableRows={renderTableRows}
-            renderExtraControls={renderExtraControls}
-            renderStatusInfo={renderStatusInfo}
-            keyboardShortcuts="↑↓: Navigate • F10: Step • F5: Run/Pause • F8: Jump to PC • F9: Breakpoint"
-            containerRef={containerRef}
-            contentRef={contentRef}
-        />
+        <div className="flex flex-col h-full">
+            {/* Compact CPU Registers - only show when paused/stepping */}
+            {isPaused && (
+                <CompactCpuRegisters debugInfo={debugInfo} />
+            )}
+            
+            {/* Disassembler Table */}
+            <div className="flex-1">
+                <PaginatedTableView
+                    currentAddress={currentAddress}
+                    onAddressChange={navigateTo}
+                    onNavigateUp={handleNavigateUp}
+                    onNavigateDown={handleNavigateDown}
+                    addressRange={getCustomAddressRange()}
+                    rowCount={lines.length}
+                    renderTableHeader={renderTableHeader}
+                    renderTableRows={renderTableRows}
+                    renderExtraControls={renderExtraControls}
+                    renderStatusInfo={renderStatusInfo}
+                    keyboardShortcuts="↑↓: Navigate • F10: Step • F5: Run/Pause • F8: Jump to PC • F9: Breakpoint"
+                    containerRef={containerRef}
+                    contentRef={contentRef}
+                />
+            </div>
+        </div>
     );
 };
 

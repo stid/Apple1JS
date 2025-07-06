@@ -24,6 +24,35 @@ const apple1 = new Apple1({ video: video, keyboard: keyboard });
 // Breakpoint management
 const breakpoints = new Set<number>();
 let isPaused = false;
+let isStepping = false; // Track if we're in a step operation
+
+// Setup execution hook for deterministic breakpoint checking
+function updateBreakpointHook() {
+    if (breakpoints.size === 0) {
+        // No breakpoints - remove hook for performance
+        apple1.cpu.setExecutionHook(undefined);
+    } else {
+        // Install hook to check breakpoints before each instruction
+        apple1.cpu.setExecutionHook((pc: number) => {
+            // Skip breakpoint check if we're stepping (to allow stepping over breakpoints)
+            if (isStepping) {
+                return true;
+            }
+            
+            // Only check breakpoints when running (not already paused)
+            if (!isPaused && breakpoints.has(pc)) {
+                // Hit a breakpoint - pause execution
+                apple1.clock.pause();
+                isPaused = true;
+                postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
+                postMessage({ data: pc, type: WORKER_MESSAGES.BREAKPOINT_HIT });
+                loggingService.log('info', 'Breakpoint', `Hit breakpoint at $${pc.toString(16).padStart(4, '0').toUpperCase()}`);
+                return false; // Halt execution
+            }
+            return true; // Continue execution
+        });
+    }
+}
 
 import type { WorkerMessage } from './@types/WorkerMessages';
 
@@ -137,10 +166,17 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             // First pause the clock to prevent concurrent execution
             apple1.clock.pause();
             isPaused = true;
+            
+            // Set stepping flag to bypass breakpoint check for this instruction
+            isStepping = true;
+            
             // Execute one instruction
             apple1.cpu.performSingleStep();
             
-            // Check if we hit a breakpoint after stepping
+            // Clear stepping flag
+            isStepping = false;
+            
+            // Check if we hit a breakpoint after stepping (at the new PC)
             if (breakpoints.has(apple1.cpu.PC)) {
                 postMessage({
                     data: apple1.cpu.PC,
@@ -163,6 +199,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
         case WORKER_MESSAGES.SET_BREAKPOINT: {
             if (typeof data === 'number') {
                 breakpoints.add(data);
+                updateBreakpointHook(); // Update execution hook
                 postMessage({
                     data: Array.from(breakpoints),
                     type: WORKER_MESSAGES.BREAKPOINTS_DATA
@@ -173,6 +210,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
         case WORKER_MESSAGES.CLEAR_BREAKPOINT: {
             if (typeof data === 'number') {
                 breakpoints.delete(data);
+                updateBreakpointHook(); // Update execution hook
                 postMessage({
                     data: Array.from(breakpoints),
                     type: WORKER_MESSAGES.BREAKPOINTS_DATA
@@ -182,6 +220,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
         }
         case WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS: {
             breakpoints.clear();
+            updateBreakpointHook(); // Update execution hook
             postMessage({
                 data: [],
                 type: WORKER_MESSAGES.BREAKPOINTS_DATA
@@ -209,21 +248,8 @@ setInterval(() => {
     });
 }, 100); // Every 100ms
 
-// Check for breakpoints during execution
-let lastPC = -1;
-setInterval(() => {
-    const currentPC = apple1.cpu.PC;
-    // Only check if PC changed and we're running
-    if (currentPC !== lastPC && !isPaused && breakpoints.has(currentPC)) {
-        // Hit a breakpoint - pause execution
-        apple1.clock.pause();
-        isPaused = true;
-        postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
-        postMessage({ data: currentPC, type: WORKER_MESSAGES.BREAKPOINT_HIT });
-        loggingService.log('info', 'Breakpoint', `Hit breakpoint at $${currentPC.toString(16).padStart(4, '0').toUpperCase()}`);
-    }
-    lastPC = currentPC;
-}, 10); // Check every 10ms for responsive breakpoint detection
+// Initialize breakpoint hook on startup
+updateBreakpointHook();
 
 apple1.startLoop();
 // Start in running state

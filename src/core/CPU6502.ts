@@ -1320,6 +1320,9 @@ class CPU6502 implements IClockable, IInspectableComponent {
     private profileData: Map<number, { count: number; cycles: number }> = new Map();
     private enableProfiling: boolean = false;
     
+    // Execution hook for debugging (breakpoints, etc)
+    private executionHook?: (pc: number) => boolean;
+    
     // Cycle-accurate timing mode for debugging
     private cycleAccurateMode: boolean = true;
     private busAccesses: Array<{ address: number; type: 'read' | 'write'; value?: number }> = [];
@@ -1389,6 +1392,12 @@ class CPU6502 implements IClockable, IInspectableComponent {
             this.currentInstructionCycles = 0;
         }
         
+        // Check execution hook (for breakpoints, etc)
+        if (this.executionHook && !this.executionHook(this.PC)) {
+            // Hook returned false - halt execution without advancing
+            return 0;
+        }
+        
         // Check for interrupts before executing next instruction
         this.checkInterrupts();
         
@@ -1425,7 +1434,12 @@ class CPU6502 implements IClockable, IInspectableComponent {
     performBulkSteps(steps: number): void {
         let currentCycleCount = 0;
         while (currentCycleCount <= steps) {
-            currentCycleCount += this.performSingleStep();
+            const cyclesExecuted = this.performSingleStep();
+            // If no cycles were executed (execution hook returned false), stop
+            if (cyclesExecuted === 0) {
+                break;
+            }
+            currentCycleCount += cyclesExecuted;
         }
     }
 
@@ -1519,6 +1533,15 @@ class CPU6502 implements IClockable, IInspectableComponent {
      */
     getBusAccessHistory(): Array<{ address: number; type: 'read' | 'write'; value?: number }> {
         return [...this.busAccesses];
+    }
+    
+    /**
+     * Set execution hook for debugging (e.g., breakpoints)
+     * The hook is called before each instruction fetch with the current PC.
+     * Return false to halt execution, true to continue.
+     */
+    setExecutionHook(hook?: (pc: number) => boolean): void {
+        this.executionHook = hook;
     }
     
     /**
