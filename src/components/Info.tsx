@@ -45,18 +45,6 @@ const AnniversaryInfo = () => (
     </section>
 );
 
-const RomTestProgram = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">⚠️</span>
-            ROM WRITE TEST (Triggers UI Logging)
-        </h3>
-        <pre className="bg-black/40 text-data-value rounded p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`0:A9 AA 8D 0 FF A9 BB 8D 1 FF A9 CC 8D 2 FF 4C 0 0
-0
-R`}</pre>
-        <p className="text-xs text-text-muted mt-sm">Attempts to write to ROM addresses - watch Status Panel above!</p>
-    </section>
-);
 
 const MemoryAddresses = () => (
     <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
@@ -108,7 +96,6 @@ const Info = () => (
         <TestProgram />
         <BasicProgram />
         <AnniversaryInfo />
-        <RomTestProgram />
         <MemoryAddresses />
         <ManualLink />
         <GitHubLink />
