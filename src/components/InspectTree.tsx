@@ -20,26 +20,20 @@ const InspectTree: React.FC<{ node: IInspectableComponent; path?: string }> = ({
     // RAM: show size and address if available
     if (node.type === 'RAM' && 'data' in node && node.data instanceof Uint8Array) {
         const addrNode = node as Addressable;
-        let addrInfo = '';
-        if (addrNode.__address) {
-            addrInfo = `, addr: ${addrNode.__address}`;
-        }
         extra = (
             <span style={{ color: '#6cf', marginLeft: 8 }}>
-                size: {node.data.length} bytes{addrInfo}
+                size: {node.data.length} bytes
+                {addrNode.__address && `, addr: ${addrNode.__address}`}
             </span>
         );
     }
     // ROM: show size and address if available
     if (node.type === 'ROM' && 'data' in node && node.data instanceof Uint8Array) {
         const addrNode = node as Addressable;
-        let addrInfo = '';
-        if (addrNode.__address) {
-            addrInfo = `, addr: ${addrNode.__address}`;
-        }
         extra = (
             <span style={{ color: '#fc6', marginLeft: 8 }}>
-                size: {node.data.length} bytes{addrInfo}
+                size: {node.data.length} bytes
+                {addrNode.__address && `, addr: ${addrNode.__address}`}
             </span>
         );
     }

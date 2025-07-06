@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import AddressLink from './AddressLink';
 
 interface StackViewerProps {
     worker: Worker;
@@ -78,9 +79,15 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
                 >
                     <span className="flex items-center gap-2">
                         {isCurrent && <span className="text-info">→</span>}
-                        <span className="text-data-address">
-                            {addr.toString(16).padStart(4, '0').toUpperCase()}
-                        </span>
+                        <AddressLink
+                            address={addr}
+                            format="hex4"
+                            prefix=""
+                            worker={worker}
+                            showContextMenu={true}
+                            showRunToCursor={true}
+                            className="text-xs"
+                        />
                     </span>
                     <span className="text-data-value">
                         {value.toString(16).padStart(2, '0').toUpperCase()}

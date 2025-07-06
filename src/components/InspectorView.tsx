@@ -215,6 +215,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                                     label={k} 
                                     value={formattedValue}
                                     type={isDebugData ? getDataType(k) : 'status'}
+                                    worker={worker}
                                 />
                             );
                         })}
@@ -359,7 +360,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     CPU Registers
                 </h3>
                 <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
-                    <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" />
+                    <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" worker={worker} />
                     <RegisterRow label="REG_A" value={cpuRegisterData.a} type="value" />
                     <RegisterRow label="REG_X" value={cpuRegisterData.x} type="value" />
                     <RegisterRow label="REG_Y" value={cpuRegisterData.y} type="value" />
@@ -380,9 +381,9 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     Memory & I/O
                 </h3>
                 <div className="space-y-sm">
-                    <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" />
-                    <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" />
-                    <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" />
+                    <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" worker={worker} />
+                    <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" worker={worker} />
+                    <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" worker={worker} />
                     <RegisterRow label="HW_DATA" value={cpuRegisterData.hwData} type="value" />
                     <RegisterRow label="HW_OPCODE" value={cpuRegisterData.hwOpcode} type="value" />
                     <RegisterRow label="HW_CYCLES" value={cpuRegisterData.hwCycles} type="status" />
@@ -391,7 +392,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     <RegisterRow label="IRQ_PENDING" value={cpuRegisterData.irqPending} type="flag" />
                     <RegisterRow label="NMI_PENDING" value={cpuRegisterData.nmiPending} type="flag" />
                     <RegisterRow label="EXEC_TMP" value={cpuRegisterData.execTmp} type="value" />
-                    <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" />
+                    <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" worker={worker} />
                     <RegisterRow label="PERF_ENABLED" value={cpuRegisterData.perfEnabled} type="flag" />
                     <RegisterRow label="PERF_INSTRUCTIONS" value={cpuRegisterData.perfInstructions} type="status" />
                 </div>

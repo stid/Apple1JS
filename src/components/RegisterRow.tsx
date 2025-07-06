@@ -1,11 +1,14 @@
 import React from 'react';
 import { typography, color } from '../styles/utils';
+import AddressLink from './AddressLink';
 
 interface RegisterRowProps {
   label: string;
   value: string | number;
   type?: 'address' | 'value' | 'flag' | 'status';
   className?: string;
+  worker?: Worker;
+  showAddressLink?: boolean;
 }
 
 const typeColors = {
@@ -19,8 +22,26 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
   label, 
   value, 
   type = 'value',
-  className = '' 
+  className = '',
+  worker,
+  showAddressLink = true
 }) => {
+  // Parse address value for AddressLink
+  const parseAddressValue = (val: string | number): number | null => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      // Handle formats like "$FF00" or "0xFF00"
+      const match = val.match(/^[$0x]*([0-9A-Fa-f]+)$/);
+      if (match) {
+        return parseInt(match[1], 16);
+      }
+    }
+    return null;
+  };
+
+  const shouldShowLink = type === 'address' && worker && showAddressLink;
+  const addressValue = shouldShowLink ? parseAddressValue(value) : null;
+
   return (
     <div 
       className={className}
@@ -38,13 +59,25 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
       }}>
         {label}:
       </span>
-      <span style={{
-        ...typography.xs,
-        color: typeColors[type],
-        fontWeight: 500,
-      }}>
-        {value}
-      </span>
+      {shouldShowLink && addressValue !== null ? (
+        <AddressLink
+          address={addressValue}
+          format="hex4"
+          prefix="$"
+          worker={worker}
+          showContextMenu={true}
+          showRunToCursor={true}
+          className="text-xs font-medium"
+        />
+      ) : (
+        <span style={{
+          ...typography.xs,
+          color: typeColors[type],
+          fontWeight: 500,
+        }}>
+          {value}
+        </span>
+      )}
     </div>
   );
 };

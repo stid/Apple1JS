@@ -1,7 +1,6 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '../../test-utils/render';
 import MemoryViewerPaginated from '../MemoryViewerPaginated';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
-import { LoggingProvider } from '../../contexts/LoggingContext';
 
 describe('MemoryViewerPaginated', () => {
     const mockWorker = {
@@ -37,9 +36,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('renders with initial address', () => {
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated worker={mockWorker} startAddress={0x1000} />
-            </LoggingProvider>
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
@@ -48,13 +45,11 @@ describe('MemoryViewerPaginated', () => {
 
     it('uses external address when provided', () => {
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated 
                     worker={mockWorker} 
                     startAddress={0x1000}
                     currentAddress={0x2000}
                 />
-            </LoggingProvider>
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
@@ -64,12 +59,10 @@ describe('MemoryViewerPaginated', () => {
     it('calls onAddressChange when address changes', async () => {
         const onAddressChange = jest.fn();
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated 
                     worker={mockWorker} 
                     onAddressChange={onAddressChange}
                 />
-            </LoggingProvider>
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
@@ -86,13 +79,11 @@ describe('MemoryViewerPaginated', () => {
     it('navigates with arrow buttons', async () => {
         const onAddressChange = jest.fn();
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated 
                     worker={mockWorker} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
-            </LoggingProvider>
         );
         
         // Simulate memory data
@@ -113,13 +104,11 @@ describe('MemoryViewerPaginated', () => {
     it('does not cause flickering with external address changes', () => {
         const onAddressChange = jest.fn();
         const { rerender } = render(
-            <LoggingProvider>
                 <MemoryViewerPaginated 
                     worker={mockWorker} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
-            </LoggingProvider>
         );
         
         // Clear initial calls
@@ -127,13 +116,11 @@ describe('MemoryViewerPaginated', () => {
         
         // Re-render with same address - should not trigger onChange
         rerender(
-            <LoggingProvider>
                 <MemoryViewerPaginated 
                     worker={mockWorker} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
-            </LoggingProvider>
         );
         
         expect(onAddressChange).not.toHaveBeenCalled();
@@ -141,9 +128,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('displays memory data correctly', () => {
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated worker={mockWorker} />
-            </LoggingProvider>
         );
         
         // Simulate memory data
@@ -159,9 +144,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('handles address input validation', () => {
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated worker={mockWorker} />
-            </LoggingProvider>
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
@@ -177,9 +160,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('limits address input to 4 characters', () => {
         render(
-            <LoggingProvider>
                 <MemoryViewerPaginated worker={mockWorker} />
-            </LoggingProvider>
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;

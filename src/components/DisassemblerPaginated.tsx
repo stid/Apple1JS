@@ -27,6 +27,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [currentPC, setCurrentPC] = useState<number>(0);
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
+    const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [isPaused, setIsPaused] = useState(false);
     const [isSteppingMode, setIsSteppingMode] = useState(false);
@@ -273,6 +274,12 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     setCurrentPC(pc);
                 }
             }
+            
+            if (event.data?.type === WORKER_MESSAGES.RUN_TO_CURSOR_TARGET) {
+                // Update run-to-cursor target address
+                const target = event.data.data as number | null;
+                setRunToCursorTarget(target);
+            }
         };
 
         worker.addEventListener('message', handleWorkerMessage);
@@ -487,7 +494,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return lines.map((line, index) => {
             const isCurrentPC = line.address === currentPC;
             const hasBreakpoint = breakpoints.has(line.address);
-            const addressHex = line.address.toString(16).padStart(4, '0').toUpperCase();
+            const isRunToCursor = line.address === runToCursorTarget;
             const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
             
             return (
@@ -502,19 +509,33 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     <td 
                         className="px-xs py-1 align-middle cursor-pointer text-center"
                         onClick={() => toggleBreakpoint(line.address)}
-                        title={hasBreakpoint ? "Remove breakpoint" : "Set breakpoint"}
+                        title={
+                            isRunToCursor ? "Run-to-cursor target" :
+                            hasBreakpoint ? "Remove breakpoint" : 
+                            "Set breakpoint"
+                        }
                     >
                         <span className={`inline-block w-3 h-3 rounded-full ${
-                            hasBreakpoint 
-                                ? 'bg-error/80 border border-error' 
-                                : 'bg-transparent border border-border-subtle hover:border-error/50'
+                            isRunToCursor 
+                                ? 'bg-warning/80 border border-warning animate-pulse' 
+                                : hasBreakpoint 
+                                    ? 'bg-error/80 border border-error' 
+                                    : 'bg-transparent border border-border-subtle hover:border-error/50'
                         }`}>
-                            {hasBreakpoint && <span className="text-[8px] leading-none block text-center">●</span>}
+                            {(hasBreakpoint || isRunToCursor) && <span className="text-[8px] leading-none block text-center">●</span>}
                         </span>
                     </td>
                     <td className="px-sm py-1 text-data-address align-middle font-medium">
                         {isCurrentPC && <span className="text-warning mr-1">▶</span>} 
-                        <span className="font-mono">${addressHex}</span>
+                        <AddressLink
+                            address={line.address}
+                            format="hex4"
+                            prefix="$"
+                            worker={worker}
+                            showContextMenu={true}
+                            showRunToCursor={true}
+                            className="font-mono"
+                        />
                     </td>
                     <td className="px-sm py-1 text-data-value align-middle font-mono text-xs w-28">
                         {bytesHex.padEnd(8, ' ')}
@@ -530,8 +551,10 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                         <span className="text-data-value">(</span>
                                         <AddressLink 
                                             address={line.operandAddress} 
-                                            className="text-data-value"
+                                            className="text-data-value hover:text-data-value-hover"
+                                            worker={worker}
                                             showContextMenu={true}
+                                            showRunToCursor={true}
                                         />
                                         <span className="text-data-value">)</span>
                                     </>
@@ -541,8 +564,10 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                         <AddressLink 
                                             address={line.operandAddress} 
                                             format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
-                                            className="text-data-value"
+                                            className="text-data-value hover:text-data-value-hover"
+                                            worker={worker}
                                             showContextMenu={true}
+                                            showRunToCursor={true}
                                         />
                                         <span className="text-data-value">{line.operand.slice(line.operand.indexOf(','))}</span>
                                     </>

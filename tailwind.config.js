@@ -32,7 +32,9 @@ module.exports = {
             colors: {
                 // Data type colors
                 'data-address': '#34D399',
+                'data-address-hover': '#6EE7B7', // Brighter green for hover
                 'data-value': '#34D399',
+                'data-value-hover': '#6EE7B7', // Brighter green for hover
                 'data-flag': '#F59E0B',
                 'data-status': '#8B5CF6',
                 

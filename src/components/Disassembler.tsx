@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
 import CompactExecutionControls from './CompactExecutionControls';
+import AddressLink from './AddressLink';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -11,6 +12,7 @@ interface DisassemblyLine {
     bytes: number[];
     instruction: string;
     operand?: string;
+    operandAddress?: number;  // Parsed address from operand for jumps/branches
 }
 
 // 6502 opcode definitions for disassembly
@@ -207,6 +209,8 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
             }
 
             // Format operand based on addressing mode
+            let operandAddress: number | undefined;
+            
             switch (opcodeInfo.mode) {
                 case 'imp':
                 case 'acc': {
@@ -232,6 +236,10 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                 case 'abs': {
                     const absAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
                     operand = `$${absAddr.toString(16).padStart(4, '0').toUpperCase()}`;
+                    // Store address for JSR, JMP instructions
+                    if (opcodeInfo.name === 'JSR' || opcodeInfo.name === 'JMP') {
+                        operandAddress = absAddr;
+                    }
                     break;
                 }
                 case 'abx': {
@@ -247,6 +255,9 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                 case 'ind': {
                     const indAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
                     operand = `($${indAddr.toString(16).padStart(4, '0').toUpperCase()})`;
+                    if (opcodeInfo.name === 'JMP') {
+                        operandAddress = indAddr;
+                    }
                     break;
                 }
                 case 'izx': {
@@ -261,6 +272,8 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                     const offset = bytes[1] || 0;
                     const target = addr + 2 + (offset > 127 ? offset - 256 : offset);
                     operand = `$${target.toString(16).padStart(4, '0').toUpperCase()}`;
+                    // All relative addressing instructions are branches
+                    operandAddress = target;
                     break;
                 }
             }
@@ -270,6 +283,7 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                 bytes: bytes,
                 instruction: opcodeInfo.name,
                 operand: operand,
+                operandAddress: operandAddress,
             });
 
             addr += opcodeInfo.bytes;
@@ -381,6 +395,16 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
         }
     }, [currentPC, jumpToAddress]);
     
+    // Run to cursor for selected line
+    const runToCursor = useCallback((address: number) => {
+        if (worker) {
+            worker.postMessage({
+                type: WORKER_MESSAGES.RUN_TO_ADDRESS,
+                data: address
+            });
+        }
+    }, [worker]);
+
     // Keyboard shortcuts and window messages
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -390,6 +414,10 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
             } else if (e.key === 'F8') {
                 e.preventDefault();
                 jumpToPC();
+            } else if (e.key === 'F7' && currentPC !== undefined) {
+                // F7 - Run to cursor at current PC
+                e.preventDefault();
+                runToCursor(currentPC);
             }
         };
         
@@ -399,13 +427,22 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
             }
         };
         
+        // Prevent default context menu on the entire component
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+            return false;
+        };
+        
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('message', handleMessage);
+        document.addEventListener('contextmenu', handleContextMenu, true);
+        
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('message', handleMessage);
+            document.removeEventListener('contextmenu', handleContextMenu, true);
         };
-    }, [currentPC, toggleBreakpoint, jumpToPC]);
+    }, [currentPC, toggleBreakpoint, jumpToPC, runToCursor]);
 
     return (
         <div className="h-full flex flex-col overflow-auto space-y-md">
@@ -454,7 +491,6 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                             {lines.map((line, index) => {
                                 const isCurrentPC = line.address === currentPC;
                                 const hasBreakpoint = breakpoints.has(line.address);
-                                const addressHex = line.address.toString(16).padStart(4, '0').toUpperCase();
                                 const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
                                 
                                 return (
@@ -481,7 +517,15 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                                         </td>
                                         <td className="px-sm py-1 text-data-address align-top font-medium">
                                             {isCurrentPC && <span className="text-warning mr-1">▶</span>} 
-                                            <span className="font-mono">${addressHex}</span>
+                                            <AddressLink
+                                                address={line.address}
+                                                format="hex4"
+                                                prefix="$"
+                                                worker={worker}
+                                                showContextMenu={true}
+                                                showRunToCursor={true}
+                                                className="font-mono"
+                                            />
                                         </td>
                                         <td className="px-sm py-1 text-data-value align-top font-mono text-xs">
                                             {bytesHex}
@@ -489,7 +533,21 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                                         <td className="px-sm py-1 align-top">
                                             <span className="text-data-status font-medium">{line.instruction}</span>
                                             {line.operand && (
-                                                <span className="text-data-value ml-1">{line.operand}</span>
+                                                line.operandAddress !== undefined ? (
+                                                    <span className="ml-1">
+                                                        <AddressLink
+                                                            address={line.operandAddress}
+                                                            format="hex4"
+                                                            prefix="$"
+                                                            worker={worker}
+                                                            showContextMenu={true}
+                                                            showRunToCursor={true}
+                                                            className="text-data-value"
+                                                        />
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-data-value ml-1">{line.operand}</span>
+                                                )
                                             )}
                                         </td>
                                     </tr>

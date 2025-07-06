@@ -40,6 +40,8 @@ export enum WORKER_MESSAGES {
     BREAKPOINT_HIT, // Notification when breakpoint is hit
     SET_DEBUGGER_ACTIVE, // Set debugger visibility state
     GET_EMULATION_STATUS, // Request current emulation status
+    RUN_TO_ADDRESS, // Run execution until reaching a specific address
+    RUN_TO_CURSOR_TARGET, // Notification of current run-to-cursor target
 }
 
 
