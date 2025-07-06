@@ -24,6 +24,7 @@ const apple1 = new Apple1({ video: video, keyboard: keyboard });
 // Breakpoint management
 const breakpoints = new Set<number>();
 let isPaused = false;
+let isStepping = false; // Track if we're in a step operation
 
 // Setup execution hook for deterministic breakpoint checking
 function updateBreakpointHook() {
@@ -33,6 +34,11 @@ function updateBreakpointHook() {
     } else {
         // Install hook to check breakpoints before each instruction
         apple1.cpu.setExecutionHook((pc: number) => {
+            // Skip breakpoint check if we're stepping (to allow stepping over breakpoints)
+            if (isStepping) {
+                return true;
+            }
+            
             // Only check breakpoints when running (not already paused)
             if (!isPaused && breakpoints.has(pc)) {
                 // Hit a breakpoint - pause execution
@@ -160,10 +166,17 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             // First pause the clock to prevent concurrent execution
             apple1.clock.pause();
             isPaused = true;
+            
+            // Set stepping flag to bypass breakpoint check for this instruction
+            isStepping = true;
+            
             // Execute one instruction
             apple1.cpu.performSingleStep();
             
-            // Check if we hit a breakpoint after stepping
+            // Clear stepping flag
+            isStepping = false;
+            
+            // Check if we hit a breakpoint after stepping (at the new PC)
             if (breakpoints.has(apple1.cpu.PC)) {
                 postMessage({
                     data: apple1.cpu.PC,

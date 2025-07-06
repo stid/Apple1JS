@@ -194,6 +194,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
             
             if (event.data?.type === WORKER_MESSAGES.BREAKPOINT_HIT) {
                 const hitPC = event.data.data as number;
+                setCurrentPC(hitPC); // Update currentPC for highlighting
                 navigateTo(hitPC);
             }
             
@@ -202,6 +203,15 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 // It's requested only when paused for the register display
                 const debugData = event.data.data as DebugData;
                 setDebugInfo(debugData);
+                
+                // Also update PC from DEBUG_INFO
+                const pcValue = debugData.cpu?.REG_PC || debugData.cpu?.PC;
+                if (pcValue !== undefined) {
+                    const pc = typeof pcValue === 'string' 
+                        ? parseInt(pcValue.replace('$', ''), 16)
+                        : pcValue;
+                    setCurrentPC(pc);
+                }
             }
         };
 

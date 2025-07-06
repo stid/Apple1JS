@@ -1434,7 +1434,12 @@ class CPU6502 implements IClockable, IInspectableComponent {
     performBulkSteps(steps: number): void {
         let currentCycleCount = 0;
         while (currentCycleCount <= steps) {
-            currentCycleCount += this.performSingleStep();
+            const cyclesExecuted = this.performSingleStep();
+            // If no cycles were executed (execution hook returned false), stop
+            if (cyclesExecuted === 0) {
+                break;
+            }
+            currentCycleCount += cyclesExecuted;
         }
     }
 
