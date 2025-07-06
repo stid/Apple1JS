@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import { useLogging } from '../contexts/LoggingContext';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -23,6 +24,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const [addressInput, setAddressInput] = useState((externalAddress ?? startAddress).toString(16).padStart(4, '0').toUpperCase());
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
+    const { addMessage } = useLogging();
 
     const bytesPerRow = 16;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -228,7 +230,11 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         if (editingCell !== null && editValue.length === 2) {
             const value = parseInt(editValue, 16);
             // TODO: Implement memory write when worker supports it
-            console.log('Memory write not yet implemented:', editingCell, value);
+            addMessage({
+                level: 'info',
+                source: 'MemoryViewerPaginated',
+                message: `Memory write not yet implemented: address=${editingCell.toString(16).toUpperCase()}, value=${value.toString(16).toUpperCase()}`
+            });
         }
         setEditingCell(null);
         setEditValue('');

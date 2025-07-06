@@ -52,8 +52,6 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
         (e: ClipboardEvent) => {
             e.preventDefault();
             const pastedText = e.clipboardData?.getData('text') || '';
-            // Optionally, add a debug flag if you want to keep this log
-            // console.log('Pasting:', pastedText);
             pastedText.split('').forEach((char, index) => {
                 setTimeout(() => {
                     const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;

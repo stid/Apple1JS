@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import { useLogging } from '../contexts/LoggingContext';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -22,6 +23,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const { addMessage } = useLogging();
 
     const bytesPerRow = 16;
     const numRows = Math.ceil(size / bytesPerRow);
@@ -109,7 +111,11 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
             const value = parseInt(editValue, 16);
             // Send memory write to worker
             // TODO: Implement memory write when worker supports it
-            console.log('Memory write not yet implemented:', editingCell, value);
+            addMessage({
+                level: 'info',
+                source: 'MemoryViewer',
+                message: `Memory write not yet implemented: address=${editingCell.toString(16).toUpperCase()}, value=${value.toString(16).toUpperCase()}`
+            });
         }
         setEditingCell(null);
         setEditValue('');
