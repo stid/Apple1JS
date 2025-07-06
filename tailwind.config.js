@@ -37,10 +37,12 @@ module.exports = {
                 'data-status': '#8B5CF6',
                 
                 // Semantic colors
-                'success': '#10B981',
-                'warning': '#F59E0B',
-                'error': '#EF4444',
-                'info': '#3B82F6',
+                'semantic': {
+                    'success': '#10B981',
+                    'warning': '#F59E0B',
+                    'error': '#EF4444',
+                    'info': '#3B82F6',
+                },
                 
                 // Apple 1 phosphor theme
                 'phosphor': {
@@ -54,6 +56,8 @@ module.exports = {
                 'surface': {
                     'primary': '#1E293B',
                     'secondary': '#0F172A', // Updated to match design tokens background.secondary
+                    'tertiary': '#334155',
+                    'quaternary': '#475569',
                     'overlay': '#00000060',
                 },
                 
@@ -69,6 +73,7 @@ module.exports = {
                 'text': {
                     'primary': '#F3F4F6',
                     'secondary': '#9CA3AF',
+                    'tertiary': '#6B7280',
                     'accent': '#10B981',
                     'muted': '#6B7280',
                 },
