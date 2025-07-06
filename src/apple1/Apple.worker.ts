@@ -249,6 +249,14 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             }
             break;
         }
+        case WORKER_MESSAGES.GET_EMULATION_STATUS: {
+            // Respond with current emulation status
+            postMessage({ 
+                data: isPaused ? 'paused' : 'running', 
+                type: WORKER_MESSAGES.EMULATION_STATUS 
+            });
+            break;
+        }
     }
 };
 

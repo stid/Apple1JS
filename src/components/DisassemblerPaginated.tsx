@@ -295,6 +295,10 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         };
 
         worker.addEventListener('message', handleMessage);
+        
+        // Query current status on mount
+        worker.postMessage({ type: WORKER_MESSAGES.GET_EMULATION_STATUS });
+        
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
     
