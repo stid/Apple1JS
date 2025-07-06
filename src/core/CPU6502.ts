@@ -1324,9 +1324,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
     private executionHook?: (pc: number) => boolean;
     
     // Cycle-accurate timing mode for debugging
-    private cycleAccurateMode: boolean = true;
+    private cycleAccurateMode: boolean = false; // Disabled by default to prevent memory leaks
     private busAccesses: Array<{ address: number; type: 'read' | 'write'; value?: number }> = [];
     private currentInstructionCycles: number = 0;
+    private static readonly MAX_BUS_ACCESS_HISTORY = 1000; // Limit history to prevent memory leaks
 
     constructor(bus: Bus) {
         this.bus = bus;
@@ -1450,6 +1451,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
         // Track bus access for cycle-accurate timing
         if (this.cycleAccurateMode) {
             this.busAccesses.push({ address, type: 'read', value: this.data });
+            // Limit array size to prevent memory leaks
+            if (this.busAccesses.length > CPU6502.MAX_BUS_ACCESS_HISTORY) {
+                this.busAccesses.shift(); // Remove oldest entry
+            }
         }
         
         return this.data;
@@ -1463,6 +1468,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
         // Track bus access for cycle-accurate timing
         if (this.cycleAccurateMode) {
             this.busAccesses.push({ address, type: 'write', value });
+            // Limit array size to prevent memory leaks
+            if (this.busAccesses.length > CPU6502.MAX_BUS_ACCESS_HISTORY) {
+                this.busAccesses.shift(); // Remove oldest entry
+            }
         }
     }
 
@@ -1480,6 +1489,14 @@ class CPU6502 implements IClockable, IInspectableComponent {
             this.profileData.clear();
             this.instructionCount = 0;
         }
+    }
+    
+    /**
+     * Clear profiling data without disabling profiling
+     */
+    clearProfilingData(): void {
+        this.profileData.clear();
+        this.instructionCount = 0;
     }
     
     /**
