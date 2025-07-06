@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, DebugData } from '../apple1/TSTypes';
 import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
@@ -31,6 +31,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     const [isPaused, setIsPaused] = useState(false);
     const [isSteppingMode, setIsSteppingMode] = useState(false);
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    const lastExternalAddress = useRef<number | undefined>(externalAddress);
     
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
@@ -297,16 +298,17 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return () => worker.removeEventListener('message', handleMessage);
     }, [worker]);
     
-    // Sync external address changes
+    // Sync external address changes only when it actually changes from outside
     useEffect(() => {
-        if (externalAddress !== undefined && externalAddress !== currentAddress) {
+        if (externalAddress !== undefined && externalAddress !== lastExternalAddress.current) {
+            lastExternalAddress.current = externalAddress;
             navigateTo(externalAddress);
         }
-    }, [externalAddress, navigateTo, currentAddress]);
+    }, [externalAddress, navigateTo]);
     
-    // Notify parent of address changes
+    // Notify parent of address changes only when changed internally
     useEffect(() => {
-        if (onAddressChange) {
+        if (onAddressChange && currentAddress !== lastExternalAddress.current) {
             onAddressChange(currentAddress);
         }
     }, [currentAddress, onAddressChange]);
