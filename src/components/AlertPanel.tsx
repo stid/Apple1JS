@@ -36,22 +36,22 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
     const getLevelBgColor = (level: LogLevel) => {
         switch (level) {
             case 'info':
-                return 'bg-semantic-info/5';
+                return 'bg-semantic-info/10';
             case 'warn':
-                return 'bg-semantic-warning/5';
+                return 'bg-semantic-warning/10';
             case 'error':
-                return 'bg-semantic-error/5';
+                return 'bg-semantic-error/10';
         }
     };
 
     const getLevelIcon = (level: LogLevel) => {
         switch (level) {
             case 'info':
-                return '•';
+                return 'ℹ️';
             case 'warn':
-                return '⚠';
+                return '⚠️';
             case 'error':
-                return '✕';
+                return '❌';
         }
     };
 
@@ -138,14 +138,22 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                             {filteredMessages.map((message) => (
                                 <div
                                     key={message.id}
-                                    className={`p-2.5 rounded border ${getLevelBgColor(message.level)} border-border-subtle`}
+                                    className={`p-2.5 rounded border ${getLevelBgColor(message.level)} ${
+                                        message.level === 'info' ? 'border-semantic-info/30' :
+                                        message.level === 'warn' ? 'border-semantic-warning/30' :
+                                        'border-semantic-error/30'
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                                <span className={`text-xs ${getLevelColor(message.level)} flex items-center gap-1`}>
-                                                    <span className="text-[10px]">{getLevelIcon(message.level)}</span>
-                                                    <span className="text-[10px] font-bold uppercase">{message.level}</span>
+                                                <span className={`text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded ${
+                                                    message.level === 'info' ? 'bg-semantic-info text-surface-primary' :
+                                                    message.level === 'warn' ? 'bg-semantic-warning text-surface-primary' :
+                                                    'bg-semantic-error text-white'
+                                                }`}>
+                                                    <span>{getLevelIcon(message.level)}</span>
+                                                    <span className="font-bold uppercase">{message.level}</span>
                                                 </span>
                                                 <span className="text-[10px] text-text-secondary font-mono">
                                                     {message.source}
