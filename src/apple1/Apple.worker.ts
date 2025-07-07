@@ -346,7 +346,7 @@ function updateDebuggerState(active: boolean) {
             const { cpu } = apple1;
             postMessage({
                 data: {
-                    cpu: { PC: cpu.PC }
+                    cpu: cpu.toDebug()
                 },
                 type: WORKER_MESSAGES.DEBUG_DATA,
             });

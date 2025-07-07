@@ -1636,6 +1636,13 @@ class CPU6502 implements IClockable, IInspectableComponent {
         } else {
             debugData.PERF_ENABLED = 'NO';
         }
+        
+        // Add raw numeric values for backward compatibility
+        debugData.PC = this.PC;
+        debugData.A = this.A;
+        debugData.X = this.X;
+        debugData.Y = this.Y;
+        debugData.S = this.S;
 
         return debugData;
     }

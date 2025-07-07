@@ -45,6 +45,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const [currentPC, setCurrentPC] = useState(0);
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
+    const [lastStepPC, setLastStepPC] = useState<number | null>(null);
 
     // Handle worker messages
     useEffect(() => {
@@ -78,15 +79,23 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     break;
                     
                 case WORKER_MESSAGES.DEBUG_INFO:
-                case WORKER_MESSAGES.DEBUG_DATA:
+                case WORKER_MESSAGES.DEBUG_DATA: {
                     setDebugInfo(data as DebugData);
-                    if (data.cpu?.PC !== undefined) {
-                        const pc = typeof data.cpu.PC === 'string' 
-                            ? parseInt(data.cpu.PC.replace('$', ''), 16)
-                            : data.cpu.PC;
+                    // Check for REG_PC first (from toDebug()), then fall back to PC
+                    const pcValue = data.cpu?.REG_PC || data.cpu?.PC;
+                    if (pcValue !== undefined) {
+                        const pc = typeof pcValue === 'string' 
+                            ? parseInt(pcValue.replace('$', ''), 16)
+                            : pcValue;
                         setCurrentPC(pc);
+                        
+                        // If we just stepped and PC changed, mark that we need to follow
+                        if (lastStepPC !== null && pc !== lastStepPC) {
+                            setLastStepPC(null); // Clear the flag
+                        }
                     }
                     break;
+                }
                     
                 case WORKER_MESSAGES.BREAKPOINTS_DATA:
                     setBreakpoints(new Set(data as number[]));
@@ -105,7 +114,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         return () => {
             worker.removeEventListener('message', handleMessage);
         };
-    }, [worker, onBreakpointHit, onRunToCursorSet]);
+    }, [worker, onBreakpointHit, onRunToCursorSet, lastStepPC]);
 
     // Actions
     const pause = useCallback(() => {
@@ -117,9 +126,9 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     }, [worker]);
 
     const step = useCallback(() => {
-        setExecutionState('stepping');
+        setLastStepPC(currentPC); // Remember where we were before stepping
         worker.postMessage({ type: WORKER_MESSAGES.STEP });
-    }, [worker]);
+    }, [worker, currentPC]);
 
     const stepOver = useCallback(() => {
         // Step over not implemented in worker yet, just do regular step

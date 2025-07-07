@@ -27,7 +27,6 @@ interface DisassemblyLine {
 const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAddress: externalAddress, onAddressChange }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
-    const [isSteppingMode, setIsSteppingMode] = useState(false);
     
     // Get emulation state from context
     const { 
@@ -263,24 +262,29 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
 
         worker.addEventListener('message', handleWorkerMessage);
         return () => worker.removeEventListener('message', handleWorkerMessage);
-    }, [worker, disassembleMemory, navigateTo, visibleRows, isSteppingMode, executionState, lines, currentAddress]);
+    }, [worker, disassembleMemory, navigateTo, visibleRows, executionState, lines, currentAddress]);
     
     // No longer need to listen for emulation status - handled by EmulationContext
     
-    // Auto-follow PC during stepping
+    // Track previous PC to detect changes
+    const [previousPC, setPreviousPC] = useState<number | null>(null);
+    
+    // Auto-follow PC when it changes (e.g., during stepping)
     useEffect(() => {
-        if (isSteppingMode && executionState === 'paused' && currentPC) {
-            // Check if PC is visible in current view
-            const firstVisibleAddr = lines[0]?.address || currentAddress;
-            const lastVisibleAddr = lines[lines.length - 1]?.address || currentAddress;
+        if (currentPC !== previousPC && currentPC !== undefined && isPaused) {
+            setPreviousPC(currentPC);
             
-            if (currentPC < firstVisibleAddr || currentPC > lastVisibleAddr) {
+            // Check if PC is visible in current view
+            const firstVisibleAddr = lines[0]?.address;
+            const lastVisibleAddr = lines[lines.length - 1]?.address;
+            
+            if (firstVisibleAddr !== undefined && lastVisibleAddr !== undefined &&
+                (currentPC < firstVisibleAddr || currentPC > lastVisibleAddr)) {
                 // PC is not visible, navigate to it
                 navigateTo(currentPC);
             }
-            setIsSteppingMode(false); // Clear stepping mode after check
         }
-    }, [currentPC, isSteppingMode, executionState, lines, currentAddress, navigateTo]);
+    }, [currentPC, previousPC, isPaused, lines, navigateTo]);
     
     // Sync with navigation hook address
     useEffect(() => {
@@ -338,7 +342,6 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     
     // Execution controls
     const handleStep = useCallback(() => {
-        setIsSteppingMode(true);  // Mark that we're stepping
         contextStep();
     }, [contextStep]);
 

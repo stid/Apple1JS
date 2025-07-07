@@ -48,7 +48,11 @@ describe('Apple.worker', () => {
                 PC: 0x0000,
                 setExecutionHook: jest.fn(),
                 performSingleStep: jest.fn(),
-                toDebug: jest.fn().mockReturnValue({ PC: 0x0000, A: 0, X: 0, Y: 0 }),
+                toDebug: jest.fn().mockReturnValue({ 
+                    PC: 0x0000, A: 0, X: 0, Y: 0, S: 0,
+                    REG_PC: '$0000', REG_A: '$00', REG_X: '$00', REG_Y: '$00', REG_S: '$00',
+                    FLAG_N: 'CLR', FLAG_Z: 'CLR', FLAG_C: 'CLR', FLAG_V: 'CLR', FLAG_I: 'CLR', FLAG_D: 'CLR'
+                }),
                 setProfilingEnabled: jest.fn(),
                 setCycleAccurateMode: jest.fn()
             },
@@ -399,10 +403,24 @@ describe('Apple.worker', () => {
             // Test the interval callback
             const intervalCallback = mockSetInterval.mock.calls[0][0];
             intervalCallback();
-            expect(mockPostMessage).toHaveBeenCalledWith({
-                data: { cpu: { PC: 0x0000 } },
-                type: WORKER_MESSAGES.DEBUG_DATA
-            });
+            // The message should contain the full toDebug() output
+            expect(mockPostMessage).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: WORKER_MESSAGES.DEBUG_DATA,
+                    data: expect.objectContaining({
+                        cpu: expect.objectContaining({
+                            PC: 0x0000,
+                            A: 0,
+                            X: 0,
+                            Y: 0,
+                            REG_PC: '$0000',
+                            REG_A: '$00',
+                            REG_X: '$00',
+                            REG_Y: '$00'
+                        })
+                    })
+                })
+            );
             
             // Deactivate debugger
             mockSetInterval.mockClear();
