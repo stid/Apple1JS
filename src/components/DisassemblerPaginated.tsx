@@ -330,8 +330,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     
     // Initial load and request breakpoints
     useEffect(() => {
-        if (externalAddress === undefined) {
-            navigateTo(0);
+        // Navigate to the external address if provided
+        if (externalAddress !== undefined) {
+            navigateTo(externalAddress);
         }
         worker.postMessage({ type: WORKER_MESSAGES.GET_BREAKPOINTS });
     }, [navigateTo, worker, externalAddress]);
@@ -581,7 +582,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                         address={line.operandAddress} 
                                         format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
                                         className="text-data-value"
+                                        worker={worker}
                                         showContextMenu={true}
+                                        showRunToCursor={true}
                                     />
                                 )}
                             </span>

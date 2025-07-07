@@ -13,15 +13,17 @@ interface DebuggerLayoutProps {
     worker: Worker;
     initialNavigation?: { address: number; target: 'memory' | 'disassembly' } | null;
     onNavigationHandled?: () => void;
+    memoryViewAddress: number;
+    setMemoryViewAddress: (address: number) => void;
+    disassemblerAddress: number;
+    setDisassemblerAddress: (address: number) => void;
 }
 
 type DebugView = 'overview' | 'memory' | 'disassembly';
 
-const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigation, onNavigationHandled }) => {
+const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigation, onNavigationHandled, memoryViewAddress, setMemoryViewAddress, disassemblerAddress, setDisassemblerAddress }) => {
     const [activeView, setActiveView] = useState<DebugView>('overview');
     const [debugInfo, setDebugInfo] = useState<DebugData>({});
-    const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
-    const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
     const { subscribeToNavigation } = useDebuggerNavigation();
     
     // Handle initial navigation from parent
@@ -36,7 +38,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
             }
             onNavigationHandled?.();
         }
-    }, [initialNavigation, onNavigationHandled]);
+    }, [initialNavigation, onNavigationHandled, setDisassemblerAddress, setMemoryViewAddress]);
 
     // Listen for debug info updates
     useEffect(() => {
@@ -84,7 +86,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
         });
 
         return unsubscribe;
-    }, [subscribeToNavigation]);
+    }, [subscribeToNavigation, setDisassemblerAddress, setMemoryViewAddress]);
 
 
     return (

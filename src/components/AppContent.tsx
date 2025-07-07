@@ -30,6 +30,10 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
     
     // Store the pending navigation for when debugger tab is activated
     const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
+    
+    // Persist debugger view states across tab switches
+    const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
+    const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
 
     // Subscribe to navigation events and switch to debugger tab
     useEffect(() => {
@@ -93,7 +97,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
         focusHiddenInput();
     }, [focusHiddenInput]);
 
-    // Handle log messages from worker
+    // Handle log messages and breakpoint events from worker
     useEffect(() => {
         const handleWorkerMessage = (event: MessageEvent) => {
             if (event.data && event.data.type === WORKER_MESSAGES.LOG_MESSAGE) {
@@ -104,7 +108,19 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                     message: logData.message
                 });
             } else if (event.data && event.data.type === WORKER_MESSAGES.EMULATION_STATUS) {
-                setIsPaused(event.data.data.isPaused);
+                setIsPaused(event.data.data === 'paused');
+            } else if (event.data && event.data.type === WORKER_MESSAGES.BREAKPOINT_HIT) {
+                // When any breakpoint hits, switch to debugger tab and disassembly view
+                const address = event.data.data;
+                setPendingNavigation({ address, target: 'disassembly' });
+                setRightTab('debugger');
+            } else if (event.data && event.data.type === WORKER_MESSAGES.RUN_TO_CURSOR_TARGET) {
+                // When run-to-cursor is set, switch to debugger tab and disassembly view
+                const address = event.data.data;
+                if (address !== null) {
+                    setPendingNavigation({ address, target: 'disassembly' });
+                    setRightTab('debugger');
+                }
             }
         };
         
@@ -302,6 +318,10 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                                 worker={worker} 
                                 initialNavigation={pendingNavigation}
                                 onNavigationHandled={() => setPendingNavigation(null)}
+                                memoryViewAddress={memoryViewAddress}
+                                setMemoryViewAddress={setMemoryViewAddress}
+                                disassemblerAddress={disassemblerAddress}
+                                setDisassemblerAddress={setDisassemblerAddress}
                             />
                         </div>
                     )}
