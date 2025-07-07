@@ -318,8 +318,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                     left: '-9999px',
                     width: '1px',
                     height: '1px',
-                    opacity: 0,
-                    pointerEvents: 'none'
+                    opacity: 0
                 }}
                 tabIndex={0}
                 aria-label="Hidden input for keyboard focus"
@@ -327,7 +326,8 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                readOnly
+                value=""
+                onChange={() => {}}
             />
             <AlertPanel 
                 isOpen={alertPanelOpen}
