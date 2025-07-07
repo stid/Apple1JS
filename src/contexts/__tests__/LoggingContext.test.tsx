@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { LoggingProvider, useLogging } from '../LoggingContext';
 import { loggingService } from '../../services/LoggingService';
-import type { LogHandler } from '../../services/@types/LoggingTypes';
+import type { LogHandler } from '../../services/types';
 
 // Test component that uses the useLogging hook
 const TestComponent: React.FC = () => {

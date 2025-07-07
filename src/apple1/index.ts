@@ -1,5 +1,5 @@
 // Emulator state type for save/load
-import type { EmulatorState, PIAState, VideoState } from './@types/EmulatorState';
+import type { EmulatorState, PIAState, VideoState } from './TSTypes';
 import CPU6502 from '../core/CPU6502';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';

@@ -1,6 +1,6 @@
 import { loggingService } from '../LoggingService';
 import { ErrorHandler } from '../../core/errors';
-import type { LogHandler } from '../@types/LoggingTypes';
+import type { LogHandler } from '../types';
 
 describe('LoggingService', () => {
     let consoleLogSpy: jest.SpyInstance;

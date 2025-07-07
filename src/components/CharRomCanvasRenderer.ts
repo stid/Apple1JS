@@ -1,4 +1,4 @@
-import type { CHARROM } from './@types/CharRomTypes';
+import type { CHARROM } from './types';
 
 class CharRomCanvasRenderer {
     private rom: CHARROM;

@@ -1,6 +1,6 @@
 import wait from 'waait';
-import { WEB_VIDEO_BUFFER_ROW, VideoBuffer, WebCrtVideoSubFuncVideoType } from './@types/VideoTypes';
-import { VideoState } from './@types/EmulatorState';
+import { WEB_VIDEO_BUFFER_ROW, VideoBuffer, WebCrtVideoSubFuncVideoType } from './TSTypes';
+import { VideoState } from './TSTypes';
 import * as appleConstants from './const';
 import { CONFIG } from '../config';
 import { IoComponent } from '@/core/@types/IoComponent';

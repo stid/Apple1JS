@@ -1,7 +1,7 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
-import type { WebCrtVideoSubFuncVideoType } from './@types/VideoTypes';
+import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
 import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData } from './TSTypes';
 import { loggingService } from '../services/LoggingService';
 
@@ -55,7 +55,7 @@ function updateBreakpointHook() {
     }
 }
 
-import type { WorkerMessage } from './@types/WorkerMessages';
+import type { WorkerMessage } from './TSTypes';
 
 onmessage = function (e: MessageEvent<WorkerMessage>) {
     const message = e.data;
