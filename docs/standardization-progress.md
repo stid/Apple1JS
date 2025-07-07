@@ -85,18 +85,21 @@ Created organized structure:
 
 ## In Progress
 
-### 5. 🔄 Complete Formatter Migration
-**Status:** ~10 of 97 instances completed
+### 5. 🔄 Complete Formatter Migration (v4.18.6)
+**Status:** ~70 of 97 instances completed
 
-**High-Priority Files:**
-- MemoryViewer.tsx - 12 instances
-- Disassembler components - Many instances
-- Test files - Several instances
+**Recently Migrated:**
+- ✅ MemoryViewer.tsx - 14 instances migrated to Formatters.hex()
+- ✅ MemoryViewerPaginated.tsx - Already using Formatters (verified)
+- ✅ Disassembler.tsx - 15 instances migrated to Formatters.hex()
+- ✅ DisassemblerPaginated.tsx - 12 instances migrated to Formatters.hex()
 
-**Strategy:**
-1. Focus on components with most instances first
-2. Update tests alongside implementation
-3. Ensure consistent uppercase hex with $ prefix
+**Remaining Files:** ~27 instances left (mostly in core/, test files, and other components)
+
+**Key Improvements:**
+- Consistent hex formatting with appropriate width parameters (1, 2, 4 digits)
+- Improved null safety using nullish coalescing over optional chaining
+- Eliminated manual toString(16).padStart().toUpperCase() patterns
 
 ## Pending Standardizations
 
@@ -203,4 +206,4 @@ grep -r "from.*@types/" src --include="*.ts" --include="*.tsx"
 
 ---
 Last updated: 2025-01-07
-Current version: 4.18.5
+Current version: 4.18.6
