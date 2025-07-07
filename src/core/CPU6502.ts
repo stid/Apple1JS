@@ -1,10 +1,6 @@
-import type { IClockable } from './@types/clockable';
-import type { IInspectableComponent } from './@types/IInspectableComponent';
-import type { InspectableData } from './@types/InspectableTypes';
-import { formatAddress, formatByte } from './@types/InspectableTypes';
+import type { IClockable, IInspectableComponent, InspectableData, CPU6502State, CPU6502WithDebug, DisassemblyLine, TraceEntry } from './types';
+import { formatAddress, formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
 import type Bus from './Bus';
-import type { CPU6502State } from './@types/CPU6502State';
-import type { CPU6502WithDebug, DisassemblyLine, TraceEntry } from './@types/CPU6502Debug';
 import { StateError } from './errors';
 import { Formatters } from '../utils/formatters';
 

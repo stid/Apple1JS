@@ -1,8 +1,5 @@
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData, InspectableChild, formatByte } from './@types/InspectableTypes';
-import { WithBusMetadata } from './@types/BusComponent';
-import { IoComponent } from './@types/IoComponent';
-import { subscribeFunction } from './@types/PubSub';
+import type { IInspectableComponent, InspectableData, InspectableChild, WithBusMetadata, IoComponent, subscribeFunction } from './types';
+import { formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
 import { loggingService } from '../services/LoggingService';
 import { StateError } from './errors';
 import { Formatters } from '../utils/formatters';

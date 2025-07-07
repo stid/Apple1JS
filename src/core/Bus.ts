@@ -1,7 +1,5 @@
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData, InspectableChild, formatAddress } from './@types/InspectableTypes';
-import { BusSpaceType } from './@types/IoAddressable';
-import { WithBusMetadata } from './@types/BusComponent';
+import type { IInspectableComponent, InspectableData, InspectableChild, BusSpaceType, WithBusMetadata, IoAddressable } from './types';
+import { formatAddress } from './@types/InspectableTypes'; // TODO: Remove after full migration
 import { BusError } from './errors';
 import { Formatters } from '../utils/formatters';
 
@@ -29,8 +27,10 @@ class Bus implements IInspectableComponent {
                 name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`
             };
             
-            if (b.component && typeof b.component.getInspectable === 'function') {
-                child.component = b.component.getInspectable();
+            // Check if component also implements IInspectableComponent
+            const inspectableComponent = b.component as IoAddressable & Partial<IInspectableComponent>;
+            if (inspectableComponent && typeof inspectableComponent.getInspectable === 'function') {
+                child.component = inspectableComponent.getInspectable();
             }
             
             return child;
