@@ -144,6 +144,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                                 address={parseInt(String(debugInfo.cpu.REG_PC).replace('$', ''), 16)} 
                                                 showContextMenu={true}
                                                 worker={worker}
+                                                showRunToCursor={true}
                                             />
                                         ) : (
                                             <span className="text-data-address">$0000</span>
@@ -221,15 +222,15 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Zero Page:</span>
                                         <span>
-                                            <AddressLink address={0x0000} showContextMenu={true} worker={worker} /> - 
-                                            <AddressLink address={0x00FF} showContextMenu={true} worker={worker} />
+                                            <AddressLink address={0x0000} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
+                                            <AddressLink address={0x00FF} showContextMenu={true} worker={worker} showRunToCursor={true} />
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Stack:</span>
                                         <span>
-                                            <AddressLink address={0x0100} showContextMenu={true} worker={worker} /> - 
-                                            <AddressLink address={0x01FF} showContextMenu={true} worker={worker} />
+                                            <AddressLink address={0x0100} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
+                                            <AddressLink address={0x01FF} showContextMenu={true} worker={worker} showRunToCursor={true} />
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -239,8 +240,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">PIA I/O:</span>
                                         <span>
-                                            <AddressLink address={0xD010} showContextMenu={true} worker={worker} /> - 
-                                            <AddressLink address={0xD013} showContextMenu={true} worker={worker} />
+                                            <AddressLink address={0xD010} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
+                                            <AddressLink address={0xD013} showContextMenu={true} worker={worker} showRunToCursor={true} />
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -250,8 +251,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">WOZ Mon:</span>
                                         <span>
-                                            <AddressLink address={0xFF00} showContextMenu={true} worker={worker} /> - 
-                                            <AddressLink address={0xFFFF} showContextMenu={true} worker={worker} />
+                                            <AddressLink address={0xFF00} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
+                                            <AddressLink address={0xFFFF} showContextMenu={true} worker={worker} showRunToCursor={true} />
                                         </span>
                                     </div>
                                 </div>

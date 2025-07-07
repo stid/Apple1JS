@@ -692,7 +692,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         <div className="flex flex-col h-full">
             {/* Compact CPU Registers - only show when paused/stepping */}
             {isPaused && (
-                <CompactCpuRegisters debugInfo={debugInfo} />
+                <CompactCpuRegisters debugInfo={debugInfo} worker={worker} />
             )}
             
             {/* Disassembler Table */}
