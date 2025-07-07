@@ -1,10 +1,8 @@
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData, InspectableChild, formatByte } from './@types/InspectableTypes';
-import { WithBusMetadata } from './@types/BusComponent';
-import { IoComponent } from './@types/IoComponent';
-import { subscribeFunction } from './@types/PubSub';
+import type { IInspectableComponent, InspectableData, InspectableChild, WithBusMetadata, IoComponent, subscribeFunction } from './types';
+import { formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
 import { loggingService } from '../services/LoggingService';
 import { StateError } from './errors';
+import { Formatters } from '../utils/formatters';
 
 // Use global performance API
 declare const performance: { now(): number };
@@ -514,21 +512,26 @@ class PIA6820 implements IInspectableComponent {
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 
-        const children: InspectableChild[] = this.children.map((child) => ({
-            id: child.id,
-            type: child.type || 'IoComponent',
-            name: child.name,
-            component: typeof child.getInspectable === 'function'
-                ? child.getInspectable()
-                : undefined
-        }));
+        const children: InspectableChild[] = this.children.map((child) => {
+            const childObj: InspectableChild = {
+                id: child.id,
+                type: child.type || 'IoComponent',
+                name: child.name ?? ''
+            };
+            
+            if (typeof child.getInspectable === 'function') {
+                childObj.component = child.getInspectable();
+            }
+            
+            return childObj;
+        });
 
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
-            address: self.__address,
-            addressName: self.__addressName,
+            name: this.name ?? '',
+            ...(self.__address !== undefined && { address: self.__address }),
+            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             state: {
                 // Registers
                 'Port A Data': formatByte(this.ora),
@@ -555,7 +558,7 @@ class PIA6820 implements IInspectableComponent {
                 cacheSize: this.registerCache.size,
                 cacheStatus: this.registerCache.size > 0 ? 'Active' : 'Empty',
             },
-            children: children.length > 0 ? children : undefined
+            ...(children.length > 0 && { children })
         };
     }
 
@@ -566,14 +569,11 @@ class PIA6820 implements IInspectableComponent {
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 
-        // Lazy evaluation - only format when requested
-        const formatHex = (value: number) => value.toString(16).padStart(2, '0').toUpperCase();
-
         return {
-            ORA: formatHex(this.ora),
-            CRA: formatHex(this.cra),
-            ORB: formatHex(this.orb),
-            CRB: formatHex(this.crb),
+            ORA: Formatters.hex(this.ora, 2),
+            CRA: Formatters.hex(this.cra, 2),
+            ORB: Formatters.hex(this.orb, 2),
+            CRB: Formatters.hex(this.crb, 2),
             CA1: this.ca1 ? '1' : '0',
             CA2: this.ca2 ? '1' : '0',
             CB1: this.cb1 ? '1' : '0',

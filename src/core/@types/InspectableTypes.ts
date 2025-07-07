@@ -2,6 +2,8 @@
  * Standardized types for IInspectableComponent implementations
  */
 
+import { Formatters } from '../../utils/formatters';
+
 /**
  * Base properties that all inspectable components must provide
  */
@@ -77,14 +79,16 @@ export function formatFrequency(hz: number): string {
 
 /**
  * Helper function to format memory addresses
+ * @deprecated Use Formatters.address() or Formatters.hexWord() instead
  */
 export function formatAddress(addr: number, width: number = 4): string {
-    return '$' + addr.toString(16).padStart(width, '0').toUpperCase();
+    return width === 2 ? Formatters.hexByte(addr) : Formatters.hexWord(addr);
 }
 
 /**
  * Helper function to format byte values
+ * @deprecated Use Formatters.hexByte() instead
  */
 export function formatByte(value: number): string {
-    return '$' + value.toString(16).padStart(2, '0').toUpperCase();
+    return Formatters.hexByte(value);
 }

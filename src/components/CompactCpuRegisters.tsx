@@ -1,26 +1,15 @@
 import React, { memo } from 'react';
 import { DebugData } from '../apple1/TSTypes';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
 
 interface CompactCpuRegistersProps {
     debugInfo: DebugData;
     worker?: Worker;
 }
 
-// Helper to format register values consistently
-const formatHex = (value: string | number | undefined, digits: number): string => {
-    if (value === undefined || value === null) {
-        return digits === 4 ? '$0000' : '$00';
-    }
-    if (typeof value === 'string' && value.startsWith('$')) {
-        // Already formatted, ensure correct padding
-        const hex = value.substring(1);
-        return '$' + hex.padStart(digits, '0').toUpperCase();
-    }
-    // For numeric values or plain strings, parse as number
-    const num = typeof value === 'string' ? parseInt(value, 10) : value;
-    return '$' + num.toString(16).padStart(digits, '0').toUpperCase();
-};
+// Use unified formatter
+const { formatHex } = Formatters;
 
 const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debugInfo, worker }) => {
     const cpu = debugInfo.cpu || {};
@@ -54,7 +43,7 @@ const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debu
                         <AddressLink 
                             address={parseInt(registers.pc.replace('$', ''), 16)} 
                             className="font-mono"
-                            worker={worker}
+                            {...(worker !== undefined && { worker })}
                             showContextMenu={true}
                             showRunToCursor={true}
                         />

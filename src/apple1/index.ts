@@ -43,15 +43,17 @@ class Apple1 implements IInspectableComponent {
      * Save the state of the entire machine (RAM, CPU, PIA, ...).
      */
     saveState(): EmulatorState {
-        return {
+        const state: EmulatorState = {
             ram: this.saveRAMState(),
             cpu: this.cpu.saveState(),
             pia: this.pia.saveState() as PIAState,
-            video:
-                typeof this.video.getState === 'function'
-                    ? this.video.getState()
-                    : undefined,
         };
+        
+        if (typeof this.video.getState === 'function') {
+            state.video = this.video.getState();
+        }
+        
+        return state;
     }
 
     /**

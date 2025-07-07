@@ -1,8 +1,7 @@
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData, InspectableChild, formatAddress } from './@types/InspectableTypes';
-import { BusSpaceType } from './@types/IoAddressable';
-import { WithBusMetadata } from './@types/BusComponent';
+import type { IInspectableComponent, InspectableData, InspectableChild, BusSpaceType, WithBusMetadata, IoAddressable } from './types';
+import { formatAddress } from './@types/InspectableTypes'; // TODO: Remove after full migration
 import { BusError } from './errors';
+import { Formatters } from '../utils/formatters';
 
 class Bus implements IInspectableComponent {
     id = 'bus';
@@ -21,21 +20,28 @@ class Bus implements IInspectableComponent {
     getInspectable(): InspectableData {
         const self = this as WithBusMetadata<typeof this>;
         
-        const children: InspectableChild[] = this.busMapping.map((b) => ({
-            id: b.name || 'unknown',
-            type: 'BusMapping',
-            name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`,
-            component: b.component && typeof b.component.getInspectable === 'function'
-                ? b.component.getInspectable()
-                : undefined
-        }));
+        const children: InspectableChild[] = this.busMapping.map((b) => {
+            const child: InspectableChild = {
+                id: b.name || 'unknown',
+                type: 'BusMapping',
+                name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`
+            };
+            
+            // Check if component also implements IInspectableComponent
+            const inspectableComponent = b.component as IoAddressable & Partial<IInspectableComponent>;
+            if (inspectableComponent && typeof inspectableComponent.getInspectable === 'function') {
+                child.component = inspectableComponent.getInspectable();
+            }
+            
+            return child;
+        });
         
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
-            address: self.__address,
-            addressName: self.__addressName,
+            name: this.name ?? '',
+            ...(self.__address !== undefined && { address: self.__address }),
+            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             state: {
                 mappingCount: this.busMapping.length,
                 sorted: this.sortedAddrs.length > 0,
@@ -190,8 +196,8 @@ class Bus implements IInspectableComponent {
         
         // Memory address mappings
         this.busMapping.forEach((element) => {
-            const from: string = element.addr[0].toString(16).padStart(4, '0').toUpperCase();
-            const to: string = element.addr[1].toString(16).padStart(4, '0').toUpperCase();
+            const from: string = Formatters.hex(element.addr[0], 4);
+            const to: string = Formatters.hex(element.addr[1], 4);
             const name: string = element.name || 'Unknown';
             result[name] = `[${from}]:[${to}]`;
         });

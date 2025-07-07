@@ -154,8 +154,7 @@ describe('CompactExecutionControls component', () => {
                 type: WORKER_MESSAGES.STEP
             });
             
-            // Should show stepping state briefly
-            expect(screen.getByText('STEPPING')).toBeInTheDocument();
+            // Note: We no longer show a separate STEPPING state
             
             // Simulate worker returning to paused state after step
             act(() => {

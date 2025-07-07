@@ -24,7 +24,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const [memoryData, setMemoryData] = useState<MemoryData>({});
     const { currentAddress, navigateInternal } = useNavigableComponent({
         initialAddress: externalAddress ?? startAddress,
-        onAddressChange
+        ...(onAddressChange !== undefined && { onAddressChange })
     });
     const [addressInput, setAddressInput] = useState((externalAddress ?? startAddress).toString(16).padStart(4, '0').toUpperCase());
     const [editingCell, setEditingCell] = useState<number | null>(null);

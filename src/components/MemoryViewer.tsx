@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useLogging } from '../contexts/LoggingContext';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -20,7 +21,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
 }) => {
     const [memoryData, setMemoryData] = useState<MemoryData>({});
     const [currentAddress, setCurrentAddress] = useState(startAddress);
-    const [addressInput, setAddressInput] = useState(startAddress.toString(16).padStart(4, '0').toUpperCase());
+    const [addressInput, setAddressInput] = useState(Formatters.hex(startAddress, 4));
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);

@@ -20,17 +20,17 @@ class Keyboard implements IoComponent, IInspectableComponent {
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
+            name: this.name ?? '',
             state: {
                 lastKey: this.lastKey ?? '(none)',
                 connected: this.connected
             }
         };
     }
-    private wireWrite?: (value: number) => Promise<number | void>;
+    private wireWrite: ((value: number) => Promise<number | void>) | undefined;
 
     wire(conf: { write?: (value: number) => Promise<number | void> }): void {
-        this.wireWrite = conf.write;
+        this.wireWrite = conf.write ?? undefined;
     }
 
     reset(): void {

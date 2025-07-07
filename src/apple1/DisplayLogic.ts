@@ -6,8 +6,8 @@ import { IoWriter, WireOptions } from '../core/@types/IoLogic';
 //     CB2 goes low when data is written, returns high when CB1 goes high
 class DisplayLogic implements IoWriter {
     private pia: PIA6820;
-    private wireReset?: () => void;
-    private wireWrite?: (value: number) => Promise<number | string | void>;
+    private wireReset: (() => void) | undefined;
+    private wireWrite: ((value: number) => Promise<number | string | void>) | undefined;
 
     constructor(pia: PIA6820) {
         this.pia = pia;
@@ -40,8 +40,8 @@ class DisplayLogic implements IoWriter {
     }
 
     wire({ reset, write }: WireOptions): void {
-        this.wireReset = reset;
-        this.wireWrite = write;
+        this.wireReset = reset ?? undefined;
+        this.wireWrite = write ?? undefined;
     }
 
     reset(): void {

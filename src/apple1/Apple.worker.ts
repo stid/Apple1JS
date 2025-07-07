@@ -150,7 +150,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                 const response: MemoryRangeData & { mode?: string } = {
                     start: request.start,
                     data: memoryData,
-                    mode: request.mode
+                    ...(request.mode !== undefined && { mode: request.mode })
                 };
                 postMessage({ data: response, type: WORKER_MESSAGES.MEMORY_RANGE_DATA });
             }
@@ -346,7 +346,7 @@ function updateDebuggerState(active: boolean) {
             const { cpu } = apple1;
             postMessage({
                 data: {
-                    cpu: { PC: cpu.PC }
+                    cpu: cpu.toDebug()
                 },
                 type: WORKER_MESSAGES.DEBUG_DATA,
             });
