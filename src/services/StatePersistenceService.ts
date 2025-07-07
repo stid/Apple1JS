@@ -18,7 +18,7 @@ export class StatePersistenceService {
                 timestamp: Date.now(),
                 state
             };
-            localStorage.setItem(
+            window.localStorage.setItem(
                 StatePersistenceService.STORAGE_KEY,
                 JSON.stringify(wrapper)
             );
@@ -32,7 +32,7 @@ export class StatePersistenceService {
      */
     async loadFromLocalStorage(): Promise<EmulatorState | null> {
         try {
-            const stored = localStorage.getItem(StatePersistenceService.STORAGE_KEY);
+            const stored = window.localStorage.getItem(StatePersistenceService.STORAGE_KEY);
             if (!stored) {
                 return null;
             }
@@ -53,7 +53,7 @@ export class StatePersistenceService {
      * Clear state from local storage
      */
     clearLocalStorage(): void {
-        localStorage.removeItem(StatePersistenceService.STORAGE_KEY);
+        window.localStorage.removeItem(StatePersistenceService.STORAGE_KEY);
     }
 
     /**
@@ -65,7 +65,7 @@ export class StatePersistenceService {
             timestamp: Date.now(),
             metadata: {
                 exportDate: new Date().toISOString(),
-                userAgent: navigator.userAgent
+                userAgent: window.navigator.userAgent
             },
             state
         };
@@ -126,7 +126,7 @@ export class StatePersistenceService {
         const states: Array<{ id: string; timestamp: number; name?: string }> = [];
         
         // Check local storage
-        const stored = localStorage.getItem(StatePersistenceService.STORAGE_KEY);
+        const stored = window.localStorage.getItem(StatePersistenceService.STORAGE_KEY);
         if (stored) {
             try {
                 const wrapper = JSON.parse(stored);
@@ -146,14 +146,14 @@ export class StatePersistenceService {
     /**
      * Validate state structure
      */
-    private validateState(state: any): state is EmulatorState {
+    private validateState(state: unknown): state is EmulatorState {
         // Basic validation - could be expanded
         return (
-            state &&
+            state !== null &&
             typeof state === 'object' &&
             'cpu' in state &&
             'ram' in state &&
-            Array.isArray(state.ram)
+            Array.isArray((state as { ram: unknown }).ram)
         );
     }
 
@@ -173,14 +173,14 @@ export class StatePersistenceService {
 
         // For now, just save to local storage with a unique key
         const key = `apple1js_snapshot_${snapshot.id}`;
-        localStorage.setItem(key, JSON.stringify(snapshot));
+        window.localStorage.setItem(key, JSON.stringify(snapshot));
     }
 
     /**
      * Get autosave configuration
      */
     getAutosaveConfig(): { enabled: boolean; intervalMs: number } {
-        const stored = localStorage.getItem('apple1js_autosave_config');
+        const stored = window.localStorage.getItem('apple1js_autosave_config');
         if (stored) {
             try {
                 return JSON.parse(stored);
@@ -195,6 +195,6 @@ export class StatePersistenceService {
      * Set autosave configuration
      */
     setAutosaveConfig(config: { enabled: boolean; intervalMs: number }): void {
-        localStorage.setItem('apple1js_autosave_config', JSON.stringify(config));
+        window.localStorage.setItem('apple1js_autosave_config', JSON.stringify(config));
     }
 }

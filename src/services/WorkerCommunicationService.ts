@@ -1,4 +1,4 @@
-import { WORKER_MESSAGES, StateMessage, DebugData, LogMessageData, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
+import { WORKER_MESSAGES, StateMessage, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
 
 /**
  * Service abstraction for Worker communication
@@ -6,8 +6,8 @@ import { WORKER_MESSAGES, StateMessage, DebugData, LogMessageData, MemoryRangeRe
  */
 export class WorkerCommunicationService {
     private worker: Worker;
-    private messageHandlers: Map<WORKER_MESSAGES, Set<(data: any) => void>> = new Map();
-    private pendingRequests: Map<string, { resolve: (data: any) => void; reject: (error: Error) => void }> = new Map();
+    private messageHandlers: Map<WORKER_MESSAGES, Set<(data: unknown) => void>> = new Map();
+    private pendingRequests: Map<string, { resolve: (data: unknown) => void; reject: (error: Error) => void }> = new Map();
     private requestCounter = 0;
 
     constructor(worker: Worker) {
@@ -42,17 +42,19 @@ export class WorkerCommunicationService {
     /**
      * Subscribe to worker messages of a specific type
      */
-    on<T = any>(messageType: WORKER_MESSAGES, handler: (data: T) => void): () => void {
+    on<T = unknown>(messageType: WORKER_MESSAGES, handler: (data: T) => void): () => void {
         if (!this.messageHandlers.has(messageType)) {
             this.messageHandlers.set(messageType, new Set());
         }
-        this.messageHandlers.get(messageType)!.add(handler);
+        // Cast handler to match the internal type
+        const internalHandler = handler as (data: unknown) => void;
+        this.messageHandlers.get(messageType)!.add(internalHandler);
 
         // Return unsubscribe function
         return () => {
             const handlers = this.messageHandlers.get(messageType);
             if (handlers) {
-                handlers.delete(handler);
+                handlers.delete(internalHandler);
             }
         };
     }
@@ -60,18 +62,20 @@ export class WorkerCommunicationService {
     /**
      * Send a message to the worker without expecting a response
      */
-    send(type: WORKER_MESSAGES, data?: any): void {
+    send(type: WORKER_MESSAGES, data?: unknown): void {
         this.worker.postMessage({ type, data });
     }
 
     /**
      * Send a request to the worker and wait for a response
      */
-    private async request<T>(type: WORKER_MESSAGES, data?: any, responseType?: WORKER_MESSAGES): Promise<T> {
+    private async request<T>(type: WORKER_MESSAGES, data?: unknown, responseType?: WORKER_MESSAGES): Promise<T> {
         const requestId = `${type}_${this.requestCounter++}`;
         
-        return new Promise((resolve, reject) => {
-            this.pendingRequests.set(requestId, { resolve, reject });
+        return new Promise<T>((resolve, reject) => {
+            // Store typed resolve function
+            const typedResolve = (value: unknown) => resolve(value as T);
+            this.pendingRequests.set(requestId, { resolve: typedResolve, reject });
             
             // Set timeout for request
             const timeout = setTimeout(() => {
@@ -83,11 +87,10 @@ export class WorkerCommunicationService {
 
             // Listen for response if responseType is specified
             if (responseType) {
-                const unsubscribe = this.on(responseType, (data) => {
+                const unsubscribe = this.on<T>(responseType, (data) => {
                     clearTimeout(timeout);
                     unsubscribe();
                     if (this.pendingRequests.has(requestId)) {
-                        const { resolve } = this.pendingRequests.get(requestId)!;
                         this.pendingRequests.delete(requestId);
                         resolve(data);
                     }
