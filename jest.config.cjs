@@ -12,4 +12,34 @@ module.exports = {
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
     },
+    collectCoverage: false,
+    collectCoverageFrom: [
+        'src/**/*.{ts,tsx}',
+        '!src/**/*.d.ts',
+        '!src/**/*.test.{ts,tsx}',
+        '!src/**/*.spec.{ts,tsx}',
+        '!src/test-support/**',
+        '!src/progs/**',
+        '!src/version.ts',
+    ],
+    coverageThreshold: {
+        global: {
+            branches: 90,
+            functions: 90,
+            lines: 90,
+            statements: 90,
+        },
+        'src/core/**/*.{ts,tsx}': {
+            branches: 90,
+            functions: 90,
+            lines: 90,
+            statements: 90,
+        },
+    },
+    coverageReporters: ['text', 'lcov', 'html'],
+    testPathIgnorePatterns: [
+        '/node_modules/',
+        '/dist/',
+        '/build/',
+    ],
 };

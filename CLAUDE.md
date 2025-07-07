@@ -74,7 +74,18 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/Reac
     - Integrated debugger (memory viewer, disassembler, CPU state)
     - Component inspector shows real-time system state
 - **src/styles/**: Design token system for consistent theming
-- **src/services/**: Cross-cutting concerns (logging, state management)
+- **src/services/**: Service layer abstractions
+    - LoggingService: UI-level logging with filtering and history
+    - WorkerCommunicationService: Type-safe Worker messaging API
+    - StatePersistenceService: State save/load to localStorage and files
+- **src/contexts/**: React context providers for state management
+    - EmulationContext: Manages execution state, breakpoints, debugging
+    - DebuggerNavigationContext: Coordinates navigation between debug components
+    - LoggingContext: Provides UI-level logging with history
+- **src/hooks/**: Reusable React hooks for common patterns
+    - useNavigableComponent: Keyboard navigation for debugger components
+    - usePaginatedTable: Large dataset handling with virtualization
+    - useVisibleRows: Viewport management for scrollable components
 
 ## 🧩 Key Architectural Patterns
 
@@ -87,15 +98,30 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/Reac
 
 **State Management**:
 
-- `EmulatorState` captures complete system state for save/restore
-- Web Worker maintains authoritative state, UI reflects via messages
-- Prevents race conditions and ensures consistency
+- **Two-Layer Architecture**:
+    - Web Worker: Maintains authoritative emulation state (CPU, memory, I/O)
+    - React Contexts: Manage UI state and debugging controls
+- **EmulatorState**: Serializable snapshot of complete system state
+- **EmulationContext**: Bridges Worker and UI, handling:
+    - Execution control (run/pause/step)
+    - Breakpoint management
+    - Debug state synchronization
+- Message-based communication prevents race conditions
 
 **Component Inspection**:
 
 - `IInspectableComponent` provides `inspect()` method returning debug info
 - Enables real-time debugging without performance impact
 - Tree structure mirrors hardware architecture
+
+**UI Component Patterns**:
+
+- **Paginated Components**: Handle large datasets efficiently
+    - DisassemblerPaginated, MemoryViewerPaginated
+    - Virtual scrolling for performance
+- **Alert System**: User feedback through AlertBadges and AlertPanel
+- **SmartAddress**: Intelligent address parsing and navigation
+- **Navigation Hooks**: Consistent keyboard controls across debugger
 
 **Performance Considerations**:
 
@@ -116,6 +142,14 @@ yarn run lint && yarn run type-check && yarn run test:ci
 - Core emulation (CPU, memory, bus): ≥ 90% line/branch coverage
 - New features: Must include tests demonstrating functionality
 - Bug fixes: Must include regression test
+
+**Test Infrastructure**:
+
+- **Custom render utility** (`src/test-utils/render.tsx`):
+    - Wraps components with required providers
+    - Ensures consistent test environment
+- **CPU test suite**: Organized by instruction type for maintainability
+- **Usage**: `import { render } from '@/test-utils'` (not from @testing-library/react)
 
 **Why These Matter**:
 
@@ -227,6 +261,14 @@ const color = designTokens.colors.data.address;
 
 - Memory editing UI ready but write operations not implemented in worker
 - Some linting warnings in user_experience_analysis.md (formatting)
+
+## 📁 Type System Organization
+
+**Current Structure** (needs consolidation):
+- `src/@types/`: Global type definitions (Config.ts)
+- `src/types/`: Shared types (logging.ts)
+- Module-specific `@types/`: Component-specific types in core/, apple1/, services/
+- This fragmentation is a known issue - prefer module-specific types for now
 
 ## 📚 Key Concepts
 

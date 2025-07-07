@@ -4,5 +4,8 @@
     "singleQuote": true,
     "printWidth": 120,
     "tabWidth": 4,
-    "endOfLine": "auto"
+    "endOfLine": "auto",
+    "arrowParens": "always",
+    "bracketSpacing": true,
+    "htmlWhitespaceSensitivity": "css"
 }
