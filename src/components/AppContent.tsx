@@ -62,15 +62,13 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
         async (e: ClipboardEvent) => {
             const text = e.clipboardData?.getData('text');
             if (text) {
-                const lines = text.split(/\r?\n/);
-                for (const line of lines) {
-                    for (const char of line) {
-                        worker.postMessage({ data: char, type: WORKER_MESSAGES.KEY_DOWN });
-                    }
-                    if (lines.length > 1) {
-                        worker.postMessage({ data: 'Enter', type: WORKER_MESSAGES.KEY_DOWN });
-                    }
-                }
+                // Send characters with a small delay between them to avoid overwhelming the Apple 1
+                text.split('').forEach((char, index) => {
+                    setTimeout(() => {
+                        const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
+                        worker.postMessage({ data: keyToSend, type: WORKER_MESSAGES.KEY_DOWN });
+                    }, index * 160); // 160ms delay between each character
+                });
             }
             e.preventDefault();
         },
