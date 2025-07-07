@@ -379,7 +379,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
         >
             <AppContentInner 
                 worker={worker} 
-                apple1Instance={apple1Instance}
+                {...(apple1Instance !== undefined && { apple1Instance })}
                 rightTab={rightTab}
                 setRightTab={setRightTab}
                 pendingNavigation={pendingNavigation}

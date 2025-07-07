@@ -190,9 +190,10 @@ describe('useNavigableComponent', () => {
         });
 
         it('should handle changing from undefined to defined address', () => {
+            interface Props { address?: number }
             const { result, rerender } = renderHook(
-                ({ address }: { address?: number }) => useNavigableComponent({ initialAddress: address }),
-                { initialProps: { address: undefined as number | undefined } }
+                ({ address }: Props) => useNavigableComponent(address !== undefined ? { initialAddress: address } : {}),
+                { initialProps: {} }
             );
 
             expect(result.current.currentAddress).toBe(0x0000);

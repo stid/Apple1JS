@@ -52,7 +52,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     // Use navigation hook for external sync
     const { currentAddress: syncedAddress, navigateInternal } = useNavigableComponent({
         initialAddress: externalAddress ?? 0x0000,
-        onAddressChange
+        ...(onAddressChange !== undefined && { onAddressChange })
     });
     
     // Use the pagination hook for internal mechanics

@@ -74,7 +74,7 @@ class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVide
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
+            name: this.name ?? '',
             state: {
                 row: this.row,
                 column: this.column,

@@ -157,8 +157,8 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         runToAddress,
         toggleBreakpoint,
         clearAllBreakpoints,
-        onBreakpointHit,
-        onRunToCursorSet
+        ...(onBreakpointHit !== undefined && { onBreakpointHit }),
+        ...(onRunToCursorSet !== undefined && { onRunToCursorSet })
     };
 
     return (

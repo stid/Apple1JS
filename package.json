@@ -56,15 +56,19 @@
         "prettier": "^3.6.2",
         "process": "^0.11.10",
         "tailwindcss": "^3.4.17",
+        "terser": "^5.43.1",
         "ts-jest": "^29.4.0",
         "typescript": "^5.8.3",
         "vite": "7.0.2"
     },
     "dependencies": {
+        "clsx": "^2.1.1",
+        "lucide-react": "^0.525.0",
         "million": "^3.1.11",
         "react": "19.1.0",
         "react-dom": "19.1.0",
         "reactflow": "^11.11.4",
+        "tailwind-merge": "^3.3.1",
         "waait": "^1.0.5",
         "web-vitals": "^5.0.3"
     }

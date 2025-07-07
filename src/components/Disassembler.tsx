@@ -283,7 +283,7 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                 bytes: bytes,
                 instruction: opcodeInfo.name,
                 operand: operand,
-                operandAddress: operandAddress,
+                ...(operandAddress !== undefined && { operandAddress }),
             });
 
             addr += opcodeInfo.bytes;

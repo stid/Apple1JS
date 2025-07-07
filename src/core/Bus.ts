@@ -21,21 +21,26 @@ class Bus implements IInspectableComponent {
     getInspectable(): InspectableData {
         const self = this as WithBusMetadata<typeof this>;
         
-        const children: InspectableChild[] = this.busMapping.map((b) => ({
-            id: b.name || 'unknown',
-            type: 'BusMapping',
-            name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`,
-            component: b.component && typeof b.component.getInspectable === 'function'
-                ? b.component.getInspectable()
-                : undefined
-        }));
+        const children: InspectableChild[] = this.busMapping.map((b) => {
+            const child: InspectableChild = {
+                id: b.name || 'unknown',
+                type: 'BusMapping',
+                name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`
+            };
+            
+            if (b.component && typeof b.component.getInspectable === 'function') {
+                child.component = b.component.getInspectable();
+            }
+            
+            return child;
+        });
         
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
-            address: self.__address,
-            addressName: self.__addressName,
+            name: this.name ?? '',
+            ...(self.__address !== undefined && { address: self.__address }),
+            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             state: {
                 mappingCount: this.busMapping.length,
                 sorted: this.sortedAddrs.length > 0,

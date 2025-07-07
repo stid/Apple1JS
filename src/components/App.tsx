@@ -13,7 +13,7 @@ const App = ({ worker, apple1Instance }: Props): JSX.Element => {
     return (
         <ErrorBoundary>
             <DebuggerNavigationProvider>
-                <AppContent worker={worker} apple1Instance={apple1Instance} />
+                <AppContent worker={worker} {...(apple1Instance !== undefined && { apple1Instance })} />
             </DebuggerNavigationProvider>
         </ErrorBoundary>
     );

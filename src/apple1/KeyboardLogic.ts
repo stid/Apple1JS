@@ -6,7 +6,7 @@ const RESET_CODE = -255;
 
 class KeyboardLogic implements IoWriter {
     private pia: PIA6820;
-    private wireResetCallback?: () => void;
+    private wireResetCallback: (() => void) | undefined;
 
     constructor(pia: PIA6820) {
         this.pia = pia;
@@ -38,7 +38,7 @@ class KeyboardLogic implements IoWriter {
     }
 
     wire({ reset }: WireOptions): void {
-        this.wireResetCallback = reset;
+        this.wireResetCallback = reset ?? undefined;
     }
 
     reset(): void {

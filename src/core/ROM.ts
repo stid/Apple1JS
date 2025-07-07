@@ -21,9 +21,9 @@ class ROM implements IoAddressable, IInspectableComponent {
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
-            address: self.__address,
-            addressName: self.__addressName,
+            name: this.name ?? '',
+            ...(self.__address !== undefined && { address: self.__address }),
+            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             size: this.data.length,
             state: {
                 size: this.data.length + ' bytes',

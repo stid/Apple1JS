@@ -14,7 +14,7 @@ export class InspectableIoComponent<TState = IoComponentState> implements IInspe
                 ...base,
                 id: this.id,
                 type: this.type,
-                name: this.name
+                name: this.name ?? ''
             };
         }
         
@@ -22,7 +22,7 @@ export class InspectableIoComponent<TState = IoComponentState> implements IInspe
         return {
             id: this.id,
             type: this.type,
-            name: this.name
+            name: this.name ?? ''
         };
     }
     id: string;

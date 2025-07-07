@@ -54,7 +54,7 @@ const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debu
                         <AddressLink 
                             address={parseInt(registers.pc.replace('$', ''), 16)} 
                             className="font-mono"
-                            worker={worker}
+                            {...(worker !== undefined && { worker })}
                             showContextMenu={true}
                             showRunToCursor={true}
                         />

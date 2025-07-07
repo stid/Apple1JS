@@ -1235,10 +1235,10 @@ class CPU6502 implements IClockable, IInspectableComponent {
             trace = self.trace.slice(-8);
         }
         
-        return {
+        const data: InspectableData = {
             id: this.id,
             type: this.type,
-            name: this.name,
+            name: this.name ?? '',
             state: {
                 PC: formatAddress(this.PC),
                 A: formatByte(this.A),
@@ -1267,18 +1267,23 @@ class CPU6502 implements IClockable, IInspectableComponent {
                 cycles: this.cycles,
                 profiling: this.enableProfiling
             },
-            stats: this.enableProfiling ? {
-                instructions: this.instructionCount,
-                uniqueOpcodes: this.profileData.size,
-                cycleAccurate: this.cycleAccurateMode ? 'Enabled' : 'Disabled'
-            } : undefined,
             debug: {
-                stack,
-                disasm,
-                trace
+                ...(stack !== undefined && { stack }),
+                ...(disasm !== undefined && { disasm }),
+                ...(trace !== undefined && { trace })
             },
             children: []
         };
+        
+        if (this.enableProfiling) {
+            data.stats = {
+                instructions: this.instructionCount,
+                uniqueOpcodes: this.profileData.size,
+                cycleAccurate: this.cycleAccurateMode ? 'Enabled' : 'Disabled'
+            };
+        }
+        
+        return data;
     }
     id = 'cpu6502';
     type = 'CPU6502';
@@ -1321,7 +1326,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
     private enableProfiling: boolean = false;
     
     // Execution hook for debugging (breakpoints, etc)
-    private executionHook?: (pc: number) => boolean;
+    private executionHook: ((pc: number) => boolean) | undefined;
     
     // Cycle-accurate timing mode for debugging
     private cycleAccurateMode: boolean = false; // Disabled by default to prevent memory leaks
@@ -1558,7 +1563,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
      * Return false to halt execution, true to continue.
      */
     setExecutionHook(hook?: (pc: number) => boolean): void {
-        this.executionHook = hook;
+        this.executionHook = hook ?? undefined;
     }
     
     /**

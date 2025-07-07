@@ -514,21 +514,26 @@ class PIA6820 implements IInspectableComponent {
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 
-        const children: InspectableChild[] = this.children.map((child) => ({
-            id: child.id,
-            type: child.type || 'IoComponent',
-            name: child.name,
-            component: typeof child.getInspectable === 'function'
-                ? child.getInspectable()
-                : undefined
-        }));
+        const children: InspectableChild[] = this.children.map((child) => {
+            const childObj: InspectableChild = {
+                id: child.id,
+                type: child.type || 'IoComponent',
+                name: child.name ?? ''
+            };
+            
+            if (typeof child.getInspectable === 'function') {
+                childObj.component = child.getInspectable();
+            }
+            
+            return childObj;
+        });
 
         return {
             id: this.id,
             type: this.type,
-            name: this.name,
-            address: self.__address,
-            addressName: self.__addressName,
+            name: this.name ?? '',
+            ...(self.__address !== undefined && { address: self.__address }),
+            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             state: {
                 // Registers
                 'Port A Data': formatByte(this.ora),
@@ -555,7 +560,7 @@ class PIA6820 implements IInspectableComponent {
                 cacheSize: this.registerCache.size,
                 cacheStatus: this.registerCache.size > 0 ? 'Active' : 'Empty',
             },
-            children: children.length > 0 ? children : undefined
+            ...(children.length > 0 && { children })
         };
     }
 
