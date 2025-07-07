@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/jest-globals';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CompactExecutionControls from '../CompactExecutionControls';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
+import { EmulationProvider } from '../../contexts/EmulationContext';
 
 describe('CompactExecutionControls component', () => {
     let mockWorker: {
@@ -44,7 +45,11 @@ describe('CompactExecutionControls component', () => {
             onAddressSubmit: mockOnAddressSubmit,
             ...props
         };
-        return render(<CompactExecutionControls {...defaultProps} />);
+        return render(
+            <EmulationProvider worker={mockWorker as unknown as Worker}>
+                <CompactExecutionControls {...defaultProps} />
+            </EmulationProvider>
+        );
     };
     
     describe('rendering', () => {
@@ -64,6 +69,7 @@ describe('CompactExecutionControls component', () => {
         it('should query emulation status on mount', () => {
             renderComponent();
             
+            // The EmulationProvider now handles the initial status query
             expect(mockWorker.postMessage).toHaveBeenCalledWith({
                 type: WORKER_MESSAGES.GET_EMULATION_STATUS
             });
@@ -103,6 +109,17 @@ describe('CompactExecutionControls component', () => {
                 type: WORKER_MESSAGES.PAUSE_EMULATION
             });
             
+            // Simulate the emulation context updating from worker message
+            const handler = messageHandlers.message[0];
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
+            
             expect(screen.getByRole('button', { name: /Run/ })).toBeInTheDocument();
             expect(screen.getByText('PAUSED')).toBeInTheDocument();
             
@@ -117,8 +134,16 @@ describe('CompactExecutionControls component', () => {
         it('should handle step when paused', async () => {
             renderComponent();
             
-            // First pause
-            fireEvent.click(screen.getByRole('button', { name: /Pause/ }));
+            // First pause by sending emulation status from worker
+            const handler = messageHandlers.message[0];
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
             
             const stepButton = screen.getByRole('button', { name: /Step/ });
             expect(stepButton).not.toBeDisabled();
@@ -131,6 +156,16 @@ describe('CompactExecutionControls component', () => {
             
             // Should show stepping state briefly
             expect(screen.getByText('STEPPING')).toBeInTheDocument();
+            
+            // Simulate worker returning to paused state after step
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
             
             // Wait for it to return to paused
             await waitFor(() => {
@@ -211,10 +246,8 @@ describe('CompactExecutionControls component', () => {
             
             unmount();
             
-            expect(mockWorker.removeEventListener).toHaveBeenCalledWith(
-                'message',
-                expect.any(Function)
-            );
+            // EmulationProvider handles message listeners now
+            expect(mockWorker.removeEventListener).toHaveBeenCalled();
         });
     });
     
@@ -222,8 +255,16 @@ describe('CompactExecutionControls component', () => {
         it('should handle F10 for step when paused', () => {
             renderComponent();
             
-            // First pause
-            fireEvent.click(screen.getByRole('button', { name: /Pause/ }));
+            // First pause by simulating worker message
+            const handler = messageHandlers.message[0];
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
             
             // Clear previous calls
             mockWorker.postMessage.mockClear();
@@ -239,8 +280,16 @@ describe('CompactExecutionControls component', () => {
         it('should handle space for step when paused and focused on body', () => {
             renderComponent();
             
-            // First pause
-            fireEvent.click(screen.getByRole('button', { name: /Pause/ }));
+            // First pause by simulating worker message
+            const handler = messageHandlers.message[0];
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
             
             // Clear previous calls
             mockWorker.postMessage.mockClear();
@@ -264,8 +313,16 @@ describe('CompactExecutionControls component', () => {
         it('should not handle space for step when in input field', () => {
             renderComponent();
             
-            // First pause
-            fireEvent.click(screen.getByRole('button', { name: /Pause/ }));
+            // First pause by simulating worker message
+            const handler = messageHandlers.message[0];
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
             
             // Clear previous calls
             mockWorker.postMessage.mockClear();
@@ -343,8 +400,16 @@ describe('CompactExecutionControls component', () => {
         it('should show correct styles for enabled step button', () => {
             renderComponent();
             
-            // First pause
-            fireEvent.click(screen.getByRole('button', { name: /Pause/ }));
+            // First pause by simulating worker message
+            const handler = messageHandlers.message[0];
+            act(() => {
+                handler({
+                    data: {
+                        type: WORKER_MESSAGES.EMULATION_STATUS,
+                        data: 'paused'
+                    }
+                } as MessageEvent);
+            });
             
             const stepButton = screen.getByRole('button', { name: /Step/ });
             expect(stepButton).not.toHaveClass('cursor-not-allowed');
