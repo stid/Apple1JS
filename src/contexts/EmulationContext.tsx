@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
+import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
 
 type ExecutionState = 'running' | 'paused' | 'stepping';
 
@@ -50,7 +50,13 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     // Handle worker messages
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            const { type, data } = event.data;
+            const message = event.data;
+            if (!isWorkerMessage(message)) {
+                return;
+            }
+            
+            const { type } = message;
+            const data = 'data' in message ? message.data : undefined;
             
             switch (type) {
                 case WORKER_MESSAGES.EMULATION_STATUS:
@@ -65,40 +71,49 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     
                 case WORKER_MESSAGES.BREAKPOINT_HIT: {
                     // Data is the PC address
-                    const hitAddress = data;
-                    setCurrentPC(hitAddress);
-                    setIsPaused(true);
-                    setExecutionState('paused');
-                    onBreakpointHit?.(hitAddress);
+                    if (typeof data === 'number') {
+                        const hitAddress = data;
+                        setCurrentPC(hitAddress);
+                        setIsPaused(true);
+                        setExecutionState('paused');
+                        onBreakpointHit?.(hitAddress);
+                    }
                     break;
                 }
                     
                 case WORKER_MESSAGES.RUN_TO_CURSOR_TARGET:
                     // Data is the target address or null
-                    onRunToCursorSet?.(data);
+                    if (typeof data === 'number' || data === null) {
+                        onRunToCursorSet?.(data);
+                    }
                     break;
                     
                 case WORKER_MESSAGES.DEBUG_INFO:
                 case WORKER_MESSAGES.DEBUG_DATA: {
-                    setDebugInfo(data as DebugData);
-                    // Check for REG_PC first (from toDebug()), then fall back to PC
-                    const pcValue = data.cpu?.REG_PC || data.cpu?.PC;
-                    if (pcValue !== undefined) {
-                        const pc = typeof pcValue === 'string' 
-                            ? parseInt(pcValue.replace('$', ''), 16)
-                            : pcValue;
-                        setCurrentPC(pc);
-                        
-                        // If we just stepped and PC changed, mark that we need to follow
-                        if (lastStepPC !== null && pc !== lastStepPC) {
-                            setLastStepPC(null); // Clear the flag
+                    if (data && typeof data === 'object' && 'cpu' in data) {
+                        const debugData = data as DebugData;
+                        setDebugInfo(debugData);
+                        // Check for REG_PC first (from toDebug()), then fall back to PC
+                        const pcValue = debugData.cpu?.REG_PC || debugData.cpu?.PC;
+                        if (pcValue !== undefined) {
+                            const pc = typeof pcValue === 'string' 
+                                ? parseInt(pcValue.replace('$', ''), 16)
+                                : pcValue;
+                            setCurrentPC(pc);
+                            
+                            // If we just stepped and PC changed, mark that we need to follow
+                            if (lastStepPC !== null && pc !== lastStepPC) {
+                                setLastStepPC(null); // Clear the flag
+                            }
                         }
                     }
                     break;
                 }
                     
                 case WORKER_MESSAGES.BREAKPOINTS_DATA:
-                    setBreakpoints(new Set(data as number[]));
+                    if (Array.isArray(data) && data.every(item => typeof item === 'number')) {
+                        setBreakpoints(new Set(data));
+                    }
                     break;
                     
                 // Stepping state is managed locally when step is called
@@ -108,8 +123,8 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         worker.addEventListener('message', handleMessage);
         
         // Request initial state
-        worker.postMessage({ type: WORKER_MESSAGES.GET_EMULATION_STATUS });
-        worker.postMessage({ type: WORKER_MESSAGES.GET_BREAKPOINTS });
+        sendWorkerMessage(worker, WORKER_MESSAGES.GET_EMULATION_STATUS);
+        sendWorkerMessage(worker, WORKER_MESSAGES.GET_BREAKPOINTS);
         
         return () => {
             worker.removeEventListener('message', handleMessage);
@@ -118,39 +133,39 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
 
     // Actions
     const pause = useCallback(() => {
-        worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
+        sendWorkerMessage(worker, WORKER_MESSAGES.PAUSE_EMULATION);
     }, [worker]);
 
     const resume = useCallback(() => {
-        worker.postMessage({ type: WORKER_MESSAGES.RESUME_EMULATION });
+        sendWorkerMessage(worker, WORKER_MESSAGES.RESUME_EMULATION);
     }, [worker]);
 
     const step = useCallback(() => {
         setLastStepPC(currentPC); // Remember where we were before stepping
-        worker.postMessage({ type: WORKER_MESSAGES.STEP });
+        sendWorkerMessage(worker, WORKER_MESSAGES.STEP);
     }, [worker, currentPC]);
 
     const stepOver = useCallback(() => {
         // Step over not implemented in worker yet, just do regular step
         setExecutionState('stepping');
-        worker.postMessage({ type: WORKER_MESSAGES.STEP });
+        sendWorkerMessage(worker, WORKER_MESSAGES.STEP);
     }, [worker]);
 
     const runToAddress = useCallback((address: number) => {
-        worker.postMessage({ type: WORKER_MESSAGES.RUN_TO_ADDRESS, data: address });
+        sendWorkerMessage(worker, WORKER_MESSAGES.RUN_TO_ADDRESS, address);
     }, [worker]);
 
     const toggleBreakpoint = useCallback((address: number) => {
         // Need to check current state and send appropriate message
         if (breakpoints.has(address)) {
-            worker.postMessage({ type: WORKER_MESSAGES.CLEAR_BREAKPOINT, data: address });
+            sendWorkerMessage(worker, WORKER_MESSAGES.CLEAR_BREAKPOINT, address);
         } else {
-            worker.postMessage({ type: WORKER_MESSAGES.SET_BREAKPOINT, data: address });
+            sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
         }
     }, [worker, breakpoints]);
 
     const clearAllBreakpoints = useCallback(() => {
-        worker.postMessage({ type: WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS });
+        sendWorkerMessage(worker, WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS);
     }, [worker]);
 
     const value: EmulationContextType = {

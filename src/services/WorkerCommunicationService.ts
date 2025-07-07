@@ -1,4 +1,12 @@
-import { WORKER_MESSAGES, StateMessage, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
+import { 
+    WORKER_MESSAGES, 
+    StateMessage, 
+    MemoryRangeData,
+    ExtractPayload,
+    sendWorkerMessage,
+    sendWorkerMessageWithRequest,
+    isWorkerMessage
+} from '../apple1/types/worker-messages';
 
 /**
  * Service abstraction for Worker communication
@@ -21,20 +29,28 @@ export class WorkerCommunicationService {
     private setupMessageHandler(): void {
         this.worker.addEventListener('message', (event) => {
             const { data } = event;
-            const messageType = data.type as WORKER_MESSAGES;
+            
+            // Validate message format
+            if (!isWorkerMessage(data)) {
+                console.warn('Received invalid worker message:', data);
+                return;
+            }
+            
+            const messageType = data.type;
             
             // Handle responses to requests
             if (data.requestId && this.pendingRequests.has(data.requestId)) {
                 const { resolve } = this.pendingRequests.get(data.requestId)!;
                 this.pendingRequests.delete(data.requestId);
-                resolve(data.data);
+                resolve('data' in data ? data.data : undefined);
                 return;
             }
 
             // Handle regular messages
             const handlers = this.messageHandlers.get(messageType);
             if (handlers) {
-                handlers.forEach(handler => handler(data.data));
+                const payload = 'data' in data ? data.data : undefined;
+                handlers.forEach(handler => handler(payload));
             }
         });
     }
@@ -62,14 +78,21 @@ export class WorkerCommunicationService {
     /**
      * Send a message to the worker without expecting a response
      */
-    send(type: WORKER_MESSAGES, data?: unknown): void {
-        this.worker.postMessage({ type, data });
+    send<T extends WORKER_MESSAGES>(
+        type: T,
+        ...args: ExtractPayload<T> extends never ? [] : [data: ExtractPayload<T>]
+    ): void {
+        sendWorkerMessage(this.worker, type, ...args);
     }
 
     /**
      * Send a request to the worker and wait for a response
      */
-    private async request<T>(type: WORKER_MESSAGES, data?: unknown, responseType?: WORKER_MESSAGES): Promise<T> {
+    private async request<T, U extends WORKER_MESSAGES>(
+        type: U, 
+        responseType: WORKER_MESSAGES,
+        ...args: ExtractPayload<U> extends never ? [] : [data: ExtractPayload<U>]
+    ): Promise<T> {
         const requestId = `${type}_${this.requestCounter++}`;
         
         return new Promise<T>((resolve, reject) => {
@@ -85,19 +108,17 @@ export class WorkerCommunicationService {
                 }
             }, 5000);
 
-            // Listen for response if responseType is specified
-            if (responseType) {
-                const unsubscribe = this.on<T>(responseType, (data) => {
-                    clearTimeout(timeout);
-                    unsubscribe();
-                    if (this.pendingRequests.has(requestId)) {
-                        this.pendingRequests.delete(requestId);
-                        resolve(data);
-                    }
-                });
-            }
+            // Listen for response
+            const unsubscribe = this.on<T>(responseType, (data) => {
+                clearTimeout(timeout);
+                unsubscribe();
+                if (this.pendingRequests.has(requestId)) {
+                    this.pendingRequests.delete(requestId);
+                    resolve(data);
+                }
+            });
 
-            this.worker.postMessage({ type, data, requestId });
+            sendWorkerMessageWithRequest(this.worker, type, requestId, ...args);
         });
     }
 
@@ -126,25 +147,24 @@ export class WorkerCommunicationService {
      * State management
      */
     async saveState(): Promise<StateMessage['data']> {
-        return this.request<StateMessage['data']>(
+        return this.request<StateMessage['data'], typeof WORKER_MESSAGES.SAVE_STATE>(
             WORKER_MESSAGES.SAVE_STATE,
-            undefined,
             WORKER_MESSAGES.STATE_DATA
         );
     }
 
     async loadState(state: StateMessage['data']): Promise<void> {
-        this.send(WORKER_MESSAGES.LOAD_STATE, state);
+        this.send(WORKER_MESSAGES.LOAD_STATE, state!);
     }
 
     /**
      * Memory access
      */
     async getMemoryRange(start: number, length: number): Promise<MemoryRangeData> {
-        return this.request<MemoryRangeData>(
+        return this.request<MemoryRangeData, typeof WORKER_MESSAGES.GET_MEMORY_RANGE>(
             WORKER_MESSAGES.GET_MEMORY_RANGE,
-            { start, length } as MemoryRangeRequest,
-            WORKER_MESSAGES.MEMORY_RANGE_DATA
+            WORKER_MESSAGES.MEMORY_RANGE_DATA,
+            { start, length }
         );
     }
 
@@ -164,9 +184,8 @@ export class WorkerCommunicationService {
     }
 
     async getBreakpoints(): Promise<number[]> {
-        return this.request<number[]>(
+        return this.request<number[], typeof WORKER_MESSAGES.GET_BREAKPOINTS>(
             WORKER_MESSAGES.GET_BREAKPOINTS,
-            undefined,
             WORKER_MESSAGES.BREAKPOINTS_DATA
         );
     }
@@ -189,7 +208,7 @@ export class WorkerCommunicationService {
     /**
      * Keyboard input
      */
-    sendKeyDown(keyCode: number): void {
+    sendKeyDown(keyCode: string): void {
         this.send(WORKER_MESSAGES.KEY_DOWN, keyCode);
     }
 

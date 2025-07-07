@@ -2,7 +2,7 @@ import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
 import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
-import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData } from './TSTypes';
+import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, WorkerMessage, isWorkerMessage } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 
 export const video = new WebCRTVideo();
@@ -55,15 +55,14 @@ function updateBreakpointHook() {
     }
 }
 
-import type { WorkerMessage } from './TSTypes';
-
 onmessage = function (e: MessageEvent<WorkerMessage>) {
     const message = e.data;
-    if (!message || typeof message.type !== 'number') {
+    if (!isWorkerMessage(message)) {
         return;
     }
 
-    const { type, data } = message;
+    const { type } = message;
+    const data = 'data' in message ? message.data : undefined;
 
     switch (type) {
         case WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG:

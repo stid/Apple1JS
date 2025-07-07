@@ -81,10 +81,18 @@ class Apple1 implements IInspectableComponent {
      */
     loadRAMState(savedStates: { id: string; state: { data: number[] } }[]) {
         savedStates.forEach((saved) => {
+            // Convert old format to new format for backward compatibility
+            const convertedState = {
+                version: '1.0', // Mark as old version to trigger migration
+                data: saved.state.data,
+                size: saved.state.data.length,
+                componentId: saved.id
+            };
+
             if (saved.id === this.ramBank1.id) {
-                this.ramBank1.loadState(saved.state);
+                this.ramBank1.loadState(convertedState);
             } else if (saved.id === this.ramBank2.id) {
-                this.ramBank2.loadState(saved.state);
+                this.ramBank2.loadState(convertedState);
             }
             // Add more banks here if needed
         });

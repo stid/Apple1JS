@@ -2,10 +2,12 @@
  * CPU 6502 type definitions
  */
 
+import type { StateBase } from './state';
+
 /**
  * Complete state representation of the 6502 CPU
  */
-export interface CPU6502State {
+export interface CPU6502State extends StateBase {
     // Registers
     PC: number;  // Program Counter
     A: number;   // Accumulator

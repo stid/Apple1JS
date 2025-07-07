@@ -103,7 +103,6 @@ describe('InspectorView component', () => {
         });
 
         expect(mockWorker.postMessage).toHaveBeenCalledWith({
-            data: '',
             type: WORKER_MESSAGES.DEBUG_INFO
         });
     });

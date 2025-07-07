@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
-import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
+import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
 import { OPCODES } from './Disassembler';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
@@ -30,7 +30,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         if (!worker) return;
         
         const interval = setInterval(() => {
-            worker.postMessage({ data: '', type: WORKER_MESSAGES.DEBUG_INFO });
+            sendWorkerMessage(worker, WORKER_MESSAGES.DEBUG_INFO);
         }, 600);
         return () => clearInterval(interval);
     }, [worker]);
@@ -39,8 +39,15 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     useEffect(() => {
         if (!worker) return;
         
-        const handleMessage = (e: MessageEvent<{ data: DebugData | number[]; type: WORKER_MESSAGES }>) => {
-            const { data, type } = e.data;
+        const handleMessage = (e: MessageEvent) => {
+            const message = e.data;
+            if (!isWorkerMessage(message)) {
+                return;
+            }
+            
+            const { type } = message;
+            const data = 'data' in message ? message.data : undefined;
+            
             if (type === WORKER_MESSAGES.DEBUG_INFO) {
                 setDebugInfo(data as DebugData);
             }
@@ -57,10 +64,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         const newProfilingState = !profilingEnabled;
         setProfilingEnabled(newProfilingState);
         if (worker) {
-            worker.postMessage({
-                data: newProfilingState,
-                type: WORKER_MESSAGES.SET_CPU_PROFILING
-            });
+            sendWorkerMessage(worker, WORKER_MESSAGES.SET_CPU_PROFILING, newProfilingState);
         }
     };
 

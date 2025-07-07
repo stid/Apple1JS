@@ -64,37 +64,58 @@ export type StateMessage = {
 };
 
 /**
- * Base worker message type
+ * Base worker message type with strict typing
  */
-interface BaseWorkerMessage<T extends WORKER_MESSAGES, D = unknown> {
+interface BaseWorkerMessage<T extends WORKER_MESSAGES, D = never> {
     type: T;
-    data?: D;
+    data: D;
+    requestId?: string;
 }
 
 /**
- * All possible worker message types
+ * Messages that don't require data payload
+ */
+interface SimpleWorkerMessage<T extends WORKER_MESSAGES> {
+    type: T;
+    requestId?: string;
+}
+
+/**
+ * Clock data interface (replacing unknown)
+ */
+export interface ClockData {
+    cycles: number;
+    frequency: number;
+    totalCycles: number;
+}
+
+/**
+ * All possible worker message types - fully type-safe discriminated union
  */
 export type WorkerMessage =
+    // Command messages (UI to Worker)
     | BaseWorkerMessage<WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG, boolean>
     | BaseWorkerMessage<WORKER_MESSAGES.KEY_DOWN, string>
-    | BaseWorkerMessage<WORKER_MESSAGES.DEBUG_INFO>
-    | BaseWorkerMessage<WORKER_MESSAGES.SAVE_STATE>
     | BaseWorkerMessage<WORKER_MESSAGES.LOAD_STATE, EmulatorState>
-    | BaseWorkerMessage<WORKER_MESSAGES.STATE_DATA, EmulatorState>
-    | BaseWorkerMessage<WORKER_MESSAGES.PAUSE_EMULATION>
-    | BaseWorkerMessage<WORKER_MESSAGES.RESUME_EMULATION>
     | BaseWorkerMessage<WORKER_MESSAGES.GET_MEMORY_RANGE, MemoryRangeRequest>
     | BaseWorkerMessage<WORKER_MESSAGES.SET_CPU_PROFILING, boolean>
     | BaseWorkerMessage<WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING, boolean>
-    | BaseWorkerMessage<WORKER_MESSAGES.STEP>
     | BaseWorkerMessage<WORKER_MESSAGES.SET_BREAKPOINT, number>
     | BaseWorkerMessage<WORKER_MESSAGES.CLEAR_BREAKPOINT, number>
-    | BaseWorkerMessage<WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS>
-    | BaseWorkerMessage<WORKER_MESSAGES.GET_BREAKPOINTS>
     | BaseWorkerMessage<WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, boolean>
-    | BaseWorkerMessage<WORKER_MESSAGES.GET_EMULATION_STATUS>
     | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_ADDRESS, number>
     | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_CURSOR_TARGET, number | null>
+    // Simple command messages (no data)
+    | SimpleWorkerMessage<WORKER_MESSAGES.DEBUG_INFO>
+    | SimpleWorkerMessage<WORKER_MESSAGES.SAVE_STATE>
+    | SimpleWorkerMessage<WORKER_MESSAGES.PAUSE_EMULATION>
+    | SimpleWorkerMessage<WORKER_MESSAGES.RESUME_EMULATION>
+    | SimpleWorkerMessage<WORKER_MESSAGES.STEP>
+    | SimpleWorkerMessage<WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS>
+    | SimpleWorkerMessage<WORKER_MESSAGES.GET_BREAKPOINTS>
+    | SimpleWorkerMessage<WORKER_MESSAGES.GET_EMULATION_STATUS>
+    // Response messages (Worker to UI)
+    | BaseWorkerMessage<WORKER_MESSAGES.STATE_DATA, EmulatorState>
     | BaseWorkerMessage<WORKER_MESSAGES.UPDATE_VIDEO_BUFFER, VideoData>
     | BaseWorkerMessage<WORKER_MESSAGES.DEBUG_DATA, DebugData>
     | BaseWorkerMessage<WORKER_MESSAGES.LOG_MESSAGE, LogMessageData>
@@ -102,7 +123,7 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.BREAKPOINTS_DATA, number[]>
     | BaseWorkerMessage<WORKER_MESSAGES.BREAKPOINT_HIT, number>
     | BaseWorkerMessage<WORKER_MESSAGES.EMULATION_STATUS, { paused: boolean }>
-    | BaseWorkerMessage<WORKER_MESSAGES.CLOCK_DATA, unknown>;
+    | BaseWorkerMessage<WORKER_MESSAGES.CLOCK_DATA, ClockData>;
 
 /**
  * Type guard to check if a message is a valid WorkerMessage
@@ -111,8 +132,55 @@ export function isWorkerMessage(data: unknown): data is WorkerMessage {
     return typeof data === 'object' && 
            data !== null && 
            'type' in data &&
-           typeof (data as {type: unknown}).type === 'number';
+           typeof (data as {type: unknown}).type === 'number' &&
+           Object.values(WORKER_MESSAGES).includes((data as {type: unknown}).type as WORKER_MESSAGES);
 }
 
-// Union type for message data types
-export type MessageDataTypes = DebugData | VideoData | LogMessageData | MemoryRangeRequest | MemoryRangeData;
+/**
+ * Extract the payload type for a given message type
+ */
+export type ExtractPayload<T extends WORKER_MESSAGES> = 
+    Extract<WorkerMessage, { type: T }> extends { data: infer D } ? D : never;
+
+/**
+ * Type-safe message creation functions
+ */
+export function createWorkerMessage<T extends WORKER_MESSAGES>(
+    type: T,
+    ...args: ExtractPayload<T> extends never ? [] : [data: ExtractPayload<T>]
+): WorkerMessage {
+    const [data] = args;
+    if (data !== undefined) {
+        return { type, data } as WorkerMessage;
+    }
+    return { type } as WorkerMessage;
+}
+
+/**
+ * Type-safe message sending function
+ */
+export function sendWorkerMessage<T extends WORKER_MESSAGES>(
+    worker: Worker,
+    type: T,
+    ...args: ExtractPayload<T> extends never ? [] : [data: ExtractPayload<T>]
+): void {
+    const message = createWorkerMessage(type, ...args);
+    worker.postMessage(message);
+}
+
+/**
+ * Type-safe message sending with request ID
+ */
+export function sendWorkerMessageWithRequest<T extends WORKER_MESSAGES>(
+    worker: Worker,
+    type: T,
+    requestId: string,
+    ...args: ExtractPayload<T> extends never ? [] : [data: ExtractPayload<T>]
+): void {
+    const message = createWorkerMessage(type, ...args);
+    message.requestId = requestId;
+    worker.postMessage(message);
+}
+
+// Union type for message data types (kept for backward compatibility)
+export type MessageDataTypes = DebugData | VideoData | LogMessageData | MemoryRangeRequest | MemoryRangeData | ClockData;

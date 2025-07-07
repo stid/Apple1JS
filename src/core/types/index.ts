@@ -55,3 +55,20 @@ export type {
     subscribeFunction,
     PubSub
 } from './pubsub';
+
+// State management types
+export type {
+    StateBase,
+    StateValidationResult,
+    StateOptions,
+    IStatefulComponent,
+    IVersionedStatefulComponent,
+    ICompositeStatefulComponent
+} from './state';
+
+export {
+    StateManager,
+    StateError,
+    withStateDirtyTracking,
+    dirtyOnCall
+} from './state';
