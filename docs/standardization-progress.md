@@ -59,35 +59,31 @@ Created `/src/core/types/` with focused modules:
 - Fixed type compatibility issues
 - Added TODO markers for gradual migration
 
-## In Progress
-
-### 4. 🔄 Complete Type Migration
-**Remaining Locations to Organize:**
+### 4. ✅ Type Organization Phase 2 (v4.18.5)
+**Completed Module Type Migrations:**
 
 #### Apple1 Module (`/src/apple1/types/`)
-Need to create and migrate:
-- EmulatorState types
-- Video types (VideoBuffer, VideoData)
-- Worker message types
-- Consolidate TSTypes.ts
+Created organized structure:
+- `emulator-state.ts` - EmulatorState, RAMBankState, PIAState, VideoState
+- `video.ts` - VideoBuffer, VideoData, VideoOut types
+- `worker-messages.ts` - WORKER_MESSAGES enum, WorkerMessage union, message types
+- `index.ts` - Clean exports for all types
 
 #### Components Module (`/src/components/types/`)
-Need to migrate:
-- CharRomTypes
-- Any component-specific types
+- `char-rom.ts` - CHARROM type for character ROM data
+- `index.ts` - Exports with TODO for future consolidation
 
 #### Services Module (`/src/services/types/`)
-Need to organize:
-- LoggingTypes extension
-- Service-specific interfaces
+- `logging.ts` - LogHandler type
+- `index.ts` - Exports with TODO for future additions
 
-**Migration Checklist:**
-- [ ] Create type directories in each module
-- [ ] Move types from `@types/` subdirectories
-- [ ] Update all imports (~19 files in core alone)
-- [ ] Remove old `@types/` directories
-- [ ] Update TSTypes.ts imports
-- [ ] Test all functionality
+**Key Changes:**
+- All `@types/` subdirectories removed
+- TSTypes.ts now re-exports from new structure for backward compatibility
+- Updated imports in ~15 files to use new paths
+- All tests pass with new structure
+
+## In Progress
 
 ### 5. 🔄 Complete Formatter Migration
 **Status:** ~10 of 97 instances completed
@@ -206,5 +202,5 @@ grep -r "from.*@types/" src --include="*.ts" --include="*.tsx"
 ```
 
 ---
-Last updated: 2024-01-07
-Current version: 4.18.4
+Last updated: 2025-01-07
+Current version: 4.18.5
