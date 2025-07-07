@@ -4,6 +4,7 @@ import AddressLink from './AddressLink';
 
 interface CompactCpuRegistersProps {
     debugInfo: DebugData;
+    worker?: Worker;
 }
 
 // Helper to format register values consistently
@@ -21,7 +22,7 @@ const formatHex = (value: string | number | undefined, digits: number): string =
     return '$' + num.toString(16).padStart(digits, '0').toUpperCase();
 };
 
-const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debugInfo }) => {
+const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debugInfo, worker }) => {
     const cpu = debugInfo.cpu || {};
     
     // Extract register values with defaults
@@ -53,7 +54,9 @@ const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debu
                         <AddressLink 
                             address={parseInt(registers.pc.replace('$', ''), 16)} 
                             className="font-mono"
+                            worker={worker}
                             showContextMenu={true}
+                            showRunToCursor={true}
                         />
                     </div>
                     <div className="flex items-center gap-xs">

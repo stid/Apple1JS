@@ -10,6 +10,7 @@ import AlertBadges from './AlertBadges';
 import AlertPanel from './AlertPanel';
 import { useLogging } from '../contexts/LoggingContext';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
+import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
 import { IInspectableComponent } from '../core/@types/IInspectableComponent';
 
 type Props = {
@@ -17,19 +18,32 @@ type Props = {
     apple1Instance?: IInspectableComponent | null;
 };
 
-export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
+interface AppContentInnerProps extends Props {
+    rightTab: 'info' | 'inspector' | 'debugger';
+    setRightTab: React.Dispatch<React.SetStateAction<'info' | 'inspector' | 'debugger'>>;
+    pendingNavigation: { address: number; target: 'memory' | 'disassembly' } | null;
+    setPendingNavigation: React.Dispatch<React.SetStateAction<{ address: number; target: 'memory' | 'disassembly' } | null>>;
+}
+
+const AppContentInner = ({ 
+    worker, 
+    apple1Instance,
+    rightTab,
+    setRightTab,
+    pendingNavigation,
+    setPendingNavigation
+}: AppContentInnerProps): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
-    const [isPaused, setIsPaused] = useState<boolean>(false);
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
-    // Right panel tab: 'info', 'inspector', or 'debugger'
-    const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
+    const { isPaused, pause, resume } = useEmulation();
     const [alertPanelOpen, setAlertPanelOpen] = useState<boolean>(false);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
     const { subscribeToNavigation } = useDebuggerNavigation();
     
-    // Store the pending navigation for when debugger tab is activated
-    const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
+    // Persist debugger view states across tab switches
+    const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
+    const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
 
     // Subscribe to navigation events and switch to debugger tab
     useEffect(() => {
@@ -38,7 +52,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
             setRightTab('debugger');
         });
         return unsubscribe;
-    }, [subscribeToNavigation]);
+    }, [subscribeToNavigation, setPendingNavigation, setRightTab]);
 
     const focusHiddenInput = useCallback(() => {
         const hiddenInput = hiddenInputRef.current;
@@ -103,8 +117,6 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                     source: logData.source,
                     message: logData.message
                 });
-            } else if (event.data && event.data.type === WORKER_MESSAGES.EMULATION_STATUS) {
-                setIsPaused(event.data.data.isPaused);
             }
         };
         
@@ -171,12 +183,12 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
         (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault();
             if (isPaused) {
-                worker.postMessage({ type: WORKER_MESSAGES.RESUME_EMULATION });
+                resume();
             } else {
-                worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
+                pause();
             }
         },
-        [worker, isPaused],
+        [isPaused, pause, resume],
     );
 
     return (
@@ -302,6 +314,10 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                                 worker={worker} 
                                 initialNavigation={pendingNavigation}
                                 onNavigationHandled={() => setPendingNavigation(null)}
+                                memoryViewAddress={memoryViewAddress}
+                                setMemoryViewAddress={setMemoryViewAddress}
+                                disassemblerAddress={disassemblerAddress}
+                                setDisassemblerAddress={setDisassemblerAddress}
                             />
                         </div>
                     )}
@@ -318,8 +334,7 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                     left: '-9999px',
                     width: '1px',
                     height: '1px',
-                    opacity: 0,
-                    pointerEvents: 'none'
+                    opacity: 0
                 }}
                 tabIndex={0}
                 aria-label="Hidden input for keyboard focus"
@@ -327,12 +342,49 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                readOnly
+                value=""
+                onChange={() => {}}
             />
             <AlertPanel 
                 isOpen={alertPanelOpen}
                 onClose={() => setAlertPanelOpen(false)}
             />
         </div>
+    );
+};
+
+export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
+    const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
+    const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
+    
+    const handleBreakpointHit = useCallback((address: number) => {
+        // When any breakpoint hits, switch to debugger tab and disassembly view
+        setPendingNavigation({ address, target: 'disassembly' });
+        setRightTab('debugger');
+    }, []);
+    
+    const handleRunToCursorSet = useCallback((address: number | null) => {
+        // When run-to-cursor is set, switch to debugger tab and disassembly view
+        if (address !== null) {
+            setPendingNavigation({ address, target: 'disassembly' });
+            setRightTab('debugger');
+        }
+    }, []);
+    
+    return (
+        <EmulationProvider 
+            worker={worker} 
+            onBreakpointHit={handleBreakpointHit}
+            onRunToCursorSet={handleRunToCursorSet}
+        >
+            <AppContentInner 
+                worker={worker} 
+                apple1Instance={apple1Instance}
+                rightTab={rightTab}
+                setRightTab={setRightTab}
+                pendingNavigation={pendingNavigation}
+                setPendingNavigation={setPendingNavigation}
+            />
+        </EmulationProvider>
     );
 };

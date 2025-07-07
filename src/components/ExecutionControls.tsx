@@ -1,59 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import { useEmulation } from '../contexts/EmulationContext';
 
 interface ExecutionControlsProps {
     worker: Worker;
 }
 
-type ExecutionState = 'running' | 'paused' | 'stepping';
 
 const ExecutionControls: React.FC<ExecutionControlsProps> = ({ worker }) => {
-    const [executionState, setExecutionState] = useState<ExecutionState>('running');
-    const [isPaused, setIsPaused] = useState(false);
+    const { isPaused, executionState, pause, resume, step: contextStep } = useEmulation();
 
     const handleStep = useCallback(() => {
-        setExecutionState('stepping');
-        worker.postMessage({ type: WORKER_MESSAGES.STEP });
-        // Reset state after a brief delay to show stepping occurred
-        setTimeout(() => {
-            setExecutionState('paused');
-        }, 100);
-    }, [worker]);
+        contextStep();
+    }, [contextStep]);
 
     const handleRunPause = useCallback(() => {
         if (isPaused) {
-            worker.postMessage({ type: WORKER_MESSAGES.RESUME_EMULATION });
-            setIsPaused(false);
-            setExecutionState('running');
+            resume();
         } else {
-            worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
-            setIsPaused(true);
-            setExecutionState('paused');
+            pause();
         }
-    }, [isPaused, worker]);
+    }, [isPaused, pause, resume]);
 
-    // Listen for emulation status updates
-    useEffect(() => {
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data.type === WORKER_MESSAGES.EMULATION_STATUS) {
-                const status = e.data.data;
-                if (status === 'paused') {
-                    setIsPaused(true);
-                    setExecutionState('paused');
-                } else {
-                    setIsPaused(false);
-                    setExecutionState('running');
-                }
-            }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        
-        // Query current status on mount
-        worker.postMessage({ type: WORKER_MESSAGES.GET_EMULATION_STATUS });
-        
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
+    // No longer need to listen for emulation status - handled by EmulationContext
 
     // Keyboard shortcuts
     useEffect(() => {

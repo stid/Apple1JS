@@ -43,14 +43,28 @@ describe('DebuggerLayout', () => {
 
     const mockRoot = {} as IInspectableComponent;
 
+    let memoryViewAddress: number;
+    let disassemblerAddress: number;
+    const setMemoryViewAddress = jest.fn((addr: number) => { memoryViewAddress = addr; });
+    const setDisassemblerAddress = jest.fn((addr: number) => { disassemblerAddress = addr; });
+
     beforeEach(() => {
         jest.clearAllMocks();
+        memoryViewAddress = 0x0000;
+        disassemblerAddress = 0x0000;
     });
 
     it('renders overview by default', () => {
         render(
             <DebuggerNavigationProvider>
-                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
             </DebuggerNavigationProvider>
         );
         
@@ -62,7 +76,14 @@ describe('DebuggerLayout', () => {
     it('switches between tabs', () => {
         render(
             <DebuggerNavigationProvider>
-                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
             </DebuggerNavigationProvider>
         );
         
@@ -78,9 +99,16 @@ describe('DebuggerLayout', () => {
     });
 
     it('maintains memory viewer address state when switching tabs', () => {
-        render(
+        const { rerender } = render(
             <DebuggerNavigationProvider>
-                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
             </DebuggerNavigationProvider>
         );
         
@@ -92,6 +120,27 @@ describe('DebuggerLayout', () => {
         
         // Change address
         fireEvent.click(screen.getByText('Change Address'));
+        
+        // Verify the callback was called
+        expect(setMemoryViewAddress).toHaveBeenCalledWith(0x5678);
+        
+        // Simulate parent component updating the state
+        memoryViewAddress = 0x5678;
+        
+        // Re-render with new props
+        rerender(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
+            </DebuggerNavigationProvider>
+        );
+        
         expect(screen.getByTestId('memory-address')).toHaveTextContent('22136'); // 0x5678
         
         // Switch to Overview and back
@@ -103,9 +152,16 @@ describe('DebuggerLayout', () => {
     });
 
     it('maintains disassembler address state when switching tabs', () => {
-        render(
+        const { rerender } = render(
             <DebuggerNavigationProvider>
-                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
             </DebuggerNavigationProvider>
         );
         
@@ -117,6 +173,27 @@ describe('DebuggerLayout', () => {
         
         // Change address
         fireEvent.click(screen.getByText('Change Address'));
+        
+        // Verify the callback was called
+        expect(setDisassemblerAddress).toHaveBeenCalledWith(0x1234);
+        
+        // Simulate parent component updating the state
+        disassemblerAddress = 0x1234;
+        
+        // Re-render with new props
+        rerender(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
+            </DebuggerNavigationProvider>
+        );
+        
         expect(screen.getByTestId('disassembler-address')).toHaveTextContent('4660'); // 0x1234
         
         // Switch to Overview and back
@@ -128,9 +205,16 @@ describe('DebuggerLayout', () => {
     });
 
     it('maintains separate address states for memory and disassembler', () => {
-        render(
+        const { rerender } = render(
             <DebuggerNavigationProvider>
-                <DebuggerLayout root={mockRoot} worker={mockWorker} />
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
             </DebuggerNavigationProvider>
         );
         
@@ -138,9 +222,31 @@ describe('DebuggerLayout', () => {
         fireEvent.click(screen.getByText('Memory'));
         fireEvent.click(screen.getByText('Change Address'));
         
+        // Verify memory callback was called
+        expect(setMemoryViewAddress).toHaveBeenCalledWith(0x5678);
+        memoryViewAddress = 0x5678;
+        
         // Set disassembler address
         fireEvent.click(screen.getByText('Disassembly'));
         fireEvent.click(screen.getByText('Change Address'));
+        
+        // Verify disassembler callback was called
+        expect(setDisassemblerAddress).toHaveBeenCalledWith(0x1234);
+        disassemblerAddress = 0x1234;
+        
+        // Re-render with both updated addresses
+        rerender(
+            <DebuggerNavigationProvider>
+                <DebuggerLayout 
+                    root={mockRoot} 
+                    worker={mockWorker}
+                    memoryViewAddress={memoryViewAddress}
+                    setMemoryViewAddress={setMemoryViewAddress}
+                    disassemblerAddress={disassemblerAddress}
+                    setDisassemblerAddress={setDisassemblerAddress}
+                />
+            </DebuggerNavigationProvider>
+        );
         
         // Check both maintain their own state
         fireEvent.click(screen.getByText('Memory'));

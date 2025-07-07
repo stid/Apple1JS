@@ -315,4 +315,135 @@ describe('AppContent', () => {
             expect(mockWorker.postMessage).not.toHaveBeenCalled();
         });
     });
+
+    describe('Mobile Input Functionality', () => {
+        it('should have a hidden input field with proper mobile attributes', () => {
+            render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            expect(hiddenInput).toBeInTheDocument();
+            
+            // Test mobile-friendly attributes
+            expect(hiddenInput).toHaveAttribute('autoComplete', 'off');
+            expect(hiddenInput).toHaveAttribute('autoCorrect', 'off');
+            expect(hiddenInput).toHaveAttribute('autoCapitalize', 'off');
+            expect(hiddenInput).toHaveAttribute('spellCheck', 'false');
+            expect(hiddenInput).toHaveAttribute('tabIndex', '0');
+            expect(hiddenInput).toHaveAttribute('type', 'text');
+            
+            // Should NOT have readOnly attribute (breaks mobile keyboards)
+            expect(hiddenInput).not.toHaveAttribute('readOnly');
+            
+            // Should be controllable
+            expect(hiddenInput).toHaveValue('');
+        });
+
+        it('should have proper positioning styles for mobile compatibility', () => {
+            render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const styles = window.getComputedStyle(hiddenInput);
+            
+            // Should be positioned off-screen but still focusable
+            expect(styles.position).toBe('absolute');
+            expect(styles.left).toBe('-9999px');
+            expect(styles.opacity).toBe('0');
+            expect(styles.width).toBe('1px');
+            expect(styles.height).toBe('1px');
+            
+            // Should NOT have pointerEvents: none (breaks mobile touch)
+            expect(styles.pointerEvents).not.toBe('none');
+        });
+
+        it('should focus hidden input when CRT area is clicked', () => {
+            render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const crtArea = document.querySelector('[data-testid="crt-worker"]')?.parentElement;
+            
+            expect(crtArea).toBeInTheDocument();
+            
+            // Mock focus method
+            const focusSpy = jest.spyOn(hiddenInput, 'focus');
+            
+            act(() => {
+                fireEvent.click(crtArea!);
+            });
+            
+            expect(focusSpy).toHaveBeenCalled();
+            focusSpy.mockRestore();
+        });
+
+        it('should handle keyboard input from mobile devices', () => {
+            render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]');
+            
+            // Simulate mobile keyboard input
+            act(() => {
+                fireEvent.keyDown(hiddenInput!, { key: 'a' });
+            });
+            
+            expect(mockWorker.postMessage).toHaveBeenCalledWith({
+                data: 'a',
+                type: WORKER_MESSAGES.KEY_DOWN
+            });
+        });
+
+        it('should ignore modifier keys on mobile', () => {
+            render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]');
+            
+            // Clear any existing calls first
+            mockWorker.postMessage.mockClear();
+            
+            // Test various modifier key combinations
+            act(() => {
+                fireEvent.keyDown(hiddenInput!, { key: 'a', metaKey: true });
+            });
+            
+            act(() => {
+                fireEvent.keyDown(hiddenInput!, { key: 'a', ctrlKey: true });
+            });
+            
+            act(() => {
+                fireEvent.keyDown(hiddenInput!, { key: 'a', altKey: true });
+            });
+            
+            // Should not send any messages for modifier key combinations
+            expect(mockWorker.postMessage).not.toHaveBeenCalled();
+        });
+
+        it('should maintain focus when switching tabs', () => {
+            const { getByText } = render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const inspectorTab = getByText('Inspector');
+            
+            // Mock focus method
+            const focusSpy = jest.spyOn(hiddenInput, 'focus');
+            
+            act(() => {
+                fireEvent.click(inspectorTab);
+            });
+            
+            expect(focusSpy).toHaveBeenCalled();
+            focusSpy.mockRestore();
+        });
+
+        it('should handle onChange events properly (controlled input)', () => {
+            render(<AppContent worker={mockWorker as unknown as Worker} />);
+
+            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            
+            // Should handle change events without errors
+            act(() => {
+                fireEvent.change(hiddenInput, { target: { value: 'test' } });
+            });
+            
+            // Value should remain empty (controlled input)
+            expect(hiddenInput.value).toBe('');
+        });
+    });
 });

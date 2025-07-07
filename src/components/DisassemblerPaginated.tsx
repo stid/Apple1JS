@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, DebugData } from '../apple1/TSTypes';
+import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
 import { OPCODES } from './Disassembler';
 import PaginatedTableView from './PaginatedTableView';
 import { usePaginatedTable } from '../hooks/usePaginatedTable';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
+import { useEmulation } from '../contexts/EmulationContext';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -22,17 +23,28 @@ interface DisassemblyLine {
     operandType?: 'absolute' | 'branch' | 'zeropage';
 }
 
-type ExecutionState = 'running' | 'paused' | 'stepping';
 
 const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAddress: externalAddress, onAddressChange }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
-    const [currentPC, setCurrentPC] = useState<number>(0);
-    const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
-    const [executionState, setExecutionState] = useState<ExecutionState>('running');
-    const [isPaused, setIsPaused] = useState(false);
     const [isSteppingMode, setIsSteppingMode] = useState(false);
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    
+    // Get emulation state from context
+    const { 
+        isPaused, 
+        executionState, 
+        currentPC: contextPC, 
+        debugInfo, 
+        breakpoints: contextBreakpoints,
+        pause, 
+        resume, 
+        step: contextStep,
+        toggleBreakpoint: contextToggleBreakpoint 
+    } = useEmulation();
+    
+    // Use context values
+    const currentPC = contextPC;
+    const breakpoints = contextBreakpoints;
     
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
@@ -234,58 +246,13 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 setLines(trimmedLines);
             }
             
-            if (event.data?.type === WORKER_MESSAGES.DEBUG_DATA) {
-                // DEBUG_DATA is sent every 100ms by the worker and only contains PC
-                // It's used for tracking PC changes for auto-follow functionality
-                const debugData = event.data.data as DebugData;
-                
-                if (debugData.cpu?.PC !== undefined) {
-                    const pc = typeof debugData.cpu.PC === 'string' 
-                        ? parseInt(debugData.cpu.PC.replace('$', ''), 16)
-                        : debugData.cpu.PC;
-                    setCurrentPC(pc);
-                    
-                    // Auto-follow PC during stepping
-                    if (isSteppingMode && executionState === 'paused') {
-                        // Check if PC is visible in current view
-                        const firstVisibleAddr = lines[0]?.address || currentAddress;
-                        const lastVisibleAddr = lines[lines.length - 1]?.address || currentAddress;
-                        
-                        if (pc < firstVisibleAddr || pc > lastVisibleAddr) {
-                            // PC is outside visible range, navigate to it
-                            navigateTo(pc);
-                        }
-                        setIsSteppingMode(false); // Reset stepping mode
-                    }
-                }
-            }
+            // DEBUG_DATA is now handled by EmulationContext
             
-            if (event.data?.type === WORKER_MESSAGES.BREAKPOINTS_DATA) {
-                const bpData = event.data.data as number[];
-                setBreakpoints(new Set(bpData));
-            }
+            // Breakpoints are now provided by EmulationContext
             
-            if (event.data?.type === WORKER_MESSAGES.BREAKPOINT_HIT) {
-                const hitPC = event.data.data as number;
-                setCurrentPC(hitPC); // Update currentPC for highlighting
-                navigateTo(hitPC);
-            }
+            // Breakpoint hits are now handled by EmulationContext
             
-            if (event.data?.type === WORKER_MESSAGES.DEBUG_INFO) {
-                // DEBUG_INFO contains full CPU state (all registers, flags, etc)
-                // It's requested only when paused for the register display
-                const debugData = event.data.data as DebugData;
-                setDebugInfo(debugData);
-                
-                // Also update PC from DEBUG_INFO
-                const pcValue = debugData.cpu?.REG_PC || debugData.cpu?.PC;
-                if (pcValue !== undefined) {
-                    const pc = typeof pcValue === 'string' 
-                        ? parseInt(pcValue.replace('$', ''), 16)
-                        : pcValue;
-                    setCurrentPC(pc);
-                }
-            }
+            // DEBUG_INFO is now handled by EmulationContext
             
             if (event.data?.type === WORKER_MESSAGES.RUN_TO_CURSOR_TARGET) {
                 // Update run-to-cursor target address
@@ -298,28 +265,22 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return () => worker.removeEventListener('message', handleWorkerMessage);
     }, [worker, disassembleMemory, navigateTo, visibleRows, isSteppingMode, executionState, lines, currentAddress]);
     
-    // Listen for emulation status updates
+    // No longer need to listen for emulation status - handled by EmulationContext
+    
+    // Auto-follow PC during stepping
     useEffect(() => {
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data.type === WORKER_MESSAGES.EMULATION_STATUS) {
-                const status = e.data.data;
-                if (status === 'paused') {
-                    setIsPaused(true);
-                    setExecutionState('paused');
-                } else {
-                    setIsPaused(false);
-                    setExecutionState('running');
-                }
+        if (isSteppingMode && executionState === 'paused' && currentPC) {
+            // Check if PC is visible in current view
+            const firstVisibleAddr = lines[0]?.address || currentAddress;
+            const lastVisibleAddr = lines[lines.length - 1]?.address || currentAddress;
+            
+            if (currentPC < firstVisibleAddr || currentPC > lastVisibleAddr) {
+                // PC is not visible, navigate to it
+                navigateTo(currentPC);
             }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        
-        // Query current status on mount
-        worker.postMessage({ type: WORKER_MESSAGES.GET_EMULATION_STATUS });
-        
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
+            setIsSteppingMode(false); // Clear stepping mode after check
+        }
+    }, [currentPC, isSteppingMode, executionState, lines, currentAddress, navigateTo]);
     
     // Sync with navigation hook address
     useEffect(() => {
@@ -330,10 +291,11 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     
     // Initial load and request breakpoints
     useEffect(() => {
-        if (externalAddress === undefined) {
-            navigateTo(0);
+        // Navigate to the external address if provided
+        if (externalAddress !== undefined) {
+            navigateTo(externalAddress);
         }
-        worker.postMessage({ type: WORKER_MESSAGES.GET_BREAKPOINTS });
+        // Breakpoints are now managed by EmulationContext
     }, [navigateTo, worker, externalAddress]);
     
     // Request debug info periodically - but only when paused (for register display)
@@ -371,46 +333,22 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         }
     }, [currentPC, navigateTo]);
     
-    // Toggle breakpoint
-    const toggleBreakpoint = useCallback((address: number) => {
-        const newBreakpoints = new Set(breakpoints);
-        if (newBreakpoints.has(address)) {
-            newBreakpoints.delete(address);
-            worker.postMessage({
-                type: WORKER_MESSAGES.CLEAR_BREAKPOINT,
-                data: address
-            });
-        } else {
-            newBreakpoints.add(address);
-            worker.postMessage({
-                type: WORKER_MESSAGES.SET_BREAKPOINT,
-                data: address
-            });
-        }
-        setBreakpoints(newBreakpoints);
-    }, [breakpoints, worker]);
+    // Use toggleBreakpoint from context
+    const toggleBreakpoint = contextToggleBreakpoint;
     
     // Execution controls
     const handleStep = useCallback(() => {
-        setExecutionState('stepping');
         setIsSteppingMode(true);  // Mark that we're stepping
-        worker.postMessage({ type: WORKER_MESSAGES.STEP });
-        setTimeout(() => {
-            setExecutionState('paused');
-        }, 100);
-    }, [worker]);
+        contextStep();
+    }, [contextStep]);
 
     const handleRunPause = useCallback(() => {
         if (isPaused) {
-            worker.postMessage({ type: WORKER_MESSAGES.RESUME_EMULATION });
-            setIsPaused(false);
-            setExecutionState('running');
+            resume();
         } else {
-            worker.postMessage({ type: WORKER_MESSAGES.PAUSE_EMULATION });
-            setIsPaused(true);
-            setExecutionState('paused');
+            pause();
         }
-    }, [isPaused, worker]);
+    }, [isPaused, pause, resume]);
 
     const handleReset = useCallback(() => {
         worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
@@ -581,7 +519,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                         address={line.operandAddress} 
                                         format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
                                         className="text-data-value"
+                                        worker={worker}
                                         showContextMenu={true}
+                                        showRunToCursor={true}
                                     />
                                 )}
                             </span>
@@ -689,7 +629,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         <div className="flex flex-col h-full">
             {/* Compact CPU Registers - only show when paused/stepping */}
             {isPaused && (
-                <CompactCpuRegisters debugInfo={debugInfo} />
+                <CompactCpuRegisters debugInfo={debugInfo} worker={worker} />
             )}
             
             {/* Disassembler Table */}
