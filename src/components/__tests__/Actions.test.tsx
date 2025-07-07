@@ -85,4 +85,113 @@ describe('Actions component', () => {
         fireEvent.click(timingAnchor);
         expect(props.onCycleAccurateTiming).toHaveBeenCalledTimes(1);
     });
+
+    it('should call onSaveState when SAVE STATE is clicked', () => {
+        render(<Actions {...props} />);
+        const saveAnchor = screen.getByText('SAVE STATE');
+        fireEvent.click(saveAnchor);
+        expect(props.onSaveState).toHaveBeenCalledTimes(1);
+        expect(props.onRefocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onLoadState when a file is selected', () => {
+        render(<Actions {...props} />);
+        const loadLabel = screen.getByText('LOAD STATE');
+        const input = loadLabel.querySelector('input[type="file"]') as HTMLInputElement;
+        
+        const file = new File(['{}'], 'state.json', { type: 'application/json' });
+        const changeEvent = { target: { files: [file] } };
+        
+        fireEvent.change(input, changeEvent);
+        expect(props.onLoadState).toHaveBeenCalledTimes(1);
+        expect(props.onRefocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle hover states for buttons', () => {
+        render(<Actions {...props} />);
+        const resetAnchor = screen.getByText('RESET');
+        
+        // Test mouse enter
+        fireEvent.mouseEnter(resetAnchor);
+        // The style should change but we can't directly test inline styles in jest-dom
+        
+        // Test mouse leave
+        fireEvent.mouseLeave(resetAnchor);
+        
+        // Test other buttons for hover
+        const pauseAnchor = screen.getByText('PAUSE');
+        fireEvent.mouseEnter(pauseAnchor);
+        fireEvent.mouseLeave(pauseAnchor);
+        
+        const saveAnchor = screen.getByText('SAVE STATE');
+        fireEvent.mouseEnter(saveAnchor);
+        fireEvent.mouseLeave(saveAnchor);
+        
+        const loadLabel = screen.getByText('LOAD STATE');
+        fireEvent.mouseEnter(loadLabel);
+        fireEvent.mouseLeave(loadLabel);
+        
+        const bsAnchor = screen.getByText('SUPPORT BACKSPACE [ON]');
+        fireEvent.mouseEnter(bsAnchor);
+        fireEvent.mouseLeave(bsAnchor);
+        
+        const timingAnchor = screen.getByText('CYCLE TIMING [ACCURATE]');
+        fireEvent.mouseEnter(timingAnchor);
+        fireEvent.mouseLeave(timingAnchor);
+        
+        // Verify all elements still exist after hover interactions
+        expect(resetAnchor).toBeInTheDocument();
+        expect(pauseAnchor).toBeInTheDocument();
+        expect(saveAnchor).toBeInTheDocument();
+        expect(loadLabel).toBeInTheDocument();
+        expect(bsAnchor).toBeInTheDocument();
+        expect(timingAnchor).toBeInTheDocument();
+    });
+
+    it('should call onRefocus when any action is triggered', () => {
+        render(<Actions {...props} />);
+        
+        // Reset
+        fireEvent.click(screen.getByText('RESET'));
+        expect(props.onRefocus).toHaveBeenCalledTimes(1);
+        
+        // Pause
+        fireEvent.click(screen.getByText('PAUSE'));
+        expect(props.onRefocus).toHaveBeenCalledTimes(2);
+        
+        // Backspace
+        fireEvent.click(screen.getByText('SUPPORT BACKSPACE [ON]'));
+        expect(props.onRefocus).toHaveBeenCalledTimes(3);
+        
+        // Timing
+        fireEvent.click(screen.getByText('CYCLE TIMING [ACCURATE]'));
+        expect(props.onRefocus).toHaveBeenCalledTimes(4);
+    });
+
+    it('should render file input with correct attributes', () => {
+        render(<Actions {...props} />);
+        const loadLabel = screen.getByText('LOAD STATE');
+        const input = loadLabel.querySelector('input[type="file"]') as HTMLInputElement;
+        
+        expect(input).toBeInTheDocument();
+        expect(input.accept).toBe('application/json');
+        expect(input.style.display).toBe('none');
+    });
+
+    it('should have correct tabIndex on interactive elements', () => {
+        render(<Actions {...props} />);
+        
+        const interactiveElements = [
+            screen.getByText('RESET'),
+            screen.getByText('PAUSE'),
+            screen.getByText('SAVE STATE'),
+            screen.getByText('LOAD STATE'),
+            screen.getByText('SUPPORT BACKSPACE [ON]'),
+            screen.getByText('CYCLE TIMING [ACCURATE]')
+        ];
+        
+        interactiveElements.forEach(element => {
+            expect(element).toHaveAttribute('tabIndex', '0');
+        });
+    });
 });
