@@ -6,6 +6,7 @@ import type Bus from './Bus';
 import type { CPU6502State } from './@types/CPU6502State';
 import type { CPU6502WithDebug, DisassemblyLine, TraceEntry } from './@types/CPU6502Debug';
 import { StateError } from './errors';
+import { Formatters } from '../utils/formatters';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Opcode table
@@ -1577,31 +1578,31 @@ class CPU6502 implements IClockable, IInspectableComponent {
         // Enhanced live state capture with hex formatting - no duplicates
         const debugData: { [key: string]: string | number | boolean | object } = { 
             // Registers as hex values for inspector
-            REG_PC: '$' + this.PC.toString(16).padStart(4, '0').toUpperCase(),
-            REG_A: '$' + this.A.toString(16).padStart(2, '0').toUpperCase(),
-            REG_X: '$' + this.X.toString(16).padStart(2, '0').toUpperCase(),
-            REG_Y: '$' + this.Y.toString(16).padStart(2, '0').toUpperCase(),
-            REG_S: '$' + this.S.toString(16).padStart(2, '0').toUpperCase(),
+            REG_PC: Formatters.hexWord(this.PC),
+            REG_A: Formatters.hexByte(this.A),
+            REG_X: Formatters.hexByte(this.X),
+            REG_Y: Formatters.hexByte(this.Y),
+            REG_S: Formatters.hexByte(this.S),
             // Processor flags as clear indicators
-            FLAG_N: this.N ? 'SET' : 'CLR',
-            FLAG_Z: this.Z ? 'SET' : 'CLR',
-            FLAG_C: this.C ? 'SET' : 'CLR',
-            FLAG_V: this.V ? 'SET' : 'CLR',
-            FLAG_I: this.I ? 'SET' : 'CLR',
-            FLAG_D: this.D ? 'SET' : 'CLR',
+            FLAG_N: Formatters.flag(this.N),
+            FLAG_Z: Formatters.flag(this.Z),
+            FLAG_C: Formatters.flag(this.C),
+            FLAG_V: Formatters.flag(this.V),
+            FLAG_I: Formatters.flag(this.I),
+            FLAG_D: Formatters.flag(this.D),
             // Hardware state in hex
-            HW_ADDR: '$' + this.address.toString(16).padStart(4, '0').toUpperCase(),
-            HW_DATA: '$' + this.data.toString(16).padStart(2, '0').toUpperCase(),
-            HW_OPCODE: '$' + this.opcode.toString(16).padStart(2, '0').toUpperCase(),
-            HW_CYCLES: this.cycles.toLocaleString(),
+            HW_ADDR: Formatters.hexWord(this.address),
+            HW_DATA: Formatters.hexByte(this.data),
+            HW_OPCODE: Formatters.hexByte(this.opcode),
+            HW_CYCLES: Formatters.decimal(this.cycles),
             // Interrupt state as clear indicators
             IRQ_LINE: this.irq ? 'ACTIVE' : 'INACTIVE',
             NMI_LINE: this.nmi ? 'ACTIVE' : 'INACTIVE',
             IRQ_PENDING: this.pendingIrq ? 'YES' : 'NO',
             NMI_PENDING: this.pendingNmi ? 'YES' : 'NO',
             // Instruction execution state in hex
-            EXEC_TMP: '$' + this.tmp.toString(16).padStart(2, '0').toUpperCase(),
-            EXEC_ADDR: '$' + this.addr.toString(16).padStart(4, '0').toUpperCase()
+            EXEC_TMP: Formatters.hexByte(this.tmp),
+            EXEC_ADDR: Formatters.hexWord(this.addr)
         };
 
         // Add performance profiling data if enabled
@@ -1611,7 +1612,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
             
             // Add summary stats
             debugData.PERF_ENABLED = 'YES';
-            debugData.PERF_INSTRUCTIONS = stats.instructionCount.toLocaleString();
+            debugData.PERF_INSTRUCTIONS = Formatters.decimal(stats.instructionCount);
             debugData.PERF_UNIQUE_OPCODES = stats.totalInstructions.toString();
             
             // Add top 5 most frequent instructions

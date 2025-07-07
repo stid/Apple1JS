@@ -5,6 +5,7 @@ import { IoComponent } from './@types/IoComponent';
 import { subscribeFunction } from './@types/PubSub';
 import { loggingService } from '../services/LoggingService';
 import { StateError } from './errors';
+import { Formatters } from '../utils/formatters';
 
 // Use global performance API
 declare const performance: { now(): number };
@@ -571,14 +572,11 @@ class PIA6820 implements IInspectableComponent {
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 
-        // Lazy evaluation - only format when requested
-        const formatHex = (value: number) => value.toString(16).padStart(2, '0').toUpperCase();
-
         return {
-            ORA: formatHex(this.ora),
-            CRA: formatHex(this.cra),
-            ORB: formatHex(this.orb),
-            CRB: formatHex(this.crb),
+            ORA: Formatters.hex(this.ora, 2),
+            CRA: Formatters.hex(this.cra, 2),
+            ORB: Formatters.hex(this.orb, 2),
+            CRB: Formatters.hex(this.crb, 2),
             CA1: this.ca1 ? '1' : '0',
             CA2: this.ca2 ? '1' : '0',
             CB1: this.cb1 ? '1' : '0',

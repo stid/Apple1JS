@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import { Formatters } from '../utils/formatters';
 
 /**
  * AddressLink - Clickable address component with context menu
@@ -37,13 +38,13 @@ const AddressLink: React.FC<AddressLinkProps> = ({
   const formatAddress = useCallback(() => {
     switch (format) {
       case 'hex4':
-        return `${prefix}${address.toString(16).padStart(4, '0').toUpperCase()}`;
+        return prefix === '$' ? Formatters.hexWord(address) : prefix + Formatters.hex(address, 4);
       case 'hex2':
-        return `${prefix}${address.toString(16).padStart(2, '0').toUpperCase()}`;
+        return prefix === '$' ? Formatters.hexByte(address) : prefix + Formatters.hex(address, 2);
       case 'raw':
         return address.toString();
       default:
-        return `${prefix}${address.toString(16).padStart(4, '0').toUpperCase()}`;
+        return prefix === '$' ? Formatters.hexWord(address) : prefix + Formatters.hex(address, 4);
     }
   }, [address, format, prefix]);
 

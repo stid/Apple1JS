@@ -3,6 +3,7 @@ import { InspectableData, InspectableChild, formatAddress } from './@types/Inspe
 import { BusSpaceType } from './@types/IoAddressable';
 import { WithBusMetadata } from './@types/BusComponent';
 import { BusError } from './errors';
+import { Formatters } from '../utils/formatters';
 
 class Bus implements IInspectableComponent {
     id = 'bus';
@@ -195,8 +196,8 @@ class Bus implements IInspectableComponent {
         
         // Memory address mappings
         this.busMapping.forEach((element) => {
-            const from: string = element.addr[0].toString(16).padStart(4, '0').toUpperCase();
-            const to: string = element.addr[1].toString(16).padStart(4, '0').toUpperCase();
+            const from: string = Formatters.hex(element.addr[0], 4);
+            const to: string = Formatters.hex(element.addr[1], 4);
             const name: string = element.name || 'Unknown';
             result[name] = `[${from}]:[${to}]`;
         });
