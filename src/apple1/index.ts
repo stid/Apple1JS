@@ -62,7 +62,22 @@ class Apple1 implements IInspectableComponent {
     loadState(state: EmulatorState) {
         if (state.ram) this.loadRAMState(state.ram);
         if (state.cpu) this.cpu.loadState(state.cpu);
-        if (state.pia) this.pia.loadState(state.pia);
+        if (state.pia) {
+            // Convert old PIAState format to new PIA6820State format for migration
+            const convertedPIAState = {
+                version: state.pia.version || '2.0', // Mark as old version to trigger migration
+                ora: state.pia.ora,
+                orb: state.pia.orb,
+                ddra: state.pia.ddra,
+                ddrb: state.pia.ddrb,
+                cra: state.pia.cra,
+                crb: state.pia.crb,
+                controlLines: state.pia.controlLines,
+                pb7InputState: false, // Default for old states
+                componentId: 'pia6820'
+            };
+            this.pia.loadState(convertedPIAState);
+        }
         if (state.video && typeof this.video.setState === 'function') this.video.setState(state.video);
     }
     /**
