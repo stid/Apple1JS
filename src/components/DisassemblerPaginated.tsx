@@ -6,6 +6,7 @@ import { usePaginatedTable } from '../hooks/usePaginatedTable';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
 import { useEmulation } from '../contexts/EmulationContext';
 
 interface DisassemblerProps {
@@ -97,7 +98,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     address: addr,
                     bytes: [opcode],
                     instruction: '???',
-                    operand: `$${opcode.toString(16).padStart(2, '0').toUpperCase()}`,
+                    operand: `$${Formatters.hex(opcode, 2)}`,
                 });
                 addr++;
                 continue;
@@ -120,11 +121,11 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     operand = '';
                     break;
                 case 'imm':
-                    operand = `#$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}`;
+                    operand = `#$${Formatters.hex(bytes[1] ?? 0, 2)}`;
                     break;
                 case 'zp': {
                     const zpAddr = bytes[1] || 0;
-                    operand = `$${zpAddr.toString(16).padStart(2, '0').toUpperCase()}`;
+                    operand = `$${Formatters.hex(zpAddr, 2)}`;
                     result.push({
                         address: addr,
                         bytes: bytes,
@@ -137,14 +138,14 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     continue;
                 }
                 case 'zpx':
-                    operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},X`;
+                    operand = `$${Formatters.hex(bytes[1] ?? 0, 2)},X`;
                     break;
                 case 'zpy':
-                    operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},Y`;
+                    operand = `$${Formatters.hex(bytes[1] ?? 0, 2)},Y`;
                     break;
                 case 'abs': {
                     const absAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${absAddr.toString(16).padStart(4, '0').toUpperCase()}`;
+                    operand = `$${Formatters.hex(absAddr, 4)}`;
                     result.push({
                         address: addr,
                         bytes: bytes,
@@ -158,7 +159,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 }
                 case 'abx': {
                     const abxAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${abxAddr.toString(16).padStart(4, '0').toUpperCase()},X`;
+                    operand = `$${Formatters.hex(abxAddr, 4)},X`;
                     result.push({
                         address: addr,
                         bytes: bytes,
@@ -172,7 +173,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 }
                 case 'aby': {
                     const abyAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${abyAddr.toString(16).padStart(4, '0').toUpperCase()},Y`;
+                    operand = `$${Formatters.hex(abyAddr, 4)},Y`;
                     result.push({
                         address: addr,
                         bytes: bytes,
@@ -186,7 +187,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                 }
                 case 'ind': {
                     const indAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `($${indAddr.toString(16).padStart(4, '0').toUpperCase()})`;
+                    operand = `($${Formatters.hex(indAddr, 4)})`;
                     result.push({
                         address: addr,
                         bytes: bytes,
@@ -199,15 +200,15 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                     continue;
                 }
                 case 'izx':
-                    operand = `($${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},X)`;
+                    operand = `($${Formatters.hex(bytes[1] ?? 0, 2)},X)`;
                     break;
                 case 'izy':
-                    operand = `($${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}),Y`;
+                    operand = `($${Formatters.hex(bytes[1] ?? 0, 2)}),Y`;
                     break;
                 case 'rel': {
                     const offset = bytes[1] || 0;
                     const target = addr + 2 + (offset > 127 ? offset - 256 : offset);
-                    operand = `$${target.toString(16).padStart(4, '0').toUpperCase()}`;
+                    operand = `$${Formatters.hex(target, 4)}`;
                     result.push({
                         address: addr,
                         bytes: bytes,
@@ -440,7 +441,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
             const isCurrentPC = line.address === currentPC;
             const hasBreakpoint = breakpoints.has(line.address);
             const isRunToCursor = line.address === runToCursorTarget;
-            const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+            const bytesHex = line.bytes.map(b => Formatters.hex(b, 2)).join(' ');
             
             return (
                 <tr
@@ -600,7 +601,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
     // Custom address range display for disassembly
     const getCustomAddressRange = () => {
         if (lines.length === 0) return getAddressRange();
-        return `$${currentAddress.toString(16).padStart(4, '0').toUpperCase()}-$${endAddress.toString(16).padStart(4, '0').toUpperCase()}`;
+        return `$${Formatters.hex(currentAddress, 4)}-$${Formatters.hex(endAddress, 4)}`;
     };
     
     // Keyboard shortcuts - handled separately due to complexity
