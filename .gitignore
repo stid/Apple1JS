@@ -16,3 +16,4 @@ tmp
 
 # Test coverage reports
 coverage/
+package-lock.json
