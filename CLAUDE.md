@@ -22,12 +22,14 @@ cat src/version.ts  # Current: 4.21.0
 ## 🎯 Essential Context
 
 **What is Apple1JS?**
+
 - Browser-based Apple 1 emulator (TypeScript/React)
 - Cycle-accurate 6502 CPU emulation
 - Worker-based architecture for performance
 - Comprehensive debugging tools
 
 **Project Philosophy**
+
 - Personal hobby project - no deadlines or sprints
 - For learning and exploration
 - Informal tone preferred
@@ -53,17 +55,20 @@ cat src/version.ts  # Current: 4.21.0
 ## 🛠️ Common Tasks
 
 ### Adding a Feature
+
 1. Find related code using architecture.md as guide
 2. Check if pattern exists (likely in similar components)
 3. Write tests first if modifying core emulation
 4. Use existing formatters/utilities
 
 ### Debugging Worker Issues
+
 - Messages defined in `src/apple1/types/worker-messages.ts`
 - Use `sendWorkerMessage()` for type safety
 - Check browser DevTools for Worker messages
 
 ### Finding Where Something Lives
+
 ```
 src/
 ├── core/        # Emulation engine (CPU, Bus, Memory)
@@ -77,42 +82,48 @@ src/
 ## ✅ Before ANY Commit
 
 1. **Run quality checks**:
-   ```bash
-   yarn run lint && yarn run type-check && yarn run test:ci
-   ```
+
+    ```bash
+    yarn run lint && yarn run type-check && yarn run test:ci
+    ```
 
 2. **Update version** (MANDATORY before PR):
-   ```bash
-   # Edit src/version.ts
-   # Patch: 4.21.0 → 4.21.1 (bug fixes)
-   # Minor: 4.21.0 → 4.22.0 (new features)
-   # Major: 4.21.0 → 5.0.0 (breaking changes)
-   ```
+
+    ```bash
+    # Edit src/version.ts
+    # Patch: 4.21.0 → 4.21.1 (bug fixes)
+    # Minor: 4.21.0 → 4.22.0 (new features)
+    # Major: 4.21.0 → 5.0.0 (breaking changes)
+    ```
 
 3. **Commit with conventional format**:
-   ```bash
-   git add -A
-   git commit -m "type: description"  # feat:, fix:, docs:, etc.
-   ```
+    ```bash
+    git add -A
+    git commit -m "type: description"  # feat:, fix:, docs:, etc.
+    ```
 
 ## 🔑 Key Patterns to Follow
 
 ### State Management
+
 - Components implement `IVersionedStatefulComponent`
 - Always include version and migration support
 - See existing components for patterns
 
 ### Formatting
+
 - Use `Formatters` utility (no manual toString(16))
 - Consistent hex formatting: `Formatters.hexWord(addr)`
 
 ### Worker Communication
+
 ```typescript
 // Type-safe messaging
 sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 ```
 
 ### Component Inspection
+
 - Implement `IInspectableComponent` for debugger visibility
 - Return structured data from `getInspectable()`
 
@@ -127,6 +138,7 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 ## 📊 Current Focus Areas
 
 From `docs/active/user_experience_analysis.md`:
+
 - Execution control (step/breakpoints)
 - Memory search functionality
 - Watch expressions
@@ -140,6 +152,7 @@ From `docs/active/user_experience_analysis.md`:
 **Test Guidelines**: `docs/active/cpu_test_guidelines.md`
 
 **External**:
+
 - [6502 Opcodes](http://www.6502.org/tutorials/6502opcodes.html)
 - [Apple-1 Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
 

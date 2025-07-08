@@ -1,0 +1,59 @@
+# Makefile.agents - Parallel agent execution for Apple1JS
+# Usage: make -f Makefile.agents [target]
+
+.PHONY: all review fix test docs commit agents-parallel agents-sequential help
+
+# Default target
+all: agents-sequential
+
+# Help target
+help:
+	@echo "Apple1JS Agent Orchestration"
+	@echo "============================"
+	@echo "Available targets:"
+	@echo "  make -f Makefile.agents agents-parallel  - Run review, test, and docs agents in parallel"
+	@echo "  make -f Makefile.agents agents-sequential - Run all agents in sequence (default)"
+	@echo "  make -f Makefile.agents review           - Run architecture review agent"
+	@echo "  make -f Makefile.agents fix              - Run lint/type/test fix agent"
+	@echo "  make -f Makefile.agents test             - Run test generation agent"
+	@echo "  make -f Makefile.agents docs             - Run documentation update agent"
+	@echo "  make -f Makefile.agents commit           - Run version update and commit agent"
+
+# Individual agent targets
+review:
+	@echo "🔍 Running Architecture Review Agent..."
+	@claude "Review the recent changes against architecture.md and CLAUDE.md guidelines. Check for pattern violations and suggest improvements."
+
+fix:
+	@echo "🔧 Running Pre-commit Fix Agent..."
+	@claude "Run 'yarn lint && yarn type-check && yarn test:ci' and fix any issues found. Do not commit changes."
+
+test:
+	@echo "🧪 Running Test Generation Agent..."
+	@claude "Look at recent changes with 'git diff' and generate tests for any untested code. Follow the patterns in docs/active/cpu_test_guidelines.md"
+
+docs:
+	@echo "📚 Running Documentation Update Agent..."
+	@claude "Check if recent code changes require updates to documentation. Update architecture.md if structure changed."
+
+commit:
+	@echo "📝 Running Version & Commit Agent..."
+	@claude "Check git diff, update src/version.ts appropriately (patch/minor/major), then create a commit with conventional format. Do not push."
+
+# Parallel execution of independent agents
+agents-parallel:
+	@echo "🚀 Running agents in parallel..."
+	@$(MAKE) -f Makefile.agents -j3 review test docs
+	@echo "✅ Parallel agents completed"
+	@$(MAKE) -f Makefile.agents fix
+	@$(MAKE) -f Makefile.agents commit
+
+# Sequential execution of all agents
+agents-sequential:
+	@echo "🚀 Running agents sequentially..."
+	@$(MAKE) -f Makefile.agents review
+	@$(MAKE) -f Makefile.agents fix  
+	@$(MAKE) -f Makefile.agents test
+	@$(MAKE) -f Makefile.agents docs
+	@$(MAKE) -f Makefile.agents commit
+	@echo "✅ All agents completed!"
