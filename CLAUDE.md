@@ -1,325 +1,148 @@
-# CLAUDE.md
+# CLAUDE.md - AI Assistant Guide
 
-## 🚨 CRITICAL: Git Workflow Rules
+> This guide helps AI assistants quickly understand the project and make effective contributions.
+> **Key principle**: This is a personal hobby project for learning - keep it fun and exploratory!
 
-**NEVER commit directly to master!** Always follow this workflow:
-
-1. **Check branch**: `git branch --show-current`
-2. **If on master**: `git checkout -b <type>/<description>` (e.g., feat/add-feature, fix/bug-fix)
-3. **Make changes**: Edit files as needed
-4. **Stage & commit**: `git add -A && git commit -m "<type>: <description>"`
-5. **Update version**: Edit `src/version.ts` BEFORE creating PR
-6. **Push branch**: `git push -u origin <branch-name>`
-7. **Create PR**: `gh pr create --title "..." --body "..."`
-
-**Branch types**: feat/, fix/, perf/, docs/, refactor/, test/, chore/
-
-## 🧠 Project Overview
-
-Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/React. Features cycle-accurate 6502 CPU emulation, authentic CRT display with phosphor effects, and full debugging capabilities. The architecture separates emulation logic (Web Worker) from UI for performance.
-
-**This is a personal hobby project** - I use it to learn about new technologies and patterns, including exploring AI for coding and feature development. There are no deadlines, sprints, or engineering timelines. If an idea seems interesting, we can explore it at our own pace. I enjoy gap analysis and setting goals, but everything remains driven by passion and learning rather than external pressure.
-
-## 🧠 Claude Instructions
-
-**Working Style**
-
-- Keep documentation informal and focused on learning/exploration
-- Avoid corporate language (sprints, deadlines, action items, etc.)
-- Frame improvements as "ideas to explore" or "things that would be cool"
-- Remember this is a passion project for learning, not a production system
-
-**When Analyzing/Proposing Changes**
-
-- Document findings in appropriate `docs/` subfolder:
-  - `docs/active/` for living documentation
-  - `docs/proposals/` for unimplemented ideas
-  - `docs/archive/` for historical analyses (with dates)
-  - `docs/adr/` for architecture decisions
-- See `docs/README.md` for documentation organization
-- Feel free to suggest improvements, but frame them as opportunities to learn
-- No rigid phases - we can analyze and implement as we go
-
-**When Implementing**
-
-- Run tests before/after changes to ensure no regression
-- **MANDATORY**: Update `src/version.ts` BEFORE creating any pull request
-    - Minor version bump for new features (e.g., 4.11.0 → 4.12.0)
-    - Patch version bump for bug fixes (e.g., 4.11.0 → 4.11.1)
-    - Major version bump for breaking changes (e.g., 4.11.0 → 5.0.0)
-- Run quality checks: `yarn run lint && yarn run type-check && yarn run test:ci`
-- **Always ensure new code or components are covered with unit tests following our best practices**
-
-**CRITICAL**: Never create a pull request without updating the version number first!
-
-**Key Principles**
-
-- `IInspectableComponent` enables debugger integration for any component
-- UI logging preserves history and aids debugging (no console.log)
-- src/progs contains original Apple 1 code - read-only for historical accuracy
-- Version bump signals release readiness
-
-## 🛠 Development Commands
-
-- `yarn run dev` / `build` / `preview`
-- `yarn run test` / `test:ci`
-- `yarn run lint` / `type-check` / `format`
-
-## 🧱 Architecture Overview
-
-- **src/core/**: Emulation engine - 6502 CPU, memory subsystem, clock, bus, PIA 6820
-    - Pure TypeScript, no UI dependencies for testability
-    - Implements `IInspectableComponent` for runtime introspection
-- **src/apple1/**: System integration layer
-    - Web Worker isolation prevents UI blocking during emulation
-    - Message-based communication via WORKER_MESSAGES protocol
-    - Contains original ROM/program data
-- **src/components/**: React UI layer
-    - CRT display with authentic phosphor rendering
-    - Integrated debugger (memory viewer, disassembler, CPU state)
-    - Component inspector shows real-time system state
-- **src/styles/**: Design token system for consistent theming
-- **src/services/**: Service layer abstractions
-    - LoggingService: UI-level logging with filtering and history
-    - WorkerCommunicationService: Type-safe Worker messaging API
-    - StatePersistenceService: State save/load to localStorage and files
-- **src/contexts/**: React context providers for state management
-    - EmulationContext: Manages execution state, breakpoints, debugging
-    - DebuggerNavigationContext: Coordinates navigation between debug components
-    - LoggingContext: Provides UI-level logging with history
-- **src/hooks/**: Reusable React hooks for common patterns
-    - useNavigableComponent: Keyboard navigation for debugger components
-    - usePaginatedTable: Large dataset handling with virtualization
-    - useVisibleRows: Viewport management for scrollable components
-
-## 🧩 Key Architectural Patterns
-
-**Memory Architecture** (Apple 1 authentic layout):
-
-- `$0000-$0FFF`: 4KB RAM (includes zero page, stack at $0100-$01FF)
-- `$D010-$D013`: PIA 6820 for keyboard/display I/O
-- `$E000-$EFFF`: Extended RAM for BASIC interpreter
-- `$FF00-$FFFF`: WOZ Monitor ROM
-
-**State Management**:
-
-- **Two-Layer Architecture**:
-    - Web Worker: Maintains authoritative emulation state (CPU, memory, I/O)
-    - React Contexts: Manage UI state and debugging controls
-- **EmulatorState**: Serializable snapshot of complete system state
-- **EmulationContext**: Bridges Worker and UI, handling:
-    - Execution control (run/pause/step)
-    - Breakpoint management
-    - Debug state synchronization
-- Message-based communication prevents race conditions
-
-**Component Inspection**:
-
-- `IInspectableComponent` provides `inspect()` method returning debug info
-- Enables real-time debugging without performance impact
-- Tree structure mirrors hardware architecture
-
-**UI Component Patterns**:
-
-- **Paginated Components**: Handle large datasets efficiently
-    - DisassemblerPaginated, MemoryViewerPaginated
-    - Virtual scrolling for performance
-- **Alert System**: User feedback through AlertBadges and AlertPanel
-- **SmartAddress**: Intelligent address parsing and navigation
-- **Navigation Hooks**: Consistent keyboard controls across debugger
-
-**Performance Considerations**:
-
-- Worker isolation prevents UI blocking during emulation
-- Message batching reduces overhead
-- TypeScript strict mode catches errors at compile time
-
-## 🚀 Testing & Quality Requirements
-
-**Before ANY commit**:
+## 🚀 Quick Start Checklist
 
 ```bash
-yarn run lint && yarn run type-check && yarn run test:ci
+# 1. Check branch (NEVER work on master!)
+git branch --show-current
+
+# 2. If on master, create feature branch
+git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, chore/
+
+# 3. Run tests to verify starting state
+yarn test:ci
+
+# 4. Check current version
+cat src/version.ts  # Current: 4.21.0
 ```
 
-**Coverage Requirements**:
+## 🎯 Essential Context
 
-- Core emulation (CPU, memory, bus): ≥ 90% line/branch coverage
-- New features: Must include tests demonstrating functionality
-- Bug fixes: Must include regression test
+**What is Apple1JS?**
+- Browser-based Apple 1 emulator (TypeScript/React)
+- Cycle-accurate 6502 CPU emulation
+- Worker-based architecture for performance
+- Comprehensive debugging tools
 
-**Test Infrastructure**:
+**Project Philosophy**
+- Personal hobby project - no deadlines or sprints
+- For learning and exploration
+- Informal tone preferred
+- "Ideas to explore" not "requirements"
 
-- **Custom render utility** (`src/test-utils/render.tsx`):
-    - Wraps components with required providers
-    - Ensures consistent test environment
-- **CPU test suite**: Organized by instruction type for maintainability
-- **Usage**: `import { render } from '@/test-utils'` (not from @testing-library/react)
+## 📍 Navigation Shortcuts
 
-**Why These Matter**:
+**Need to understand the system?**
+→ `docs/active/architecture.md`
 
-- TypeScript strict mode catches ~40% of bugs at compile time
-- Tests ensure emulation accuracy (critical for vintage software)
-- Linting maintains code consistency across contributors
+**Looking for a specific component?**
+→ Check module structure in architecture.md
 
-## 🔢 Version Bumps (MANDATORY BEFORE PR)
+**Want to see what's in progress?**
+→ `docs/active/user_experience_analysis.md`
 
-**ALWAYS update `src/version.ts` before creating any pull request!**
+**Need type definitions?**
+→ `src/core/types/` or `src/apple1/types/`
 
-- **Major**: Breaking changes (e.g., 4.11.0 → 5.0.0)
-- **Minor**: New features (e.g., 4.11.0 → 4.12.0)
-- **Patch**: Bug fixes (e.g., 4.11.0 → 4.11.1)
+**Testing guidelines?**
+→ `docs/active/cpu_test_guidelines.md`
 
-**Examples:**
+## 🛠️ Common Tasks
 
-- UI refactor with new components = Minor bump
-- Fix existing bug = Patch bump
-- Change API that breaks compatibility = Major bump
+### Adding a Feature
+1. Find related code using architecture.md as guide
+2. Check if pattern exists (likely in similar components)
+3. Write tests first if modifying core emulation
+4. Use existing formatters/utilities
 
-## 🧩 Standardization Patterns (v4.19.0)
+### Debugging Worker Issues
+- Messages defined in `src/apple1/types/worker-messages.ts`
+- Use `sendWorkerMessage()` for type safety
+- Check browser DevTools for Worker messages
 
-**State Management** (All components implement `IVersionedStatefulComponent`):
-- CPU6502 (v3.0), RAM (v2.0), ROM (v2.0), PIA6820 (v3.0), Clock (v2.0), Apple1 (v2.0)
-- Versioned state with migration support
-- Comprehensive validation
-- Type-safe serialization/deserialization
+### Finding Where Something Lives
+```
+src/
+├── core/        # Emulation engine (CPU, Bus, Memory)
+├── apple1/      # System integration, Worker
+├── components/  # React UI components
+├── services/    # Logging, Worker comm, State persistence
+├── contexts/    # React state management
+└── hooks/       # Reusable React patterns
+```
 
-**Formatting Utilities** (`src/utils/formatters.ts`):
-- `Formatters.hex(value, width)` - General hex formatting
-- `Formatters.hexByte(value)` - Format as $XX
-- `Formatters.hexWord(value)` - Format as $XXXX
-- `Formatters.address(value)` - Memory address formatting
-- All `toString(16)` patterns have been migrated
+## ✅ Before ANY Commit
 
-**UI Timing Constants** (`src/constants/ui.ts`):
-- `DEBUG_REFRESH_RATES` - Standardized refresh rates for debug components
-- `UI_TIMINGS` - Animation and effect timings
-- `UPDATE_PATTERNS` - Component update strategies
+1. **Run quality checks**:
+   ```bash
+   yarn run lint && yarn run type-check && yarn run test:ci
+   ```
 
-**Worker Communication** (Type-safe messaging):
+2. **Update version** (MANDATORY before PR):
+   ```bash
+   # Edit src/version.ts
+   # Patch: 4.21.0 → 4.21.1 (bug fixes)
+   # Minor: 4.21.0 → 4.22.0 (new features)
+   # Major: 4.21.0 → 5.0.0 (breaking changes)
+   ```
+
+3. **Commit with conventional format**:
+   ```bash
+   git add -A
+   git commit -m "type: description"  # feat:, fix:, docs:, etc.
+   ```
+
+## 🔑 Key Patterns to Follow
+
+### State Management
+- Components implement `IVersionedStatefulComponent`
+- Always include version and migration support
+- See existing components for patterns
+
+### Formatting
+- Use `Formatters` utility (no manual toString(16))
+- Consistent hex formatting: `Formatters.hexWord(addr)`
+
+### Worker Communication
 ```typescript
+// Type-safe messaging
 sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 ```
 
-## 🎨 Design System & Colors
+### Component Inspection
+- Implement `IInspectableComponent` for debugger visibility
+- Return structured data from `getInspectable()`
 
-**Centralized Design Tokens** (`src/styles/tokens.ts`):
-All colors flow from this single source to ensure consistency and enable theming.
+## 🚫 Common Pitfalls
 
-**Color Categories & Purpose**:
+1. **Never commit to master** - Always use feature branches
+2. **Don't use console.log** - Use LoggingService
+3. **Avoid any types** - TypeScript strict mode is enabled
+4. **Don't hardcode colors** - Use design tokens (except CRT display)
+5. **Remember version bump** - Required for every PR
 
-- **Phosphor**: CRT authenticity (green glow variations)
-- **Data Types**: Visual distinction for debugging
-    - `data-address` (blue): Memory locations
-    - `data-value` (green): Data/registers
-    - `data-flag` (amber): CPU flags
-- **Semantic**: System status at a glance
-- **Component**: Hardware type identification in inspector
-- **Surface/Border**: Visual hierarchy through depth
+## 📊 Current Focus Areas
 
-**Critical Exception - CRT Display**:
-CRT components use hardcoded colors for historical accuracy:
+From `docs/active/user_experience_analysis.md`:
+- Execution control (step/breakpoints)
+- Memory search functionality
+- Watch expressions
+- Hardware authenticity features
 
-- `#68D391` for character rendering (matches period CRTs)
-- `#0A3A3A` for background (authentic phosphor coating)
-  These are intentionally outside the token system.
+## 🔗 Quick References
 
-**Implementation Pattern**:
+**Documentation Hub**: `docs/README.md`
+**Architecture**: `docs/active/architecture.md`
+**Current Work**: `docs/active/standardization-progress.md`
+**Test Guidelines**: `docs/active/cpu_test_guidelines.md`
 
-```typescript
-// Modern components
-import { designTokens } from '@/styles/tokens';
-const color = designTokens.colors.data.address;
+**External**:
+- [6502 Opcodes](http://www.6502.org/tutorials/6502opcodes.html)
+- [Apple-1 Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
 
-// Tailwind (when tokens not available)
-<div className="text-data-address" />
-```
+---
 
-## 🛠️ Debugger System (July 2025 Implementation)
-
-**DebuggerLayout** (`src/components/DebuggerLayout.tsx`):
-
-- Tabbed interface replacing previous cramped layout
-- Three views: Overview (CPU/Stack), Memory, Disassembly
-- Maintains state across tab switches for workflow continuity
-
-**MemoryViewer** (`src/components/MemoryViewer.tsx`):
-
-- Hex editor showing 768 bytes (48 rows × 16 bytes)
-- Address input with Enter to navigate (like disassembler)
-- Arrow navigation with smart scrolling (up=bottom, down=top)
-- ASCII representation sidebar
-- Ready for edit functionality (infrastructure complete)
-
-**StackViewer** (`src/components/StackViewer.tsx`):
-
-- Real-time 6502 stack visualization ($0100-$01FF)
-- Shows active portion only (SP to $FF)
-- Usage indicator with color coding (green/yellow/red)
-- Current SP position highlighted
-
-**Key Design Decisions**:
-
-- Tabs prevent information overload while keeping tools accessible
-- 500ms refresh rate balances responsiveness with performance
-- Consistent color coding via design tokens aids quick scanning
-- Memory viewer size (768 bytes) fits common use cases without scrolling
-
-## 📍 Current State & Recent Work (July 2025)
-
-**Recently Completed**:
-
-- ✅ **Integrated Debugger**: Replaced cramped layout with tabbed interface after user feedback
-    - Previous: All debug info crammed in one view (unusable)
-    - Current: Clean tabs for Overview/Memory/Disassembly
-    - Key learning: Users need focused views, not information density
-- ✅ **Memory Viewer Fixes**:
-    - Added address input (was missing, unlike disassembler)
-    - Smart scrolling for navigation continuity
-    - 768-byte view based on typical debugging sessions
-- ✅ **UI Standardization**: Design tokens ensure consistency
-    - Except CRT display (intentionally authentic)
-
-**Next Priorities** (from user_experience_analysis.md):
-
-- **Execution Control**: Step/breakpoints/run-to-cursor (infrastructure exists)
-- **Memory Search**: Find bytes/strings in memory
-- **Watch Expressions**: Monitor memory/register values
-- **Hardware Authenticity**: Keyboard sounds, power-on sequence
-
-**Known Issues**:
-
-- Memory editing UI ready but write operations not implemented in worker
-- Some linting warnings in user_experience_analysis.md (formatting)
-
-## 📁 Type System Organization
-
-**Current Structure** (standardized as of v4.19.0):
-
-- `src/types/`: Global shared types (config.ts)
-- `src/core/types/`: Core emulation types (bus, cpu, clock, components, io, pubsub, state)
-- `src/apple1/types/`: Apple 1 specific types (emulator-state, video, worker-messages)
-- `src/components/types/`: UI component types (char-rom)
-- `src/services/types/`: Service layer types (logging)
-
-All old `@types/` directories have been migrated to this new structure
-
-## 📚 Key Concepts
-
-- **PIA 6820**: Peripheral Interface Adapter - handles keyboard input and display output
-- **WOZ Monitor**: Steve Wozniak's original ROM monitor program
-- **IInspectableComponent**: Our interface enabling any component to provide debug info
-- **Design Tokens**: Centralized theme system preventing color chaos
-- **Web Worker**: Isolates CPU emulation from UI thread for smooth performance
-
-## 🔗 Reference Materials
-
-- [Apple-1 Operation Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
-- [6502 Instruction Set](http://www.6502.org/tutorials/6502opcodes.html)
-
-## 📚 Documentation
-
-- **Main Docs**: See `docs/README.md` for complete documentation guide
-- **Architecture**: `docs/active/architecture.md` - Primary architecture reference
-- **ADRs**: `docs/adr/` - Architecture Decision Records
-- **Current Work**: `docs/active/standardization-progress.md`
+💡 **Remember**: This is a learning project. If something seems interesting to explore, let's do it! Keep suggestions informal and frame them as opportunities to learn rather than requirements.
