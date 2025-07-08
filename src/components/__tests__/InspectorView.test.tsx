@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom/jest-globals';
 import { render, screen, act } from '../../test-utils/render';
 import InspectorView from '../InspectorView';
-import { IInspectableComponent } from '../../core/@types/IInspectableComponent';
-import { WORKER_MESSAGES } from '../../apple1/TSTypes';
+import { IInspectableComponent } from '../../core/types/components';
+import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
 
 // Mock inspectable component
 const mockInspectable: IInspectableComponent = {

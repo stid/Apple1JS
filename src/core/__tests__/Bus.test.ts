@@ -1,7 +1,7 @@
 import Bus from '../Bus';
 import RAM from '../RAM';
 import ROM from '../ROM';
-import { BusSpaceType } from '../@types/IoAddressable';
+import { BusSpaceType } from '../types/bus';
 
 describe('Bus', function () {
     let testBus: Bus;

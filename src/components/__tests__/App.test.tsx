@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/jest-globals';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from '../App';
-import { IInspectableComponent } from '../../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../../core/types/components';
 
 // Mock child components
 jest.mock('../Error', () => ({

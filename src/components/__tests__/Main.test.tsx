@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/jest-globals';
 import { render, screen } from '@testing-library/react';
 import Main from '../Main';
-import { IInspectableComponent } from '../../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../../core/types/components';
 import { APP_VERSION } from '../../version';
 
 // Mock App component
