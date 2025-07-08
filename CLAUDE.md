@@ -31,7 +31,12 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/Reac
 
 **When Analyzing/Proposing Changes**
 
-- Document findings in `docs/` folder as informal explorations
+- Document findings in appropriate `docs/` subfolder:
+  - `docs/active/` for living documentation
+  - `docs/proposals/` for unimplemented ideas
+  - `docs/archive/` for historical analyses (with dates)
+  - `docs/adr/` for architecture decisions
+- See `docs/README.md` for documentation organization
 - Feel free to suggest improvements, but frame them as opportunities to learn
 - No rigid phases - we can analyze and implement as we go
 
@@ -311,3 +316,10 @@ All old `@types/` directories have been migrated to this new structure
 
 - [Apple-1 Operation Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
 - [6502 Instruction Set](http://www.6502.org/tutorials/6502opcodes.html)
+
+## 📚 Documentation
+
+- **Main Docs**: See `docs/README.md` for complete documentation guide
+- **Architecture**: `docs/active/architecture.md` - Primary architecture reference
+- **ADRs**: `docs/adr/` - Architecture Decision Records
+- **Current Work**: `docs/active/standardization-progress.md`
