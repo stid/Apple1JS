@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { IInspectableComponent } from '../core/types';
+import { IInspectableComponent } from '../core/types/components';
 import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
 import { OPCODES } from './Disassembler';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
 
-import type { InspectableData } from '../core/types';
-import type { InspectableArchView } from '../core/@types/InspectableArchView';
+import type { InspectableData } from '../core/types/components';
 
 interface InspectorViewProps {
     root: IInspectableComponent;
@@ -77,16 +76,16 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     } | undefined;
 
     // Type guard for children property
-    function hasChildren(node: InspectableArchView): node is InspectableArchView & { children: InspectableArchView[] } {
+    function hasChildren(node: InspectableData): node is InspectableData & { children: InspectableData[] } {
         return Array.isArray((node as Record<string, unknown>).children);
     }
 
     // Use getInspectable() for architecture view
-    const archRoot: InspectableData | InspectableArchView =
-        typeof root.getInspectable === 'function' ? root.getInspectable() : (root as unknown as InspectableArchView);
+    const archRoot: InspectableData =
+        typeof root.getInspectable === 'function' ? root.getInspectable() : (root as unknown as InspectableData);
 
     // Helper function to get debug data for a component based on its type and id
-    const getDebugDataForComponent = (node: InspectableArchView): Record<string, string | number | boolean> => {
+    const getDebugDataForComponent = (node: InspectableData): Record<string, string | number | boolean> => {
         if (!debugInfo || Object.keys(debugInfo).length === 0) return {};
         
         // Map component types to debug domains
@@ -145,7 +144,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     };
 
     // Render architecture component as a clean section
-    function renderArchComponent(node: InspectableArchView, depth = 0, seen = new Map()): React.ReactNode[] {
+    function renderArchComponent(node: InspectableData, depth = 0, seen = new Map()): React.ReactNode[] {
         // Deduplicate by id, but prefer the node with more config fields
         const configKeys = Object.keys(node).filter(
             (key) =>
@@ -266,7 +265,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         
         let childrenNodes: React.ReactNode[] = [];
         if (hasChildren(node) && node.children.length > 0) {
-            childrenNodes = node.children.flatMap((child) => renderArchComponent(child, depth + 1, seen));
+            childrenNodes = node.children.flatMap((child) => renderArchComponent(child as InspectableData, depth + 1, seen));
         }
         return [componentCard, ...childrenNodes];
     }

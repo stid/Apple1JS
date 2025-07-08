@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import DebuggerLayout from '../DebuggerLayout';
-import { IInspectableComponent } from '../../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../../core/types/components';
 import { DebuggerNavigationProvider } from '../../contexts/DebuggerNavigationContext';
 
 // Mock the child components

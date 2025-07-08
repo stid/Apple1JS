@@ -1,4 +1,8 @@
-# UI Logging Refactor Design
+# UI Logging Badge System Design
+
+**STATUS: PROPOSAL - NOT IMPLEMENTED**
+
+> This document describes a proposed refactoring of the UI logging system that has not been implemented. The current implementation uses inline alerts in the StatusPanel.
 
 ## Problem Statement
 

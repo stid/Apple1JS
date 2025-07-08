@@ -2,7 +2,7 @@ import CPU6502 from '../CPU6502';
 import ROM from '../ROM';
 import RAM from '../RAM';
 import Bus from '../Bus';
-import { BusSpaceType } from '../@types/IoAddressable';
+import { BusSpaceType } from '../types/bus';
 
 describe('CPU6502 - Branch Operations', function () {
     let cpu: CPU6502;

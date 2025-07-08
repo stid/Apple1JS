@@ -10,7 +10,9 @@ This document describes the type system organization and hierarchy in Apple1JS. 
 src/
 ├── types/                    # Global shared types
 │   ├── config.ts            # Application configuration
-│   └── index.ts             # Re-exports
+│   ├── logging.ts           # Logging configuration types
+│   ├── index.ts             # Re-exports
+│   └── ui/                  # UI-specific types
 │
 ├── core/types/              # Core emulation types
 │   ├── bus.ts               # Bus and addressing types
@@ -201,17 +203,24 @@ type WithBusMetadata<T> = T & {
 };
 ```
 
-## Type Migration Path
+## Type Migration Status
 
-### Legacy Types → New Structure
+### Migration Completed (2025-01-08)
 
-1. **Old Path**: `src/core/@types/ComponentType.ts`  
-   **New Path**: `src/core/types/components.ts`
+The type migration from `src/core/@types/` to the new structure has been **completed**. All imports have been updated and the old `@types` directory has been removed.
 
-2. **Old Import**: `import { Type } from '../@types/Type'`  
-   **New Import**: `import { Type } from '../types'`
+**Migration Summary**:
+- ✅ All types moved to their appropriate locations
+- ✅ All imports updated (18 component files, 13 test files)
+- ✅ `isInspectableComponent` helper added to `components.ts`
+- ✅ Old `src/core/@types/` directory removed
+- ✅ All tests passing
 
-3. **Backward Compatibility**: TSTypes.ts files re-export for gradual migration
+**Import Changes**:
+- `import { IInspectableComponent } from '../core/@types/IInspectableComponent'`  
+  → `import { IInspectableComponent } from '../core/types/components'`
+- `import { BusSpaceType } from '../@types/IoAddressable'`  
+  → `import { BusSpaceType } from '../types/bus'`
 
 ## Type Dependencies
 
