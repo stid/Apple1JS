@@ -190,8 +190,23 @@ if (validation.valid) {
   - Performance stats and optimization state preservation
   - Migration support from v1.0/v2.0 formats
   - Apple 1 specific display busy state handling for WOZ Monitor compatibility
-- 🔄 **Clock** - Pending migration to new interface
-- 🔄 **Apple1** - Pending migration to new interface
+- ✅ **Clock** - `IVersionedStatefulComponent` with v2.0 state schema including:
+  - Clock configuration (mhz, stepChunk)
+  - Execution state tracking (running, paused)
+  - Timing state preservation (cycles, elapsed time)
+  - Pause management with proper timestamp handling
+  - Performance tracking (frame samples, drift compensation, dynamic wait time)
+  - Migration support from v1.0 format
+  - Automatic clock restart after state load if previously running
+- ✅ **Apple1** - `IVersionedStatefulComponent` with v2.0 state schema including:
+  - Complete system state management orchestration
+  - Delegates to individual component state management
+  - System configuration preservation (CPU speed, step interval)
+  - Backward compatibility with v1.0 EmulatorState format
+  - Automatic clock management during state save/load
+  - Video state preservation when available
+  - Proper component initialization after reset
+  - Migration from legacy save format with component-level delegation
 
 ### 8. 📋 Component Update Patterns
 **Standardize:**

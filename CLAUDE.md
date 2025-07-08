@@ -31,7 +31,7 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/Reac
 
 **When Analyzing/Proposing Changes**
 
-- Document findings in `@docs/` folder as informal explorations
+- Document findings in `docs/` folder as informal explorations
 - Feel free to suggest improvements, but frame them as opportunities to learn
 - No rigid phases - we can analyze and implement as we go
 
@@ -265,6 +265,7 @@ const color = designTokens.colors.data.address;
 ## 📁 Type System Organization
 
 **Current Structure** (needs consolidation):
+
 - `src/@types/`: Global type definitions (Config.ts)
 - `src/types/`: Shared types (logging.ts)
 - Module-specific `@types/`: Component-specific types in core/, apple1/, services/
