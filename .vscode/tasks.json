@@ -1,0 +1,116 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run All Agents",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["all"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agent: Architecture Review",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["review"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agent: Fix Issues",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["fix"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agent: Generate Tests",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["test"],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agent: Update Docs",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["docs"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agent: Commit Changes",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["commit"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agent: Quick Fix & Commit",
+            "type": "shell",
+            "command": "./agents.sh",
+            "args": ["quick"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agents: Run in Parallel",
+            "type": "shell",
+            "command": "make",
+            "args": ["-f", "Makefile.agents", "agents-parallel"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Agents: Node Orchestrator",
+            "type": "shell",
+            "command": "node",
+            "args": ["scripts/run-agents.js", "all"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

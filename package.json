@@ -22,7 +22,15 @@
         "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
         "type-check": "tsc --build ./tsconfig.json",
         "clean": "rm -rf dist coverage",
-        "bundle-size": "vite build && du -sh dist"
+        "bundle-size": "vite build && du -sh dist",
+        "agent:review": "claude 'Review the recent changes against architecture.md and CLAUDE.md guidelines'",
+        "agent:test": "claude 'Generate tests for any untested code based on git diff'",
+        "agent:fix": "claude 'Run yarn lint && yarn type-check && yarn test:ci and fix any issues'",
+        "agent:docs": "claude 'Update documentation if needed based on code changes'",
+        "agent:commit": "claude 'Update src/version.ts and create conventional commit'",
+        "agent:pr": "claude 'Push current branch and create a pull request'",
+        "agents": "npm run agent:review && npm run agent:fix && npm run agent:test && npm run agent:commit",
+        "agents:quick": "claude 'Run all quality checks, fix issues, update version, and prepare commit'"
     },
     "devDependencies": {
         "@commitlint/cli": "^19.8.1",
