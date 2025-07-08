@@ -1,5 +1,5 @@
 import type { IInspectableComponent, InspectableData, InspectableChild, WithBusMetadata, IoComponent, subscribeFunction, IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from './types';
-import { formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
+// formatByte is replaced by direct use of Formatters
 import { loggingService } from '../services/LoggingService';
 import { StateError } from './types';
 import { Formatters } from '../utils/formatters';
@@ -700,12 +700,12 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
             ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             state: {
                 // Registers
-                'Port A Data': formatByte(this.ora),
-                'Port A DDR': formatByte(this.ddra),
-                'Port A Control': formatByte(this.cra),
-                'Port B Data': formatByte(this.orb),
-                'Port B DDR': formatByte(this.ddrb),
-                'Port B Control': formatByte(this.crb),
+                'Port A Data': Formatters.hexByte(this.ora),
+                'Port A DDR': Formatters.hexByte(this.ddra),
+                'Port A Control': Formatters.hexByte(this.cra),
+                'Port B Data': Formatters.hexByte(this.orb),
+                'Port B DDR': Formatters.hexByte(this.ddrb),
+                'Port B Control': Formatters.hexByte(this.crb),
                 // Control Lines
                 'CA1 (Kbd Strobe)': this.ca1 ? 'HIGH' : 'LOW',
                 'CA2': this.ca2 ? 'HIGH' : 'LOW',

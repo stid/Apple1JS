@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 
 interface StackViewerProps {
     worker: Worker;
@@ -31,7 +33,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
         };
 
         requestStackMemory();
-        const interval = setInterval(requestStackMemory, 500);
+        const interval = setInterval(requestStackMemory, DEBUG_REFRESH_RATES.STACK_VIEW);
         return () => clearInterval(interval);
     }, [worker]);
 
@@ -46,7 +48,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
                     rangeData.data.forEach((value: number, index: number) => {
                         const addr = rangeData.start + index;
                         if (addr >= STACK_BASE && addr < STACK_BASE + STACK_SIZE) {
-                            newStackData[`0x${addr.toString(16).padStart(4, '0').toUpperCase()}`] = value;
+                            newStackData[`0x${Formatters.hex(addr, 4)}`] = value;
                         }
                     });
                     setStackData(prev => ({ ...prev, ...newStackData }));
@@ -66,7 +68,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
         // Stack grows downward, so we show from current SP up to FF
         for (let offset = stackPointer; offset <= 0xFF; offset++) {
             const addr = STACK_BASE + offset;
-            const addrKey = `0x${addr.toString(16).padStart(4, '0').toUpperCase()}`;
+            const addrKey = `0x${Formatters.hex(addr, 4)}`;
             const value = stackData[addrKey] ?? 0;
             const isCurrent = offset === stackPointer;
             
@@ -90,7 +92,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
                         />
                     </span>
                     <span className="text-data-value">
-                        {value.toString(16).padStart(2, '0').toUpperCase()}
+                        {Formatters.hex(value, 2)}
                     </span>
                 </div>
             );
@@ -119,7 +121,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
                 <div className="flex justify-between items-center mb-xs">
                     <span className="text-xs text-text-secondary">Stack Pointer:</span>
                     <span className="text-xs font-mono text-data-value">
-                        ${stackPointer.toString(16).padStart(2, '0').toUpperCase()}
+                        {Formatters.hexByte(stackPointer)}
                     </span>
                 </div>
                 <div className="flex justify-between items-center mb-xs">

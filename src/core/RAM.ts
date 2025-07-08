@@ -1,7 +1,4 @@
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData } from './@types/InspectableTypes';
-import { WithBusMetadata } from './@types/BusComponent';
-import { IoAddressable } from './@types/IoAddressable';
+import { IInspectableComponent, InspectableData, WithBusMetadata, IoAddressable } from './types';
 import { loggingService } from '../services/LoggingService';
 import { DEFAULT_RAM_BANK_SIZE, MIN_BYTE_VALUE, MAX_BYTE_VALUE, BYTE_MASK } from './constants/memory';
 import { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateError, StateBase } from './types';

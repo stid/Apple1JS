@@ -10,16 +10,16 @@ import RAM from '../core/RAM';
 import Bus from '../core/Bus';
 import KeyboardLogic from './KeyboardLogic';
 import DisplayLogic from './DisplayLogic';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
 import { InspectableIoComponent } from '../core/InspectableIoComponent';
 import { loggingService } from '../services/LoggingService';
+import { Formatters } from '../utils/formatters';
 
 // ROM + Demo Program
 import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
-import { IoComponent } from '@/core/@types/IoComponent';
-import { BusSpaceType } from '@/core/@types/IoAddressable';
+import { IoComponent, BusSpaceType } from '@/core/types';
 import { 
     ROM_START, ROM_END, 
     RAM_BANK1_START, RAM_BANK1_END,
@@ -182,10 +182,10 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
             name: 'Apple 1',
             cpuSpeedMHz: MHZ_CPU_SPEED,
             stepIntervalMs: STEP_INTERVAL,
-            romAddress: ROM_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
-            ramBank1Address: RAM_BANK1_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
-            ramBank2Address: RAM_BANK2_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
-            piaAddress: PIA_ADDR.map((v) => '0x' + v.toString(16).toUpperCase()).join(' - '),
+            romAddress: ROM_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),
+            ramBank1Address: RAM_BANK1_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),
+            ramBank2Address: RAM_BANK2_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),
+            piaAddress: PIA_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),
             components: [
                 { id: this.cpu.id, name: this.cpu.name },
                 { id: this.bus.id, name: this.bus.name },
@@ -253,7 +253,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         function annotateAddress(component: unknown, addr: [number, number], name: string) {
             if (typeof component === 'object' && component !== null) {
                 (component as { __address?: string }).__address =
-                    `${addr[0].toString(16).toUpperCase()}:${addr[1].toString(16).toUpperCase()}`;
+                    `${Formatters.hex(addr[0], 0)}:${Formatters.hex(addr[1], 0)}`;
                 (component as { __addressRange?: [number, number] }).__addressRange = addr;
                 (component as { __addressName?: string }).__addressName = name;
             }

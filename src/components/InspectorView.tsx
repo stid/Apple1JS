@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
 import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
 import { OPCODES } from './Disassembler';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 
-import type { InspectableData } from '../core/@types/InspectableTypes';
+import type { InspectableData } from '../core/types';
 import type { InspectableArchView } from '../core/@types/InspectableArchView';
 
 interface InspectorViewProps {
@@ -31,7 +32,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         
         const interval = setInterval(() => {
             sendWorkerMessage(worker, WORKER_MESSAGES.DEBUG_INFO);
-        }, 600);
+        }, DEBUG_REFRESH_RATES.INSPECTOR);
         return () => clearInterval(interval);
     }, [worker]);
 

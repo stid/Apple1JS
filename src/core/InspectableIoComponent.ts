@@ -1,6 +1,4 @@
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
-import { InspectableData } from '../core/@types/InspectableTypes';
-import { IoComponent, IoComponentState } from '../core/@types/IoComponent';
+import { IInspectableComponent, InspectableData, IoComponent, IoComponentState } from './types';
 
 export class InspectableIoComponent<TState = IoComponentState> implements IInspectableComponent {
     /**

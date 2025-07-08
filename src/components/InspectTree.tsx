@@ -1,5 +1,6 @@
 import React from 'react';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
+import { Formatters } from '../utils/formatters';
 
 type Addressable = {
     __address?: string;
@@ -45,7 +46,7 @@ const InspectTree: React.FC<{ node: IInspectableComponent; path?: string }> = ({
                 {(node.busMapping as Array<{ addr: [number, number]; component: unknown; name: string }>).map(
                     (b, i) => (
                         <span key={i} style={{ marginLeft: 4 }}>
-                            {b.name}: [{b.addr[0].toString(16).toUpperCase()}:{b.addr[1].toString(16).toUpperCase()}]
+                            {b.name}: [{Formatters.hex(b.addr[0], 0)}:{Formatters.hex(b.addr[1], 0)}]
                         </span>
                     ),
                 )}

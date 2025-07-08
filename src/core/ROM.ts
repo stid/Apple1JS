@@ -1,8 +1,6 @@
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData } from './@types/InspectableTypes';
-import { WithBusMetadata } from './@types/BusComponent';
-import { IoAddressable } from './@types/IoAddressable';
+import { IInspectableComponent, InspectableData, WithBusMetadata, IoAddressable } from './types';
 import { loggingService } from '../services/LoggingService';
+import { Formatters } from '../utils/formatters';
 import { DEFAULT_ROM_SIZE, MIN_BYTE_VALUE, BYTE_MASK } from './constants/memory';
 import { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateError, StateBase } from './types';
 
@@ -236,8 +234,8 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
     }
 
     write(address: number, value: number): void {
-        const hexAddr = `0x${address.toString(16).toUpperCase()}`;
-        const hexValue = `0x${value.toString(16).toUpperCase()}`;
+        const hexAddr = `0x${Formatters.hex(address, 0)}`;
+        const hexValue = `0x${Formatters.hex(value, 0)}`;
         loggingService.warn('ROM', `Attempt to write ${hexValue} to read-only memory at address ${hexAddr}`);
     }
 

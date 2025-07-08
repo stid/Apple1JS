@@ -1,5 +1,5 @@
 import wait from 'waait';
-import { PubSub, subscribeFunction } from './@types/PubSub';
+import { PubSub, subscribeFunction } from './types';
 import { ErrorHandler } from './errors';
 
 declare const performance: { now(): number };
@@ -12,9 +12,7 @@ const MAX_WAIT_TIME = 50;
 const TIMING_SAMPLE_SIZE = 100;
 const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
 
-import { IInspectableComponent } from './@types/IInspectableComponent';
-import { InspectableData, formatFrequency } from './@types/InspectableTypes';
-import { WithBusMetadata } from './@types/BusComponent';
+import { IInspectableComponent, InspectableData, WithBusMetadata } from './types';
 import type { TimingStats, IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from './types';
 import { StateError } from './types';
 
@@ -114,8 +112,8 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
                 paused: this.paused,
             },
             stats: {
-                actualFrequency: formatFrequency(stats.actualFrequency * 1_000_000),
-                targetFrequency: formatFrequency(stats.targetFrequency * 1_000_000),
+                actualFrequency: `${stats.actualFrequency.toFixed(3)} MHz`,
+                targetFrequency: `${stats.targetFrequency.toFixed(3)} MHz`,
                 drift: (stats.drift * 100).toFixed(2) + '%',
                 avgCycleTime: stats.avgCycleTime.toFixed(2) + 'ms',
                 totalCycles: stats.totalCycles,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import * as CRTConstants from './CRTConstants';
 import CRTRowChar from './CRTRowCharRom';
+import { UI_TIMINGS } from '../constants/ui';
 
 type CRTCursorProps = {
     row: number;
@@ -13,8 +14,6 @@ const getCursorStyle = (row: number, column: number, visible: boolean) => ({
     opacity: visible ? 1 : 0,
     transition: 'opacity 0.1s linear',
 });
-
-const BLINK_INTERVAL = 500; // ms
 
 const CRTCursor: React.FC<CRTCursorProps> = ({ row, column }) => {
     const [visible, setVisible] = useState(true);
@@ -31,7 +30,7 @@ const CRTCursor: React.FC<CRTCursorProps> = ({ row, column }) => {
     useEffect(() => {
         const interval = setInterval(() => {
             setVisible((v) => !v);
-        }, BLINK_INTERVAL);
+        }, UI_TIMINGS.CURSOR_BLINK_RATE);
         return () => clearInterval(interval);
     }, []);
 

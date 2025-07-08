@@ -8,6 +8,7 @@ import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { useEmulation } from '../contexts/EmulationContext';
+import { REFRESH_RATES } from '../constants/ui';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -309,7 +310,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         
         const interval = setInterval(() => {
             worker.postMessage({ type: WORKER_MESSAGES.DEBUG_INFO, data: '' });
-        }, 100);
+        }, REFRESH_RATES.FAST);
         return () => clearInterval(interval);
     }, [worker, isPaused]);
     

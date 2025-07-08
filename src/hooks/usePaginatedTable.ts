@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Formatters } from '../utils/formatters';
 
 interface UsePaginatedTableOptions {
     initialAddress?: number;
@@ -139,8 +140,8 @@ export function usePaginatedTable(options: UsePaginatedTableOptions = {}): UsePa
     }, [size]);
     
     const getAddressRange = useCallback(() => {
-        const start = currentAddress.toString(16).padStart(4, '0').toUpperCase();
-        const end = Math.min(0xFFFF, currentAddress + size - 1).toString(16).padStart(4, '0').toUpperCase();
+        const start = Formatters.hex(currentAddress, 4);
+        const end = Formatters.hex(Math.min(0xFFFF, currentAddress + size - 1), 4);
         return `$${start} - $${end}`;
     }, [currentAddress, size]);
     

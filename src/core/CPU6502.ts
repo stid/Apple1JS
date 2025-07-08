@@ -1,6 +1,6 @@
 import type { IClockable, IInspectableComponent, InspectableData, CPU6502State, CPU6502WithDebug, DisassemblyLine, TraceEntry, IVersionedStatefulComponent, StateValidationResult, StateOptions } from './types';
 import { StateError } from './types';
-import { formatAddress, formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
+// formatAddress and formatByte replaced by direct use of Formatters
 import type Bus from './Bus';
 import { Formatters } from '../utils/formatters';
 
@@ -1260,7 +1260,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
             for (let i = 0; i < 8; ++i) {
                 const addr = 0x0100 + ((this.S - i) & 0xff);
                 stack.push({ 
-                    addr: formatAddress(addr), 
+                    addr: Formatters.hexWord(addr), 
                     value: this.bus.read(addr) 
                 });
             }
@@ -1288,13 +1288,13 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
             type: this.type,
             name: this.name ?? '',
             state: {
-                PC: formatAddress(this.PC),
-                A: formatByte(this.A),
-                X: formatByte(this.X),
-                Y: formatByte(this.Y),
-                S: formatByte(this.S),
+                PC: Formatters.hexWord(this.PC),
+                A: Formatters.hexByte(this.A),
+                X: Formatters.hexByte(this.X),
+                Y: Formatters.hexByte(this.Y),
+                S: Formatters.hexByte(this.S),
                 // Flags (combined into P register display)
-                P: formatByte(
+                P: Formatters.hexByte(
                     (this.N ? 0x80 : 0) |
                     (this.V ? 0x40 : 0) |
                     0x20 | // unused, always 1
@@ -1656,7 +1656,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         const result: { [opcode: string]: { count: number; cycles: number; avgCycles: number } } = {};
         
         for (const [opcode, data] of this.profileData) {
-            const opcodeHex = '$' + opcode.toString(16).padStart(2, '0').toUpperCase();
+            const opcodeHex = Formatters.hexByte(opcode);
             result[opcodeHex] = {
                 count: data.count,
                 cycles: data.cycles,

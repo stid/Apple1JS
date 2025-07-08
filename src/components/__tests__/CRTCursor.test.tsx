@@ -17,13 +17,13 @@ describe('CRTCursor', () => {
         expect(getCursorOpacity()).toBe('1');
 
         act(() => {
-            jest.advanceTimersByTime(500);
+            jest.advanceTimersByTime(530); // UI_TIMINGS.CURSOR_BLINK_RATE
         });
         rerender(<CRTCursor row={0} column={0} />);
         expect(getCursorOpacity()).toBe('0');
 
         act(() => {
-            jest.advanceTimersByTime(500);
+            jest.advanceTimersByTime(530); // UI_TIMINGS.CURSOR_BLINK_RATE
         });
         rerender(<CRTCursor row={0} column={0} />);
         expect(getCursorOpacity()).toBe('1');

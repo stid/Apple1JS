@@ -1,5 +1,4 @@
-import { IoComponent } from '@/core/@types/IoComponent';
-import { InspectableData } from '@/core/@types/InspectableTypes';
+import { IoComponent, InspectableData } from '@/core/types';
 
 const B7BS = 0xdf; // Backspace key, arrow left key (B7 High)
 const B7ESC = 0x9b; // ESC key (B7 High)
@@ -8,7 +7,7 @@ const RESET_CODE = -255;
 
 // KBD b7..b0 are inputs, b6..b0 is ASCII input, b7 is constant high
 //     Programmed to respond to low to high KBD strobe
-import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
+import type { IInspectableComponent } from '@/core/types';
 
 class Keyboard implements IoComponent, IInspectableComponent {
     id: string = 'keyboard';

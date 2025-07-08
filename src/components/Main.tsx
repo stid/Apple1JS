@@ -1,6 +1,6 @@
 import React from 'react';
 import App from './App';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
 import { APP_VERSION } from '../version';
 import { typography, color, spacing } from '../styles/utils';
 

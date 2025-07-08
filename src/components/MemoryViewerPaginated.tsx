@@ -4,6 +4,7 @@ import { useLogging } from '../contexts/LoggingContext';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -121,7 +122,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         };
 
         requestMemory();
-        const interval = setInterval(requestMemory, 500);
+        const interval = setInterval(requestMemory, DEBUG_REFRESH_RATES.MEMORY_VIEW);
         return () => clearInterval(interval);
     }, [worker, currentAddress, size]);
 
