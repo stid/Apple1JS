@@ -1,4 +1,4 @@
-import { IoWriter, WireOptions } from '@/core/@types/IoLogic';
+import { IoWriter, WireOptions } from '@/core/types';
 import PIA6820 from '../core/PIA6820';
 import * as utils from '../core/utils';
 

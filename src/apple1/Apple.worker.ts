@@ -1,9 +1,10 @@
 import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
-import type { WebCrtVideoSubFuncVideoType } from './@types/VideoTypes';
-import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData } from './TSTypes';
+import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
+import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, WorkerMessage, isWorkerMessage } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
+import { Formatters } from '../utils/formatters';
 
 export const video = new WebCRTVideo();
 export const keyboard = new WebWorkerKeyboard();
@@ -47,7 +48,7 @@ function updateBreakpointHook() {
                 isPaused = true;
                 postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
                 postMessage({ data: pc, type: WORKER_MESSAGES.BREAKPOINT_HIT });
-                loggingService.log('info', 'Breakpoint', `Hit breakpoint at $${pc.toString(16).padStart(4, '0').toUpperCase()}`);
+                loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
                 return false; // Halt execution
             }
             return true; // Continue execution
@@ -55,15 +56,14 @@ function updateBreakpointHook() {
     }
 }
 
-import type { WorkerMessage } from './@types/WorkerMessages';
-
 onmessage = function (e: MessageEvent<WorkerMessage>) {
     const message = e.data;
-    if (!message || typeof message.type !== 'number') {
+    if (!isWorkerMessage(message)) {
         return;
     }
 
-    const { type, data } = message;
+    const { type } = message;
+    const data = 'data' in message ? message.data : undefined;
 
     switch (type) {
         case WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG:
@@ -265,7 +265,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                 
                 // Don't run if we're already at the target address
                 if (apple1.cpu.PC === targetAddress) {
-                    loggingService.log('info', 'RunToAddress', `Already at target address $${targetAddress.toString(16).padStart(4, '0').toUpperCase()}`);
+                    loggingService.log('info', 'RunToAddress', `Already at target address ${Formatters.address(targetAddress)}`);
                     break;
                 }
                 
@@ -294,7 +294,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                         isPaused = true;
                         postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
                         postMessage({ data: pc, type: WORKER_MESSAGES.BREAKPOINT_HIT });
-                        loggingService.log('info', 'Breakpoint', `Hit breakpoint at $${pc.toString(16).padStart(4, '0').toUpperCase()}`);
+                        loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
                         return false; // Halt execution
                     }
                     
@@ -311,7 +311,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                         // Send notifications
                         postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
                         postMessage({ data: null, type: WORKER_MESSAGES.RUN_TO_CURSOR_TARGET });
-                        loggingService.log('info', 'RunToAddress', `Reached target address $${targetAddress.toString(16).padStart(4, '0').toUpperCase()}`);
+                        loggingService.log('info', 'RunToAddress', `Reached target address ${Formatters.address(targetAddress)}`);
                         return false; // Halt execution
                     }
                     
@@ -325,7 +325,7 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                     postMessage({ data: 'running', type: WORKER_MESSAGES.EMULATION_STATUS });
                 }
                 
-                loggingService.log('info', 'RunToAddress', `Running to address $${targetAddress.toString(16).padStart(4, '0').toUpperCase()}`);
+                loggingService.log('info', 'RunToAddress', `Running to address ${Formatters.address(targetAddress)}`);
             }
             break;
         }

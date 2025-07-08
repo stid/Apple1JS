@@ -1,6 +1,6 @@
 import PIA6820 from '../core/PIA6820';
 const RESET_CODE = -255;
-import { IoWriter, WireOptions } from '../core/@types/IoLogic';
+import { IoWriter, WireOptions } from '../core/types';
 
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high

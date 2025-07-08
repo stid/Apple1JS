@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { Formatters } from '../utils/formatters';
 
 interface PaginatedTableViewProps {
     // Basic configuration
@@ -49,7 +50,7 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     contentRef: externalContentRef
 }) => {
     const [addressInput, setAddressInput] = useState(
-        currentAddress.toString(16).padStart(4, '0').toUpperCase()
+        Formatters.hex(currentAddress, 4)
     );
     const internalContainerRef = useRef<HTMLDivElement>(null);
     const internalContentRef = useRef<HTMLDivElement>(null);
@@ -60,7 +61,7 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     
     // Update address input when currentAddress changes
     useEffect(() => {
-        setAddressInput(currentAddress.toString(16).padStart(4, '0').toUpperCase());
+        setAddressInput(Formatters.hex(currentAddress, 4));
     }, [currentAddress]);
     
     // Handle address input

@@ -1,5 +1,5 @@
 import { LogLevel } from '../types/logging';
-import type { LogHandler } from './@types/LoggingTypes';
+import type { LogHandler } from './types';
 import { ErrorHandler } from '../core/errors';
 export type { LogHandler };
 

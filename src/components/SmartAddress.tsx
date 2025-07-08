@@ -1,5 +1,6 @@
 import React from 'react';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
 
 interface SmartAddressProps {
   value: string | number;
@@ -25,7 +26,7 @@ export const SmartAddress: React.FC<SmartAddressProps> = ({
 }) => {
   // Convert to string for processing
   const text = typeof value === 'number' 
-    ? `$${value.toString(16).padStart(4, '0').toUpperCase()}`
+    ? Formatters.address(value)
     : String(value);
 
   // Only handle simple single address formats

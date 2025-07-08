@@ -11,7 +11,7 @@ import AlertPanel from './AlertPanel';
 import { useLogging } from '../contexts/LoggingContext';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
 
 type Props = {
     worker: Worker;

@@ -3,10 +3,11 @@ import DisassemblerPaginated from './DisassemblerPaginated';
 import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
 import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import AddressLink from './AddressLink';
+import { REFRESH_RATES } from '../constants/ui';
 
 interface DebuggerLayoutProps {
     root: IInspectableComponent;
@@ -69,7 +70,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
         
         const interval = setInterval(() => {
             worker.postMessage({ type: WORKER_MESSAGES.DEBUG_INFO, data: '' });
-        }, 100);
+        }, REFRESH_RATES.FAST);
         return () => clearInterval(interval);
     }, [worker, activeView]);
 

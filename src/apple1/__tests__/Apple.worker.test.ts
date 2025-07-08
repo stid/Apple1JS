@@ -3,8 +3,8 @@
 /* global global */
 
 import { WORKER_MESSAGES } from '../TSTypes';
-import type { WorkerMessage } from '../@types/WorkerMessages';
-import type { EmulatorState } from '../@types/EmulatorState';
+import type { WorkerMessage } from '../TSTypes';
+import type { EmulatorState } from '../TSTypes';
 
 describe('Apple.worker', () => {
     let mockApple1: any;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
 import CompactExecutionControls from './CompactExecutionControls';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
 
 interface DisassemblerProps {
     worker: Worker;
@@ -192,7 +193,7 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                     address: addr,
                     bytes: [opcode],
                     instruction: '???',
-                    operand: `$${opcode.toString(16).padStart(2, '0').toUpperCase()}`,
+                    operand: `$${Formatters.hex(opcode, 2)}`,
                 });
                 addr++;
                 continue;
@@ -218,24 +219,24 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                     break;
                 }
                 case 'imm': {
-                    operand = `#$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}`;
+                    operand = `#$${Formatters.hex(bytes[1] ?? 0, 2)}`;
                     break;
                 }
                 case 'zp': {
-                    operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}`;
+                    operand = `$${Formatters.hex(bytes[1] ?? 0, 2)}`;
                     break;
                 }
                 case 'zpx': {
-                    operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},X`;
+                    operand = `$${Formatters.hex(bytes[1] ?? 0, 2)},X`;
                     break;
                 }
                 case 'zpy': {
-                    operand = `$${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},Y`;
+                    operand = `$${Formatters.hex(bytes[1] ?? 0, 2)},Y`;
                     break;
                 }
                 case 'abs': {
                     const absAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${absAddr.toString(16).padStart(4, '0').toUpperCase()}`;
+                    operand = `$${Formatters.hex(absAddr, 4)}`;
                     // Store address for JSR, JMP instructions
                     if (opcodeInfo.name === 'JSR' || opcodeInfo.name === 'JMP') {
                         operandAddress = absAddr;
@@ -244,34 +245,34 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                 }
                 case 'abx': {
                     const abxAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${abxAddr.toString(16).padStart(4, '0').toUpperCase()},X`;
+                    operand = `$${Formatters.hex(abxAddr, 4)},X`;
                     break;
                 }
                 case 'aby': {
                     const abyAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${abyAddr.toString(16).padStart(4, '0').toUpperCase()},Y`;
+                    operand = `$${Formatters.hex(abyAddr, 4)},Y`;
                     break;
                 }
                 case 'ind': {
                     const indAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `($${indAddr.toString(16).padStart(4, '0').toUpperCase()})`;
+                    operand = `($${Formatters.hex(indAddr, 4)})`;
                     if (opcodeInfo.name === 'JMP') {
                         operandAddress = indAddr;
                     }
                     break;
                 }
                 case 'izx': {
-                    operand = `($${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'},X)`;
+                    operand = `($${Formatters.hex(bytes[1] ?? 0, 2)},X)`;
                     break;
                 }
                 case 'izy': {
-                    operand = `($${bytes[1]?.toString(16).padStart(2, '0').toUpperCase() || '00'}),Y`;
+                    operand = `($${Formatters.hex(bytes[1] ?? 0, 2)}),Y`;
                     break;
                 }
                 case 'rel': {
                     const offset = bytes[1] || 0;
                     const target = addr + 2 + (offset > 127 ? offset - 256 : offset);
-                    operand = `$${target.toString(16).padStart(4, '0').toUpperCase()}`;
+                    operand = `$${Formatters.hex(target, 4)}`;
                     // All relative addressing instructions are branches
                     operandAddress = target;
                     break;
@@ -463,11 +464,11 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                         {lines.length > 0 && (
                             <span className="text-text-secondary text-xs ml-auto font-normal">
                                 <span className="text-data-address font-mono">
-                                    ${lines[0].address.toString(16).padStart(4, '0').toUpperCase()}
+                                    ${Formatters.hex(lines[0].address, 4)}
                                 </span>
                                 {' - '}
                                 <span className="text-data-address font-mono">
-                                    ${(lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1).toString(16).padStart(4, '0').toUpperCase()}
+                                    ${Formatters.hex(lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1, 4)}
                                 </span>
                                 {' '}({lines.length} instructions)
                             </span>
@@ -491,7 +492,7 @@ const Disassembler: React.FC<DisassemblerProps> = ({ worker }) => {
                             {lines.map((line, index) => {
                                 const isCurrentPC = line.address === currentPC;
                                 const hasBreakpoint = breakpoints.has(line.address);
-                                const bytesHex = line.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                                const bytesHex = line.bytes.map(b => Formatters.hex(b, 2)).join(' ');
                                 
                                 return (
                                     <tr

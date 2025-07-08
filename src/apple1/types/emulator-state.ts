@@ -1,5 +1,5 @@
-import type { CPU6502State } from '../../core/@types/CPU6502State';
-import type { VideoBuffer } from '../TSTypes';
+import type { CPU6502State } from '@/core/types';
+import type { VideoBuffer } from './video';
 
 /**
  * State of a single RAM bank

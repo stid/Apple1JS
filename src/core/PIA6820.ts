@@ -1,7 +1,7 @@
-import type { IInspectableComponent, InspectableData, InspectableChild, WithBusMetadata, IoComponent, subscribeFunction } from './types';
-import { formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
+import type { IInspectableComponent, InspectableData, InspectableChild, WithBusMetadata, IoComponent, subscribeFunction, IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from './types';
+// formatByte is replaced by direct use of Formatters
 import { loggingService } from '../services/LoggingService';
-import { StateError } from './errors';
+import { StateError } from './types';
 import { Formatters } from '../utils/formatters';
 
 // Use global performance API
@@ -22,6 +22,39 @@ const CR_DDR_ACCESS = 2;   // DDR access control (0=DDR selected, 1=Output Regis
 // const CR_CA1_CB1_CTRL = 0; // CA1/CB1 control (2 bits: 0-1) - Reserved for future use
 
 /**
+ * PIA6820 state interface
+ */
+interface PIA6820State extends StateBase {
+    /** Output Register A */
+    ora: number;
+    /** Output Register B */
+    orb: number;
+    /** Data Direction Register A */
+    ddra: number;
+    /** Data Direction Register B */
+    ddrb: number;
+    /** Control Register A */
+    cra: number;
+    /** Control Register B */
+    crb: number;
+    /** Control line states */
+    controlLines: {
+        ca1: boolean;
+        ca2: boolean;
+        cb1: boolean;
+        cb2: boolean;
+        prevCa1: boolean;
+        prevCa2: boolean;
+        prevCb1: boolean;
+        prevCb2: boolean;
+    };
+    /** Hardware-controlled input pin states */
+    pb7InputState: boolean;
+    /** Component identification */
+    componentId: string;
+}
+
+/**
  * MC6820/6821 Peripheral Interface Adapter (PIA) emulation.
  * 
  * The PIA provides two 8-bit bidirectional I/O ports (A and B) with handshaking
@@ -31,7 +64,7 @@ const CR_DDR_ACCESS = 2;   // DDR access control (0=DDR selected, 1=Output Regis
  * - CA1 is used for keyboard strobe
  * - CB2 is wired to PB7 for display handshaking
  */
-class PIA6820 implements IInspectableComponent {
+class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6820State> {
     id = 'pia6820';
     type = 'PIA6820';
     name?: string;
@@ -75,6 +108,11 @@ class PIA6820 implements IInspectableComponent {
     private registerCache: Map<string, number>;
     private pendingNotification: boolean;
     private notificationBatch: Set<string>;
+
+    /**
+     * Current state version for PIA6820 component
+     */
+    private static readonly STATE_VERSION = '3.0';
 
     constructor() {
         // Initialize PIA registers to proper Apple 1 state
@@ -356,9 +394,199 @@ class PIA6820 implements IInspectableComponent {
     }
 
     /**
-     * Reset PIA to initial state
+     * Reset PIA to initial state (legacy method, delegates to resetState)
      */
     reset(): void {
+        this.resetState();
+    }
+
+    /**
+     * Wire I/O components
+     */
+    wireIOA(ioA: IoComponent): void {
+        this.ioA = ioA;
+    }
+
+    wireIOB(ioB: IoComponent): void {
+        this.ioB = ioB;
+    }
+
+    /**
+     * Subscribe to PIA state changes
+     */
+    subscribe(subFunc: subscribeFunction<number[]>): void {
+        this.subscribers.push(subFunc);
+        subFunc(this.getCurrentState());
+    }
+
+    unsubscribe(subFunc: subscribeFunction<number[]>): void {
+        this.subscribers = this.subscribers.filter((sub) => sub !== subFunc);
+    }
+
+    /**
+     * Save PIA state with full interface compliance
+     */
+    saveState(options?: StateOptions): PIA6820State {
+        const opts = { includeDebugInfo: false, ...options };
+        
+        const state: PIA6820State = {
+            version: PIA6820.STATE_VERSION,
+            // Core registers
+            ora: this.ora,
+            orb: this.orb,
+            ddra: this.ddra,
+            ddrb: this.ddrb,
+            cra: this.cra,
+            crb: this.crb,
+            // Control lines
+            controlLines: {
+                ca1: this.ca1,
+                ca2: this.ca2,
+                cb1: this.cb1,
+                cb2: this.cb2,
+                prevCa1: this.prevCa1,
+                prevCa2: this.prevCa2,
+                prevCb1: this.prevCb1,
+                prevCb2: this.prevCb2,
+            },
+            // Hardware-controlled input pins
+            pb7InputState: this.pb7InputState,
+            // Component identification
+            componentId: this.id,
+        };
+
+        if (opts.includeDebugInfo) {
+            Object.assign(state, {
+                metadata: {
+                    timestamp: Date.now(),
+                    componentId: this.id,
+                    type: this.type,
+                    name: this.name,
+                    stats: { ...this.stats },
+                    cacheSize: this.registerCache.size
+                }
+            });
+        }
+
+        return state;
+    }
+
+    /**
+     * Load PIA state with validation and migration support
+     */
+    loadState(state: PIA6820State, options?: StateOptions): void {
+        const opts = { validate: true, migrate: true, ...options };
+        
+        if (opts.validate) {
+            const validation = this.validateState(state);
+            if (!validation.valid) {
+                throw new StateError(
+                    `Invalid PIA6820 state: ${validation.errors.join(', ')}`, 
+                    'PIA6820', 
+                    'load'
+                );
+            }
+        }
+
+        // Handle version migration if needed
+        let finalState = state;
+        if (opts.migrate && state.version && state.version !== PIA6820.STATE_VERSION) {
+            finalState = this.migrateState(state, state.version);
+        }
+        
+        // Load core registers
+        this.ora = finalState.ora;
+        this.orb = finalState.orb;
+        this.ddra = finalState.ddra;
+        this.ddrb = finalState.ddrb;
+        this.cra = finalState.cra;
+        this.crb = finalState.crb;
+
+        // Load control lines
+        this.ca1 = finalState.controlLines.ca1;
+        this.ca2 = finalState.controlLines.ca2;
+        this.cb1 = finalState.controlLines.cb1;
+        this.cb2 = finalState.controlLines.cb2;
+        this.prevCa1 = finalState.controlLines.prevCa1;
+        this.prevCa2 = finalState.controlLines.prevCa2;
+        this.prevCb1 = finalState.controlLines.prevCb1;
+        this.prevCb2 = finalState.controlLines.prevCb2;
+
+        // Load hardware-controlled input pins
+        this.pb7InputState = finalState.pb7InputState;
+        
+        // CRITICAL: Always clear the display busy bit after loading state
+        // If the state was saved while the display was processing a character (pb7InputState = true),
+        // the WOZ Monitor will be stuck in an infinite loop waiting for the display to become ready.
+        // Since we're loading a saved state, any pending display operation would have been lost anyway,
+        // so it's safe to mark the display as ready.
+        this.pb7InputState = false;
+        
+        this.notifySubscribers();
+    }
+
+    /**
+     * Validate a PIA6820 state object
+     */
+    validateState(state: unknown): StateValidationResult {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (!state || typeof state !== 'object') {
+            errors.push('State must be an object');
+            return { valid: false, errors, warnings };
+        }
+
+        const s = state as Record<string, unknown>;
+
+        // Required register fields
+        const requiredNumbers = ['ora', 'orb', 'ddra', 'ddrb', 'cra', 'crb'];
+        for (const field of requiredNumbers) {
+            if (typeof s[field] !== 'number') {
+                errors.push(`${field} must be a number`);
+            } else {
+                const value = s[field] as number;
+                if (value < 0 || value > 255) {
+                    errors.push(`${field} must be a valid 8-bit value (0-255), got ${value}`);
+                }
+            }
+        }
+
+        // Control lines validation
+        if (!s.controlLines || typeof s.controlLines !== 'object') {
+            errors.push('controlLines must be an object');
+        } else {
+            const controlLines = s.controlLines as Record<string, unknown>;
+            const requiredBooleans = ['ca1', 'ca2', 'cb1', 'cb2', 'prevCa1', 'prevCa2', 'prevCb1', 'prevCb2'];
+            for (const field of requiredBooleans) {
+                if (typeof controlLines[field] !== 'boolean') {
+                    errors.push(`controlLines.${field} must be a boolean`);
+                }
+            }
+        }
+
+        // Hardware pin state validation
+        if (typeof s.pb7InputState !== 'boolean') {
+            errors.push('pb7InputState must be a boolean');
+        }
+
+        // Component ID validation
+        if (typeof s.componentId !== 'string') {
+            errors.push('componentId must be a string');
+        }
+
+        // Version checking
+        if (s.version && typeof s.version !== 'string') {
+            warnings.push('version should be a string');
+        }
+
+        return { valid: errors.length === 0, errors, warnings };
+    }
+
+    /**
+     * Reset PIA to initial Apple 1 state
+     */
+    resetState(): void {
         this.ora = 0x00;
         this.orb = 0x00;
         // Apple 1 specific DDR configuration:
@@ -399,109 +627,47 @@ class PIA6820 implements IInspectableComponent {
     }
 
     /**
-     * Wire I/O components
+     * Get the current state version
      */
-    wireIOA(ioA: IoComponent): void {
-        this.ioA = ioA;
-    }
-
-    wireIOB(ioB: IoComponent): void {
-        this.ioB = ioB;
+    getStateVersion(): string {
+        return PIA6820.STATE_VERSION;
     }
 
     /**
-     * Subscribe to PIA state changes
+     * Migrate state from older versions
      */
-    subscribe(subFunc: subscribeFunction<number[]>): void {
-        this.subscribers.push(subFunc);
-        subFunc(this.getCurrentState());
-    }
+    migrateState(oldState: unknown, fromVersion: string): PIA6820State {
+        const migratedState = { ...(oldState as Record<string, unknown>) };
 
-    unsubscribe(subFunc: subscribeFunction<number[]>): void {
-        this.subscribers = this.subscribers.filter((sub) => sub !== subFunc);
-    }
-
-    /**
-     * Save PIA state
-     */
-    saveState(): object {
-        return {
-            version: '2.0', // File format version for future compatibility
-            // Core registers
-            ora: this.ora,
-            orb: this.orb,
-            ddra: this.ddra,
-            ddrb: this.ddrb,
-            cra: this.cra,
-            crb: this.crb,
-            // Control lines
-            controlLines: {
-                ca1: this.ca1,
-                ca2: this.ca2,
-                cb1: this.cb1,
-                cb2: this.cb2,
-                prevCa1: this.prevCa1,
-                prevCa2: this.prevCa2,
-                prevCb1: this.prevCb1,
-                prevCb2: this.prevCb2,
-            },
-            // Hardware-controlled input pins
-            pb7InputState: this.pb7InputState,
-        };
-    }
-
-    /**
-     * Load PIA state
-     */
-    loadState(state: { 
-        version?: string;
-        ora: number; 
-        orb: number; 
-        ddra: number; 
-        ddrb: number; 
-        cra: number; 
-        crb: number; 
-        controlLines: { 
-            ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
-            prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean; 
-        };
-        pb7InputState?: boolean;
-    }): void {
-        const version = state.version || '2.0';
-        
-        if (version < '2.0') {
-            throw new StateError(`Unsupported PIA save state version: ${version}. Please use a newer save state.`, 'PIA6820');
+        // Migration from version 2.0 to 3.0
+        if (fromVersion === '2.0') {
+            // Version 2.0 didn't have componentId
+            if (!migratedState.componentId) {
+                migratedState.componentId = 'pia6820';
+            }
+            migratedState.version = PIA6820.STATE_VERSION;
         }
-        
-        // Load v2.0+ format with DDR support
-        this.ora = state.ora;
-        this.orb = state.orb;
-        this.ddra = state.ddra;
-        this.ddrb = state.ddrb;
-        this.cra = state.cra;
-        this.crb = state.crb;
 
-        // Load control lines
-        this.ca1 = state.controlLines.ca1;
-        this.ca2 = state.controlLines.ca2;
-        this.cb1 = state.controlLines.cb1;
-        this.cb2 = state.controlLines.cb2;
-        this.prevCa1 = state.controlLines.prevCa1;
-        this.prevCa2 = state.controlLines.prevCa2;
-        this.prevCb1 = state.controlLines.prevCb1;
-        this.prevCb2 = state.controlLines.prevCb2;
+        // Migration from version 1.0 to 3.0
+        if (fromVersion === '1.0') {
+            // Version 1.0 had different structure, add missing fields
+            if (!migratedState.componentId) {
+                migratedState.componentId = 'pia6820';
+            }
+            if (!migratedState.pb7InputState) {
+                migratedState.pb7InputState = false;
+            }
+            migratedState.version = PIA6820.STATE_VERSION;
+        }
 
-        // Load hardware-controlled input pins (with default for backward compatibility)
-        this.pb7InputState = state.pb7InputState ?? false; // Default to display ready
-        
-        // CRITICAL: Always clear the display busy bit after loading state
-        // If the state was saved while the display was processing a character (pb7InputState = true),
-        // the WOZ Monitor will be stuck in an infinite loop waiting for the display to become ready.
-        // Since we're loading a saved state, any pending display operation would have been lost anyway,
-        // so it's safe to mark the display as ready.
-        this.pb7InputState = false;
-        
-        this.notifySubscribers();
+        return migratedState as unknown as PIA6820State;
+    }
+
+    /**
+     * Get supported state versions for migration
+     */
+    getSupportedVersions(): string[] {
+        return ['1.0', '2.0', '3.0'];
     }
 
     /**
@@ -534,12 +700,12 @@ class PIA6820 implements IInspectableComponent {
             ...(self.__addressName !== undefined && { addressName: self.__addressName }),
             state: {
                 // Registers
-                'Port A Data': formatByte(this.ora),
-                'Port A DDR': formatByte(this.ddra),
-                'Port A Control': formatByte(this.cra),
-                'Port B Data': formatByte(this.orb),
-                'Port B DDR': formatByte(this.ddrb),
-                'Port B Control': formatByte(this.crb),
+                'Port A Data': Formatters.hexByte(this.ora),
+                'Port A DDR': Formatters.hexByte(this.ddra),
+                'Port A Control': Formatters.hexByte(this.cra),
+                'Port B Data': Formatters.hexByte(this.orb),
+                'Port B DDR': Formatters.hexByte(this.ddrb),
+                'Port B Control': Formatters.hexByte(this.crb),
                 // Control Lines
                 'CA1 (Kbd Strobe)': this.ca1 ? 'HIGH' : 'LOW',
                 'CA2': this.ca2 ? 'HIGH' : 'LOW',

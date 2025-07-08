@@ -3,6 +3,7 @@ import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useLogging } from '../contexts/LoggingContext';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -32,7 +33,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
 
     // Update address input when currentAddress changes
     useEffect(() => {
-        setAddressInput(currentAddress.toString(16).padStart(4, '0').toUpperCase());
+        setAddressInput(Formatters.hex(currentAddress, 4));
     }, [currentAddress]);
 
     // Request memory data
@@ -49,7 +50,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
         };
 
         requestMemory();
-        const interval = setInterval(requestMemory, 500);
+        const interval = setInterval(requestMemory, DEBUG_REFRESH_RATES.MEMORY_VIEW);
         return () => clearInterval(interval);
     }, [worker, currentAddress, size]);
 
@@ -63,7 +64,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                 if (rangeData && rangeData.data) {
                     rangeData.data.forEach((value: number, index: number) => {
                         const addr = rangeData.start + index;
-                        memData[`0x${addr.toString(16).padStart(4, '0').toUpperCase()}`] = value;
+                        memData[`0x${Formatters.hex(addr, 4)}`] = value;
                     });
                 }
                 setMemoryData(memData);
@@ -85,7 +86,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
         if (e.key === 'Enter') {
             const addr = parseInt(addressInput || '0', 16);
             setCurrentAddress(addr);
-            setAddressInput(addr.toString(16).padStart(4, '0').toUpperCase());
+            setAddressInput(Formatters.hex(addr, 4));
             // Reset scroll to top when jumping to a new address
             setTimeout(() => {
                 if (scrollContainerRef.current) {
@@ -97,8 +98,8 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
 
     const handleCellClick = (address: number) => {
         setEditingCell(address);
-        const value = memoryData[`0x${address.toString(16).padStart(4, '0').toUpperCase()}`] || 0;
-        setEditValue(value.toString(16).padStart(2, '0').toUpperCase());
+        const value = memoryData[`0x${Formatters.hex(address, 4)}`] || 0;
+        setEditValue(Formatters.hex(value, 2));
     };
 
     const handleCellEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +117,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
             addMessage({
                 level: 'info',
                 source: 'MemoryViewer',
-                message: `Memory write not yet implemented: address=${editingCell.toString(16).toUpperCase()}, value=${value.toString(16).toUpperCase()}`
+                message: `Memory write not yet implemented: address=${Formatters.hex(editingCell, 4)}, value=${Formatters.hex(value, 2)}`
             });
         }
         setEditingCell(null);
@@ -156,7 +157,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
         // Hex bytes
         for (let i = 0; i < bytesPerRow; i++) {
             const addr = baseAddr + i;
-            const addrKey = `0x${addr.toString(16).padStart(4, '0').toUpperCase()}`;
+            const addrKey = `0x${Formatters.hex(addr, 4)}`;
             const value = memoryData[addrKey] ?? 0;
             const isEditing = editingCell === addr;
 
@@ -178,7 +179,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                         />
                     ) : (
                         <span className="text-data-value font-mono text-xs">
-                            {value.toString(16).padStart(2, '0').toUpperCase()}
+                            {Formatters.hex(value, 2)}
                         </span>
                     )}
                 </td>
@@ -218,14 +219,14 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                 />
                 <span className="text-xs text-text-muted ml-sm">(Press Enter)</span>
                 <div className="flex-1 text-xs text-text-secondary text-center font-mono">
-                    ${currentAddress.toString(16).padStart(4, '0').toUpperCase()} - ${(currentAddress + size - 1).toString(16).padStart(4, '0').toUpperCase()}
+                    ${Formatters.hex(currentAddress, 4)} - ${Formatters.hex(currentAddress + size - 1, 4)}
                 </div>
                 <div className="flex gap-xs">
                     <button
                         onClick={() => {
                             const newAddr = Math.max(0, currentAddress - size);
                             setCurrentAddress(newAddr);
-                            setAddressInput(newAddr.toString(16).padStart(4, '0').toUpperCase());
+                            setAddressInput(Formatters.hex(newAddr, 4));
                             // Scroll to bottom when going up (to show continuity)
                             setTimeout(() => {
                                 if (scrollContainerRef.current) {
@@ -241,7 +242,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                         onClick={() => {
                             const newAddr = Math.min(0xFFFF - size + 1, currentAddress + size);
                             setCurrentAddress(newAddr);
-                            setAddressInput(newAddr.toString(16).padStart(4, '0').toUpperCase());
+                            setAddressInput(Formatters.hex(newAddr, 4));
                             // Scroll to top when going down (to show continuity)
                             setTimeout(() => {
                                 if (scrollContainerRef.current) {
@@ -264,7 +265,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                             <th className="px-2 py-1 text-left text-xs text-text-secondary font-normal">Addr</th>
                             {Array.from({ length: bytesPerRow }, (_, i) => (
                                 <th key={i} className="px-1 py-1 text-center text-xs text-text-secondary font-normal">
-                                    {i.toString(16).toUpperCase()}
+                                    {Formatters.hex(i, 1)}
                                 </th>
                             ))}
                             <th className="px-2 py-1 text-left text-xs text-text-secondary font-normal border-l border-border-subtle">

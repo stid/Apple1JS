@@ -99,11 +99,10 @@ describe('InspectorView component', () => {
         
         // Fast forward time to trigger the interval
         act(() => {
-            jest.advanceTimersByTime(600);
+            jest.advanceTimersByTime(1000); // DEBUG_REFRESH_RATES.INSPECTOR is 1000ms
         });
 
         expect(mockWorker.postMessage).toHaveBeenCalledWith({
-            data: '',
             type: WORKER_MESSAGES.DEBUG_INFO
         });
     });

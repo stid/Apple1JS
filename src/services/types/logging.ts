@@ -1,4 +1,4 @@
-import type { LogLevel } from '../../types/logging';
+import type { LogLevel } from '@/types/logging';
 
 /**
  * Handler function for log messages

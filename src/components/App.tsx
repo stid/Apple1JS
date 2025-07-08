@@ -1,6 +1,6 @@
 import { JSX } from 'react';
 import ErrorBoundary from './Error';
-import { IInspectableComponent } from '../core/@types/IInspectableComponent';
+import { IInspectableComponent } from '../core/types';
 import { DebuggerNavigationProvider } from '../contexts/DebuggerNavigationContext';
 import { AppContent } from './AppContent';
 

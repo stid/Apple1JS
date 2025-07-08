@@ -31,7 +31,7 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript/Reac
 
 **When Analyzing/Proposing Changes**
 
-- Document findings in `@docs/` folder as informal explorations
+- Document findings in `docs/` folder as informal explorations
 - Feel free to suggest improvements, but frame them as opportunities to learn
 - No rigid phases - we can analyze and implement as we go
 
@@ -171,6 +171,31 @@ yarn run lint && yarn run type-check && yarn run test:ci
 - Fix existing bug = Patch bump
 - Change API that breaks compatibility = Major bump
 
+## 🧩 Standardization Patterns (v4.19.0)
+
+**State Management** (All components implement `IVersionedStatefulComponent`):
+- CPU6502 (v3.0), RAM (v2.0), ROM (v2.0), PIA6820 (v3.0), Clock (v2.0), Apple1 (v2.0)
+- Versioned state with migration support
+- Comprehensive validation
+- Type-safe serialization/deserialization
+
+**Formatting Utilities** (`src/utils/formatters.ts`):
+- `Formatters.hex(value, width)` - General hex formatting
+- `Formatters.hexByte(value)` - Format as $XX
+- `Formatters.hexWord(value)` - Format as $XXXX
+- `Formatters.address(value)` - Memory address formatting
+- All `toString(16)` patterns have been migrated
+
+**UI Timing Constants** (`src/constants/ui.ts`):
+- `DEBUG_REFRESH_RATES` - Standardized refresh rates for debug components
+- `UI_TIMINGS` - Animation and effect timings
+- `UPDATE_PATTERNS` - Component update strategies
+
+**Worker Communication** (Type-safe messaging):
+```typescript
+sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
+```
+
 ## 🎨 Design System & Colors
 
 **Centralized Design Tokens** (`src/styles/tokens.ts`):
@@ -264,11 +289,15 @@ const color = designTokens.colors.data.address;
 
 ## 📁 Type System Organization
 
-**Current Structure** (needs consolidation):
-- `src/@types/`: Global type definitions (Config.ts)
-- `src/types/`: Shared types (logging.ts)
-- Module-specific `@types/`: Component-specific types in core/, apple1/, services/
-- This fragmentation is a known issue - prefer module-specific types for now
+**Current Structure** (standardized as of v4.19.0):
+
+- `src/types/`: Global shared types (config.ts)
+- `src/core/types/`: Core emulation types (bus, cpu, clock, components, io, pubsub, state)
+- `src/apple1/types/`: Apple 1 specific types (emulator-state, video, worker-messages)
+- `src/components/types/`: UI component types (char-rom)
+- `src/services/types/`: Service layer types (logging)
+
+All old `@types/` directories have been migrated to this new structure
 
 ## 📚 Key Concepts
 

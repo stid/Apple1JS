@@ -1,5 +1,5 @@
 import type { IInspectableComponent, InspectableData, InspectableChild, BusSpaceType, WithBusMetadata, IoAddressable } from './types';
-import { formatAddress } from './@types/InspectableTypes'; // TODO: Remove after full migration
+// formatAddress replaced by direct use of Formatters
 import { BusError } from './errors';
 import { Formatters } from '../utils/formatters';
 
@@ -24,7 +24,7 @@ class Bus implements IInspectableComponent {
             const child: InspectableChild = {
                 id: b.name || 'unknown',
                 type: 'BusMapping',
-                name: `${b.name} [${formatAddress(b.addr[0])}-${formatAddress(b.addr[1])}]`
+                name: `${b.name} [${Formatters.hexWord(b.addr[0])}-${Formatters.hexWord(b.addr[1])}]`
             };
             
             // Check if component also implements IInspectableComponent

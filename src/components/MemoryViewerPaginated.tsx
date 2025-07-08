@@ -3,6 +3,8 @@ import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useLogging } from '../contexts/LoggingContext';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import AddressLink from './AddressLink';
+import { Formatters } from '../utils/formatters';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 
 interface MemoryViewerProps {
     worker: Worker;
@@ -26,7 +28,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         initialAddress: externalAddress ?? startAddress,
         ...(onAddressChange !== undefined && { onAddressChange })
     });
-    const [addressInput, setAddressInput] = useState((externalAddress ?? startAddress).toString(16).padStart(4, '0').toUpperCase());
+    const [addressInput, setAddressInput] = useState(Formatters.hex(externalAddress ?? startAddress, 4));
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     const { addMessage } = useLogging();
@@ -104,7 +106,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     
     // Update address input when currentAddress changes
     useEffect(() => {
-        setAddressInput(currentAddress.toString(16).padStart(4, '0').toUpperCase());
+        setAddressInput(Formatters.hex(currentAddress, 4));
     }, [currentAddress]);
 
     // Request memory data
@@ -120,7 +122,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         };
 
         requestMemory();
-        const interval = setInterval(requestMemory, 500);
+        const interval = setInterval(requestMemory, DEBUG_REFRESH_RATES.MEMORY_VIEW);
         return () => clearInterval(interval);
     }, [worker, currentAddress, size]);
 
@@ -133,7 +135,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 if (rangeData && rangeData.data) {
                     rangeData.data.forEach((value: number, index: number) => {
                         const addr = rangeData.start + index;
-                        memData[`0x${addr.toString(16).padStart(4, '0').toUpperCase()}`] = value;
+                        memData[`0x${Formatters.hex(addr, 4)}`] = value;
                     });
                 }
                 setMemoryData(memData);
@@ -204,8 +206,8 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
 
     const handleCellClick = (address: number) => {
         setEditingCell(address);
-        const value = memoryData[`0x${address.toString(16).padStart(4, '0').toUpperCase()}`] || 0;
-        setEditValue(value.toString(16).padStart(2, '0').toUpperCase());
+        const value = memoryData[`0x${Formatters.hex(address, 4)}`] || 0;
+        setEditValue(Formatters.hex(value, 2));
     };
 
     const handleCellEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,7 +224,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             addMessage({
                 level: 'info',
                 source: 'MemoryViewerPaginated',
-                message: `Memory write not yet implemented: address=${editingCell.toString(16).toUpperCase()}, value=${value.toString(16).toUpperCase()}`
+                message: `Memory write not yet implemented: address=${Formatters.hex(editingCell, 1)}, value=${Formatters.hex(value, 1)}`
             });
         }
         setEditingCell(null);
@@ -270,7 +272,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 continue;
             }
             
-            const addrKey = `0x${addr.toString(16).padStart(4, '0').toUpperCase()}`;
+            const addrKey = `0x${Formatters.hex(addr, 4)}`;
             const value = memoryData[addrKey] ?? 0;
             const isEditing = editingCell === addr;
 
@@ -292,7 +294,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                         />
                     ) : (
                         <span className="text-data-value font-mono text-xs">
-                            {value.toString(16).padStart(2, '0').toUpperCase()}
+                            {Formatters.hex(value, 2)}
                         </span>
                     )}
                 </td>
@@ -347,7 +349,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                     </button>
                 </div>
                 <div className="flex-1 text-xs text-text-secondary text-center font-mono">
-                    ${currentAddress.toString(16).padStart(4, '0').toUpperCase()} - ${Math.min(0xFFFF, currentAddress + size - 1).toString(16).padStart(4, '0').toUpperCase()}
+                    ${Formatters.hex(currentAddress, 4)} - ${Formatters.hex(Math.min(0xFFFF, currentAddress + size - 1), 4)}
                 </div>
                 <div className="text-xs text-text-muted">
                     ↑↓: Navigate • {effectiveRows} rows
@@ -362,7 +364,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                             <th className="px-2 py-1 text-left text-xs text-text-secondary font-normal whitespace-nowrap">Addr</th>
                             {Array.from({ length: bytesPerRow }, (_, i) => (
                                 <th key={i} className="px-2 py-1 text-center text-xs text-text-secondary font-normal">
-                                    {i.toString(16).toUpperCase()}
+                                    {Formatters.hex(i, 1)}
                                 </th>
                             ))}
                             <th className="px-3 py-1 text-left text-xs text-text-secondary font-normal border-l border-border-subtle whitespace-nowrap">

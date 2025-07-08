@@ -1,10 +1,9 @@
 import wait from 'waait';
-import { WEB_VIDEO_BUFFER_ROW, VideoBuffer, WebCrtVideoSubFuncVideoType } from './@types/VideoTypes';
-import { VideoState } from './@types/EmulatorState';
+import { WEB_VIDEO_BUFFER_ROW, VideoBuffer, WebCrtVideoSubFuncVideoType } from './TSTypes';
+import { VideoState } from './TSTypes';
 import * as appleConstants from './const';
 import { CONFIG } from '../config';
-import { IoComponent } from '@/core/@types/IoComponent';
-import { PubSub, subscribeFunction } from '@/core/@types/PubSub';
+import { IoComponent, PubSub, subscribeFunction } from '@/core/types';
 
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
@@ -32,8 +31,7 @@ function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
     return buffer.map(([rowIdx, rowData]) => [rowIdx, [...rowData]] as [number, string[]]);
 }
 
-import type { IInspectableComponent } from '@/core/@types/IInspectableComponent';
-import type { InspectableData } from '@/core/@types/InspectableTypes';
+import type { IInspectableComponent, InspectableData } from '@/core/types';
 
 class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVideoType>, IInspectableComponent {
     /**

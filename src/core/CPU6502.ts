@@ -1,7 +1,7 @@
-import type { IClockable, IInspectableComponent, InspectableData, CPU6502State, CPU6502WithDebug, DisassemblyLine, TraceEntry } from './types';
-import { formatAddress, formatByte } from './@types/InspectableTypes'; // TODO: Remove after full migration
+import type { IClockable, IInspectableComponent, InspectableData, CPU6502State, CPU6502WithDebug, DisassemblyLine, TraceEntry, IVersionedStatefulComponent, StateValidationResult, StateOptions } from './types';
+import { StateError } from './types';
+// formatAddress and formatByte replaced by direct use of Formatters
 import type Bus from './Bus';
-import { StateError } from './errors';
 import { Formatters } from '../utils/formatters';
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1138,12 +1138,20 @@ const CPU6502op: Array<(m: CPU6502) => void> = [];
     m.rmw();
 };
 
-class CPU6502 implements IClockable, IInspectableComponent {
+class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulComponent<CPU6502State> {
+    /**
+     * Current state version for the CPU6502 component
+     */
+    private static readonly STATE_VERSION = '3.0';
+
     /**
      * Returns a serializable copy of the CPU state.
      */
-    saveState(): CPU6502State {
-        return {
+    saveState(options?: StateOptions): CPU6502State {
+        const opts = { includeDebugInfo: false, includeRuntimeState: false, ...options };
+        
+        const state: CPU6502State = {
+            version: CPU6502.STATE_VERSION,
             PC: this.PC,
             A: this.A,
             X: this.X,
@@ -1166,37 +1174,80 @@ class CPU6502 implements IClockable, IInspectableComponent {
             cycleAccurateMode: this.cycleAccurateMode,
             currentInstructionCycles: this.currentInstructionCycles,
         };
+
+        if (opts.includeDebugInfo) {
+            Object.assign(state, {
+                metadata: {
+                    timestamp: Date.now(),
+                    componentId: 'CPU6502',
+                    instructionCount: this.instructionCount,
+                    enableProfiling: this.enableProfiling
+                }
+            });
+        }
+
+        if (opts.includeRuntimeState) {
+            // Include runtime state like execution hooks if needed
+            Object.assign(state, {
+                metadata: {
+                    ...state.metadata,
+                    hasExecutionHook: this.executionHook !== undefined
+                }
+            });
+        }
+
+        return state;
     }
 
     /**
      * Restores CPU state from a previously saved state.
      */
-    loadState(state: CPU6502State): void {
-        if (!state) throw new StateError('Invalid CPU state', 'CPU6502');
-        this.PC = state.PC;
-        this.A = state.A;
-        this.X = state.X;
-        this.Y = state.Y;
-        this.S = state.S;
+    loadState(state: CPU6502State, options?: StateOptions): void {
+        const opts = { validate: true, migrate: true, ...options };
+        
+        if (opts.validate) {
+            const validation = this.validateState(state);
+            if (!validation.valid) {
+                throw new StateError(
+                    `Invalid CPU state: ${validation.errors.join(', ')}`, 
+                    'CPU6502', 
+                    'load'
+                );
+            }
+        }
+
+        // Handle version migration if needed
+        let finalState = state;
+        if (opts.migrate && state.version && state.version !== CPU6502.STATE_VERSION) {
+            finalState = this.migrateState(state, state.version);
+        }
+
+        this.PC = finalState.PC;
+        this.A = finalState.A;
+        this.X = finalState.X;
+        this.Y = finalState.Y;
+        this.S = finalState.S;
         // Convert boolean to number for backward compatibility
-        this.N = typeof state.N === 'boolean' ? (state.N ? 1 : 0) : state.N;
-        this.Z = typeof state.Z === 'boolean' ? (state.Z ? 1 : 0) : state.Z;
-        this.C = typeof state.C === 'boolean' ? (state.C ? 1 : 0) : state.C;
-        this.V = typeof state.V === 'boolean' ? (state.V ? 1 : 0) : state.V;
-        this.I = typeof state.I === 'boolean' ? (state.I ? 1 : 0) : state.I;
-        this.D = typeof state.D === 'boolean' ? (state.D ? 1 : 0) : state.D;
-        this.irq = typeof state.irq === 'boolean' ? (state.irq ? 1 : 0) : state.irq;
-        this.nmi = typeof state.nmi === 'boolean' ? (state.nmi ? 1 : 0) : state.nmi;
-        this.cycles = state.cycles;
-        this.opcode = state.opcode;
-        this.address = state.address;
-        this.data = state.data;
+        this.N = typeof finalState.N === 'boolean' ? (finalState.N ? 1 : 0) : finalState.N;
+        this.Z = typeof finalState.Z === 'boolean' ? (finalState.Z ? 1 : 0) : finalState.Z;
+        this.C = typeof finalState.C === 'boolean' ? (finalState.C ? 1 : 0) : finalState.C;
+        this.V = typeof finalState.V === 'boolean' ? (finalState.V ? 1 : 0) : finalState.V;
+        this.I = typeof finalState.I === 'boolean' ? (finalState.I ? 1 : 0) : finalState.I;
+        this.D = typeof finalState.D === 'boolean' ? (finalState.D ? 1 : 0) : finalState.D;
+        this.irq = typeof finalState.irq === 'boolean' ? (finalState.irq ? 1 : 0) : finalState.irq;
+        this.nmi = typeof finalState.nmi === 'boolean' ? (finalState.nmi ? 1 : 0) : finalState.nmi;
+        this.cycles = finalState.cycles;
+        this.opcode = finalState.opcode;
+        this.address = finalState.address;
+        this.data = finalState.data;
         // Load interrupt state with backward compatibility
-        this.pendingIrq = typeof state.pendingIrq === 'boolean' ? (state.pendingIrq ? 1 : 0) : state.pendingIrq;
-        this.pendingNmi = typeof state.pendingNmi === 'boolean' ? (state.pendingNmi ? 1 : 0) : state.pendingNmi;
+        this.pendingIrq = typeof finalState.pendingIrq === 'boolean' ? (finalState.pendingIrq ? 1 : 0) : finalState.pendingIrq;
+        this.pendingNmi = typeof finalState.pendingNmi === 'boolean' ? (finalState.pendingNmi ? 1 : 0) : finalState.pendingNmi;
         // Load cycle-accurate timing state (optional, for backward compatibility)
-        this.cycleAccurateMode = state.cycleAccurateMode ?? true;
-        this.currentInstructionCycles = state.currentInstructionCycles ?? 0;
+        this.cycleAccurateMode = finalState.cycleAccurateMode ?? true;
+        this.currentInstructionCycles = finalState.currentInstructionCycles ?? 0;
+
+        // Note: markStateClean is optional from state dirty tracking mixin
     }
 
     getInspectable(): InspectableData {
@@ -1209,7 +1260,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
             for (let i = 0; i < 8; ++i) {
                 const addr = 0x0100 + ((this.S - i) & 0xff);
                 stack.push({ 
-                    addr: formatAddress(addr), 
+                    addr: Formatters.hexWord(addr), 
                     value: this.bus.read(addr) 
                 });
             }
@@ -1237,13 +1288,13 @@ class CPU6502 implements IClockable, IInspectableComponent {
             type: this.type,
             name: this.name ?? '',
             state: {
-                PC: formatAddress(this.PC),
-                A: formatByte(this.A),
-                X: formatByte(this.X),
-                Y: formatByte(this.Y),
-                S: formatByte(this.S),
+                PC: Formatters.hexWord(this.PC),
+                A: Formatters.hexByte(this.A),
+                X: Formatters.hexByte(this.X),
+                Y: Formatters.hexByte(this.Y),
+                S: Formatters.hexByte(this.S),
                 // Flags (combined into P register display)
-                P: formatByte(
+                P: Formatters.hexByte(
                     (this.N ? 0x80 : 0) |
                     (this.V ? 0x40 : 0) |
                     0x20 | // unused, always 1
@@ -1384,6 +1435,103 @@ class CPU6502 implements IClockable, IInspectableComponent {
         this.pendingNmi = 0;
 
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
+        // Note: markStateClean is optional from state dirty tracking mixin
+    }
+
+    /**
+     * Validate a CPU state object
+     */
+    validateState(state: unknown): StateValidationResult {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (!state || typeof state !== 'object') {
+            errors.push('State must be an object');
+            return { valid: false, errors, warnings };
+        }
+
+        const s = state as Record<string, unknown>;
+
+        // Required numeric fields
+        const requiredNumbers = ['PC', 'A', 'X', 'Y', 'S', 'cycles', 'opcode', 'address', 'data'];
+        for (const field of requiredNumbers) {
+            if (typeof s[field] !== 'number') {
+                errors.push(`${field} must be a number`);
+            } else {
+                const value = s[field] as number;
+                if (field === 'PC' && (value < 0 || value > 0xFFFF)) {
+                    errors.push('PC must be between 0 and 0xFFFF');
+                } else if (['A', 'X', 'Y', 'S', 'opcode', 'data'].includes(field) && (value < 0 || value > 0xFF)) {
+                    errors.push(`${field} must be between 0 and 0xFF`);
+                }
+            }
+        }
+
+        // Flag fields (can be boolean or number)
+        const flags = ['N', 'Z', 'C', 'V', 'I', 'D', 'irq', 'nmi', 'pendingIrq', 'pendingNmi'];
+        for (const flag of flags) {
+            if (s[flag] !== undefined && typeof s[flag] !== 'number' && typeof s[flag] !== 'boolean') {
+                errors.push(`${flag} must be a number or boolean`);
+            }
+        }
+
+        // Optional boolean fields
+        if (s.cycleAccurateMode !== undefined && typeof s.cycleAccurateMode !== 'boolean') {
+            errors.push('cycleAccurateMode must be a boolean');
+        }
+
+        // Version checking
+        if (s.version && typeof s.version !== 'string') {
+            warnings.push('version should be a string');
+        }
+
+        return { valid: errors.length === 0, errors, warnings };
+    }
+
+    /**
+     * Reset to initial state (alias for reset for interface compliance)
+     */
+    resetState(): void {
+        this.reset();
+    }
+
+    /**
+     * Get the current state version
+     */
+    getStateVersion(): string {
+        return CPU6502.STATE_VERSION;
+    }
+
+    /**
+     * Migrate state from older versions
+     */
+    migrateState(oldState: unknown, fromVersion: string): CPU6502State {
+        let migratedState = { ...(oldState as Record<string, unknown>) };
+
+        // Migration from version 1.0 or 2.0 to 3.0
+        if (fromVersion === '1.0' || fromVersion === '2.0') {
+            // Add new fields with defaults
+            migratedState.cycleAccurateMode = migratedState.cycleAccurateMode ?? true;
+            migratedState.currentInstructionCycles = migratedState.currentInstructionCycles ?? 0;
+            migratedState.version = CPU6502.STATE_VERSION;
+        }
+
+        // Convert boolean flags to numbers if needed (legacy format)
+        const flags = ['N', 'Z', 'C', 'V', 'I', 'D', 'irq', 'nmi', 'pendingIrq', 'pendingNmi'];
+        for (const flag of flags) {
+            if (typeof migratedState[flag] === 'boolean') {
+                migratedState[flag] = migratedState[flag] ? 1 : 0;
+            }
+        }
+
+        return migratedState as unknown as CPU6502State;
+    }
+
+    /**
+     * Get supported state versions for migration
+     */
+    getSupportedVersions(): string[] {
+        return ['1.0', '2.0', '3.0'];
     }
 
     performSingleStep(): number {
@@ -1508,7 +1656,7 @@ class CPU6502 implements IClockable, IInspectableComponent {
         const result: { [opcode: string]: { count: number; cycles: number; avgCycles: number } } = {};
         
         for (const [opcode, data] of this.profileData) {
-            const opcodeHex = '$' + opcode.toString(16).padStart(2, '0').toUpperCase();
+            const opcodeHex = Formatters.hexByte(opcode);
             result[opcodeHex] = {
                 count: data.count,
                 cycles: data.cycles,

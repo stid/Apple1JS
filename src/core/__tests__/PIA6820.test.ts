@@ -178,16 +178,7 @@ describe('PIA6820', () => {
         expect(controlLines.cb1).toBe(false);
         
         // Restore and verify control lines are back
-        pia.loadState(state as {
-            version?: string;
-            ora: number; orb: number; ddra: number; ddrb: number; 
-            cra: number; crb: number; 
-            controlLines: { 
-                ca1: boolean; ca2: boolean; cb1: boolean; cb2: boolean;
-                prevCa1: boolean; prevCa2: boolean; prevCb1: boolean; prevCb2: boolean; 
-            };
-            pb7InputState?: boolean;
-        });
+        pia.loadState(state);
         controlLines = pia.getControlLines();
         expect(controlLines.ca1).toBe(true);
         expect(controlLines.cb1).toBe(true);
