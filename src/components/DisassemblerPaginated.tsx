@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
-import { OPCODES } from './Disassembler';
+import { OPCODES } from '../constants/opcodes';
 import PaginatedTableView from './PaginatedTableView';
 import { usePaginatedTable } from '../hooks/usePaginatedTable';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';

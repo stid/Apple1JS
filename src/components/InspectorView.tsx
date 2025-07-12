@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/types/components';
 import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
-import { OPCODES } from './Disassembler';
+import { OPCODES } from '../constants/opcodes';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';

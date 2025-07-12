@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { WORKER_MESSAGES, sendWorkerMessage, MemoryRegion, MemoryMapData } from '../apple1/types/worker-messages';
-import { useLogging } from '../contexts/LoggingContext';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
@@ -169,7 +168,6 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     const [memoryMap, setMemoryMap] = useState<MemoryRegion[]>([]);
-    const { addMessage } = useLogging();
 
     const bytesPerRow = 16;
     const containerRef = useRef<HTMLDivElement>(null);
