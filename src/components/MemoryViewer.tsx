@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { WORKER_MESSAGES, sendWorkerMessage } from '../apple1/types/worker-messages';
 import { useLogging } from '../contexts/LoggingContext';
 import AddressLink from './AddressLink';
@@ -14,6 +14,106 @@ interface MemoryViewerProps {
 interface MemoryData {
     [address: string]: number;
 }
+
+interface MemoryRowProps {
+    baseAddr: number;
+    bytesPerRow: number;
+    memoryData: MemoryData;
+    editingCell: number | null;
+    editValue: string;
+    worker: Worker;
+    onCellClick: (address: number) => void;
+    onCellEdit: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onCellEditComplete: () => void;
+    onKeyDown: (e: React.KeyboardEvent) => void;
+}
+
+// Memoized memory row component - only re-renders if its props change
+/* eslint-disable react/prop-types */
+const MemoryRow = memo<MemoryRowProps>(({ 
+    baseAddr, 
+    bytesPerRow, 
+    memoryData, 
+    editingCell, 
+    editValue, 
+    worker,
+    onCellClick,
+    onCellEdit,
+    onCellEditComplete,
+    onKeyDown
+}) => {
+    const cells = [];
+    const asciiChars = [];
+
+    // Address column
+    cells.push(
+        <td key="addr" className="px-2 py-1 font-mono text-xs">
+            <AddressLink
+                address={baseAddr}
+                format="hex4"
+                prefix=""
+                worker={worker}
+                showContextMenu={true}
+                showRunToCursor={true}
+                className="font-mono text-xs"
+            />
+            <span className="text-data-address">:</span>
+        </td>
+    );
+
+    // Hex bytes
+    for (let i = 0; i < bytesPerRow; i++) {
+        const addr = baseAddr + i;
+        const addrKey = `0x${Formatters.hex(addr, 4)}`;
+        const value = memoryData[addrKey] ?? 0;
+        const isEditing = editingCell === addr;
+
+        cells.push(
+            <td 
+                key={`hex-${i}`} 
+                className="px-1 py-1 text-center cursor-pointer hover:bg-surface-hover"
+                onClick={() => onCellClick(addr)}
+            >
+                {isEditing ? (
+                    <input
+                        type="text"
+                        value={editValue}
+                        onChange={onCellEdit}
+                        onBlur={onCellEditComplete}
+                        onKeyDown={onKeyDown}
+                        onFocus={(e) => e.target.select()}
+                        className="w-6 text-center bg-info text-black font-mono text-xs rounded"
+                        autoFocus
+                    />
+                ) : (
+                    <span className="text-data-value font-mono text-xs">
+                        {Formatters.hex(value, 2)}
+                    </span>
+                )}
+            </td>
+        );
+
+        // ASCII representation
+        const ascii = (value >= 32 && value <= 126) ? String.fromCharCode(value) : '.';
+        asciiChars.push(ascii);
+    }
+
+    // ASCII column
+    cells.push(
+        <td key="ascii" className="px-2 py-1 text-text-secondary font-mono text-xs border-l border-border-subtle">
+            {asciiChars.join('')}
+        </td>
+    );
+
+    return (
+        <tr className="border-b border-border-subtle hover:bg-surface-hover/50">
+            {cells}
+        </tr>
+    );
+});
+/* eslint-enable react/prop-types */
+
+MemoryRow.displayName = 'MemoryRow';
 
 const MemoryViewer: React.FC<MemoryViewerProps> = ({ 
     worker, 
@@ -59,15 +159,34 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
         const handleMessage = (e: MessageEvent) => {
             if (e.data.type === WORKER_MESSAGES.MEMORY_RANGE_DATA) {
                 // Convert array data to memory map
-                const memData: MemoryData = {};
+                const newMemData: MemoryData = {};
                 const rangeData = e.data.data;
                 if (rangeData && rangeData.data) {
                     rangeData.data.forEach((value: number, index: number) => {
                         const addr = rangeData.start + index;
-                        memData[`0x${Formatters.hex(addr, 4)}`] = value;
+                        newMemData[`0x${Formatters.hex(addr, 4)}`] = value;
                     });
                 }
-                setMemoryData(memData);
+                
+                // Only update state if memory actually changed
+                setMemoryData(prevData => {
+                    // Quick check: if sizes differ, data definitely changed
+                    const prevKeys = Object.keys(prevData);
+                    const newKeys = Object.keys(newMemData);
+                    if (prevKeys.length !== newKeys.length) {
+                        return newMemData;
+                    }
+                    
+                    // Check if any values changed
+                    for (const key of newKeys) {
+                        if (prevData[key] !== newMemData[key]) {
+                            return newMemData;
+                        }
+                    }
+                    
+                    // No changes, return previous data to avoid re-render
+                    return prevData;
+                });
             }
         };
 
@@ -96,20 +215,20 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
         }
     };
 
-    const handleCellClick = (address: number) => {
+    const handleCellClick = useCallback((address: number) => {
         setEditingCell(address);
         const value = memoryData[`0x${Formatters.hex(address, 4)}`] || 0;
         setEditValue(Formatters.hex(value, 2));
-    };
+    }, [memoryData]);
 
-    const handleCellEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCellEdit = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
         if (value.length <= 2) {
             setEditValue(value);
         }
-    };
+    }, []);
 
-    const handleCellEditComplete = () => {
+    const handleCellEditComplete = useCallback(() => {
         if (editingCell !== null && editValue.length > 0) {
             // Pad single digit with leading zero
             const paddedValue = editValue.padStart(2, '0');
@@ -127,9 +246,9 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
         }
         setEditingCell(null);
         setEditValue('');
-    };
+    }, [editingCell, editValue, worker, addMessage]);
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleCellEditComplete();
         } else if (e.key === 'Tab') {
@@ -152,79 +271,28 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
             setEditingCell(null);
             setEditValue('');
         }
-    };
+    }, [editingCell, currentAddress, size, handleCellEditComplete, handleCellClick]);
 
-    const renderMemoryRow = (rowIndex: number) => {
+    const renderMemoryRow = useCallback((rowIndex: number) => {
         const baseAddr = currentAddress + (rowIndex * bytesPerRow);
-        const cells = [];
-        const asciiChars = [];
-
-        // Address column
-        cells.push(
-            <td key="addr" className="px-2 py-1 font-mono text-xs">
-                <AddressLink
-                    address={baseAddr}
-                    format="hex4"
-                    prefix=""
-                    worker={worker}
-                    showContextMenu={true}
-                    showRunToCursor={true}
-                    className="font-mono text-xs"
-                />
-                <span className="text-data-address">:</span>
-            </td>
-        );
-
-        // Hex bytes
-        for (let i = 0; i < bytesPerRow; i++) {
-            const addr = baseAddr + i;
-            const addrKey = `0x${Formatters.hex(addr, 4)}`;
-            const value = memoryData[addrKey] ?? 0;
-            const isEditing = editingCell === addr;
-
-            cells.push(
-                <td 
-                    key={`hex-${i}`} 
-                    className="px-1 py-1 text-center cursor-pointer hover:bg-surface-hover"
-                    onClick={() => handleCellClick(addr)}
-                >
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={editValue}
-                            onChange={handleCellEdit}
-                            onBlur={handleCellEditComplete}
-                            onKeyDown={handleKeyDown}
-                            onFocus={(e) => e.target.select()}
-                            className="w-6 text-center bg-info text-black font-mono text-xs rounded"
-                            autoFocus
-                        />
-                    ) : (
-                        <span className="text-data-value font-mono text-xs">
-                            {Formatters.hex(value, 2)}
-                        </span>
-                    )}
-                </td>
-            );
-
-            // ASCII representation
-            const ascii = (value >= 32 && value <= 126) ? String.fromCharCode(value) : '.';
-            asciiChars.push(ascii);
-        }
-
-        // ASCII column
-        cells.push(
-            <td key="ascii" className="px-2 py-1 text-text-secondary font-mono text-xs border-l border-border-subtle">
-                {asciiChars.join('')}
-            </td>
-        );
-
+        
         return (
-            <tr key={rowIndex} className="border-b border-border-subtle hover:bg-surface-hover/50">
-                {cells}
-            </tr>
+            <MemoryRow
+                key={baseAddr}
+                baseAddr={baseAddr}
+                bytesPerRow={bytesPerRow}
+                memoryData={memoryData}
+                editingCell={editingCell}
+                editValue={editValue}
+                worker={worker}
+                onCellClick={handleCellClick}
+                onCellEdit={handleCellEdit}
+                onCellEditComplete={handleCellEditComplete}
+                onKeyDown={handleKeyDown}
+            />
         );
-    };
+    }, [currentAddress, bytesPerRow, memoryData, editingCell, editValue, worker, 
+        handleCellClick, handleCellEdit, handleCellEditComplete, handleKeyDown]);
 
     return (
         <div className="h-full flex flex-col" style={{ minHeight: 0 }}>
