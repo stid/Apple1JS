@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
-import { useLogging } from '../contexts/LoggingContext';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { WORKER_MESSAGES, sendWorkerMessage, MemoryRegion, MemoryMapData } from '../apple1/types/worker-messages';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
@@ -17,6 +16,143 @@ interface MemoryData {
     [address: string]: number;
 }
 
+interface MemoryRowProps {
+    baseAddr: number;
+    bytesPerRow: number;
+    memoryData: MemoryData;
+    editingCell: number | null;
+    editValue: string;
+    worker: Worker;
+    maxAddress: number;
+    memoryMap: MemoryRegion[];
+    onCellClick: (address: number) => void;
+    onCellEdit: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onCellEditComplete: () => void;
+    onKeyDown: (e: React.KeyboardEvent) => void;
+}
+
+// Memoized memory row component - only re-renders if its props change
+/* eslint-disable react/prop-types */
+const MemoryRow = memo<MemoryRowProps>(({ 
+    baseAddr, 
+    bytesPerRow, 
+    memoryData, 
+    editingCell, 
+    editValue, 
+    worker,
+    maxAddress,
+    memoryMap,
+    onCellClick,
+    onCellEdit,
+    onCellEditComplete,
+    onKeyDown
+}) => {
+    // Helper to find memory region for an address
+    const getMemoryRegion = (address: number): MemoryRegion | undefined => {
+        return memoryMap.find(region => address >= region.start && address <= region.end);
+    };
+    if (baseAddr > maxAddress) return null;
+    
+    const cells = [];
+    const asciiChars = [];
+
+    // Address column
+    cells.push(
+        <td key="addr" className="px-2 py-1 font-mono text-xs whitespace-nowrap">
+            <AddressLink
+                address={baseAddr}
+                format="hex4"
+                prefix=""
+                worker={worker}
+                showContextMenu={true}
+                showRunToCursor={true}
+                className="font-mono text-xs"
+            />
+            <span className="text-data-address">:</span>
+        </td>
+    );
+
+    // Hex bytes
+    for (let i = 0; i < bytesPerRow; i++) {
+        const addr = baseAddr + i;
+        if (addr > maxAddress) {
+            cells.push(<td key={`hex-${i}`} className="px-2 py-1"></td>);
+            asciiChars.push(' ');
+            continue;
+        }
+        
+        const addrKey = `0x${Formatters.hex(addr, 4)}`;
+        const value = memoryData[addrKey] ?? 0;
+        const isEditing = editingCell === addr;
+        const region = getMemoryRegion(addr);
+        
+        // Determine cell styling based on memory type
+        const getCellStyle = () => {
+            if (!region) return '';
+            switch (region.type) {
+                case 'ROM':
+                    return 'bg-semantic-error/10 cursor-not-allowed';
+                case 'RAM':
+                    return '';
+                case 'IO':
+                    return 'bg-semantic-info/10';
+                case 'UNMAPPED':
+                    return 'bg-surface-tertiary/50 cursor-not-allowed';
+                default:
+                    return '';
+            }
+        };
+        
+        const isWritable = region?.writable ?? false;
+
+        cells.push(
+            <td 
+                key={`hex-${i}`} 
+                className={`px-2 py-1 text-center ${isWritable ? 'cursor-pointer hover:bg-surface-hover' : ''} ${getCellStyle()}`}
+                onClick={() => isWritable && onCellClick(addr)}
+                title={region ? `${region.type}: ${region.description}` : ''}
+            >
+                {isEditing ? (
+                    <input
+                        type="text"
+                        value={editValue}
+                        onChange={onCellEdit}
+                        onBlur={onCellEditComplete}
+                        onKeyDown={onKeyDown}
+                        onFocus={(e) => e.target.select()}
+                        className="w-6 text-center bg-info text-black font-mono text-xs rounded"
+                        autoFocus
+                    />
+                ) : (
+                    <span className={`font-mono text-xs ${!region || region.type === 'UNMAPPED' ? '!text-gray-500' : 'text-data-value'}`}>
+                        {Formatters.hex(value, 2)}
+                    </span>
+                )}
+            </td>
+        );
+
+        // ASCII representation
+        const ascii = (value >= 32 && value <= 126) ? String.fromCharCode(value) : '.';
+        asciiChars.push(ascii);
+    }
+
+    // ASCII column
+    cells.push(
+        <td key="ascii" className="px-3 py-1 text-text-secondary font-mono text-xs border-l border-border-subtle whitespace-nowrap">
+            {asciiChars.join('')}
+        </td>
+    );
+
+    return (
+        <tr className="border-b border-border-subtle hover:bg-surface-hover/50" style={{ height: '24px' }}>
+            {cells}
+        </tr>
+    );
+});
+/* eslint-enable react/prop-types */
+
+MemoryRow.displayName = 'MemoryRow';
+
 const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({ 
     worker, 
     startAddress = 0x0000,
@@ -31,12 +167,31 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const [addressInput, setAddressInput] = useState(Formatters.hex(externalAddress ?? startAddress, 4));
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
-    const { addMessage } = useLogging();
+    const [memoryMap, setMemoryMap] = useState<MemoryRegion[]>([]);
 
     const bytesPerRow = 16;
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [visibleRows, setVisibleRows] = useState(15);
+    
+    // Fetch memory map on mount
+    useEffect(() => {
+        if (!worker) return;
+        
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data.type === WORKER_MESSAGES.MEMORY_MAP_DATA) {
+                const mapData = e.data.data as MemoryMapData;
+                setMemoryMap(mapData.regions);
+            }
+        };
+        
+        worker.addEventListener('message', handleMessage);
+        sendWorkerMessage(worker, WORKER_MESSAGES.GET_MEMORY_MAP);
+        
+        return () => {
+            worker.removeEventListener('message', handleMessage);
+        };
+    }, [worker]);
     
     // Calculate visible rows based on actual container
     useEffect(() => {
@@ -130,15 +285,34 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     useEffect(() => {
         const handleMessage = (e: MessageEvent) => {
             if (e.data.type === WORKER_MESSAGES.MEMORY_RANGE_DATA) {
-                const memData: MemoryData = {};
+                const newMemData: MemoryData = {};
                 const rangeData = e.data.data;
                 if (rangeData && rangeData.data) {
                     rangeData.data.forEach((value: number, index: number) => {
                         const addr = rangeData.start + index;
-                        memData[`0x${Formatters.hex(addr, 4)}`] = value;
+                        newMemData[`0x${Formatters.hex(addr, 4)}`] = value;
                     });
                 }
-                setMemoryData(memData);
+                
+                // Only update state if memory actually changed
+                setMemoryData(prevData => {
+                    // Quick check: if sizes differ, data definitely changed
+                    const prevKeys = Object.keys(prevData);
+                    const newKeys = Object.keys(newMemData);
+                    if (prevKeys.length !== newKeys.length) {
+                        return newMemData;
+                    }
+                    
+                    // Check if any values changed
+                    for (const key of newKeys) {
+                        if (prevData[key] !== newMemData[key]) {
+                            return newMemData;
+                        }
+                    }
+                    
+                    // No changes, return previous data to avoid re-render
+                    return prevData;
+                });
             }
         };
 
@@ -204,120 +378,81 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [editingCell, navigateUp, navigateDown]);
 
-    const handleCellClick = (address: number) => {
+    const handleCellClick = useCallback((address: number) => {
         setEditingCell(address);
         const value = memoryData[`0x${Formatters.hex(address, 4)}`] || 0;
         setEditValue(Formatters.hex(value, 2));
-    };
+    }, [memoryData]);
 
-    const handleCellEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCellEdit = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
         if (value.length <= 2) {
             setEditValue(value);
         }
-    };
+    }, []);
 
-    const handleCellEditComplete = () => {
-        if (editingCell !== null && editValue.length === 2) {
-            const value = parseInt(editValue, 16);
-            // TODO: Implement memory write when worker supports it
-            addMessage({
-                level: 'info',
-                source: 'MemoryViewerPaginated',
-                message: `Memory write not yet implemented: address=${Formatters.hex(editingCell, 1)}, value=${Formatters.hex(value, 1)}`
+    const handleCellEditComplete = useCallback(() => {
+        if (editingCell !== null && editValue.length > 0) {
+            // Pad single digit with leading zero
+            const paddedValue = editValue.padStart(2, '0');
+            const value = parseInt(paddedValue, 16);
+            // Send memory write to worker
+            sendWorkerMessage(worker, WORKER_MESSAGES.WRITE_MEMORY, {
+                address: editingCell,
+                value: value
             });
         }
         setEditingCell(null);
         setEditValue('');
-    };
+    }, [editingCell, editValue, worker]);
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === 'Tab') {
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
             handleCellEditComplete();
+        } else if (e.key === 'Tab') {
+            e.preventDefault(); // Prevent default tab behavior
+            handleCellEditComplete();
+            
+            // Move to next cell if not at the end
+            if (editingCell !== null) {
+                const maxAddress = currentAddress + size - 1;
+                const nextAddress = editingCell + 1;
+                
+                if (nextAddress <= maxAddress && nextAddress <= 0xFFFF) {
+                    // Small delay to ensure the current edit is processed
+                    setTimeout(() => {
+                        handleCellClick(nextAddress);
+                    }, 50);
+                }
+            }
         } else if (e.key === 'Escape') {
             setEditingCell(null);
             setEditValue('');
         }
-    };
+    }, [editingCell, currentAddress, size, handleCellEditComplete, handleCellClick]);
 
-    const renderMemoryRow = (rowIndex: number) => {
+    const renderMemoryRow = useCallback((rowIndex: number) => {
         const baseAddr = currentAddress + (rowIndex * bytesPerRow);
-        if (baseAddr > 0xFFFF) return null;
         
-        const cells = [];
-        const asciiChars = [];
-
-        // Address column
-        cells.push(
-            <td key="addr" className="px-2 py-1 font-mono text-xs whitespace-nowrap">
-                <AddressLink
-                    address={baseAddr}
-                    format="hex4"
-                    prefix=""
-                    worker={worker}
-                    showContextMenu={true}
-                    showRunToCursor={true}
-                    className="font-mono text-xs"
-                />
-                <span className="text-data-address">:</span>
-            </td>
-        );
-
-        // Hex bytes
-        for (let i = 0; i < bytesPerRow; i++) {
-            const addr = baseAddr + i;
-            if (addr > 0xFFFF) {
-                cells.push(<td key={`hex-${i}`} className="px-2 py-1"></td>);
-                asciiChars.push(' ');
-                continue;
-            }
-            
-            const addrKey = `0x${Formatters.hex(addr, 4)}`;
-            const value = memoryData[addrKey] ?? 0;
-            const isEditing = editingCell === addr;
-
-            cells.push(
-                <td 
-                    key={`hex-${i}`} 
-                    className="px-2 py-1 text-center cursor-pointer hover:bg-surface-hover"
-                    onClick={() => handleCellClick(addr)}
-                >
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={editValue}
-                            onChange={handleCellEdit}
-                            onBlur={handleCellEditComplete}
-                            onKeyDown={handleKeyDown}
-                            className="w-6 text-center bg-info text-black font-mono text-xs rounded"
-                            autoFocus
-                        />
-                    ) : (
-                        <span className="text-data-value font-mono text-xs">
-                            {Formatters.hex(value, 2)}
-                        </span>
-                    )}
-                </td>
-            );
-
-            // ASCII representation
-            const ascii = (value >= 32 && value <= 126) ? String.fromCharCode(value) : '.';
-            asciiChars.push(ascii);
-        }
-
-        // ASCII column
-        cells.push(
-            <td key="ascii" className="px-3 py-1 text-text-secondary font-mono text-xs border-l border-border-subtle whitespace-nowrap">
-                {asciiChars.join('')}
-            </td>
-        );
-
         return (
-            <tr key={rowIndex} className="border-b border-border-subtle hover:bg-surface-hover/50" style={{ height: '24px' }}>
-                {cells}
-            </tr>
+            <MemoryRow
+                key={baseAddr}
+                baseAddr={baseAddr}
+                bytesPerRow={bytesPerRow}
+                memoryData={memoryData}
+                editingCell={editingCell}
+                editValue={editValue}
+                worker={worker}
+                maxAddress={0xFFFF}
+                memoryMap={memoryMap}
+                onCellClick={handleCellClick}
+                onCellEdit={handleCellEdit}
+                onCellEditComplete={handleCellEditComplete}
+                onKeyDown={handleKeyDown}
+            />
         );
-    };
+    }, [currentAddress, bytesPerRow, memoryData, editingCell, editValue, worker, memoryMap,
+        handleCellClick, handleCellEdit, handleCellEditComplete, handleKeyDown]);
 
     return (
         <div ref={containerRef} className="h-full flex flex-col bg-surface-primary rounded-lg border border-border-primary">

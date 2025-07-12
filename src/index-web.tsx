@@ -36,8 +36,9 @@ const renderApp = (worker: Worker) => {
 };
 
 const initWebVitals = () => {
-    onCLS((metric) => loggingService.info('WebVitals', `CLS: ${JSON.stringify(metric)}`));
-    onLCP((metric) => loggingService.info('WebVitals', `LCP: ${JSON.stringify(metric)}`));
+    // Web vitals are still being collected but not logged to reduce startup noise
+    onCLS(() => {});
+    onLCP(() => {});
 };
 
 const main = () => {

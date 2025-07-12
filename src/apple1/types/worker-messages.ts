@@ -31,6 +31,9 @@ export enum WORKER_MESSAGES {
     GET_EMULATION_STATUS, // Request current emulation status
     RUN_TO_ADDRESS, // Run execution until reaching a specific address
     RUN_TO_CURSOR_TARGET, // Notification of current run-to-cursor target
+    WRITE_MEMORY, // Write a value to a memory address
+    GET_MEMORY_MAP, // Request memory map information
+    MEMORY_MAP_DATA, // Response with memory map data
 }
 
 // Interface for DebugData: a dictionary of debugging information
@@ -55,6 +58,26 @@ export interface MemoryRangeRequest {
 export interface MemoryRangeData {
     start: number;
     data: number[];
+}
+
+// Interface for memory write request
+export interface MemoryWriteRequest {
+    address: number;
+    value: number;
+}
+
+// Interface for memory map region
+export interface MemoryRegion {
+    start: number;
+    end: number;
+    type: 'RAM' | 'ROM' | 'IO' | 'UNMAPPED';
+    writable: boolean;
+    description?: string;
+}
+
+// Interface for memory map data
+export interface MemoryMapData {
+    regions: MemoryRegion[];
 }
 
 // Message for state save/load
@@ -105,6 +128,7 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, boolean>
     | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_ADDRESS, number>
     | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_CURSOR_TARGET, number | null>
+    | BaseWorkerMessage<WORKER_MESSAGES.WRITE_MEMORY, MemoryWriteRequest>
     // Simple command messages (no data)
     | SimpleWorkerMessage<WORKER_MESSAGES.DEBUG_INFO>
     | SimpleWorkerMessage<WORKER_MESSAGES.SAVE_STATE>
@@ -114,6 +138,7 @@ export type WorkerMessage =
     | SimpleWorkerMessage<WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS>
     | SimpleWorkerMessage<WORKER_MESSAGES.GET_BREAKPOINTS>
     | SimpleWorkerMessage<WORKER_MESSAGES.GET_EMULATION_STATUS>
+    | SimpleWorkerMessage<WORKER_MESSAGES.GET_MEMORY_MAP>
     // Response messages (Worker to UI)
     | BaseWorkerMessage<WORKER_MESSAGES.STATE_DATA, EmulatorState>
     | BaseWorkerMessage<WORKER_MESSAGES.UPDATE_VIDEO_BUFFER, VideoData>
@@ -123,7 +148,8 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.BREAKPOINTS_DATA, number[]>
     | BaseWorkerMessage<WORKER_MESSAGES.BREAKPOINT_HIT, number>
     | BaseWorkerMessage<WORKER_MESSAGES.EMULATION_STATUS, { paused: boolean }>
-    | BaseWorkerMessage<WORKER_MESSAGES.CLOCK_DATA, ClockData>;
+    | BaseWorkerMessage<WORKER_MESSAGES.CLOCK_DATA, ClockData>
+    | BaseWorkerMessage<WORKER_MESSAGES.MEMORY_MAP_DATA, MemoryMapData>;
 
 /**
  * Type guard to check if a message is a valid WorkerMessage
@@ -183,4 +209,4 @@ export function sendWorkerMessageWithRequest<T extends WORKER_MESSAGES>(
 }
 
 // Union type for message data types (kept for backward compatibility)
-export type MessageDataTypes = DebugData | VideoData | LogMessageData | MemoryRangeRequest | MemoryRangeData | ClockData;
+export type MessageDataTypes = DebugData | VideoData | LogMessageData | MemoryRangeRequest | MemoryRangeData | ClockData | MemoryWriteRequest | MemoryMapData;

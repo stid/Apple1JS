@@ -135,7 +135,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({ isOpen, initialFilter = 'all', 
                         </div>
                     ) : (
                         <div className="space-y-1.5">
-                            {filteredMessages.map((message) => (
+                            {filteredMessages.slice().reverse().map((message) => (
                                 <div
                                     key={message.id}
                                     className={`p-2.5 rounded border ${getLevelBgColor(message.level)} ${

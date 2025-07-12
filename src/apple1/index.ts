@@ -315,10 +315,10 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
 
         this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
 
-        // Debug output - system startup information
-        loggingService.info('Apple1', `System Clock: ${JSON.stringify(this.clock.toDebug())}`);
-        loggingService.info('Apple1', `Bus: ${JSON.stringify(this.bus.toDebug())}`);
-        loggingService.info('Apple1', `CPU: ${JSON.stringify(this.cpu.toDebug())}`);
+        // Debug output commented out to reduce startup logs
+        // loggingService.info('Apple1', `System Clock: ${JSON.stringify(this.clock.toDebug())}`);
+        // loggingService.info('Apple1', `Bus: ${JSON.stringify(this.bus.toDebug())}`);
+        // loggingService.info('Apple1', `CPU: ${JSON.stringify(this.cpu.toDebug())}`);
     }
 
     reset(): void {

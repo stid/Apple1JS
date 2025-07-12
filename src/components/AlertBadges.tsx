@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLogging } from '../contexts/LoggingContext';
 
 interface AlertBadgesProps {
@@ -9,6 +9,8 @@ interface AlertBadgesProps {
 
 const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onErrorClick }) => {
     const { messages } = useLogging();
+    const [animatingLevels, setAnimatingLevels] = useState<Set<string>>(new Set());
+    const previousCountsRef = useRef<Record<string, number>>({ info: 0, warn: 0, error: 0 });
 
     // Count messages by level
     const counts = messages.reduce(
@@ -18,6 +20,31 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
         },
         { info: 0, warn: 0, error: 0 } as Record<string, number>
     );
+
+    // Detect count increases and trigger animations
+    useEffect(() => {
+        const newAnimatingLevels = new Set<string>();
+        
+        Object.entries(counts).forEach(([level, count]) => {
+            if (count > previousCountsRef.current[level]) {
+                newAnimatingLevels.add(level);
+            }
+        });
+        
+        if (newAnimatingLevels.size > 0) {
+            setAnimatingLevels(newAnimatingLevels);
+            
+            // Remove animation after 2 seconds
+            const timer = setTimeout(() => {
+                setAnimatingLevels(new Set());
+            }, 2000);
+            
+            previousCountsRef.current = { ...counts };
+            return () => clearTimeout(timer);
+        }
+        
+        previousCountsRef.current = { ...counts };
+    }, [counts.info, counts.warn, counts.error]);
 
     const Badge = ({ 
         count, 
@@ -62,10 +89,18 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
             );
         }
 
+        const isAnimating = animatingLevels.has(level);
+        
         return (
             <button
                 onClick={onClick}
-                className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${bgColors[level]} border ${borderColors[level]} hover:opacity-80 transition-opacity`}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${bgColors[level]} border ${borderColors[level]} hover:opacity-80 transition-opacity ${
+                    isAnimating ? 'animate-pulse ring-2 ring-offset-1 ring-offset-surface-primary' : ''
+                } ${
+                    level === 'info' && isAnimating ? 'ring-semantic-info' : 
+                    level === 'warn' && isAnimating ? 'ring-semantic-warning' : 
+                    level === 'error' && isAnimating ? 'ring-semantic-error' : ''
+                }`}
                 title={`View ${count} ${level} message${count > 1 ? 's' : ''}`}
             >
                 <span className="text-[10px]">{icons[level]}</span>
