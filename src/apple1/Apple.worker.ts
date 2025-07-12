@@ -2,7 +2,7 @@ import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
 import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
-import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, MemoryWriteRequest, WorkerMessage, isWorkerMessage } from './types/worker-messages';
+import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, MemoryWriteRequest, MemoryMapData, WorkerMessage, isWorkerMessage } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
 
@@ -337,13 +337,80 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                     request.value >= 0 && request.value <= 0xFF) {
                     // Write the value to memory
                     apple1.bus.write(request.address, request.value);
-                    loggingService.log('info', 'MemoryWrite', 
-                        `Wrote ${Formatters.hex(request.value, 2)} to address ${Formatters.address(request.address)}`);
                 } else {
                     loggingService.log('warn', 'MemoryWrite', 
                         `Invalid memory write request: address=${request.address}, value=${request.value}`);
                 }
             }
+            break;
+        }
+        case WORKER_MESSAGES.GET_MEMORY_MAP: {
+            // Return memory map information
+            const memoryMap: MemoryMapData = {
+                regions: [
+                    // RAM Bank 1
+                    {
+                        start: 0x0000,
+                        end: 0x0FFF,
+                        type: 'RAM',
+                        writable: true,
+                        description: 'Main RAM (4KB)'
+                    },
+                    // Unmapped region 1
+                    {
+                        start: 0x1000,
+                        end: 0xD00F,
+                        type: 'UNMAPPED',
+                        writable: false,
+                        description: 'Unmapped'
+                    },
+                    // PIA (I/O)
+                    {
+                        start: 0xD010,
+                        end: 0xD013,
+                        type: 'IO',
+                        writable: true,
+                        description: 'PIA6820 - Keyboard & Display'
+                    },
+                    // Unmapped region 2
+                    {
+                        start: 0xD014,
+                        end: 0xDFFF,
+                        type: 'UNMAPPED',
+                        writable: false,
+                        description: 'Unmapped'
+                    },
+                    // RAM Bank 2
+                    {
+                        start: 0xE000,
+                        end: 0xEFFF,
+                        type: 'RAM',
+                        writable: true,
+                        description: 'Extended RAM (4KB)'
+                    },
+                    // Unmapped region 3
+                    {
+                        start: 0xF000,
+                        end: 0xFEFF,
+                        type: 'UNMAPPED',
+                        writable: false,
+                        description: 'Unmapped'
+                    },
+                    // ROM
+                    {
+                        start: 0xFF00,
+                        end: 0xFFFF,
+                        type: 'ROM',
+                        writable: false,
+                        description: 'Monitor ROM (256 bytes)'
+                    }
+                ]
+            };
+            
+            postMessage({ 
+                type: WORKER_MESSAGES.MEMORY_MAP_DATA, 
+                data: memoryMap 
+            });
             break;
         }
     }

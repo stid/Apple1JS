@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MemoryViewer from '../MemoryViewer';
-import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
+import { WORKER_MESSAGES, MemoryMapData } from '../../apple1/types/worker-messages';
 import { LoggingProvider } from '../../contexts/LoggingContext';
 
 interface MockAddressLinkProps {
@@ -58,6 +58,42 @@ describe('MemoryViewer', () => {
             removeEventListener: mockRemoveEventListener,
         } as unknown as Worker;
 
+        // Mock sendWorkerMessage to handle memory map requests
+        mockPostMessage.mockImplementation((message) => {
+            if (message.type === WORKER_MESSAGES.GET_MEMORY_MAP) {
+                // Simulate async response for memory map
+                setTimeout(() => {
+                    const messageHandler = messageHandlers.get('message');
+                    if (messageHandler) {
+                        const memoryMapData: MemoryMapData = {
+                            regions: [
+                                {
+                                    start: 0x0000,
+                                    end: 0x0FFF,
+                                    type: 'RAM',
+                                    writable: true,
+                                    description: 'Main RAM'
+                                },
+                                {
+                                    start: 0xFF00,
+                                    end: 0xFFFF,
+                                    type: 'ROM',
+                                    writable: false,
+                                    description: 'Monitor ROM'
+                                }
+                            ]
+                        };
+                        messageHandler(new MessageEvent('message', {
+                            data: {
+                                type: WORKER_MESSAGES.MEMORY_MAP_DATA,
+                                data: memoryMapData
+                            }
+                        }));
+                    }
+                }, 0);
+            }
+        });
+
         // Mock timers
         jest.useFakeTimers();
     });
@@ -67,6 +103,14 @@ describe('MemoryViewer', () => {
         jest.clearAllTimers();
         jest.useRealTimers();
     });
+
+    // Helper to wait for memory map to load
+    const waitForMemoryMap = async () => {
+        // Just advance enough for the setTimeout in the mock to fire
+        await act(async () => {
+            jest.advanceTimersByTime(10);
+        });
+    };
 
     it('should render the memory viewer component', () => {
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
@@ -205,6 +249,9 @@ describe('MemoryViewer', () => {
     it('should handle cell editing click', async () => {
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
         
+        // Wait for memory map to load
+        await waitForMemoryMap();
+        
         // Send some memory data first
         const messageHandler = messageHandlers.get('message');
         if (messageHandler) {
@@ -221,11 +268,17 @@ describe('MemoryViewer', () => {
             });
         }
         
+        // Wait for the cell with '41' to appear
         await waitFor(() => {
-            const cell = screen.getByText('41');
-            fireEvent.click(cell.parentElement!);
-            
-            // Should show input field
+            expect(screen.getByText('41')).toBeInTheDocument();
+        });
+        
+        // Click on the cell
+        const cell = screen.getByText('41');
+        fireEvent.click(cell.parentElement!);
+        
+        // Should show input field
+        await waitFor(() => {
             const input = screen.getByDisplayValue('41') as HTMLInputElement;
             expect(input).toBeInTheDocument();
             expect(input).toHaveFocus();
@@ -234,6 +287,9 @@ describe('MemoryViewer', () => {
 
     it('should handle cell edit input', async () => {
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Wait for memory map to load
+        await waitForMemoryMap();
         
         // Send memory data
         const messageHandler = messageHandlers.get('message');
@@ -271,6 +327,9 @@ describe('MemoryViewer', () => {
 
     it('should cancel edit on Escape', async () => {
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Wait for memory map to load
+        await waitForMemoryMap();
         
         // Send memory data
         const messageHandler = messageHandlers.get('message');
@@ -410,6 +469,9 @@ describe('MemoryViewer', () => {
     it('should only allow hex characters in cell edit', async () => {
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
         
+        // Wait for memory map to load
+        await waitForMemoryMap();
+        
         // Send memory data
         const messageHandler = messageHandlers.get('message');
         if (messageHandler) {
@@ -442,6 +504,9 @@ describe('MemoryViewer', () => {
     it('should send memory write message when completing edit', async () => {
         const { sendWorkerMessage } = await import('../../apple1/types/worker-messages');
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Wait for memory map to load
+        await waitForMemoryMap();
         
         // Send memory data
         const messageHandler = messageHandlers.get('message');
@@ -493,6 +558,9 @@ describe('MemoryViewer', () => {
         
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
         
+        // Wait for memory map to load
+        await waitForMemoryMap();
+        
         // Send memory data
         const messageHandler = messageHandlers.get('message');
         if (messageHandler) {
@@ -541,6 +609,9 @@ describe('MemoryViewer', () => {
         (sendWorkerMessage as jest.Mock).mockClear();
         
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Wait for memory map to load
+        await waitForMemoryMap();
         
         // Send memory data
         const messageHandler = messageHandlers.get('message');
@@ -617,6 +688,9 @@ describe('MemoryViewer', () => {
 
     it('should select all text when starting edit', async () => {
         renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Wait for memory map to load
+        await waitForMemoryMap();
         
         // Send memory data
         const messageHandler = messageHandlers.get('message');

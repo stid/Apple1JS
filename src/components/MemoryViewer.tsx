@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { WORKER_MESSAGES, sendWorkerMessage } from '../apple1/types/worker-messages';
+import { WORKER_MESSAGES, sendWorkerMessage, MemoryRegion, MemoryMapData } from '../apple1/types/worker-messages';
 import { useLogging } from '../contexts/LoggingContext';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
@@ -22,6 +22,7 @@ interface MemoryRowProps {
     editingCell: number | null;
     editValue: string;
     worker: Worker;
+    memoryMap: MemoryRegion[];
     onCellClick: (address: number) => void;
     onCellEdit: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onCellEditComplete: () => void;
@@ -37,11 +38,16 @@ const MemoryRow = memo<MemoryRowProps>(({
     editingCell, 
     editValue, 
     worker,
+    memoryMap,
     onCellClick,
     onCellEdit,
     onCellEditComplete,
     onKeyDown
 }) => {
+    // Helper to find memory region for an address
+    const getMemoryRegion = (address: number): MemoryRegion | undefined => {
+        return memoryMap.find(region => address >= region.start && address <= region.end);
+    };
     const cells = [];
     const asciiChars = [];
 
@@ -67,12 +73,33 @@ const MemoryRow = memo<MemoryRowProps>(({
         const addrKey = `0x${Formatters.hex(addr, 4)}`;
         const value = memoryData[addrKey] ?? 0;
         const isEditing = editingCell === addr;
+        const region = getMemoryRegion(addr);
+        
+        // Determine cell styling based on memory type
+        const getCellStyle = () => {
+            if (!region) return '';
+            switch (region.type) {
+                case 'ROM':
+                    return 'bg-semantic-error/10 cursor-not-allowed';
+                case 'RAM':
+                    return '';
+                case 'IO':
+                    return 'bg-semantic-info/10';
+                case 'UNMAPPED':
+                    return 'bg-surface-tertiary/50 cursor-not-allowed';
+                default:
+                    return '';
+            }
+        };
+        
+        const isWritable = region?.writable ?? false;
 
         cells.push(
             <td 
                 key={`hex-${i}`} 
-                className="px-1 py-1 text-center cursor-pointer hover:bg-surface-hover"
-                onClick={() => onCellClick(addr)}
+                className={`px-1 py-1 text-center ${isWritable ? 'cursor-pointer hover:bg-surface-hover' : ''} ${getCellStyle()}`}
+                onClick={() => isWritable && onCellClick(addr)}
+                title={region ? `${region.type}: ${region.description}` : ''}
             >
                 {isEditing ? (
                     <input
@@ -125,6 +152,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     const [addressInput, setAddressInput] = useState(Formatters.hex(startAddress, 4));
     const [editingCell, setEditingCell] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
+    const [memoryMap, setMemoryMap] = useState<MemoryRegion[]>([]);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const { addMessage } = useLogging();
 
@@ -135,6 +163,25 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     useEffect(() => {
         setAddressInput(Formatters.hex(currentAddress, 4));
     }, [currentAddress]);
+    
+    // Fetch memory map on mount
+    useEffect(() => {
+        if (!worker) return;
+        
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data.type === WORKER_MESSAGES.MEMORY_MAP_DATA) {
+                const mapData = e.data.data as MemoryMapData;
+                setMemoryMap(mapData.regions);
+            }
+        };
+        
+        worker.addEventListener('message', handleMessage);
+        sendWorkerMessage(worker, WORKER_MESSAGES.GET_MEMORY_MAP);
+        
+        return () => {
+            worker.removeEventListener('message', handleMessage);
+        };
+    }, [worker]);
 
     // Request memory data
     useEffect(() => {
@@ -285,13 +332,14 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                 editingCell={editingCell}
                 editValue={editValue}
                 worker={worker}
+                memoryMap={memoryMap}
                 onCellClick={handleCellClick}
                 onCellEdit={handleCellEdit}
                 onCellEditComplete={handleCellEditComplete}
                 onKeyDown={handleKeyDown}
             />
         );
-    }, [currentAddress, bytesPerRow, memoryData, editingCell, editValue, worker, 
+    }, [currentAddress, bytesPerRow, memoryData, editingCell, editValue, worker, memoryMap,
         handleCellClick, handleCellEdit, handleCellEditComplete, handleKeyDown]);
 
     return (
