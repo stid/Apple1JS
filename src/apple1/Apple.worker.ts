@@ -2,7 +2,7 @@ import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
 import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
-import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, WorkerMessage, isWorkerMessage } from './types/worker-messages';
+import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, MemoryWriteRequest, WorkerMessage, isWorkerMessage } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
 
@@ -326,6 +326,23 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
                 }
                 
                 loggingService.log('info', 'RunToAddress', `Running to address ${Formatters.address(targetAddress)}`);
+            }
+            break;
+        }
+        case WORKER_MESSAGES.WRITE_MEMORY: {
+            // Handle memory write request
+            if (data && typeof data === 'object') {
+                const request = data as MemoryWriteRequest;
+                if (request.address >= 0 && request.address <= 0xFFFF && 
+                    request.value >= 0 && request.value <= 0xFF) {
+                    // Write the value to memory
+                    apple1.bus.write(request.address, request.value);
+                    loggingService.log('info', 'MemoryWrite', 
+                        `Wrote ${Formatters.hex(request.value, 2)} to address ${Formatters.address(request.address)}`);
+                } else {
+                    loggingService.log('warn', 'MemoryWrite', 
+                        `Invalid memory write request: address=${request.address}, value=${request.value}`);
+                }
             }
             break;
         }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
+import { WORKER_MESSAGES, sendWorkerMessage } from '../apple1/types/worker-messages';
 import { useLogging } from '../contexts/LoggingContext';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
@@ -110,14 +110,19 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     };
 
     const handleCellEditComplete = () => {
-        if (editingCell !== null && editValue.length === 2) {
-            const value = parseInt(editValue, 16);
+        if (editingCell !== null && editValue.length > 0) {
+            // Pad single digit with leading zero
+            const paddedValue = editValue.padStart(2, '0');
+            const value = parseInt(paddedValue, 16);
             // Send memory write to worker
-            // TODO: Implement memory write when worker supports it
+            sendWorkerMessage(worker, WORKER_MESSAGES.WRITE_MEMORY, {
+                address: editingCell,
+                value: value
+            });
             addMessage({
                 level: 'info',
                 source: 'MemoryViewer',
-                message: `Memory write not yet implemented: address=${Formatters.hex(editingCell, 4)}, value=${Formatters.hex(value, 2)}`
+                message: `Wrote ${Formatters.hex(value, 2)} to address ${Formatters.hex(editingCell, 4)}`
             });
         }
         setEditingCell(null);
@@ -125,8 +130,24 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === 'Tab') {
+        if (e.key === 'Enter') {
             handleCellEditComplete();
+        } else if (e.key === 'Tab') {
+            e.preventDefault(); // Prevent default tab behavior
+            handleCellEditComplete();
+            
+            // Move to next cell if not at the end
+            if (editingCell !== null) {
+                const maxAddress = currentAddress + size - 1;
+                const nextAddress = editingCell + 1;
+                
+                if (nextAddress <= maxAddress && nextAddress <= 0xFFFF) {
+                    // Small delay to ensure the current edit is processed
+                    setTimeout(() => {
+                        handleCellClick(nextAddress);
+                    }, 50);
+                }
+            }
         } else if (e.key === 'Escape') {
             setEditingCell(null);
             setEditValue('');
@@ -174,6 +195,7 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                             onChange={handleCellEdit}
                             onBlur={handleCellEditComplete}
                             onKeyDown={handleKeyDown}
+                            onFocus={(e) => e.target.select()}
                             className="w-6 text-center bg-info text-black font-mono text-xs rounded"
                             autoFocus
                         />

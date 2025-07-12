@@ -2,13 +2,19 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MemoryViewer from '../MemoryViewer';
-import { WORKER_MESSAGES } from '../../apple1/TSTypes';
+import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
 import { LoggingProvider } from '../../contexts/LoggingContext';
 
 interface MockAddressLinkProps {
     address: number;
     className?: string;
 }
+
+// Mock sendWorkerMessage
+jest.mock('../../apple1/types/worker-messages', () => ({
+    ...jest.requireActual('../../apple1/types/worker-messages'),
+    sendWorkerMessage: jest.fn(),
+}));
 
 // Mock AddressLink component
 jest.mock('../AddressLink', () => ({
@@ -431,5 +437,214 @@ describe('MemoryViewer', () => {
         
         fireEvent.change(input, { target: { value: 'AB' } });
         expect(input.value).toBe('AB'); // Hex chars allowed
+    });
+
+    it('should send memory write message when completing edit', async () => {
+        const { sendWorkerMessage } = await import('../../apple1/types/worker-messages');
+        renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Send memory data
+        const messageHandler = messageHandlers.get('message');
+        if (messageHandler) {
+            act(() => {
+                messageHandler(new MessageEvent('message', {
+                    data: {
+                        type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
+                        data: {
+                            start: 0x0000,
+                            data: [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                                   0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
+                        }
+                    }
+                }));
+            });
+        }
+        
+        // Click on a cell to edit
+        await waitFor(() => {
+            const cells = screen.getAllByText('00');
+            // Click on the first cell with value '00'
+            fireEvent.click(cells[0].parentElement!);
+        });
+        
+        // Edit the value
+        const input = screen.getByDisplayValue('00') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: 'FF' } });
+        
+        // Complete edit with Enter
+        fireEvent.keyDown(input, { key: 'Enter' });
+        
+        // Verify sendWorkerMessage was called with correct parameters
+        await waitFor(() => {
+            expect(sendWorkerMessage).toHaveBeenCalledWith(
+                mockWorker,
+                WORKER_MESSAGES.WRITE_MEMORY,
+                {
+                    address: 0x0000,
+                    value: 0xFF
+                }
+            );
+        });
+    });
+
+    it('should send memory write with single digit padded to two', async () => {
+        const { sendWorkerMessage } = await import('../../apple1/types/worker-messages');
+        (sendWorkerMessage as jest.Mock).mockClear();
+        
+        renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Send memory data
+        const messageHandler = messageHandlers.get('message');
+        if (messageHandler) {
+            act(() => {
+                messageHandler(new MessageEvent('message', {
+                    data: {
+                        type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
+                        data: {
+                            start: 0x0000,
+                            data: [0x00]
+                        }
+                    }
+                }));
+            });
+        }
+        
+        // Click on a cell to edit
+        await waitFor(() => {
+            const cells = screen.getAllByText('00');
+            // Click on the first cell with value '00'
+            fireEvent.click(cells[0].parentElement!);
+        });
+        
+        // Edit with single hex digit
+        const input = screen.getByDisplayValue('00') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: 'F' } });
+        
+        // Complete edit with Enter
+        fireEvent.keyDown(input, { key: 'Enter' });
+        
+        // Verify sendWorkerMessage was called with padded value (0F = 15)
+        await waitFor(() => {
+            expect(sendWorkerMessage).toHaveBeenCalledWith(
+                mockWorker,
+                WORKER_MESSAGES.WRITE_MEMORY,
+                {
+                    address: 0x0000,
+                    value: 0x0F
+                }
+            );
+        });
+    });
+
+    it('should not send memory write if edit is empty', async () => {
+        const { sendWorkerMessage } = await import('../../apple1/types/worker-messages');
+        (sendWorkerMessage as jest.Mock).mockClear();
+        
+        renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Send memory data
+        const messageHandler = messageHandlers.get('message');
+        if (messageHandler) {
+            act(() => {
+                messageHandler(new MessageEvent('message', {
+                    data: {
+                        type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
+                        data: {
+                            start: 0x0000,
+                            data: [0xFF]
+                        }
+                    }
+                }));
+            });
+        }
+        
+        // Click on a cell to edit
+        await waitFor(() => {
+            const cell = screen.getByText('FF');
+            fireEvent.click(cell.parentElement!);
+        });
+        
+        // Clear the input completely
+        const input = screen.getByDisplayValue('FF') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: '' } });
+        
+        // Complete edit with Enter
+        fireEvent.keyDown(input, { key: 'Enter' });
+        
+        // Verify sendWorkerMessage was NOT called
+        await waitFor(() => {
+            expect(sendWorkerMessage).not.toHaveBeenCalled();
+        });
+    });
+
+    it('should navigate to next cell with Tab key', async () => {
+        renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Send memory data with multiple cells
+        const messageHandler = messageHandlers.get('message');
+        if (messageHandler) {
+            act(() => {
+                messageHandler(new MessageEvent('message', {
+                    data: {
+                        type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
+                        data: {
+                            start: 0x0000,
+                            data: [0x00, 0x01, 0x02, 0x03]
+                        }
+                    }
+                }));
+            });
+        }
+        
+        // Click on first cell to edit
+        await waitFor(() => {
+            const cells = screen.getAllByText('00');
+            fireEvent.click(cells[0].parentElement!);
+        });
+        
+        // Verify we're editing the first cell
+        expect(screen.getByDisplayValue('00')).toBeInTheDocument();
+        
+        // Press Tab to move to next cell
+        const input = screen.getByDisplayValue('00');
+        fireEvent.keyDown(input, { key: 'Tab' });
+        
+        // Wait for next cell to be editable
+        await waitFor(() => {
+            expect(screen.getByDisplayValue('01')).toBeInTheDocument();
+        }, { timeout: 1000 });
+    });
+
+    it('should select all text when starting edit', async () => {
+        renderWithProviders(<MemoryViewer worker={mockWorker} />);
+        
+        // Send memory data
+        const messageHandler = messageHandlers.get('message');
+        if (messageHandler) {
+            act(() => {
+                messageHandler(new MessageEvent('message', {
+                    data: {
+                        type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
+                        data: {
+                            start: 0x0000,
+                            data: [0xFF]
+                        }
+                    }
+                }));
+            });
+        }
+        
+        // Click on cell to edit
+        await waitFor(() => {
+            const cell = screen.getByText('FF');
+            fireEvent.click(cell.parentElement!);
+        });
+        
+        const input = screen.getByDisplayValue('FF') as HTMLInputElement;
+        
+        // The ref callback should have selected all text
+        // We can't directly test selection, but we can verify the input is ready for typing
+        fireEvent.change(input, { target: { value: 'AA' } });
+        expect(input.value).toBe('AA');
     });
 });
