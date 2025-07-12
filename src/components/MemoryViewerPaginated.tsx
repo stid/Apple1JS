@@ -125,7 +125,7 @@ const MemoryRow = memo<MemoryRowProps>(({
                         autoFocus
                     />
                 ) : (
-                    <span className="text-data-value font-mono text-xs">
+                    <span className={`font-mono text-xs ${!region || region.type === 'UNMAPPED' ? '!text-gray-500' : 'text-data-value'}`}>
                         {Formatters.hex(value, 2)}
                     </span>
                 )}
@@ -403,15 +403,10 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 address: editingCell,
                 value: value
             });
-            addMessage({
-                level: 'info',
-                source: 'MemoryViewerPaginated',
-                message: `Wrote ${Formatters.hex(value, 2)} to address ${Formatters.hex(editingCell, 4)}`
-            });
         }
         setEditingCell(null);
         setEditValue('');
-    }, [editingCell, editValue, worker, addMessage]);
+    }, [editingCell, editValue, worker]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {

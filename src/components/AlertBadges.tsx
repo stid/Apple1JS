@@ -39,11 +39,12 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
                 setAnimatingLevels(new Set());
             }, 2000);
             
+            previousCountsRef.current = { ...counts };
             return () => clearTimeout(timer);
         }
         
         previousCountsRef.current = { ...counts };
-    }, [counts]);
+    }, [counts.info, counts.warn, counts.error]);
 
     const Badge = ({ 
         count, 

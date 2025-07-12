@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { WORKER_MESSAGES, sendWorkerMessage, MemoryRegion, MemoryMapData } from '../apple1/types/worker-messages';
-import { useLogging } from '../contexts/LoggingContext';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
@@ -74,10 +73,14 @@ const MemoryRow = memo<MemoryRowProps>(({
         const value = memoryData[addrKey] ?? 0;
         const isEditing = editingCell === addr;
         const region = getMemoryRegion(addr);
+        // Debug for FE00 range
+        if (addr >= 0xFE00 && addr <= 0xFE0F) {
+            console.log(`Address ${addr.toString(16).toUpperCase()}: region=`, region);
+        }
         
         // Determine cell styling based on memory type
         const getCellStyle = () => {
-            if (!region) return '';
+            if (!region) return 'bg-surface-tertiary/50 cursor-not-allowed';
             switch (region.type) {
                 case 'ROM':
                     return 'bg-semantic-error/10 cursor-not-allowed';
@@ -113,8 +116,13 @@ const MemoryRow = memo<MemoryRowProps>(({
                         autoFocus
                     />
                 ) : (
-                    <span className="text-data-value font-mono text-xs">
-                        {Formatters.hex(value, 2)}
+                    <span 
+                        className="font-mono text-xs !text-gray-500"
+                        data-addr={addr.toString(16).toUpperCase()}
+                        data-region-type={region?.type || 'undefined'}
+                        style={{ color: 'red' }}
+                    >
+                        XX
                     </span>
                 )}
             </td>
@@ -154,7 +162,6 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
     const [editValue, setEditValue] = useState('');
     const [memoryMap, setMemoryMap] = useState<MemoryRegion[]>([]);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const { addMessage } = useLogging();
 
     const bytesPerRow = 16;
     const numRows = Math.ceil(size / bytesPerRow);
@@ -285,15 +292,10 @@ const MemoryViewer: React.FC<MemoryViewerProps> = ({
                 address: editingCell,
                 value: value
             });
-            addMessage({
-                level: 'info',
-                source: 'MemoryViewer',
-                message: `Wrote ${Formatters.hex(value, 2)} to address ${Formatters.hex(editingCell, 4)}`
-            });
         }
         setEditingCell(null);
         setEditValue('');
-    }, [editingCell, editValue, worker, addMessage]);
+    }, [editingCell, editValue, worker]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
