@@ -163,12 +163,15 @@ yarn test:coverage # Check test coverage
 
 ## 💻 Development Environment
 
-### Recommended Tools
+### Essential Tools
 
 ```bash
-# GitHub CLI for PR management
+# GitHub CLI for PR management and complex GitHub operations
 brew install gh  # macOS
 # or: sudo apt install gh  # Linux
+
+# Authenticate once
+gh auth login
 
 # Visual debugging
 # Use browser DevTools for:
@@ -176,6 +179,41 @@ brew install gh  # macOS
 # - Performance profiling
 # - React component debugging
 ```
+
+### GitHub CLI Operations
+
+**The `gh` command is available for complex GitHub operations:**
+
+```bash
+# Pull Request Management
+gh pr create --title "feat: description" --body "detailed description"
+gh pr view 123                    # View PR details
+gh pr checks 123                  # Check CI/CD status
+gh pr comments 123               # View PR comments
+gh pr merge 123                  # Merge PR when ready
+
+# Issue Management  
+gh issue create --title "bug: description"
+gh issue view 456
+gh issue list --state open
+
+# Repository Operations
+gh repo view                     # Repository info
+gh api repos/owner/repo/pulls    # Direct API access
+gh release create v1.0.0         # Create releases
+
+# Security & Code Scanning
+gh api repos/owner/repo/code-scanning/alerts  # CodeQL findings
+gh api repos/owner/repo/security-advisories   # Security advisories
+```
+
+**Use Cases for AI Assistants:**
+
+- Creating and managing pull requests programmatically
+- Checking CI/CD pipeline status and failures
+- Fetching CodeQL security findings for remediation
+- Managing issues and project workflow
+- Accessing GitHub API for complex repository operations
 
 ### Helpful Aliases
 
