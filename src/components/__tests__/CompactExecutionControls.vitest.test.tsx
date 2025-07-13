@@ -4,29 +4,15 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import CompactExecutionControls from '../CompactExecutionControls';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
 import { EmulationProvider } from '../../contexts/EmulationContext';
+import { createMockWorker } from '../../test-support/worker-test-helpers';
 
 describe('CompactExecutionControls component', () => {
-    let mockWorker: {
-        postMessage: Mock;
-        addEventListener: Mock;
-        removeEventListener: Mock;
-    };
+    let mockWorker: ReturnType<typeof createMockWorker>;
     let mockOnAddressChange: Mock;
     let mockOnAddressSubmit: Mock;
-    let messageHandlers: { [key: string]: ((e: MessageEvent) => void)[] };
     
     beforeEach(() => {
-        messageHandlers = {};
-        mockWorker = {
-            postMessage: vi.fn(),
-            addEventListener: vi.fn((event, handler) => {
-                if (!messageHandlers[event]) {
-                    messageHandlers[event] = [];
-                }
-                messageHandlers[event].push(handler);
-            }),
-            removeEventListener: vi.fn()
-        };
+        mockWorker = createMockWorker();
         mockOnAddressChange = vi.fn();
         mockOnAddressSubmit = vi.fn();
         
@@ -111,14 +97,11 @@ describe('CompactExecutionControls component', () => {
             });
             
             // Simulate the emulation context updating from worker message
-            const handler = messageHandlers.message[0];
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             expect(screen.getByRole('button', { name: /Run/ })).toBeInTheDocument();
@@ -136,14 +119,11 @@ describe('CompactExecutionControls component', () => {
             renderComponent();
             
             // First pause by sending emulation status from worker
-            const handler = messageHandlers.message[0];
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             const stepButton = screen.getByRole('button', { name: /Step/ });
@@ -159,12 +139,10 @@ describe('CompactExecutionControls component', () => {
             
             // Simulate worker returning to paused state after step
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             // Wait for it to return to paused
@@ -214,14 +192,12 @@ describe('CompactExecutionControls component', () => {
             renderComponent();
             
             // Simulate paused status from worker
-            const handler = messageHandlers.message[0];
+            // Using new mock helper
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             expect(screen.getByText('PAUSED')).toBeInTheDocument();
@@ -229,12 +205,10 @@ describe('CompactExecutionControls component', () => {
             
             // Simulate running status
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'running'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: false }
+                });
             });
             
             expect(screen.getByText('RUNNING')).toBeInTheDocument();
@@ -256,14 +230,12 @@ describe('CompactExecutionControls component', () => {
             renderComponent();
             
             // First pause by simulating worker message
-            const handler = messageHandlers.message[0];
+            // Using new mock helper
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             // Clear previous calls
@@ -281,14 +253,12 @@ describe('CompactExecutionControls component', () => {
             renderComponent();
             
             // First pause by simulating worker message
-            const handler = messageHandlers.message[0];
+            // Using new mock helper
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             // Clear previous calls
@@ -314,14 +284,12 @@ describe('CompactExecutionControls component', () => {
             renderComponent();
             
             // First pause by simulating worker message
-            const handler = messageHandlers.message[0];
+            // Using new mock helper
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             // Clear previous calls
@@ -401,14 +369,12 @@ describe('CompactExecutionControls component', () => {
             renderComponent();
             
             // First pause by simulating worker message
-            const handler = messageHandlers.message[0];
+            // Using new mock helper
             act(() => {
-                handler({
-                    data: {
-                        type: WORKER_MESSAGES.EMULATION_STATUS,
-                        data: 'paused'
-                    }
-                } as MessageEvent);
+                mockWorker.simulateMessage({
+                    type: WORKER_MESSAGES.EMULATION_STATUS,
+                    data: { paused: true }
+                });
             });
             
             const stepButton = screen.getByRole('button', { name: /Step/ });
