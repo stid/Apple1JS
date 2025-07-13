@@ -1,6 +1,5 @@
 import Main from './components/Main';
 import { createRoot } from 'react-dom/client';
-import { onCLS, onLCP } from 'web-vitals';
 import { LoggingProvider } from './contexts/LoggingContext';
 import { loggingService } from './services/LoggingService';
 
@@ -35,16 +34,9 @@ const renderApp = (worker: Worker) => {
     }
 };
 
-const initWebVitals = () => {
-    // Web vitals are still being collected but not logged to reduce startup noise
-    onCLS(() => {});
-    onLCP(() => {});
-};
-
 const main = () => {
     const appleWorker = createAppleWorker();
     renderApp(appleWorker);
-    initWebVitals();
 };
 
 main();
