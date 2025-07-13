@@ -124,6 +124,12 @@ export class WorkerManager {
         }
     }
 
+    async runToAddress(address: number): Promise<void> {
+        if (this.comlinkAPI) {
+            await this.comlinkAPI.runToAddress(address);
+        }
+    }
+
     async getBreakpoints(): Promise<number[] | void> {
         if (this.comlinkAPI) {
             return await this.comlinkAPI.getBreakpoints();
@@ -155,6 +161,18 @@ export class WorkerManager {
     async setDebuggerActive(active: boolean): Promise<void> {
         if (this.comlinkAPI) {
             await this.comlinkAPI.setDebuggerActive(active);
+        }
+    }
+
+    async setCycleAccurateMode(enabled: boolean): Promise<void> {
+        if (this.comlinkAPI) {
+            await this.comlinkAPI.setCycleAccurateMode(enabled);
+        }
+    }
+
+    async setCpuProfiling(enabled: boolean): Promise<void> {
+        if (this.comlinkAPI) {
+            await this.comlinkAPI.setCpuProfiling(enabled);
         }
     }
 
@@ -192,6 +210,20 @@ export class WorkerManager {
     async onLogMessage(callback: (data: LogMessageData) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
             return await this.comlinkAPI.onLogMessage(callback);
+        }
+        // Legacy mode removed
+    }
+
+    async onClockData(callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void): Promise<(() => void) | void> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.onClockData(callback);
+        }
+        // Legacy mode removed
+    }
+
+    async onRunToCursorTarget(callback: (target: number | null) => void): Promise<(() => void) | void> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.onRunToCursorTarget(callback);
         }
         // Legacy mode removed
     }

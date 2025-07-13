@@ -3,13 +3,14 @@ import App from './App';
 import { IInspectableComponent } from '../core/types';
 import { APP_VERSION } from '../version';
 import { typography, color, spacing } from '../styles/utils';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface MainProps {
-    worker: Worker;
+    workerManager: WorkerManager;
     apple1Instance: IInspectableComponent | null;
 }
 
-const Main: React.FC<MainProps> = ({ worker, apple1Instance }) => {
+const Main: React.FC<MainProps> = ({ workerManager, apple1Instance }) => {
     return (
         <div style={{
             width: '100%',
@@ -52,7 +53,7 @@ const Main: React.FC<MainProps> = ({ worker, apple1Instance }) => {
                 minHeight: 0,
                 padding: `${spacing('lg')} 0`,
             }}>
-                <App worker={worker} apple1Instance={apple1Instance} />
+                <App workerManager={workerManager} apple1Instance={apple1Instance} />
             </div>
         </div>
     );

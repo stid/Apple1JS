@@ -11,7 +11,7 @@ import WebWorkerKeyboard from './apple1/WebKeyboard';
 
 let apple1Instance: Apple1 | null = null;
 
-const renderApp = (worker: Worker) => {
+const renderApp = () => {
     const container = document.getElementById('app');
     if (container) {
         // Create a real Apple1 instance for inspector (not the worker one)
@@ -23,7 +23,7 @@ const renderApp = (worker: Worker) => {
         const root = createRoot(container);
         root.render(
             <LoggingProvider>
-                <Main worker={worker} apple1Instance={apple1Instance} />
+                <Main workerManager={workerManager} apple1Instance={apple1Instance} />
             </LoggingProvider>
         );
     } else {
@@ -32,8 +32,8 @@ const renderApp = (worker: Worker) => {
 };
 
 const main = async () => {
-    const appleWorker = await workerManager.initializeWorker();
-    renderApp(appleWorker);
+    await workerManager.initializeWorker();
+    renderApp();
 };
 
 main();

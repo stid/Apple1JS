@@ -1,33 +1,39 @@
-import { useState, useEffect, useCallback, JSX } from 'react';
-import { WORKER_MESSAGES, VideoData } from '../apple1/TSTypes';
+import { useState, useEffect, JSX } from 'react';
+import { VideoData } from '../apple1/TSTypes';
 import CRT from './CRT';
+import type { WorkerManager } from '../services/WorkerManager';
 
 type CRTWorkerProps = {
-    worker: Worker;
+    workerManager: WorkerManager;
 };
 
-const CRTWorker = ({ worker }: CRTWorkerProps): JSX.Element => {
+const CRTWorker = ({ workerManager }: CRTWorkerProps): JSX.Element => {
     const [videoData, setVideoData] = useState<VideoData>({
         buffer: [[0, ['']]],
         row: 0,
         column: 0,
     });
 
-    const handleWorkerMessage = useCallback((e: MessageEvent) => {
-        // Type guard for expected message structure
-        if (!e.data || typeof e.data !== 'object') return;
-        const { data, type } = e.data as { data: VideoData; type: WORKER_MESSAGES };
-        if (type === WORKER_MESSAGES.UPDATE_VIDEO_BUFFER) {
-            setVideoData(data);
-        }
-    }, []);
-
     useEffect(() => {
-        worker.addEventListener('message', handleWorkerMessage);
-        return () => {
-            worker.removeEventListener('message', handleWorkerMessage);
+        let unsubscribe: (() => void) | undefined;
+        
+        const setupVideoUpdates = async () => {
+            const result = await workerManager.onVideoUpdate((data: VideoData) => {
+                setVideoData(data);
+            });
+            if (result) {
+                unsubscribe = result;
+            }
         };
-    }, [worker, handleWorkerMessage]);
+        
+        setupVideoUpdates();
+        
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [workerManager]);
 
     return <CRT videoData={videoData} />;
 };

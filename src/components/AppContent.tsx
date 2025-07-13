@@ -4,7 +4,7 @@ import InspectorView from './InspectorView';
 import DebuggerLayout from './DebuggerLayout';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
-import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
+import { LogMessageData } from '../apple1/TSTypes';
 import Actions from './Actions';
 import AlertBadges from './AlertBadges';
 import AlertPanel from './AlertPanel';
@@ -12,9 +12,10 @@ import { useLogging } from '../contexts/LoggingContext';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
 import { IInspectableComponent } from '../core/types';
+import type { WorkerManager } from '../services/WorkerManager';
 
 type Props = {
-    worker: Worker;
+    workerManager: WorkerManager;
     apple1Instance?: IInspectableComponent | null;
 };
 
@@ -26,7 +27,7 @@ interface AppContentInnerProps extends Props {
 }
 
 const AppContentInner = ({ 
-    worker, 
+    workerManager, 
     apple1Instance,
     rightTab,
     setRightTab,
@@ -66,10 +67,10 @@ const AppContentInner = ({
             if (e.metaKey || e.ctrlKey || e.altKey) {
                 return;
             }
-            worker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });
+            workerManager.keyDown(e.key);
             e.preventDefault();
         },
-        [worker],
+        [workerManager],
     );
 
     const handlePaste = useCallback(
@@ -80,13 +81,13 @@ const AppContentInner = ({
                 text.split('').forEach((char, index) => {
                     setTimeout(() => {
                         const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
-                        worker.postMessage({ data: keyToSend, type: WORKER_MESSAGES.KEY_DOWN });
+                        workerManager.keyDown(keyToSend);
                     }, index * 160); // 160ms delay between each character
                 });
             }
             e.preventDefault();
         },
-        [worker],
+        [workerManager],
     );
 
     useEffect(() => {
@@ -107,56 +108,61 @@ const AppContentInner = ({
         focusHiddenInput();
     }, [focusHiddenInput]);
 
-    // Handle log messages from worker
+    // Handle log messages from worker via WorkerManager
     useEffect(() => {
-        const handleWorkerMessage = (event: MessageEvent) => {
-            if (event.data && event.data.type === WORKER_MESSAGES.LOG_MESSAGE) {
-                const logData = event.data.data as LogMessageData;
+        let unsubscribe: (() => void) | undefined;
+        
+        const setupLogMessages = async () => {
+            const result = await workerManager.onLogMessage((logData: LogMessageData) => {
                 addMessage({
                     level: logData.level,
                     source: logData.source,
                     message: logData.message
                 });
+            });
+            if (result) {
+                unsubscribe = result;
             }
         };
         
-        worker.addEventListener('message', handleWorkerMessage);
+        setupLogMessages();
+        
         return () => {
-            worker.removeEventListener('message', handleWorkerMessage);
+            if (unsubscribe) {
+                unsubscribe();
+            }
         };
-    }, [worker, addMessage]);
+    }, [workerManager, addMessage]);
 
     // Sync debugger active state with worker
     useEffect(() => {
         const isDebuggerActive = rightTab === 'debugger';
-        worker.postMessage({ data: isDebuggerActive, type: WORKER_MESSAGES.SET_DEBUGGER_ACTIVE });
-    }, [rightTab, worker]);
+        workerManager.setDebuggerActive(isDebuggerActive);
+    }, [rightTab, workerManager]);
 
     const handleSaveState = useCallback(
-        (e: React.MouseEvent<HTMLAnchorElement>) => {
+        async (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault();
-            // Request state from worker
-            const handleStateData = (event: MessageEvent) => {
-                if (event.data && event.data.type === WORKER_MESSAGES.STATE_DATA) {
-                    const state = event.data.data;
-                    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'apple1_state.json';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    }, 100);
-                    worker.removeEventListener('message', handleStateData);
-                }
-            };
-            worker.addEventListener('message', handleStateData);
-            worker.postMessage({ type: WORKER_MESSAGES.SAVE_STATE });
+            try {
+                // Get state from WorkerManager
+                const state = await workerManager.saveState();
+                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'apple1_state.json';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            } catch (error) {
+                console.error('Failed to save state:', error);
+                window.alert('Failed to save state.');
+            }
         },
-        [worker],
+        [workerManager],
     );
 
     const handleLoadState = useCallback(
@@ -167,7 +173,7 @@ const AppContentInner = ({
             reader.onload = (event) => {
                 try {
                     const state = JSON.parse(event.target?.result as string);
-                    worker.postMessage({ type: WORKER_MESSAGES.LOAD_STATE, data: state });
+                    workerManager.loadState(state);
                     // Reset input so selecting the same file again triggers change
                     e.target.value = '';
                 } catch {
@@ -176,7 +182,7 @@ const AppContentInner = ({
             };
             reader.readAsText(file);
         },
-        [worker],
+        [workerManager],
     );
 
     const handlePauseResume = useCallback(
@@ -199,7 +205,7 @@ const AppContentInner = ({
                 style={{ maxWidth: '538px' }}
             >
                 <div className="w-full flex justify-center" onClick={focusHiddenInput} role="presentation">
-                    <CRTWorker worker={worker} />
+                    <CRTWorker workerManager={workerManager} />
                 </div>
                 <div className="mt-md w-full">
                     <Actions
@@ -207,20 +213,17 @@ const AppContentInner = ({
                         onReset={useCallback(
                             (e) => {
                                 e.preventDefault();
-                                worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
+                                workerManager.keyDown('Tab');
                             },
-                            [worker],
+                            [workerManager],
                         )}
                         onBS={useCallback(
                             (e) => {
                                 e.preventDefault();
-                                worker.postMessage({
-                                    data: !supportBS,
-                                    type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG,
-                                });
+                                workerManager.setCrtBsSupport(!supportBS);
                                 setSupportBS((prev) => !prev);
                             },
-                            [worker, supportBS],
+                            [workerManager, supportBS],
                         )}
                         onSaveState={handleSaveState}
                         onLoadState={handleLoadState}
@@ -231,13 +234,10 @@ const AppContentInner = ({
                         onCycleAccurateTiming={useCallback(
                             (e) => {
                                 e.preventDefault();
-                                worker.postMessage({
-                                    data: !cycleAccurateTiming,
-                                    type: WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING,
-                                });
+                                workerManager.setCycleAccurateMode(!cycleAccurateTiming);
                                 setCycleAccurateTiming((prev) => !prev);
                             },
-                            [worker, cycleAccurateTiming],
+                            [workerManager, cycleAccurateTiming],
                         )}
                     />
                 </div>
@@ -301,7 +301,7 @@ const AppContentInner = ({
                     )}
                     {rightTab === 'inspector' && apple1Instance && (
                         <div className="overflow-auto h-full">
-                            <InspectorView root={apple1Instance} worker={worker} />
+                            <InspectorView root={apple1Instance} workerManager={workerManager} />
                         </div>
                     )}
                     {rightTab === 'inspector' && !apple1Instance && (
@@ -311,7 +311,7 @@ const AppContentInner = ({
                         <div className="h-full" style={{ overflow: 'hidden' }}>
                             <DebuggerLayout 
                                 root={apple1Instance} 
-                                worker={worker} 
+                                workerManager={workerManager} 
                                 initialNavigation={pendingNavigation}
                                 onNavigationHandled={() => setPendingNavigation(null)}
                                 memoryViewAddress={memoryViewAddress}
@@ -353,7 +353,7 @@ const AppContentInner = ({
     );
 };
 
-export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
+export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Element => {
     const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
     const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
     
@@ -373,12 +373,12 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
     
     return (
         <EmulationProvider 
-            worker={worker} 
+            workerManager={workerManager} 
             onBreakpointHit={handleBreakpointHit}
             onRunToCursorSet={handleRunToCursorSet}
         >
             <AppContentInner 
-                worker={worker} 
+                workerManager={workerManager} 
                 {...(apple1Instance !== undefined && { apple1Instance })}
                 rightTab={rightTab}
                 setRightTab={setRightTab}

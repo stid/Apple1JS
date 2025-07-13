@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/types/components';
-import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
+import { DebugData } from '../apple1/types/worker-messages';
 import { OPCODES } from '../constants/opcodes';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
-import { DEBUG_REFRESH_RATES } from '../constants/ui';
+import type { WorkerManager } from '../services/WorkerManager';
 
 import type { InspectableData } from '../core/types/components';
 
 interface InspectorViewProps {
     root: IInspectableComponent;
-    worker?: Worker;
+    workerManager?: WorkerManager;
 }
 
-const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
+    const [debugInfo] = useState<DebugData>({});
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
 
     // Helper function to translate hex opcode to human-readable mnemonic
@@ -25,46 +25,31 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         return opcodeInfo ? opcodeInfo.name : opcodeHex; // Fall back to hex if not found
     };
 
-    // Set up an interval to request debug information from the worker.
+    // TODO: Implement debug info polling with WorkerManager
+    // For now, debug info polling is disabled until we implement
+    // debug info subscriptions in WorkerManager
     useEffect(() => {
-        if (!worker) return;
+        // if (!workerManager) return;
         
-        const interval = setInterval(() => {
-            sendWorkerMessage(worker, WORKER_MESSAGES.DEBUG_INFO);
-        }, DEBUG_REFRESH_RATES.INSPECTOR);
-        return () => clearInterval(interval);
-    }, [worker]);
-
-    // Listen for messages from the worker and update the debugInfo state.
-    useEffect(() => {
-        if (!worker) return;
-        
-        const handleMessage = (e: MessageEvent) => {
-            const message = e.data;
-            if (!isWorkerMessage(message)) {
-                return;
-            }
-            
-            const { type } = message;
-            const data = 'data' in message ? message.data : undefined;
-            
-            if (type === WORKER_MESSAGES.DEBUG_INFO) {
-                setDebugInfo(data as DebugData);
-            }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
+        // Debug info polling would go here
+        // const interval = setInterval(() => {
+        //     workerManager.getDebugInfo();
+        // }, DEBUG_REFRESH_RATES.INSPECTOR);
+        // return () => clearInterval(interval);
+    }, [workerManager]);
 
 
 
     // Handler for profiling toggle
-    const handleProfilingToggle = () => {
+    const handleProfilingToggle = async () => {
         const newProfilingState = !profilingEnabled;
         setProfilingEnabled(newProfilingState);
-        if (worker) {
-            sendWorkerMessage(worker, WORKER_MESSAGES.SET_CPU_PROFILING, newProfilingState);
+        if (workerManager) {
+            try {
+                await workerManager.setCpuProfiling(newProfilingState);
+            } catch (error) {
+                console.error('Failed to toggle CPU profiling:', error);
+            }
         }
     };
 
@@ -213,13 +198,13 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                         {filteredConfigEntries.map(([k, v]) => {
                             const isDebugData = k in debugData;
                             const formattedValue = formatValue(k, v as string | number | boolean);
-                            return worker ? (
+                            return workerManager ? (
                                 <RegisterRow 
                                     key={k} 
                                     label={k} 
                                     value={formattedValue}
                                     type={isDebugData ? getDataType(k) : 'status'}
-                                    worker={worker}
+                                    workerManager={workerManager}
                                 />
                             ) : (
                                 <RegisterRow 
@@ -371,8 +356,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     CPU Registers
                 </h3>
                 <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
-                    {worker ? (
-                        <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" worker={worker} />
+                    {workerManager ? (
+                        <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" workerManager={workerManager} />
                     ) : (
                         <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" />
                     )}
@@ -396,11 +381,11 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     Memory & I/O
                 </h3>
                 <div className="space-y-sm">
-                    {worker ? (
+                    {workerManager ? (
                         <>
-                            <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" worker={worker} />
-                            <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" worker={worker} />
-                            <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" worker={worker} />
+                            <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" workerManager={workerManager} />
+                            <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" workerManager={workerManager} />
+                            <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" workerManager={workerManager} />
                         </>
                     ) : (
                         <>
@@ -417,8 +402,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     <RegisterRow label="IRQ_PENDING" value={cpuRegisterData.irqPending} type="flag" />
                     <RegisterRow label="NMI_PENDING" value={cpuRegisterData.nmiPending} type="flag" />
                     <RegisterRow label="EXEC_TMP" value={cpuRegisterData.execTmp} type="value" />
-                    {worker ? (
-                        <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" worker={worker} />
+                    {workerManager ? (
+                        <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" workerManager={workerManager} />
                     ) : (
                         <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" />
                     )}
