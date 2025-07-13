@@ -42,12 +42,8 @@ globalThis.addEventListener('beforeunload', () => {
  * This wraps the existing WorkerAPI and adds event subscription support
  */
 class ComlinkWorkerAPI implements IWorkerAPI {
+    // Only keep videoCallbacks for hybrid mode
     private videoCallbacks = new Set<(data: VideoData) => void>();
-    private breakpointCallbacks = new Set<(address: number) => void>();
-    private statusCallbacks = new Set<(status: 'running' | 'paused') => void>();
-    private logCallbacks = new Set<(data: LogMessageData) => void>();
-    private clockCallbacks = new Set<(data: { cycles: number; frequency: number; totalCycles: number }) => void>();
-    private runToCursorCallbacks = new Set<(target: number | null) => void>();
 
     constructor(private api: WorkerAPI) {
         // Set up internal event handlers that will notify callbacks
@@ -70,18 +66,9 @@ class ComlinkWorkerAPI implements IWorkerAPI {
             if (typeof message === 'object' && message !== null && 'type' in message) {
                 const workerMessage = message as WorkerMessage;
                 
-                // Also trigger Comlink callbacks based on message type
-                if (workerMessage.type === WORKER_MESSAGES.BREAKPOINT_HIT && 'data' in workerMessage) {
-                    this.breakpointCallbacks.forEach(cb => cb(workerMessage.data as number));
-                } else if (workerMessage.type === WORKER_MESSAGES.EMULATION_STATUS && 'data' in workerMessage) {
-                    const data = workerMessage.data as { paused: boolean };
-                    const status = data.paused ? 'paused' : 'running';
-                    this.statusCallbacks.forEach(cb => cb(status));
-                } else if (workerMessage.type === WORKER_MESSAGES.LOG_MESSAGE && 'data' in workerMessage) {
-                    this.logCallbacks.forEach(cb => cb(workerMessage.data as LogMessageData));
-                } else if (workerMessage.type === WORKER_MESSAGES.UPDATE_VIDEO_BUFFER && 'data' in workerMessage) {
-                    // For now, video updates still go through postMessage only
-                    // We'll handle callbacks in Phase 2
+                // Only handle video updates here for hybrid mode
+                if (workerMessage.type === WORKER_MESSAGES.UPDATE_VIDEO_BUFFER && 'data' in workerMessage) {
+                    this.videoCallbacks.forEach(cb => cb(workerMessage.data as VideoData));
                 }
             }
         };
@@ -109,53 +96,41 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
 
-    // Event subscription methods
+    // Event subscription methods - forward to underlying WorkerAPI with Comlink proxy
     onVideoUpdate(callback: (data: VideoData) => void): () => void {
         const proxiedCallback = Comlink.proxy(callback);
+        const unsubscribe = this.api.onVideoUpdate(proxiedCallback);
+        // Also track for hybrid mode
         this.videoCallbacks.add(proxiedCallback);
         return () => {
+            unsubscribe();
             this.videoCallbacks.delete(proxiedCallback);
         };
     }
 
     onBreakpointHit(callback: (address: number) => void): () => void {
         const proxiedCallback = Comlink.proxy(callback);
-        this.breakpointCallbacks.add(proxiedCallback);
-        return () => {
-            this.breakpointCallbacks.delete(proxiedCallback);
-        };
+        return this.api.onBreakpointHit(proxiedCallback);
     }
 
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
         const proxiedCallback = Comlink.proxy(callback);
-        this.statusCallbacks.add(proxiedCallback);
-        return () => {
-            this.statusCallbacks.delete(proxiedCallback);
-        };
+        return this.api.onEmulationStatus(proxiedCallback);
     }
 
     onLogMessage(callback: (data: LogMessageData) => void): () => void {
         const proxiedCallback = Comlink.proxy(callback);
-        this.logCallbacks.add(proxiedCallback);
-        return () => {
-            this.logCallbacks.delete(proxiedCallback);
-        };
+        return this.api.onLogMessage(proxiedCallback);
     }
 
     onClockData(callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void): () => void {
         const proxiedCallback = Comlink.proxy(callback);
-        this.clockCallbacks.add(proxiedCallback);
-        return () => {
-            this.clockCallbacks.delete(proxiedCallback);
-        };
+        return this.api.onClockData(proxiedCallback);
     }
 
     onRunToCursorTarget(callback: (target: number | null) => void): () => void {
         const proxiedCallback = Comlink.proxy(callback);
-        this.runToCursorCallbacks.add(proxiedCallback);
-        return () => {
-            this.runToCursorCallbacks.delete(proxiedCallback);
-        };
+        return this.api.onRunToCursorTarget(proxiedCallback);
     }
 }
 

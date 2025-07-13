@@ -5,15 +5,13 @@ import type { VideoData } from './types/video';
 import type { 
     DebugData, 
     MemoryMapData, 
-    LogMessageData, 
-    WORKER_MESSAGES,
+    LogMessageData,
     ClockData
 } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
 
-// Declare postMessage for worker context
-declare function postMessage(message: unknown, transfer?: Transferable[]): void;
+// Note: postMessage no longer needed - using callbacks instead
 
 /**
  * WorkerAPI implements the IWorkerAPI interface and provides
@@ -21,7 +19,33 @@ declare function postMessage(message: unknown, transfer?: Transferable[]): void;
  * This replaces the large switch statement with a cleaner API.
  */
 export class WorkerAPI implements IWorkerAPI {
-    constructor(private workerState: WorkerState) {}
+    // Event callback storage
+    private videoCallbacks = new Set<(data: VideoData) => void>();
+    private breakpointCallbacks = new Set<(address: number) => void>();
+    private statusCallbacks = new Set<(status: 'running' | 'paused') => void>();
+    private logCallbacks = new Set<(data: LogMessageData) => void>();
+    private clockCallbacks = new Set<(data: ClockData) => void>();
+    private runToCursorCallbacks = new Set<(target: number | null) => void>();
+    
+    constructor(private workerState: WorkerState) {
+        // Set up internal event subscriptions
+        this.setupInternalSubscriptions();
+    }
+    
+    /**
+     * Set up subscriptions to internal components for event distribution
+     */
+    private setupInternalSubscriptions(): void {
+        // Subscribe to video updates
+        if (this.workerState.video && typeof this.workerState.video.subscribe === 'function') {
+            this.workerState.video.subscribe((data: VideoData) => {
+                this.videoCallbacks.forEach(cb => cb(data));
+            });
+        }
+        
+        // Note: LoggingService doesn't have subscribe method
+        // Log messages will need to be handled differently or LoggingService needs to be extended
+    }
     
     /**
      * Filter debug data to only include string and number values for backward compatibility
@@ -47,11 +71,8 @@ export class WorkerAPI implements IWorkerAPI {
             this.workerState.updateDebuggerState(true);
         }
         
-        // Send status update
-        postMessage({ 
-            data: { paused: true }, 
-            type: 'EMULATION_STATUS' as unknown as WORKER_MESSAGES
-        });
+        // Notify status callbacks
+        this.statusCallbacks.forEach(cb => cb('paused'));
     }
     
     resumeEmulation(): void {
@@ -63,11 +84,8 @@ export class WorkerAPI implements IWorkerAPI {
             this.workerState.updateDebuggerState(true);
         }
         
-        // Send status update
-        postMessage({ 
-            data: { paused: false }, 
-            type: 'EMULATION_STATUS' as unknown as WORKER_MESSAGES
-        });
+        // Notify status callbacks
+        this.statusCallbacks.forEach(cb => cb('running'));
     }
     
     step(): DebugData {
@@ -86,10 +104,7 @@ export class WorkerAPI implements IWorkerAPI {
         
         // Check if we hit a breakpoint after stepping (at the new PC)
         if (this.workerState.breakpoints.has(this.workerState.apple1.cpu.PC)) {
-            postMessage({
-                data: this.workerState.apple1.cpu.PC,
-                type: 'BREAKPOINT_HIT' as unknown as WORKER_MESSAGES
-            });
+            this.breakpointCallbacks.forEach(cb => cb(this.workerState.apple1.cpu.PC));
         }
         
         // Return debug info, filtering out boolean and object values for backward compatibility
@@ -164,11 +179,8 @@ export class WorkerAPI implements IWorkerAPI {
         // Store the run-to-cursor target
         this.workerState.runToCursorTarget = targetAddress;
         
-        // Notify UI about the run-to-cursor target
-        postMessage({ 
-            data: this.workerState.runToCursorTarget, 
-            type: 'RUN_TO_CURSOR_TARGET' as unknown as WORKER_MESSAGES
-        });
+        // Notify callbacks about the run-to-cursor target
+        this.runToCursorCallbacks.forEach(cb => cb(this.workerState.runToCursorTarget));
         
         // Set up a temporary execution hook for run-to-address
         let runToAddressHit = false;
@@ -184,14 +196,8 @@ export class WorkerAPI implements IWorkerAPI {
                 // Hit a breakpoint - pause execution
                 this.workerState.apple1.clock.pause();
                 this.workerState.isPaused = true;
-                postMessage({ 
-                    data: { paused: true }, 
-                    type: 'EMULATION_STATUS' as unknown as WORKER_MESSAGES
-                });
-                postMessage({ 
-                    data: pc, 
-                    type: 'BREAKPOINT_HIT' as unknown as WORKER_MESSAGES
-                });
+                this.statusCallbacks.forEach(cb => cb('paused'));
+                this.breakpointCallbacks.forEach(cb => cb(pc));
                 loggingService.log('info', 'Breakpoint', 
                     `Hit breakpoint at ${Formatters.address(pc)}`);
                 return false; // Halt execution
@@ -208,14 +214,8 @@ export class WorkerAPI implements IWorkerAPI {
                 // Restore normal breakpoint hook
                 this.workerState.updateBreakpointHook();
                 // Send notifications
-                postMessage({ 
-                    data: { paused: true }, 
-                    type: 'EMULATION_STATUS' as unknown as WORKER_MESSAGES
-                });
-                postMessage({ 
-                    data: null, 
-                    type: 'RUN_TO_CURSOR_TARGET' as unknown as WORKER_MESSAGES
-                });
+                this.statusCallbacks.forEach(cb => cb('paused'));
+                this.runToCursorCallbacks.forEach(cb => cb(null));
                 loggingService.log('info', 'RunToAddress', 
                     `Reached target address ${Formatters.address(targetAddress)}`);
                 return false; // Halt execution
@@ -228,10 +228,7 @@ export class WorkerAPI implements IWorkerAPI {
         if (this.workerState.isPaused) {
             this.workerState.apple1.clock.resume();
             this.workerState.isPaused = false;
-            postMessage({ 
-                data: { paused: false }, 
-                type: 'EMULATION_STATUS' as unknown as WORKER_MESSAGES
-            });
+            this.statusCallbacks.forEach(cb => cb('running'));
         }
         
         loggingService.log('info', 'RunToAddress', 
@@ -365,45 +362,45 @@ export class WorkerAPI implements IWorkerAPI {
     // ========== Event Subscriptions ==========
     // These will be implemented in Phase 1 with Comlink.proxy
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onVideoUpdate(_callback: (data: VideoData) => void): () => void {
-        // TODO: Implement with Comlink.proxy in Phase 1
-        console.warn('onVideoUpdate not yet implemented - coming in Phase 1');
-        return () => {};
+    onVideoUpdate(callback: (data: VideoData) => void): () => void {
+        this.videoCallbacks.add(callback);
+        return () => {
+            this.videoCallbacks.delete(callback);
+        };
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onBreakpointHit(_callback: (address: number) => void): () => void {
-        // TODO: Implement with Comlink.proxy in Phase 1
-        console.warn('onBreakpointHit not yet implemented - coming in Phase 1');
-        return () => {};
+    onBreakpointHit(callback: (address: number) => void): () => void {
+        this.breakpointCallbacks.add(callback);
+        return () => {
+            this.breakpointCallbacks.delete(callback);
+        };
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onEmulationStatus(_callback: (status: 'running' | 'paused') => void): () => void {
-        // TODO: Implement with Comlink.proxy in Phase 1
-        console.warn('onEmulationStatus not yet implemented - coming in Phase 1');
-        return () => {};
+    onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
+        this.statusCallbacks.add(callback);
+        return () => {
+            this.statusCallbacks.delete(callback);
+        };
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onLogMessage(_callback: (data: LogMessageData) => void): () => void {
-        // TODO: Implement with Comlink.proxy in Phase 1
-        console.warn('onLogMessage not yet implemented - coming in Phase 1');
-        return () => {};
+    onLogMessage(callback: (data: LogMessageData) => void): () => void {
+        this.logCallbacks.add(callback);
+        return () => {
+            this.logCallbacks.delete(callback);
+        };
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onClockData(_callback: (data: ClockData) => void): () => void {
-        // TODO: Implement with Comlink.proxy in Phase 1
-        console.warn('onClockData not yet implemented - coming in Phase 1');
-        return () => {};
+    onClockData(callback: (data: ClockData) => void): () => void {
+        this.clockCallbacks.add(callback);
+        return () => {
+            this.clockCallbacks.delete(callback);
+        };
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onRunToCursorTarget(_callback: (target: number | null) => void): () => void {
-        // TODO: Implement with Comlink.proxy in Phase 1
-        console.warn('onRunToCursorTarget not yet implemented - coming in Phase 1');
-        return () => {};
+    onRunToCursorTarget(callback: (target: number | null) => void): () => void {
+        this.runToCursorCallbacks.add(callback);
+        return () => {
+            this.runToCursorCallbacks.delete(callback);
+        };
     }
 }
