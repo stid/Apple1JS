@@ -287,10 +287,35 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 4. **Don't hardcode colors** - Use design tokens (except CRT display)
 5. **Remember version bump** - Required for every PR
 
-## 📊 Current Focus Areas
+## 📊 Architecture Modernization Roadmap
+
+### ✅ **Completed (Phase 1)**
+- **Jest to Vitest Migration** - All 601 tests migrated with 100% pass rate
+- **Modern Testing Infrastructure** - ~2x faster execution, better DX
+- **Worker Test Mocking** - Sophisticated manual mocks for complex scenarios
+- **Type Safety Improvements** - Full TypeScript strict mode compliance
+
+### 🚀 **Next Priority (Phase 1 Continuation)**
+1. **Restore type-check to CI pipeline** - Re-enable after migration
+2. **Implement Comlink for worker communication** - Type-safe worker messaging  
+3. **Create base classes for common patterns** - Reduce code duplication
+4. **Add comprehensive error handling** - Robust error boundaries
+
+### 🔄 **Phase 2: Core Optimizations**
+- **Split CPU6502.ts into modules** - Better maintainability  
+- **Optimize React contexts (memoization)** - Performance improvements
+- **Create EmulationAPI abstraction layer** - Clean architecture
+- **Extract test utilities** - Reusable testing patterns
+
+### 📈 **Phase 3: Advanced Features**
+- **Add Web Vitals monitoring** - Performance insights
+- **Implement performance optimizations** - Runtime improvements  
+- **Add E2E tests with Playwright** - Integration testing
+- **Complete formatter migration** - Consistent code style
+
+### 🎯 **Current User Experience Focus**
 
 From `docs/active/user_experience_analysis.md`:
-
 - Execution control (step/breakpoints)
 - Memory search functionality
 - Watch expressions
