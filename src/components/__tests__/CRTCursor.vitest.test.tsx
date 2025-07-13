@@ -1,9 +1,9 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect , vi} from 'vitest';
 import { render, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CRTCursor from '../CRTCursor';
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe('CRTCursor', () => {
     it('should toggle visibility with the blink interval', () => {
@@ -18,13 +18,13 @@ describe('CRTCursor', () => {
         expect(getCursorOpacity()).toBe('1');
 
         act(() => {
-            jest.advanceTimersByTime(530); // UI_TIMINGS.CURSOR_BLINK_RATE
+            vi.advanceTimersByTime(530); // UI_TIMINGS.CURSOR_BLINK_RATE
         });
         rerender(<CRTCursor row={0} column={0} />);
         expect(getCursorOpacity()).toBe('0');
 
         act(() => {
-            jest.advanceTimersByTime(530); // UI_TIMINGS.CURSOR_BLINK_RATE
+            vi.advanceTimersByTime(530); // UI_TIMINGS.CURSOR_BLINK_RATE
         });
         rerender(<CRTCursor row={0} column={0} />);
         expect(getCursorOpacity()).toBe('1');

@@ -6,13 +6,13 @@ describe('RAM', function () {
     let testRam: RAM;
     beforeEach(function () {
         testRam = new RAM();
-        vi.spyOn(loggingService, 'warn').mockImplementation();
-        vi.spyOn(loggingService, 'info').mockImplementation();
-        vi.spyOn(loggingService, 'error').mockImplementation();
+        vi.spyOn(loggingService, 'warn').mockImplementation(() => {});
+        vi.spyOn(loggingService, 'info').mockImplementation(() => {});
+        vi.spyOn(loggingService, 'error').mockImplementation(() => {});
     });
 
     afterEach(function () {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
     test('Should flash', function () {
         // Should load at 0x0280

@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, beforeEach, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import Main from '../Main';
 import { IInspectableComponent } from '../../core/types/components';

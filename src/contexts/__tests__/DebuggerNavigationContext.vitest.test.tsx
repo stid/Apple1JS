@@ -1,5 +1,5 @@
-import { describe, test, expect, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
 import { act } from '@testing-library/react';
@@ -25,7 +25,7 @@ const TestComponent: React.FC = () => {
 describe('DebuggerNavigationContext', () => {
     describe('useDebuggerNavigation hook', () => {
         it('should throw error when used outside provider', () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
             
             const TestError = () => {
                 try {

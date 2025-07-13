@@ -44,7 +44,7 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
         }
         
         previousCountsRef.current = { ...counts };
-    }, [counts.info, counts.warn, counts.error]);
+    }, [counts]);
 
     const Badge = ({ 
         count, 

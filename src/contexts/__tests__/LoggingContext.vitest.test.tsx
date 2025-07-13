@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, beforeEach, afterEach, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { LoggingProvider, useLogging } from '../LoggingContext';
 import { loggingService } from '../../services/LoggingService';
 import type { LogHandler } from '../../services/types';
@@ -42,18 +42,18 @@ describe('LoggingContext', () => {
         vi.spyOn(loggingService, 'removeHandler').mockImplementation((handler) => {
             handlers = handlers.filter(h => h !== handler);
         });
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
     
     afterEach(() => {
         vi.clearAllMocks();
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
     
     describe('useLogging hook', () => {
         it('should throw error when used outside LoggingProvider', () => {
             // Suppress console.error for this test
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
             
             const TestError = () => {
                 try {
@@ -120,14 +120,11 @@ describe('LoggingContext', () => {
                 handler('info', 'TestSource', 'Test message from service');
             });
             
-            // Wait for batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('1');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('1');
             
             const messages = screen.getAllByTestId(/^message-[^c]/);
             expect(messages).toHaveLength(1);
@@ -149,14 +146,11 @@ describe('LoggingContext', () => {
                 addButton.click();
             });
             
-            // Wait for batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('1');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('1');
         });
         
         it('should batch messages and increment count for duplicates', async () => {
@@ -177,12 +171,10 @@ describe('LoggingContext', () => {
             
             // Wait for batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('1');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('1');
             
             const messages = screen.getAllByTestId(/^message-[^c]/);
             expect(messages).toHaveLength(1);
@@ -204,14 +196,11 @@ describe('LoggingContext', () => {
                 handler('error', 'Source3', 'Message 3');
             });
             
-            // Wait for batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('3');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('3');
         });
         
         it('should enforce maximum message limit', async () => {
@@ -229,20 +218,18 @@ describe('LoggingContext', () => {
                     handler('info', 'Source', `Message ${i}`);
                     // Process batch every 100 messages to avoid huge pending map
                     if (i % 100 === 0) {
-                        jest.advanceTimersByTime(10);
+                        vi.advanceTimersByTime(10);
                     }
                 }
             });
             
             // Final batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                const count = screen.getByTestId('message-count').textContent;
-                expect(parseInt(count || '0')).toBeLessThanOrEqual(1000);
-            });
+            const count = screen.getByTestId('message-count').textContent;
+            expect(parseInt(count || '0')).toBeLessThanOrEqual(1000);
         });
     });
     
@@ -263,14 +250,11 @@ describe('LoggingContext', () => {
                 handler('info', 'Source2', 'Message 2');
             });
             
-            // Wait for batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('2');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('2');
             
             // Clear messages
             act(() => {
@@ -304,7 +288,7 @@ describe('LoggingContext', () => {
             
             // Now let batch timer run
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
             // Should still be empty
@@ -329,14 +313,11 @@ describe('LoggingContext', () => {
                 handler('info', 'Source2', 'Message 2');
             });
             
-            // Wait for batch update
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('2');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('2');
             
             // Remove first message
             act(() => {
@@ -379,26 +360,24 @@ describe('LoggingContext', () => {
             
             const handler = handlers[0];
             
-            // Add messages in quick succession
+            // Add messages in quick succession (timer resets with each new message)
             act(() => {
                 handler('info', 'Source', 'Message');
-                jest.advanceTimersByTime(5); // Half the batch delay
-                handler('info', 'Source', 'Message'); // Same message
-                jest.advanceTimersByTime(3);
-                handler('info', 'Source', 'Message'); // Same message again
+                vi.advanceTimersByTime(5); // Half the batch delay
+                handler('info', 'Source', 'Message'); // Same message - timer resets
+                vi.advanceTimersByTime(3);
+                handler('info', 'Source', 'Message'); // Same message again - timer resets
             });
             
-            // Messages should not be visible yet
+            // Messages should not be visible yet (last timer needs 10ms from last message)
             expect(screen.getByTestId('message-count')).toHaveTextContent('0');
             
-            // Complete the batch delay
+            // Complete the batch delay (need 10ms from last message at 8ms total)
             act(() => {
-                jest.advanceTimersByTime(2);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('1');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('1');
             
             // Should have count of 3
             const messages = screen.getAllByTestId(/^message-[^c]/);
@@ -424,7 +403,7 @@ describe('LoggingContext', () => {
             unmount();
             
             // Verify timer was cleared
-            expect(jest.getTimerCount()).toBe(0);
+            expect(vi.getTimerCount()).toBe(0);
         });
     });
     
@@ -443,24 +422,21 @@ describe('LoggingContext', () => {
                 handler('info', 'Source', 'Duplicate message');
             });
             
-            // Process first batch
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
-            await waitFor(() => {
-                expect(screen.getByTestId('message-count')).toHaveTextContent('1');
-            });
+            expect(screen.getByTestId('message-count')).toHaveTextContent('1');
             
             // Add same message later
             act(() => {
-                jest.advanceTimersByTime(1000); // Advance time significantly
+                vi.advanceTimersByTime(1000); // Advance time significantly
                 handler('info', 'Source', 'Duplicate message');
             });
             
             // Process second batch
             act(() => {
-                jest.advanceTimersByTime(10);
+                vi.advanceTimersByTime(10);
             });
             
             // Should still have only one message but with updated count

@@ -1,5 +1,5 @@
-import { describe, test, expect, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, afterEach, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Actions, { ActionsProps } from '../Actions';
 

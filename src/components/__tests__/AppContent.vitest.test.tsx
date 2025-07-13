@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { AppContent } from '../AppContent';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
@@ -49,14 +49,14 @@ vi.mock('../../contexts/LoggingContext', () => ({
 
 vi.mock('../../contexts/DebuggerNavigationContext', () => ({
     useDebuggerNavigation: () => ({
-        subscribeToNavigation: jest.fn(() => () => {})
+        subscribeToNavigation: vi.fn(() => () => {})
     })
 }));
 
 interface MockWorker {
-    postMessage: jest.Mock;
-    addEventListener: jest.Mock;
-    removeEventListener: jest.Mock;
+    postMessage: Mock;
+    addEventListener: Mock;
+    removeEventListener: Mock;
 }
 
 describe('AppContent', () => {
@@ -70,13 +70,13 @@ describe('AppContent', () => {
         };
 
         // Mock timers for setTimeout tests
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {
         vi.clearAllMocks();
-        jest.runOnlyPendingTimers();
-        jest.useRealTimers();
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
     });
 
     describe('Paste Functionality', () => {
@@ -103,7 +103,7 @@ describe('AppContent', () => {
 
             // Fast-forward timers to trigger all setTimeout calls
             act(() => {
-                jest.runAllTimers();
+                vi.runAllTimers();
             });
 
 
@@ -137,7 +137,7 @@ describe('AppContent', () => {
             mockWorker.postMessage.mockClear();
 
             act(() => {
-                jest.runAllTimers();
+                vi.runAllTimers();
             });
 
             // Should send: A, Enter, B
@@ -168,7 +168,7 @@ describe('AppContent', () => {
             mockWorker.postMessage.mockClear();
 
             act(() => {
-                jest.runAllTimers();
+                vi.runAllTimers();
             });
 
             // Should send: A, Enter, B
@@ -196,7 +196,7 @@ describe('AppContent', () => {
             mockWorker.postMessage.mockClear();
 
             act(() => {
-                jest.runAllTimers();
+                vi.runAllTimers();
             });
 
             // Should not send any messages for empty paste
@@ -220,7 +220,7 @@ describe('AppContent', () => {
             mockWorker.postMessage.mockClear();
 
             act(() => {
-                jest.runAllTimers();
+                vi.runAllTimers();
             });
 
             // Should not send any messages when no clipboardData
@@ -252,7 +252,7 @@ describe('AppContent', () => {
             
             // Advance timer by 1ms - no characters should be sent yet since first is at 0ms already
             act(() => {
-                jest.advanceTimersByTime(1);
+                vi.advanceTimersByTime(1);
             });
             expect(mockWorker.postMessage).toHaveBeenCalledTimes(1);
             expect(mockWorker.postMessage).toHaveBeenLastCalledWith({
@@ -262,7 +262,7 @@ describe('AppContent', () => {
 
             // Advance timer to 160ms (second character)
             act(() => {
-                jest.advanceTimersByTime(159);
+                vi.advanceTimersByTime(159);
             });
             expect(mockWorker.postMessage).toHaveBeenCalledTimes(2);
             expect(mockWorker.postMessage).toHaveBeenLastCalledWith({
@@ -272,7 +272,7 @@ describe('AppContent', () => {
 
             // Advance timer to 320ms (third character)
             act(() => {
-                jest.advanceTimersByTime(160);
+                vi.advanceTimersByTime(160);
             });
             expect(mockWorker.postMessage).toHaveBeenCalledTimes(3);
             expect(mockWorker.postMessage).toHaveBeenLastCalledWith({

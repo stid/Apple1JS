@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import AddressLink from '../AddressLink';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
@@ -13,7 +13,7 @@ vi.mock('../../contexts/DebuggerNavigationContext', () => ({
 }));
 
 describe('AddressLink component', () => {
-    let mockWorker: { postMessage: jest.Mock };
+    let mockWorker: { postMessage: Mock };
     
     beforeEach(() => {
         mockWorker = {

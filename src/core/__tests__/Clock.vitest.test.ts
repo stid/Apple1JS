@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
 import Clock from '../Clock';
 import wait from 'waait';
 
@@ -7,7 +7,7 @@ declare const performance: { now(): number };
 vi.mock('waait');
 
 describe('Clock', () => {
-    let mockPerformanceNow: jest.SpyInstance;
+    let mockPerformanceNow: ReturnType<typeof vi.spyOn>;
     
     beforeEach(() => {
         vi.clearAllMocks();
@@ -37,7 +37,7 @@ describe('Clock', () => {
     });
 
     test('should notify subscribers with timer mocks', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
 
         const clock = new Clock();
         const subscriber = vi.fn();
@@ -47,17 +47,17 @@ describe('Clock', () => {
 
         clock.startLoop();
 
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
 
         clock.stopLoop();
 
         expect(subscriber).toHaveBeenCalledTimes(2);
 
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     test('should use high-resolution timing with performance.now()', async () => {
-        const mockWait = wait as jest.MockedFunction<typeof wait>;
+        const mockWait = wait as MockedFunction<typeof wait>;
         let waitCallCount = 0;
         mockWait.mockImplementation(() => {
             waitCallCount++;
@@ -82,7 +82,7 @@ describe('Clock', () => {
     });
 
     test('should support pause and resume functionality', async () => {
-        const mockWait = wait as jest.MockedFunction<typeof wait>;
+        const mockWait = wait as MockedFunction<typeof wait>;
         let waitCallCount = 0;
         mockWait.mockImplementation(() => {
             waitCallCount++;
@@ -131,7 +131,7 @@ describe('Clock', () => {
     });
 
     test('should calculate drift and apply compensation', async () => {
-        const mockWait = wait as jest.MockedFunction<typeof wait>;
+        const mockWait = wait as MockedFunction<typeof wait>;
         let waitCallCount = 0;
         let time = 0;
         
@@ -155,7 +155,7 @@ describe('Clock', () => {
     });
 
     test('should handle maxed cycles correctly', async () => {
-        const mockWait = wait as jest.MockedFunction<typeof wait>;
+        const mockWait = wait as MockedFunction<typeof wait>;
         let waitCallCount = 0;
         
         mockWait.mockImplementation(() => {
@@ -197,7 +197,7 @@ describe('Clock', () => {
     });
 
     test('should reset state on stopLoop', async () => {
-        const mockWait = wait as jest.MockedFunction<typeof wait>;
+        const mockWait = wait as MockedFunction<typeof wait>;
         let waitCallCount = 0;
         
         mockWait.mockImplementation(() => {

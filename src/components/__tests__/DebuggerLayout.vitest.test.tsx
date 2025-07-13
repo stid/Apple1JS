@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DebuggerLayout from '../DebuggerLayout';
 import { IInspectableComponent } from '../../core/types/components';
@@ -46,8 +46,8 @@ describe('DebuggerLayout', () => {
 
     let memoryViewAddress: number;
     let disassemblerAddress: number;
-    const setMemoryViewAddress = jest.fn((addr: number) => { memoryViewAddress = addr; });
-    const setDisassemblerAddress = jest.fn((addr: number) => { disassemblerAddress = addr; });
+    const setMemoryViewAddress = vi.fn((addr: number) => { memoryViewAddress = addr; });
+    const setDisassemblerAddress = vi.fn((addr: number) => { disassemblerAddress = addr; });
 
     beforeEach(() => {
         vi.clearAllMocks();

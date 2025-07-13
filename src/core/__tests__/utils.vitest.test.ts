@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect } from 'vitest';
 import { bitClear, bitSet, bitTest, bitToggle } from '../utils';
 
 describe('bitManipulation', () => {

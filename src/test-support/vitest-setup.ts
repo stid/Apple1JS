@@ -55,4 +55,8 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     arc: vi.fn(),
     rect: vi.fn(),
     clip: vi.fn(),
+    canvas: {
+        width: 800,
+        height: 600
+    }
 })) as any;

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '../../test-utils/render';
 import MemoryViewerPaginated from '../MemoryViewerPaginated';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
@@ -16,7 +16,7 @@ describe('MemoryViewerPaginated', () => {
         vi.clearAllMocks();
         
         // Capture the message handler
-        mockWorker.addEventListener = jest.fn((event: string, handler: EventListenerOrEventListenerObject) => {
+        mockWorker.addEventListener = vi.fn((event: string, handler: EventListenerOrEventListenerObject) => {
             if (event === 'message' && typeof handler === 'function') {
                 messageHandler = handler as (event: MessageEvent) => void;
             }

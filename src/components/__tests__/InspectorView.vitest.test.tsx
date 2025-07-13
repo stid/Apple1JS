@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { render, screen, act } from '../../test-utils/render';
 import InspectorView from '../InspectorView';
 import { IInspectableComponent } from '../../core/types/components';
@@ -47,12 +47,12 @@ describe('InspectorView component', () => {
             onmessageerror: null,
         } as unknown as Worker;
 
-        jest.useFakeTimers();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {
         vi.clearAllMocks();
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     it('should render architecture section', () => {
@@ -100,7 +100,7 @@ describe('InspectorView component', () => {
         
         // Fast forward time to trigger the interval
         act(() => {
-            jest.advanceTimersByTime(1000); // DEBUG_REFRESH_RATES.INSPECTOR is 1000ms
+            vi.advanceTimersByTime(1000); // DEBUG_REFRESH_RATES.INSPECTOR is 1000ms
         });
 
         expect(mockWorker.postMessage).toHaveBeenCalledWith({
@@ -138,7 +138,7 @@ describe('InspectorView component', () => {
         const { rerender } = render(<InspectorView root={mockInspectableWithCPU} worker={mockWorker} />);
         
         // Simulate receiving debug data for CPU
-        const addEventListener = mockWorker.addEventListener as jest.Mock;
+        const addEventListener = mockWorker.addEventListener as Mock;
         const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
         
         if (messageHandler) {
@@ -176,7 +176,7 @@ describe('InspectorView component', () => {
     it('should handle empty debug data gracefully', () => {
         render(<InspectorView root={mockInspectable} worker={mockWorker} />);
         
-        const addEventListener = mockWorker.addEventListener as jest.Mock;
+        const addEventListener = mockWorker.addEventListener as Mock;
         const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
         
         if (messageHandler) {
@@ -303,7 +303,7 @@ describe('InspectorView component', () => {
         const { rerender } = render(<InspectorView root={mockInspectableWithCPU6502} worker={mockWorker} />);
         
         // Simulate receiving debug data for CPU6502 component
-        const addEventListener = mockWorker.addEventListener as jest.Mock;
+        const addEventListener = mockWorker.addEventListener as Mock;
         const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
         
         if (messageHandler) {

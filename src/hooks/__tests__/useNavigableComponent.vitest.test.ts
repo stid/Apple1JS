@@ -1,4 +1,4 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useNavigableComponent } from '../useNavigableComponent';
 

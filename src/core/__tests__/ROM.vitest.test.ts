@@ -7,13 +7,13 @@ describe('ROM', function () {
 
     beforeEach(function () {
         testRom = new ROM();
-        vi.spyOn(loggingService, 'warn').mockImplementation();
-        vi.spyOn(loggingService, 'info').mockImplementation();
-        vi.spyOn(loggingService, 'error').mockImplementation();
+        vi.spyOn(loggingService, 'warn').mockImplementation(() => {});
+        vi.spyOn(loggingService, 'info').mockImplementation(() => {});
+        vi.spyOn(loggingService, 'error').mockImplementation(() => {});
     });
 
     afterEach(function () {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     test('Should bulk load', function () {

@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/jest-globals';
+import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CompactExecutionControls from '../CompactExecutionControls';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
@@ -7,19 +7,19 @@ import { EmulationProvider } from '../../contexts/EmulationContext';
 
 describe('CompactExecutionControls component', () => {
     let mockWorker: {
-        postMessage: jest.Mock;
-        addEventListener: jest.Mock;
-        removeEventListener: jest.Mock;
+        postMessage: Mock;
+        addEventListener: Mock;
+        removeEventListener: Mock;
     };
-    let mockOnAddressChange: jest.Mock;
-    let mockOnAddressSubmit: jest.Mock;
+    let mockOnAddressChange: Mock;
+    let mockOnAddressSubmit: Mock;
     let messageHandlers: { [key: string]: ((e: MessageEvent) => void)[] };
     
     beforeEach(() => {
         messageHandlers = {};
         mockWorker = {
             postMessage: vi.fn(),
-            addEventListener: jest.fn((event, handler) => {
+            addEventListener: vi.fn((event, handler) => {
                 if (!messageHandlers[event]) {
                     messageHandlers[event] = [];
                 }

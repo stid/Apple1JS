@@ -1,12 +1,12 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loggingService } from '../LoggingService';
 import { ErrorHandler } from '../../core/errors';
 import type { LogHandler } from '../types';
 
 describe('LoggingService', () => {
-    let consoleLogSpy: jest.SpyInstance;
-    let consoleWarnSpy: jest.SpyInstance;
-    let consoleErrorSpy: jest.SpyInstance;
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         // Clear any existing handlers
@@ -14,14 +14,14 @@ describe('LoggingService', () => {
         service.handlers = [];
         
         // Spy on console methods
-        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation();
-        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
-        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
+        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
         vi.clearAllMocks();
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     describe('log method', () => {
