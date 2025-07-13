@@ -2,10 +2,7 @@ import Main from './components/Main';
 import { createRoot } from 'react-dom/client';
 import { LoggingProvider } from './contexts/LoggingContext';
 import { loggingService } from './services/LoggingService';
-
-const createAppleWorker = (): Worker => {
-    return new Worker(new URL('./apple1/Apple.worker.ts', import.meta.url), { type: 'module' });
-};
+import { workerManager } from './services/WorkerManager';
 
 // Import Apple1 and dependencies for inspector
 import Apple1 from './apple1';
@@ -34,8 +31,8 @@ const renderApp = (worker: Worker) => {
     }
 };
 
-const main = () => {
-    const appleWorker = createAppleWorker();
+const main = async () => {
+    const appleWorker = await workerManager.initializeWorker();
     renderApp(appleWorker);
 };
 
