@@ -51,19 +51,8 @@ export class WorkerManager {
                 }
             };
         } else {
-            // Load the legacy postMessage-based worker
-            this.worker = new Worker(
-                new URL('../apple1/Apple.worker.ts', import.meta.url),
-                { type: 'module' }
-            );
-            
-            // Set up message handler for all messages
-            this.worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
-                const handler = this.messageHandlers.get(e.data.type);
-                if (handler && 'data' in e.data) {
-                    handler(e.data.data);
-                }
-            };
+            // Legacy implementation has been removed
+            throw new Error('Legacy postMessage worker implementation has been removed. Please set USE_COMLINK_WORKER to true in config.ts');
         }
 
         return this.worker;
