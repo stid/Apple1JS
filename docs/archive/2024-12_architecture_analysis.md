@@ -45,7 +45,7 @@ These are my notes from looking at the Apple1JS architecture - places where I co
 
 ### Recommended UI Improvements
 
-**1. Typography System**
+#### 1. Typography System
 
 ```typescript
 // Design tokens for consistent typography
@@ -71,7 +71,7 @@ const typography = {
 };
 ```
 
-**2. Color System Enhancement**
+#### 2. Color System Enhancement
 
 ```typescript
 // Semantic color palette
@@ -100,7 +100,7 @@ const colors = {
 };
 ```
 
-**3. Spacing System**
+#### 3. Spacing System
 
 ```typescript
 // Consistent spacing scale
@@ -114,7 +114,7 @@ const spacing = {
 };
 ```
 
-**4. Component Layout Improvements**
+#### 4. Component Layout Improvements
 
 _Inspector Panel Structure:_
 
@@ -148,7 +148,7 @@ _Inspector Panel Structure:_
 </div>
 ```
 
-**5. Data Display Components**
+#### 5. Data Display Components
 
 ```typescript
 // Consistent data formatting

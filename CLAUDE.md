@@ -17,18 +17,18 @@ yarn test:ci
 
 # 4. Check current version
 cat src/version.ts  # Current: 4.21.0
-```
+```bash
 
 ## 🎯 Essential Context
 
-**What is Apple1JS?**
+### What is Apple1JS?
 
 - Browser-based Apple 1 emulator (TypeScript/React)
 - Cycle-accurate 6502 CPU emulation
 - Worker-based architecture for performance
 - Comprehensive debugging tools
 
-**Project Philosophy**
+### Project Philosophy
 
 - Personal hobby project - no deadlines or sprints
 - For learning and exploration
@@ -37,19 +37,24 @@ cat src/version.ts  # Current: 4.21.0
 
 ## 📍 Navigation Shortcuts
 
-**Need to understand the system?**
+### Need to understand the system?
+
 → `docs/active/architecture.md`
 
-**Looking for a specific component?**
+### Looking for a specific component?
+
 → Check module structure in architecture.md
 
-**Want to see what's in progress?**
+### Want to see what's in progress?
+
 → `docs/active/user_experience_analysis.md`
 
-**Need type definitions?**
+### Need type definitions?
+
 → `src/core/types/` or `src/apple1/types/`
 
-**Testing guidelines?**
+### Testing guidelines?
+
 → `docs/active/cpu_test_guidelines.md`
 
 ## 🛠️ Common Tasks
@@ -69,7 +74,7 @@ cat src/version.ts  # Current: 4.21.0
 
 ### Finding Where Something Lives
 
-```
+```text
 src/
 ├── core/        # Emulation engine (CPU, Bus, Memory)
 ├── apple1/      # System integration, Worker
@@ -77,7 +82,7 @@ src/
 ├── services/    # Logging, Worker comm, State persistence
 ├── contexts/    # React state management
 └── hooks/       # Reusable React patterns
-```
+```text
 
 ## ✅ Before ANY Commit
 
@@ -87,7 +92,13 @@ src/
     yarn run lint && yarn run type-check && yarn run test:ci
     ```
 
-2. **Update version** (MANDATORY before PR):
+2. **Fix markdown documentation**:
+
+    ```bash
+    yarn run lint:md:fix  # Auto-fix markdown issues
+    ```
+
+3. **Update version** (MANDATORY before PR):
 
     ```bash
     # Edit src/version.ts
@@ -96,7 +107,8 @@ src/
     # Major: 4.21.0 → 5.0.0 (breaking changes)
     ```
 
-3. **Commit with conventional format**:
+4. **Commit with conventional format**:
+
     ```bash
     git add -A
     git commit -m "type: description"  # feat:, fix:, docs:, etc.
@@ -120,7 +132,7 @@ src/
 ```typescript
 // Type-safe messaging
 sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
-```
+```typescript
 
 ### Component Inspection
 
@@ -146,12 +158,14 @@ From `docs/active/user_experience_analysis.md`:
 
 ## 🔗 Quick References
 
-**Documentation Hub**: `docs/README.md`
-**Architecture**: `docs/active/architecture.md`
-**Current Work**: `docs/active/standardization-progress.md`
-**Test Guidelines**: `docs/active/cpu_test_guidelines.md`
+### Documentation
 
-**External**:
+- **Documentation Hub**: `docs/README.md`
+- **Architecture**: `docs/active/architecture.md`
+- **Current Work**: `docs/active/standardization-progress.md`
+- **Test Guidelines**: `docs/active/cpu_test_guidelines.md`
+
+### External Resources
 
 - [6502 Opcodes](http://www.6502.org/tutorials/6502opcodes.html)
 - [Apple-1 Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
@@ -159,3 +173,13 @@ From `docs/active/user_experience_analysis.md`:
 ---
 
 💡 **Remember**: This is a learning project. If something seems interesting to explore, let's do it! Keep suggestions informal and frame them as opportunities to learn rather than requirements.
+
+## 📝 Markdown Documentation Rule
+
+**IMPORTANT**: After creating or editing any markdown files, always run:
+
+```bash
+yarn run lint:md:fix
+```
+
+This automatically fixes most formatting issues and ensures consistent documentation.

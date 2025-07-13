@@ -6,7 +6,7 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript and 
 
 ## Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Browser UI Thread                         │
 ├─────────────────────────────────────────────────────────────────┤
@@ -63,23 +63,26 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript and 
 ## Core Architecture Principles
 
 ### 1. Separation of Concerns
+
 - **UI Thread**: React components, user interaction, display rendering
 - **Worker Thread**: CPU emulation, memory management, system timing
 - **Message Protocol**: Type-safe communication between threads
 
 ### 2. Component-Based Design
+
 - Each hardware component implements standardized interfaces
 - Components are composable and inspectable
 - State management is versioned and migratable
 
 ### 3. Type Safety
+
 - Comprehensive TypeScript types throughout
 - Discriminated unions for message passing
 - Type-safe state serialization
 
 ## Module Structure
 
-```
+```text
 src/
 ├── core/               # Core emulation engine
 │   ├── types/         # Core type definitions
@@ -137,7 +140,9 @@ src/
 ## Key Interfaces
 
 ### IInspectableComponent
+
 Every hardware component implements this interface for debugging:
+
 ```typescript
 interface IInspectableComponent {
     id: string;
@@ -149,7 +154,9 @@ interface IInspectableComponent {
 ```
 
 ### IVersionedStatefulComponent
+
 Components with state implement this for serialization:
+
 ```typescript
 interface IVersionedStatefulComponent<TState> {
     saveState(options?: StateOptions): TState;
@@ -163,7 +170,9 @@ interface IVersionedStatefulComponent<TState> {
 ```
 
 ### IClockable
+
 Components that respond to clock cycles:
+
 ```typescript
 interface IClockable {
     getCompletedCycles(): number;
@@ -205,13 +214,17 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 ## State Management
 
 ### Component State
+
 Each component manages its own state with versioning:
+
 - Current versions: CPU (v3.0), RAM/ROM (v2.0), PIA (v3.0), Clock (v2.0), Apple1 (v2.0)
 - Migration support for backward compatibility
 - Validation ensures state integrity
 
 ### UI State
+
 React contexts manage UI-level state:
+
 - **EmulationContext**: Execution control, breakpoints, debugging
 - **DebuggerNavigationContext**: Component navigation
 - **LoggingContext**: UI logging with history
@@ -219,16 +232,19 @@ React contexts manage UI-level state:
 ## Performance Considerations
 
 ### Web Worker Isolation
+
 - CPU emulation runs in separate thread
 - Prevents UI blocking during execution
 - Message batching reduces overhead
 
 ### Update Optimization
+
 - Components use standardized refresh rates
 - Virtual scrolling for large data sets
 - Memoization prevents unnecessary re-renders
 
 ### Memory Efficiency
+
 - Typed arrays for memory storage
 - Efficient bit manipulation for CPU flags
 - Minimal object allocation in hot paths
@@ -236,6 +252,7 @@ React contexts manage UI-level state:
 ## Debugging Features
 
 ### Integrated Debugger
+
 - Real-time CPU state inspection
 - Memory viewer with hex editor
 - Disassembler with execution tracking
@@ -243,6 +260,7 @@ React contexts manage UI-level state:
 - Breakpoint management
 
 ### Component Inspector
+
 - Hierarchical view of all components
 - Real-time state inspection
 - Performance metrics
@@ -251,18 +269,21 @@ React contexts manage UI-level state:
 ## Code Standards
 
 ### TypeScript
+
 - Strict mode enabled
 - Comprehensive type coverage
 - No `any` types
 - Discriminated unions for variants
 
 ### React Patterns
+
 - Functional components with hooks
 - Proper memoization
 - Context for cross-cutting concerns
 - Custom hooks for reusable logic
 
 ### Testing
+
 - Unit tests for core components
 - Integration tests for complex features
 - ~90% coverage for critical paths
@@ -271,6 +292,7 @@ React contexts manage UI-level state:
 ## Future Extensibility
 
 The architecture supports:
+
 - Additional peripherals (cassette, printer)
 - Different CPU speeds
 - Alternative ROM images

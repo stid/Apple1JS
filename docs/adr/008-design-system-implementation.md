@@ -20,11 +20,13 @@ Implement design tokens system with:
 ## Consequences
 
 ### Positive
+
 - Consistent UI
 - Easier maintenance
 - Better user experience
 
 ### Negative
+
 - Initial refactoring effort
 - Ongoing token maintenance
 

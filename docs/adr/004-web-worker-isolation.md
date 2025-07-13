@@ -15,11 +15,13 @@ Run emulation in Web Worker, communicate via structured messages.
 ## Consequences
 
 ### Positive
+
 - Non-blocking UI
 - Better performance
 - Clean separation of concerns
 
 ### Negative
+
 - Complexity of message passing
 - Serialization overhead
 

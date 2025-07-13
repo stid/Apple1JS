@@ -21,11 +21,13 @@ Maintain strict mode configuration with all strict checks enabled, including:
 ## Consequences
 
 ### Positive
+
 - Catches more errors at compile time
 - Better IDE support
 - Safer refactoring
 
 ### Negative
+
 - None significant, as the codebase was already compliant
 
 ## Implementation

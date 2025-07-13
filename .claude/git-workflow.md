@@ -2,14 +2,16 @@
 
 ## MANDATORY Git Workflow - ALWAYS Follow These Steps
 
-### Before Making ANY Changes:
+### Before Making ANY Changes
 
 1. **Check Current Branch**
+
    ```bash
    git branch --show-current
    ```
 
 2. **If on master/main, CREATE A FEATURE BRANCH**
+
    ```bash
    git checkout -b <type>/<description>
    # Examples:
@@ -19,34 +21,38 @@
    # docs/update-readme
    ```
 
-### When Making Changes:
+### When Making Changes
 
-3. **Make Changes and Stage**
+1. **Make Changes and Stage**
+
    ```bash
    git add <files>
    # or
    git add -A  # for all changes
    ```
 
-4. **Commit with Descriptive Message**
+2. **Commit with Descriptive Message**
+
    ```bash
    git commit -m "<type>: <description>"
    ```
 
-5. **Update Version (if needed)**
+3. **Update Version (if needed)**
    - Always update src/version.ts before creating PR
    - Patch: bug fixes (4.12.1 → 4.12.2)
    - Minor: new features (4.12.0 → 4.13.0)
    - Major: breaking changes (4.0.0 → 5.0.0)
 
-### Creating Pull Request:
+### Creating Pull Request
 
-6. **Push Feature Branch**
+1. **Push Feature Branch**
+
    ```bash
    git push -u origin <branch-name>
    ```
 
-7. **Create PR**
+2. **Create PR**
+
    ```bash
    gh pr create --title "<type>: <description>" --body "..."
    ```
@@ -63,7 +69,7 @@
 
 ## Commit Message Format
 
-```
+```text
 <type>: <subject>
 
 <body>

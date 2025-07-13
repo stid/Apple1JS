@@ -20,11 +20,13 @@ Centralized LoggingService with:
 ## Consequences
 
 ### Positive
+
 - Clean production logs
 - UI integration capability
 - Consistent format
 
 ### Negative
+
 - Requires discipline to use LoggingService instead of console.log
 
 ## Implementation

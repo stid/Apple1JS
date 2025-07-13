@@ -16,7 +16,7 @@ You can try out the emulator in your browser with the [Interactive Demo](https:/
 
 To run the emulator locally on your computer, you'll need to install the required packages with the following command in the repo folder:
 
-```ssh
+```bash
 yarn install
 ```
 

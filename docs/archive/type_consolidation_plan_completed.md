@@ -3,6 +3,7 @@
 ## Current State
 
 Types are currently scattered across multiple locations:
+
 - `src/@types/` - Contains only Config.ts
 - `src/types/` - Contains only logging.ts  
 - `src/core/@types/` - Core emulation types
@@ -13,7 +14,7 @@ Types are currently scattered across multiple locations:
 
 Consolidate all types into a unified structure under `src/types/`:
 
-```
+```text
 src/types/
 ├── index.ts              # Re-exports all types
 ├── config.ts             # App configuration

@@ -20,11 +20,13 @@ Implement a centralized error handling system with:
 ## Consequences
 
 ### Positive
+
 - Consistent error handling across all components
 - Better debugging with clear error context
 - Type-safe error handling
 
 ### Negative
+
 - Slight overhead from error object creation
 - Requires updating all error throw statements
 

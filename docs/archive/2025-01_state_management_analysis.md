@@ -60,7 +60,7 @@ useEffect(() => {
     navigateTo(externalAddress);
   }
 }, [externalAddress, navigateTo]);
-```
+```typescript
 
 **Impact**:
 
@@ -79,7 +79,7 @@ const [pendingNavigation, setPendingNavigation] = useState<...>
 // DebuggerLayout receives and clears it
 initialNavigation={pendingNavigation}
 onNavigationHandled={() => setPendingNavigation(null)}
-```
+```typescript
 
 **Impact**:
 

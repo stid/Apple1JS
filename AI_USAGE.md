@@ -5,9 +5,9 @@ This project leverages agentic AI tools to accelerate development, experimentati
 ## 🛠️ Tools Used
 
 - **Claude Console** (Anthropic)
-    - Used for: code generation, refactoring, documentation drafting, and test scaffolding
+  - Used for: code generation, refactoring, documentation drafting, and test scaffolding
 - **Other AI Assistants** (as applicable)
-    - e.g., GitHub Copilot, ChatGPT, etc.
+  - e.g., GitHub Copilot, ChatGPT, etc.
 
 ## 🧠 Philosophy
 

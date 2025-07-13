@@ -15,11 +15,13 @@ Each component implements saveState()/loadState() methods with versioned formats
 ## Consequences
 
 ### Positive
+
 - Clean state persistence
 - Backward compatibility support
 - Version migration capability
 
 ### Negative
+
 - Version management complexity
 - Serialization overhead
 

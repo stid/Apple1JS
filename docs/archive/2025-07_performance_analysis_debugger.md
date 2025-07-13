@@ -43,14 +43,14 @@ Components poll for memory data even when:
 
 ## Performance Impact
 
-### CPU Overhead Sources:
+### CPU Overhead Sources
 
 1. **Worker Message Processing**: ~10 messages/second minimum
 2. **Data Serialization**: Converting debug objects to messages
 3. **React Re-renders**: Each message triggers component updates
 4. **Memory Reads**: Continuous memory range requests for disassembly
 
-### Estimated Overhead:
+### Estimated Overhead
 
 - Base: 10 msgs/sec × 2ms/msg = 20ms/sec (2% CPU)
 - With multiple tabs: Can reach 5-10% CPU usage

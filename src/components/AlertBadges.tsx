@@ -82,9 +82,9 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
 
         if (count === 0) {
             return (
-                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${bgColors[level]} border ${borderColors[level]} opacity-40`}>
-                    <span className="text-[10px]">{icons[level]}</span>
-                    <span className={`text-[10px] font-mono ${textColors[level]}`}>0</span>
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${bgColors[level]} border ${borderColors[level]} opacity-40`}>
+                    <span className="text-xs">{icons[level]}</span>
+                    <span className={`text-xs font-mono ${textColors[level]}`}>0</span>
                 </div>
             );
         }
@@ -94,7 +94,7 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
         return (
             <button
                 onClick={onClick}
-                className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${bgColors[level]} border ${borderColors[level]} hover:opacity-80 transition-opacity ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-md ${bgColors[level]} border ${borderColors[level]} hover:opacity-80 transition-opacity ${
                     isAnimating ? 'animate-pulse ring-2 ring-offset-1 ring-offset-surface-primary' : ''
                 } ${
                     level === 'info' && isAnimating ? 'ring-semantic-info' : 
@@ -103,8 +103,8 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
                 }`}
                 title={`View ${count} ${level} message${count > 1 ? 's' : ''}`}
             >
-                <span className="text-[10px]">{icons[level]}</span>
-                <span className={`text-[10px] font-mono font-semibold ${textColors[level]}`}>{count}</span>
+                <span className="text-xs">{icons[level]}</span>
+                <span className={`text-xs font-mono font-semibold ${textColors[level]}`}>{count}</span>
             </button>
         );
     };

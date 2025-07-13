@@ -254,12 +254,14 @@ Both IRQ and NMI correctly implement 7-cycle timing.
 1. **Cycle Counting Consistency:** Some instructions add cycles in addressing modes, others in instruction methods. This doesn't affect accuracy but could be standardized for maintainability.
 
 2. **JMP Indirect Timing:** The implementation has:
+
     ```typescript
     jmp(): void {
         this.PC = this.addr;
         this.cycles--;  // Subtracts 1 cycle
     }
     ```
+
     This is correct for JMP indirect (6 cycles from ind() minus 1 = 5 cycles), but the comment could be clearer.
 
 ### No Critical Issues Found

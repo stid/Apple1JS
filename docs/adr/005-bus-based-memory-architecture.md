@@ -15,11 +15,13 @@ Central Bus component with binary search and LRU cache for address resolution.
 ## Consequences
 
 ### Positive
+
 - Flexible memory mapping
 - Good performance with caching
 - Clean abstraction
 
 ### Negative
+
 - Additional indirection layer
 - Cache management complexity
 

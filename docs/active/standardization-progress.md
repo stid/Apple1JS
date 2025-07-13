@@ -1,26 +1,32 @@
 # Apple1JS Standardization Progress
 
 ## Overview
+
 This document tracks the ongoing standardization efforts in the Apple1JS codebase, focusing on improving consistency, maintainability, and code organization.
 
 ## Completed Work
 
 ### 1. ✅ Debugger Fixes (v4.18.1-4.18.2)
-**Issues Fixed:**
+
+#### Issues Fixed
+
 - Register values (Y, SP) showing stale/undefined values during stepping
 - Assembly view not following cursor when stepping to out-of-view addresses
 - Standardized PC property naming between `PC` and `REG_PC`
 
-**Key Changes:**
+#### Key Changes
+
 - Worker now sends complete CPU debug data (`cpu.toDebug()`) instead of just PC
 - EmulationContext checks for both `REG_PC` and `PC` for compatibility
 - Simplified stepping state management to avoid race conditions
 - CPU's `toDebug()` now provides both formatted (`REG_*`) and raw numeric values
 
 ### 2. ✅ Unified Formatting Utilities (v4.18.3)
+
 **Created:** `src/utils/formatters.ts`
 
-**Key Functions:**
+#### Key Functions
+
 - `hex(value, width)` - Core hex formatting
 - `hexByte(value)` - Format as $XX
 - `hexWord(value)` - Format as $XXXX
@@ -29,7 +35,8 @@ This document tracks the ongoing standardization efforts in the Apple1JS codebas
 - `flag(value)` - Returns "SET" or "CLR"
 - `decimal(value)` - Number with thousand separators
 
-**Components Migrated:**
+#### Components Migrated
+
 - CPU6502 - Uses Formatters in `toDebug()`
 - Bus - Uses Formatters for address ranges
 - PIA6820 - Uses Formatters for register display
@@ -39,13 +46,17 @@ This document tracks the ongoing standardization efforts in the Apple1JS codebas
 **Progress:** ~10 of 97 hex formatting instances migrated
 
 ### 3. ✅ Type Organization Phase 1 (v4.18.4)
-**Consolidated Global Types:**
+
+#### Consolidated Global Types
+
 - Removed duplicate `/src/types/config.ts`
 - Moved `/src/@types/Config.ts` → `/src/types/config.ts`
 - Created `/src/types/index.ts` for clean exports
 
-**Organized Core Types:**
+#### Organized Core Types
+
 Created `/src/core/types/` with focused modules:
+
 - `bus.ts` - IoAddressable, BusSpaceType, BusComponentMetadata
 - `cpu.ts` - CPU6502State, DisassemblyLine, TraceEntry, debug types
 - `clock.ts` - IClockable, TimingStats
@@ -54,30 +65,37 @@ Created `/src/core/types/` with focused modules:
 - `pubsub.ts` - subscribeFunction, PubSub interface
 - `index.ts` - Re-exports all core types
 
-**Updated Core Imports:**
+#### Updated Core Imports
+
 - CPU6502, Bus, PIA6820 now use new type locations
 - Fixed type compatibility issues
 - Added TODO markers for gradual migration
 
 ### 4. ✅ Type Organization Phase 2 (v4.18.5)
-**Completed Module Type Migrations:**
+
+#### Completed Module Type Migrations
 
 #### Apple1 Module (`/src/apple1/types/`)
+
 Created organized structure:
+
 - `emulator-state.ts` - EmulatorState, RAMBankState, PIAState, VideoState
 - `video.ts` - VideoBuffer, VideoData, VideoOut types
 - `worker-messages.ts` - WORKER_MESSAGES enum, WorkerMessage union, message types
 - `index.ts` - Clean exports for all types
 
 #### Components Module (`/src/components/types/`)
+
 - `char-rom.ts` - CHARROM type for character ROM data
 - `index.ts` - Exports with TODO for future consolidation
 
 #### Services Module (`/src/services/types/`)
+
 - `logging.ts` - LogHandler type
 - `index.ts` - Exports with TODO for future additions
 
-**Key Changes:**
+#### Key Changes
+
 - All `@types/` subdirectories removed
 - TSTypes.ts now re-exports from new structure for backward compatibility
 - Updated imports in ~15 files to use new paths
@@ -86,27 +104,33 @@ Created organized structure:
 ## Completed Work (Continued)
 
 ### 5. ✅ Complete Formatter Migration (v4.19.0)
+
 **Status:** All 97 instances completed
 
 **Migration Summary:**
+
 - ✅ All components now use unified formatters from `src/utils/formatters.ts`
 - ✅ Eliminated all `toString(16)` patterns (except in tests and formatters.ts itself)
 - ✅ Consistent hex formatting across the entire codebase
 - ✅ Type-safe formatting with proper width parameters
 
 **Key Improvements:**
+
 - Consistent hex formatting with appropriate width parameters (1, 2, 4 digits)
 - Improved null safety using nullish coalescing over optional chaining
 - Eliminated manual toString(16).padStart().toUpperCase() patterns
 - Centralized formatting logic for easier maintenance
 
 ### 6. ✅ Worker Communication Type Safety (v4.18.7)
-**Issues Fixed:**
+
+#### Issues Fixed
+
 - Messages now fully type-safe with discriminated union
 - Payload structures strictly typed per message type
 - Components migrated to use type-safe messaging functions
 
-**Key Changes:**
+#### Key Changes
+
 - Enhanced `WorkerMessage` discriminated union with strict typing
 - Added `ClockData` interface replacing `unknown` type
 - Created type-safe message creation and sending utilities:
@@ -120,6 +144,7 @@ Created organized structure:
 - Fixed all TypeScript errors and test failures
 
 **Type Safety Improvements:**
+
 ```typescript
 // Before: any payload type
 worker.postMessage({ type: WORKER_MESSAGES.SET_BREAKPOINT, data: address });
@@ -131,13 +156,16 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 ## Pending Standardizations
 
 ### 7. ✅ State Management Interface (v4.18.8)
+
 **Issues Addressed:**
+
 - Inconsistent state serialization across components
 - No standardized validation or version handling
 - Missing state integrity checking
 - Lack of migration support for backward compatibility
 
-**Key Changes:**
+#### Key Changes
+
 - Created comprehensive `IStatefulComponent<T>` interface with:
   - `saveState(options?)` - Configurable state serialization
   - `loadState(state, options?)` - Validation and migration support
@@ -159,6 +187,7 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
   - `dirtyOnCall` - Decorator for automatic dirty marking
 
 **Type Safety Benefits:**
+
 ```typescript
 // Before: No validation, manual error handling
 cpu.loadState(someState);
@@ -171,6 +200,7 @@ if (validation.valid) {
 ```
 
 **Components Implemented:**
+
 - ✅ **CPU6502** - Full `IVersionedStatefulComponent` implementation with v3.0 state schema
 - ✅ **RAM** - `IVersionedStatefulComponent` with v2.0 state schema including:
   - Comprehensive state validation with byte-level checks
@@ -208,16 +238,19 @@ if (validation.valid) {
   - Migration from legacy save format with component-level delegation
 
 ### 8. ✅ Component Update Patterns (v4.19.0)
+
 **Status:** Completed
 
 **Created:** `src/constants/ui.ts`
 
 **Key Constants:**
+
 - `DEBUG_REFRESH_RATES` - Standardized refresh rates for debug components
 - `UI_TIMINGS` - Animation and effect timings
 - `UPDATE_PATTERNS` - Component update strategies
 
 **Implementation:**
+
 ```typescript
 export const DEBUG_REFRESH_RATES = {
   CPU_STATUS: 100,     // CPU register updates
@@ -243,24 +276,28 @@ export const DEBUG_REFRESH_RATES = {
 
 ## Code Quality Metrics
 
-### Before Standardization:
+### Before Standardization
+
 - Type definitions in 3+ locations
 - 97 inline hex formatting implementations
 - Inconsistent naming (PC vs REG_PC)
 - Mixed formatting patterns
 
-### After Standardization (Partial):
+### After Standardization (Partial)
+
 - Clear type hierarchy established
 - Unified formatting utilities created
 - Core components migrated to new structure
 - Backward compatibility maintained
 
 ## Git Branch
+
 All work is on: `refactor/architecture-improvements`
 
 ## Notes for Next Session
 
 When resuming:
+
 1. Check `git status` to ensure clean working directory
 2. Review this document for context
 3. Run `yarn run lint && yarn run type-check` to verify current state
@@ -283,16 +320,20 @@ grep -r "from.*@types/" src --include="*.ts" --include="*.tsx"
 ```
 
 ---
+
 ### 9. ✅ Type Migration Completion (v4.20.0)
+
 **Status:** Completed on 2025-01-08
 
 **Migration Summary:**
+
 - ✅ Removed `src/core/@types/` directory entirely
 - ✅ Updated all imports (18 component files, 13 test files)
 - ✅ Added missing `isInspectableComponent` helper to `components.ts`
 - ✅ All tests passing with new structure
 
-**Key Changes:**
+#### Key Changes
+
 - Migrated IInspectableComponent imports from `@types/` to `types/components`
 - Migrated BusSpaceType imports from `@types/IoAddressable` to `types/bus`
 - Removed InspectableArchView (unused, replaced by ArchViewNode)

@@ -6,7 +6,7 @@ This document describes the type system organization and hierarchy in Apple1JS. 
 
 ## Type Organization Structure
 
-```
+```text
 src/
 ├── types/                    # Global shared types
 │   ├── config.ts            # Application configuration
@@ -155,6 +155,7 @@ IoLogic<TInput, TOutput>
 ### 1. Discriminated Unions
 
 Used for type-safe message handling:
+
 ```typescript
 type WorkerMessage =
   | { type: WORKER_MESSAGES.KEY_DOWN; data: string }
@@ -166,6 +167,7 @@ type WorkerMessage =
 ### 2. Generic Constraints
 
 Used for component interfaces:
+
 ```typescript
 interface IStatefulComponent<TState extends StateBase> {
     saveState(options?: StateOptions): TState;
@@ -176,6 +178,7 @@ interface IStatefulComponent<TState extends StateBase> {
 ### 3. Type Guards
 
 Used for runtime type checking:
+
 ```typescript
 function isWorkerMessage(data: unknown): data is WorkerMessage {
     return typeof data === 'object' && 
@@ -188,6 +191,7 @@ function isWorkerMessage(data: unknown): data is WorkerMessage {
 ### 4. Utility Types
 
 Common patterns extracted:
+
 ```typescript
 // Extract payload type for a message
 type ExtractPayload<T extends WORKER_MESSAGES> = 
@@ -210,6 +214,7 @@ type WithBusMetadata<T> = T & {
 The type migration from `src/core/@types/` to the new structure has been **completed**. All imports have been updated and the old `@types` directory has been removed.
 
 **Migration Summary**:
+
 - ✅ All types moved to their appropriate locations
 - ✅ All imports updated (18 component files, 13 test files)
 - ✅ `isInspectableComponent` helper added to `components.ts`
@@ -217,6 +222,7 @@ The type migration from `src/core/@types/` to the new structure has been **compl
 - ✅ All tests passing
 
 **Import Changes**:
+
 - `import { IInspectableComponent } from '../core/@types/IInspectableComponent'`  
   → `import { IInspectableComponent } from '../core/types/components'`
 - `import { BusSpaceType } from '../@types/IoAddressable'`  
@@ -224,7 +230,7 @@ The type migration from `src/core/@types/` to the new structure has been **compl
 
 ## Type Dependencies
 
-```
+```text
 ┌─────────────┐
 │   Global    │ (config.ts)
 └──────┬──────┘
@@ -249,22 +255,26 @@ The type migration from `src/core/@types/` to the new structure has been **compl
 ## Best Practices
 
 ### 1. Type Location
+
 - Place types in the module that owns them
 - Export from index.ts for clean imports
 - Avoid circular dependencies
 
 ### 2. Type Naming
+
 - Interfaces: `ISomething` or descriptive names
 - State types: `ComponentNameState`
 - Constants: `UPPER_SNAKE_CASE`
 - Enums: PascalCase
 
 ### 3. Type Documentation
+
 - Document complex types with JSDoc
 - Provide examples for utility types
 - Explain discriminated union variants
 
 ### 4. Type Evolution
+
 - Version state interfaces
 - Provide migration functions
 - Maintain backward compatibility
@@ -272,6 +282,7 @@ The type migration from `src/core/@types/` to the new structure has been **compl
 ## Common Type Patterns
 
 ### State Management
+
 ```typescript
 interface ComponentState extends StateBase {
     version: string;
@@ -280,6 +291,7 @@ interface ComponentState extends StateBase {
 ```
 
 ### Message Creation
+
 ```typescript
 createWorkerMessage(
     WORKER_MESSAGES.SET_BREAKPOINT, 
@@ -288,6 +300,7 @@ createWorkerMessage(
 ```
 
 ### Component Inspection
+
 ```typescript
 interface InspectableData {
     id: string;
@@ -300,6 +313,7 @@ interface InspectableData {
 ```
 
 ### Formatting
+
 ```typescript
 Formatters.hex(value, width);     // General hex
 Formatters.hexByte(value);        // $XX

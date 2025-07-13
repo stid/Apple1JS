@@ -15,11 +15,13 @@ Use `IInspectableComponent` interface with standardized `getInspectable()` metho
 ## Consequences
 
 ### Positive
+
 - Uniform debugging interface
 - Easy integration with inspector UI
 - Runtime introspection without performance impact
 
 ### Negative
+
 - Maintenance overhead to keep inspection data updated
 
 ## Implementation
