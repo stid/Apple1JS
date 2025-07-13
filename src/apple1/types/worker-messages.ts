@@ -41,6 +41,11 @@ export interface DebugData {
     [key: string]: { [key: string]: string | number };
 }
 
+// Extended debug data that supports additional types
+export interface ExtendedDebugData {
+    [key: string]: { [key: string]: string | number | boolean | object };
+}
+
 // Type for log messages from worker
 export interface LogMessageData {
     level: 'info' | 'warn' | 'error';

@@ -1,60 +1,22 @@
-import Apple1 from '.';
-import WebWorkerKeyboard from './WebKeyboard';
-import WebCRTVideo from './WebCRTVideo';
-import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
-import { WORKER_MESSAGES, LogMessageData, MemoryRangeRequest, MemoryRangeData, MemoryWriteRequest, MemoryMapData, WorkerMessage, isWorkerMessage } from './types/worker-messages';
-import { loggingService } from '../services/LoggingService';
-import { Formatters } from '../utils/formatters';
+import { WorkerState } from './WorkerState';
+import { WorkerAPI } from './WorkerAPI';
+import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData, MemoryWriteRequest, WorkerMessage, isWorkerMessage } from './types/worker-messages';
+import type { EmulatorState } from './types/emulator-state';
 
-export const video = new WebCRTVideo();
-export const keyboard = new WebWorkerKeyboard();
+// Create the worker state instance
+const workerState = new WorkerState();
 
-video.subscribe((data: WebCrtVideoSubFuncVideoType) => {
-    const { buffer, row, column } = data;
-    postMessage({ data: { buffer, row, column }, type: WORKER_MESSAGES.UPDATE_VIDEO_BUFFER });
+// Create the worker API instance
+const workerAPI = new WorkerAPI(workerState);
+
+// Export for backwards compatibility during migration
+export const video = workerState.video;
+export const keyboard = workerState.keyboard;
+
+// Clean up on worker termination
+globalThis.addEventListener('beforeunload', () => {
+    workerState.cleanup();
 });
-
-// Set up worker-to-main thread log message forwarding
-loggingService.addHandler((level, source, message) => {
-    const logData: LogMessageData = { level, source, message };
-    postMessage({ data: logData, type: WORKER_MESSAGES.LOG_MESSAGE });
-});
-
-const apple1 = new Apple1({ video: video, keyboard: keyboard });
-
-// Breakpoint management
-const breakpoints = new Set<number>();
-let runToCursorTarget: number | null = null; // Track run-to-cursor target
-let isPaused = false;
-let isStepping = false; // Track if we're in a step operation
-
-// Setup execution hook for deterministic breakpoint checking
-function updateBreakpointHook() {
-    if (breakpoints.size === 0) {
-        // No breakpoints - remove hook for performance
-        apple1.cpu.setExecutionHook(undefined);
-    } else {
-        // Install hook to check breakpoints before each instruction
-        apple1.cpu.setExecutionHook((pc: number) => {
-            // Skip breakpoint check if we're stepping (to allow stepping over breakpoints)
-            if (isStepping) {
-                return true;
-            }
-            
-            // Only check breakpoints when running (not already paused)
-            if (!isPaused && breakpoints.has(pc)) {
-                // Hit a breakpoint - pause execution
-                apple1.clock.pause();
-                isPaused = true;
-                postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
-                postMessage({ data: pc, type: WORKER_MESSAGES.BREAKPOINT_HIT });
-                loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
-                return false; // Halt execution
-            }
-            return true; // Continue execution
-        });
-    }
-}
 
 onmessage = function (e: MessageEvent<WorkerMessage>) {
     const message = e.data;
@@ -65,88 +27,47 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
     const { type } = message;
     const data = 'data' in message ? message.data : undefined;
 
+    // Handle messages using WorkerAPI methods
     switch (type) {
         case WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG:
-            video.setSupportBS(!!data);
+            workerAPI.setCrtBsSupport(!!data);
             break;
         case WORKER_MESSAGES.KEY_DOWN:
             if (typeof data === 'string') {
-                keyboard.write(data);
+                workerAPI.keyDown(data);
             }
             break;
         case WORKER_MESSAGES.DEBUG_INFO: {
-            const { clock, cpu, pia, bus } = apple1;
+            const debugData = workerAPI.getDebugInfo();
             postMessage({
-                data: {
-                    cpu: cpu.toDebug(),
-                    pia: pia.toDebug(),
-                    Bus: bus.toDebug(),
-                    clock: clock.toDebug(),
-                },
+                data: debugData,
                 type: WORKER_MESSAGES.DEBUG_INFO,
             });
             break;
         }
         case WORKER_MESSAGES.SAVE_STATE: {
-            // Save full machine state
-            const state = apple1.saveState();
+            const state = workerAPI.saveState();
             postMessage({ data: state, type: WORKER_MESSAGES.STATE_DATA });
             break;
         }
         case WORKER_MESSAGES.LOAD_STATE: {
-            // Restore full machine state
             if (data && typeof data === 'object') {
-                // Deep clone the state to ensure a new reference and trigger state change
-                const clonedState = JSON.parse(JSON.stringify(data));
-                apple1.loadState(clonedState);
-                // Reset clock timing data to prevent timing issues after state restore
-                apple1.clock.resetTiming();
-                // Always restart the main loop after loading state
-                apple1.startLoop();
-                // Force video update after restore
-                if (typeof video.forceUpdate === 'function') {
-                    video.forceUpdate();
-                }
+                workerAPI.loadState(data as EmulatorState);
             }
             break;
         }
         case WORKER_MESSAGES.PAUSE_EMULATION: {
-            // Pause the clock/emulation
-            apple1.clock.pause();
-            isPaused = true;
-            // Update debug interval if debugger is active
-            if (debuggerActive) {
-                updateDebuggerState(true); // Re-update to use faster interval
-            }
-            // Send status update
-            postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
+            workerAPI.pauseEmulation();
             break;
         }
         case WORKER_MESSAGES.RESUME_EMULATION: {
-            // Resume the clock/emulation
-            apple1.clock.resume();
-            isPaused = false;
-            // Update debug interval if debugger is active
-            if (debuggerActive) {
-                updateDebuggerState(true); // Re-update to use slower interval
-            }
-            // Send status update
-            postMessage({ data: 'running', type: WORKER_MESSAGES.EMULATION_STATUS });
+            workerAPI.resumeEmulation();
             break;
         }
         case WORKER_MESSAGES.GET_MEMORY_RANGE: {
-            // Handle memory range request for disassembler
             if (data && typeof data === 'object') {
                 const request = data as MemoryRangeRequest & { mode?: string };
-                const memoryData: number[] = [];
-                for (let i = 0; i < request.length; i++) {
-                    const addr = request.start + i;
-                    if (addr >= 0 && addr <= 0xFFFF) {
-                        memoryData.push(apple1.bus.read(addr));
-                    } else {
-                        memoryData.push(0);
-                    }
-                }
+                const memoryData = workerAPI.readMemoryRange(request.start, request.length);
                 const response: MemoryRangeData & { mode?: string } = {
                     start: request.start,
                     data: memoryData,
@@ -157,60 +78,30 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             break;
         }
         case WORKER_MESSAGES.SET_CPU_PROFILING: {
-            // Enable/disable CPU performance profiling
             if (typeof data === 'boolean') {
-                apple1.cpu.setProfilingEnabled(data);
+                workerAPI.setCpuProfiling(data);
             }
             break;
         }
         case WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING: {
-            // Enable/disable cycle-accurate timing mode
             if (typeof data === 'boolean') {
-                apple1.cpu.setCycleAccurateMode(data);
+                workerAPI.setCycleAccurateMode(data);
             }
             break;
         }
         case WORKER_MESSAGES.STEP: {
-            // Execute a single CPU instruction
-            // First pause the clock to prevent concurrent execution
-            apple1.clock.pause();
-            isPaused = true;
-            
-            // Set stepping flag to bypass breakpoint check for this instruction
-            isStepping = true;
-            
-            // Execute one instruction
-            apple1.cpu.performSingleStep();
-            
-            // Clear stepping flag
-            isStepping = false;
-            
-            // Check if we hit a breakpoint after stepping (at the new PC)
-            if (breakpoints.has(apple1.cpu.PC)) {
-                postMessage({
-                    data: apple1.cpu.PC,
-                    type: WORKER_MESSAGES.BREAKPOINT_HIT
-                });
-            }
-            
-            // Send updated debug info after step
+            const debugData = workerAPI.step();
             postMessage({
-                data: {
-                    cpu: apple1.cpu.toDebug(),
-                    pia: apple1.pia.toDebug(),
-                    Bus: apple1.bus.toDebug(),
-                    clock: apple1.clock.toDebug(),
-                },
+                data: debugData,
                 type: WORKER_MESSAGES.DEBUG_INFO,
             });
             break;
         }
         case WORKER_MESSAGES.SET_BREAKPOINT: {
             if (typeof data === 'number') {
-                breakpoints.add(data);
-                updateBreakpointHook(); // Update execution hook
+                const breakpoints = workerAPI.setBreakpoint(data);
                 postMessage({
-                    data: Array.from(breakpoints),
+                    data: breakpoints,
                     type: WORKER_MESSAGES.BREAKPOINTS_DATA
                 });
             }
@@ -218,18 +109,16 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
         }
         case WORKER_MESSAGES.CLEAR_BREAKPOINT: {
             if (typeof data === 'number') {
-                breakpoints.delete(data);
-                updateBreakpointHook(); // Update execution hook
+                const breakpoints = workerAPI.clearBreakpoint(data);
                 postMessage({
-                    data: Array.from(breakpoints),
+                    data: breakpoints,
                     type: WORKER_MESSAGES.BREAKPOINTS_DATA
                 });
             }
             break;
         }
         case WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS: {
-            breakpoints.clear();
-            updateBreakpointHook(); // Update execution hook
+            workerAPI.clearAllBreakpoints();
             postMessage({
                 data: [],
                 type: WORKER_MESSAGES.BREAKPOINTS_DATA
@@ -237,176 +126,42 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
             break;
         }
         case WORKER_MESSAGES.GET_BREAKPOINTS: {
+            const breakpoints = workerAPI.getBreakpoints();
             postMessage({
-                data: Array.from(breakpoints),
+                data: breakpoints,
                 type: WORKER_MESSAGES.BREAKPOINTS_DATA
             });
             break;
         }
         case WORKER_MESSAGES.SET_DEBUGGER_ACTIVE: {
-            // Update debugger state based on visibility
             if (typeof data === 'boolean') {
-                updateDebuggerState(data);
+                workerAPI.setDebuggerActive(data);
             }
             break;
         }
         case WORKER_MESSAGES.GET_EMULATION_STATUS: {
-            // Respond with current emulation status
+            const status = workerAPI.getEmulationStatus();
             postMessage({ 
-                data: isPaused ? 'paused' : 'running', 
+                data: { paused: status === 'paused' }, 
                 type: WORKER_MESSAGES.EMULATION_STATUS 
             });
             break;
         }
         case WORKER_MESSAGES.RUN_TO_ADDRESS: {
-            // Run execution until reaching the target address
             if (typeof data === 'number') {
-                const targetAddress = data;
-                
-                // Don't run if we're already at the target address
-                if (apple1.cpu.PC === targetAddress) {
-                    loggingService.log('info', 'RunToAddress', `Already at target address ${Formatters.address(targetAddress)}`);
-                    break;
-                }
-                
-                // Store the run-to-cursor target
-                runToCursorTarget = targetAddress;
-                
-                // Notify UI about the run-to-cursor target
-                postMessage({ 
-                    data: runToCursorTarget, 
-                    type: WORKER_MESSAGES.RUN_TO_CURSOR_TARGET 
-                });
-                
-                // Set up a temporary execution hook for run-to-address
-                let runToAddressHit = false;
-                
-                apple1.cpu.setExecutionHook((pc: number) => {
-                    // Skip breakpoint check if we're stepping
-                    if (isStepping) {
-                        return true;
-                    }
-                    
-                    // Check existing breakpoints first
-                    if (!isPaused && breakpoints.has(pc)) {
-                        // Hit a breakpoint - pause execution
-                        apple1.clock.pause();
-                        isPaused = true;
-                        postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
-                        postMessage({ data: pc, type: WORKER_MESSAGES.BREAKPOINT_HIT });
-                        loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
-                        return false; // Halt execution
-                    }
-                    
-                    // Check if we've reached the target address
-                    if (pc === targetAddress && !runToAddressHit) {
-                        runToAddressHit = true;
-                        // Clear run-to-cursor target
-                        runToCursorTarget = null;
-                        // Pause execution
-                        apple1.clock.pause();
-                        isPaused = true;
-                        // Restore normal breakpoint hook
-                        updateBreakpointHook();
-                        // Send notifications
-                        postMessage({ data: 'paused', type: WORKER_MESSAGES.EMULATION_STATUS });
-                        postMessage({ data: null, type: WORKER_MESSAGES.RUN_TO_CURSOR_TARGET });
-                        loggingService.log('info', 'RunToAddress', `Reached target address ${Formatters.address(targetAddress)}`);
-                        return false; // Halt execution
-                    }
-                    
-                    return true; // Continue execution
-                });
-                
-                // Resume execution to run to the target
-                if (isPaused) {
-                    apple1.clock.resume();
-                    isPaused = false;
-                    postMessage({ data: 'running', type: WORKER_MESSAGES.EMULATION_STATUS });
-                }
-                
-                loggingService.log('info', 'RunToAddress', `Running to address ${Formatters.address(targetAddress)}`);
+                workerAPI.runToAddress(data);
             }
             break;
         }
         case WORKER_MESSAGES.WRITE_MEMORY: {
-            // Handle memory write request
             if (data && typeof data === 'object') {
                 const request = data as MemoryWriteRequest;
-                if (request.address >= 0 && request.address <= 0xFFFF && 
-                    request.value >= 0 && request.value <= 0xFF) {
-                    // Write the value to memory
-                    apple1.bus.write(request.address, request.value);
-                } else {
-                    loggingService.log('warn', 'MemoryWrite', 
-                        `Invalid memory write request: address=${request.address}, value=${request.value}`);
-                }
+                workerAPI.writeMemory(request.address, request.value);
             }
             break;
         }
         case WORKER_MESSAGES.GET_MEMORY_MAP: {
-            // Return memory map information
-            const memoryMap: MemoryMapData = {
-                regions: [
-                    // RAM Bank 1
-                    {
-                        start: 0x0000,
-                        end: 0x0FFF,
-                        type: 'RAM',
-                        writable: true,
-                        description: 'Main RAM (4KB)'
-                    },
-                    // Unmapped region 1
-                    {
-                        start: 0x1000,
-                        end: 0xD00F,
-                        type: 'UNMAPPED',
-                        writable: false,
-                        description: 'Unmapped'
-                    },
-                    // PIA (I/O)
-                    {
-                        start: 0xD010,
-                        end: 0xD013,
-                        type: 'IO',
-                        writable: true,
-                        description: 'PIA6820 - Keyboard & Display'
-                    },
-                    // Unmapped region 2
-                    {
-                        start: 0xD014,
-                        end: 0xDFFF,
-                        type: 'UNMAPPED',
-                        writable: false,
-                        description: 'Unmapped'
-                    },
-                    // RAM Bank 2
-                    {
-                        start: 0xE000,
-                        end: 0xEFFF,
-                        type: 'RAM',
-                        writable: true,
-                        description: 'Extended RAM (4KB)'
-                    },
-                    // Unmapped region 3
-                    {
-                        start: 0xF000,
-                        end: 0xFEFF,
-                        type: 'UNMAPPED',
-                        writable: false,
-                        description: 'Unmapped'
-                    },
-                    // ROM
-                    {
-                        start: 0xFF00,
-                        end: 0xFFFF,
-                        type: 'ROM',
-                        writable: false,
-                        description: 'Monitor ROM (256 bytes)'
-                    }
-                ]
-            };
-            
+            const memoryMap = workerAPI.getMemoryMap();
             postMessage({ 
                 type: WORKER_MESSAGES.MEMORY_MAP_DATA, 
                 data: memoryMap 
@@ -416,35 +171,5 @@ onmessage = function (e: MessageEvent<WorkerMessage>) {
     }
 };
 
-// Track debugger state
-let debuggerActive = false;
-let debugUpdateInterval: number | null = null;
-
-// Function to start/stop debug updates based on debugger visibility
-function updateDebuggerState(active: boolean) {
-    debuggerActive = active;
-    
-    if (active && !debugUpdateInterval) {
-        // Start sending debug updates
-        debugUpdateInterval = setInterval(() => {
-            const { cpu } = apple1;
-            postMessage({
-                data: {
-                    cpu: cpu.toDebug()
-                },
-                type: WORKER_MESSAGES.DEBUG_DATA,
-            });
-        }, isPaused ? 100 : 250) as unknown as number; // Faster updates when paused
-    } else if (!active && debugUpdateInterval) {
-        // Stop sending debug updates
-        clearInterval(debugUpdateInterval);
-        debugUpdateInterval = null;
-    }
-}
-
-// Initialize breakpoint hook on startup
-updateBreakpointHook();
-
-apple1.startLoop();
-// Start in running state
-isPaused = false;
+// Start the emulation
+workerState.startEmulation();
