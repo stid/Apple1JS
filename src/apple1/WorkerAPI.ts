@@ -73,11 +73,15 @@ export class WorkerAPI implements IWorkerAPI {
     
     /**
      * Filter debug data to only include string and number values for backward compatibility
+     * But preserve _PERF_DATA object for profiling
      */
-    private filterDebugData(data: Record<string, unknown>): Record<string, string | number> {
-        const filtered: Record<string, string | number> = {};
+    private filterDebugData(data: Record<string, unknown>): Record<string, any> {
+        const filtered: Record<string, any> = {};
         for (const [key, value] of Object.entries(data)) {
             if (typeof value === 'string' || typeof value === 'number') {
+                filtered[key] = value;
+            } else if (key === '_PERF_DATA' && typeof value === 'object' && value !== null) {
+                // Preserve performance data object
                 filtered[key] = value;
             }
         }
