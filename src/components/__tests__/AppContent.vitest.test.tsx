@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, expect, beforeEach, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { render, fireEvent, act } from '@testing-library/react';
@@ -52,6 +53,19 @@ vi.mock('../../contexts/DebuggerNavigationContext', () => ({
     useDebuggerNavigation: () => ({
         subscribeToNavigation: vi.fn(() => () => {})
     })
+}));
+
+vi.mock('../../contexts/EmulationContext', () => ({
+    useEmulation: () => ({
+        isPaused: false,
+        pause: vi.fn(),
+        resume: vi.fn()
+    }),
+    EmulationProvider: ({ children }: { children: React.ReactNode }) => children
+}));
+
+vi.mock('../../contexts/WorkerDataContext', () => ({
+    WorkerDataProvider: ({ children }: { children: React.ReactNode }) => children
 }));
 
 describe('AppContent', () => {

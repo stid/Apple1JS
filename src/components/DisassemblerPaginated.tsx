@@ -268,17 +268,20 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
     
     // Auto-follow PC when it changes (e.g., during stepping)
     useEffect(() => {
-        if (currentPC !== previousPC && currentPC !== undefined && isPaused) {
+        if (currentPC !== previousPC && currentPC !== undefined) {
             setPreviousPC(currentPC);
             
-            // Check if PC is visible in current view
-            const firstVisibleAddr = lines[0]?.address;
-            const lastVisibleAddr = lines[lines.length - 1]?.address;
-            
-            if (firstVisibleAddr !== undefined && lastVisibleAddr !== undefined &&
-                (currentPC < firstVisibleAddr || currentPC > lastVisibleAddr)) {
-                // PC is not visible, navigate to it
-                navigateTo(currentPC);
+            // Only auto-navigate when paused to avoid disrupting user scrolling
+            if (isPaused) {
+                // Check if PC is visible in current view
+                const firstVisibleAddr = lines[0]?.address;
+                const lastVisibleAddr = lines[lines.length - 1]?.address;
+                
+                if (firstVisibleAddr !== undefined && lastVisibleAddr !== undefined &&
+                    (currentPC < firstVisibleAddr || currentPC > lastVisibleAddr)) {
+                    // PC is not visible, navigate to it
+                    navigateTo(currentPC);
+                }
             }
         }
     }, [currentPC, previousPC, isPaused, lines, navigateTo]);

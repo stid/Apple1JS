@@ -61,8 +61,8 @@ export class WorkerDataSync {
         this.workerManager = workerManager;
         this.config = {
             debugInfoInterval: {
-                running: 2000,  // 2 seconds when running
-                paused: 500     // 500ms when paused
+                running: 250,   // 250ms when running for smoother PC updates
+                paused: 100     // 100ms when paused for responsive debugging
             },
             memoryInterval: 1000,    // 1 second for memory updates
             breakpointsInterval: 2000 // 2 seconds for breakpoints

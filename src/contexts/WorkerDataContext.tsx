@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef, useMemo, useCallback } from 'react';
 import { WorkerDataSync } from '../services/WorkerDataSync';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -62,58 +62,74 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
             unsubscribeDebug();
             unsubscribeBreakpoints();
             dataSync.dispose();
+            dataSyncRef.current = null;
         };
     }, [workerManager]);
     
-    const value: WorkerDataContextType = {
+    const subscribeToDebugInfo = useCallback((callback: (data: FilteredDebugData) => void) => {
+        if (!dataSyncRef.current) {
+            // Return a no-op unsubscribe function if not initialized yet
+            console.warn('WorkerDataSync not initialized yet, deferring subscription');
+            return () => {};
+        }
+        return dataSyncRef.current.subscribeToDebugInfo(callback);
+    }, []);
+    
+    const subscribeToBreakpoints = useCallback((callback: (data: number[]) => void) => {
+        if (!dataSyncRef.current) {
+            // Return a no-op unsubscribe function if not initialized yet
+            console.warn('WorkerDataSync not initialized yet, deferring subscription');
+            return () => {};
+        }
+        return dataSyncRef.current.subscribeToBreakpoints(callback);
+    }, []);
+    
+    const subscribeToMemoryRange = useCallback((start: number, length: number, callback: (data: number[]) => void) => {
+        if (!dataSyncRef.current) {
+            // Return a no-op unsubscribe function if not initialized yet
+            console.warn('WorkerDataSync not initialized yet, deferring subscription');
+            return () => {};
+        }
+        return dataSyncRef.current.subscribeToMemoryRange(start, length, callback);
+    }, []);
+    
+    const setDebuggerActive = useCallback((active: boolean) => {
+        if (dataSyncRef.current) {
+            dataSyncRef.current.setDebuggerActive(active);
+        }
+    }, []);
+    
+    const refreshDebugInfo = useCallback(async () => {
+        if (dataSyncRef.current) {
+            await dataSyncRef.current.refreshDebugInfo();
+        }
+    }, []);
+    
+    const refreshBreakpoints = useCallback(async () => {
+        if (dataSyncRef.current) {
+            await dataSyncRef.current.refreshBreakpoints();
+        }
+    }, []);
+    
+    const refreshMemoryRange = useCallback(async (start: number, length: number) => {
+        if (dataSyncRef.current) {
+            await dataSyncRef.current.refreshMemoryRange(start, length);
+        }
+    }, []);
+    
+    const value: WorkerDataContextType = useMemo(() => ({
         debugInfo,
         breakpoints,
-        
-        subscribeToDebugInfo: (callback) => {
-            if (!dataSyncRef.current) {
-                throw new Error('WorkerDataSync not initialized');
-            }
-            return dataSyncRef.current.subscribeToDebugInfo(callback);
-        },
-        
-        subscribeToBreakpoints: (callback) => {
-            if (!dataSyncRef.current) {
-                throw new Error('WorkerDataSync not initialized');
-            }
-            return dataSyncRef.current.subscribeToBreakpoints(callback);
-        },
-        
-        subscribeToMemoryRange: (start, length, callback) => {
-            if (!dataSyncRef.current) {
-                throw new Error('WorkerDataSync not initialized');
-            }
-            return dataSyncRef.current.subscribeToMemoryRange(start, length, callback);
-        },
-        
-        setDebuggerActive: (active) => {
-            if (dataSyncRef.current) {
-                dataSyncRef.current.setDebuggerActive(active);
-            }
-        },
-        
-        refreshDebugInfo: async () => {
-            if (dataSyncRef.current) {
-                await dataSyncRef.current.refreshDebugInfo();
-            }
-        },
-        
-        refreshBreakpoints: async () => {
-            if (dataSyncRef.current) {
-                await dataSyncRef.current.refreshBreakpoints();
-            }
-        },
-        
-        refreshMemoryRange: async (start, length) => {
-            if (dataSyncRef.current) {
-                await dataSyncRef.current.refreshMemoryRange(start, length);
-            }
-        },
-    };
+        subscribeToDebugInfo,
+        subscribeToBreakpoints,
+        subscribeToMemoryRange,
+        setDebuggerActive,
+        refreshDebugInfo,
+        refreshBreakpoints,
+        refreshMemoryRange,
+    }), [debugInfo, breakpoints, subscribeToDebugInfo, subscribeToBreakpoints, 
+        subscribeToMemoryRange, setDebuggerActive, refreshDebugInfo, 
+        refreshBreakpoints, refreshMemoryRange]);
     
     return (
         <WorkerDataContext.Provider value={value}>

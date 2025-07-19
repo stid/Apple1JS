@@ -122,6 +122,12 @@ src/
 
 ## 🧪 Testing Strategy
 
+**CRITICAL: ALL TESTS MUST PASS BEFORE COMMITTING!**
+- Never break the test suite - if tests fail after your changes, fix them
+- Always run `yarn test:ci` before committing any changes
+- If adding new features, add corresponding tests
+- If changing component behavior, update tests to match
+
 ### Test-Driven Development (TDD) Approach
 
 **For core emulation changes, ALWAYS use TDD:**

@@ -42,6 +42,7 @@ export interface DebugData {
 }
 
 // Filtered debug data that only contains string and number values
+// Note: Special objects like _PERF_DATA are preserved separately in WorkerAPI
 export interface FilteredDebugData {
     [key: string]: { [key: string]: string | number };
 }

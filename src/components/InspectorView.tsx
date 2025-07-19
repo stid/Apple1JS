@@ -16,6 +16,7 @@ interface InspectorViewProps {
 const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
     const { debugInfo } = useWorkerData();
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
+    const [profilingPending, setProfilingPending] = useState<boolean>(false);
 
     // Helper function to translate hex opcode to human-readable mnemonic
     const getOpcodeMnemonic = (opcodeHex: string): string => {
@@ -31,14 +32,25 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
 
     // Handler for profiling toggle
     const handleProfilingToggle = async () => {
+        if (!workerManager || profilingPending) return;
+        
         const newProfilingState = !profilingEnabled;
-        setProfilingEnabled(newProfilingState);
-        if (workerManager) {
-            try {
-                await workerManager.setCpuProfiling(newProfilingState);
-            } catch (error) {
-                console.error('Failed to toggle CPU profiling:', error);
+        setProfilingPending(true);
+        
+        try {
+            await workerManager.setCpuProfiling(newProfilingState);
+            setProfilingEnabled(newProfilingState);
+            
+            // Force a debug info refresh to get updated profiling state
+            if (workerManager.getDebugInfo) {
+                await workerManager.getDebugInfo();
             }
+        } catch (error) {
+            console.error('Failed to toggle CPU profiling:', error);
+            // Revert state on error
+            setProfilingEnabled(!newProfilingState);
+        } finally {
+            setProfilingPending(false);
         }
     };
 
@@ -48,6 +60,17 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         stats?: { instructionCount: number; totalInstructions: number; profilingEnabled: boolean };
         topOpcodes?: Array<{ opcode: string; count: number; cycles: number; avgCycles: number }>;
     } | undefined;
+    
+    // Sync profiling state with actual worker state from debug info
+    React.useEffect(() => {
+        // Only sync if we have actual profiling state from worker
+        if (cpuDebugData.PERF_ENABLED !== undefined && !profilingPending) {
+            const actualProfilingEnabled = cpuDebugData.PERF_ENABLED === 'YES';
+            if (actualProfilingEnabled !== profilingEnabled) {
+                setProfilingEnabled(actualProfilingEnabled);
+            }
+        }
+    }, [cpuDebugData.PERF_ENABLED, profilingEnabled, profilingPending]);
 
     // Type guard for children property
     function hasChildren(node: InspectableData): node is InspectableData & { children: InspectableData[] } {
@@ -290,47 +313,66 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     </h3>
                     <button
                         onClick={handleProfilingToggle}
+                        disabled={profilingPending || !workerManager}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            profilingEnabled
-                                ? 'bg-success text-white hover:bg-success/80'
-                                : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
-                        }`}
+                            profilingPending 
+                                ? 'bg-border-secondary text-text-disabled cursor-wait'
+                                : profilingEnabled
+                                    ? 'bg-success text-white hover:bg-success/80'
+                                    : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
+                        } ${!workerManager ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                        {profilingEnabled ? 'Disable Profiling' : 'Enable Profiling'}
+                        {profilingPending 
+                            ? 'Updating...' 
+                            : profilingEnabled 
+                                ? 'Disable Profiling' 
+                                : 'Enable Profiling'}
                     </button>
                 </div>
                 
-                {profilingEnabled && perfData && (
+                {profilingEnabled && (
                     <div className="space-y-md">
-                        <div className="grid grid-cols-3 gap-md">
-                            <MetricCard 
-                                label="Instructions" 
-                                value={perfData.stats?.instructionCount.toLocaleString() || '0'}
-                                status="info"
-                            />
-                            <MetricCard 
-                                label="Unique Opcodes" 
-                                value={perfData.stats?.totalInstructions || '0'}
-                                status="info"
-                            />
-                            <MetricCard 
-                                label="Status" 
-                                value="ACTIVE"
-                                status="success"
-                            />
-                        </div>
-                        
-                        {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
-                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
-                                <div className="text-sm font-medium text-text-secondary mb-sm">Top Instructions</div>
-                                <div className="space-y-sm">
-                                    {perfData.topOpcodes.slice(0, 3).map((opcode) => (
-                                        <div key={opcode.opcode} className="flex justify-between items-center text-sm font-mono">
-                                            <span className="text-data-status font-medium">{getOpcodeMnemonic(opcode.opcode)}</span>
-                                            <span className="text-data-value">{opcode.count.toLocaleString()}</span>
-                                            <span className="text-data-flag">{opcode.avgCycles}c</span>
+                        {perfData ? (
+                            <>
+                                <div className="grid grid-cols-3 gap-md">
+                                    <MetricCard 
+                                        label="Instructions" 
+                                        value={perfData.stats?.instructionCount.toLocaleString() || '0'}
+                                        status="info"
+                                    />
+                                    <MetricCard 
+                                        label="Unique Opcodes" 
+                                        value={perfData.stats?.totalInstructions || '0'}
+                                        status="info"
+                                    />
+                                    <MetricCard 
+                                        label="Status" 
+                                        value="ACTIVE"
+                                        status="success"
+                                    />
+                                </div>
+                                
+                                {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
+                                    <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                                        <div className="text-sm font-medium text-text-secondary mb-sm">Top Instructions</div>
+                                        <div className="space-y-sm">
+                                            {perfData.topOpcodes.slice(0, 3).map((opcode) => (
+                                                <div key={opcode.opcode} className="flex justify-between items-center text-sm font-mono">
+                                                    <span className="text-data-status font-medium">{getOpcodeMnemonic(opcode.opcode)}</span>
+                                                    <span className="text-data-value">{opcode.count.toLocaleString()}</span>
+                                                    <span className="text-data-flag">{opcode.avgCycles}c</span>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                                <div className="text-sm text-text-secondary text-center">
+                                    {profilingPending 
+                                        ? 'Initializing profiler...' 
+                                        : 'Waiting for profiling data... Run some code to see statistics.'}
                                 </div>
                             </div>
                         )}

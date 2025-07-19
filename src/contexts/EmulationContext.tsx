@@ -95,8 +95,18 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 if (breakpoints) {
                     setBreakpoints(new Set(breakpoints));
                 }
+                
+                // Get initial PC value from debug info
+                const debugData = await workerManager.getDebugInfo();
+                if (debugData?.cpu) {
+                    const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                    if (pc !== undefined) {
+                        const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                        setCurrentPC(pcValue);
+                    }
+                }
             } catch (error) {
-                console.warn('Failed to get initial breakpoints:', error);
+                console.warn('Failed to get initial state:', error);
             }
         };
         
@@ -200,17 +210,40 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
 
     // Subscribe to debug info updates from WorkerDataContext
     useEffect(() => {
-        const unsubscribe = subscribeToDebugInfo((data) => {
-            if (data?.cpu) {
-                const pc = data.cpu.REG_PC || data.cpu.PC;
-                if (pc !== undefined) {
-                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
-                    setCurrentPC(pcValue);
+        let unsubscribe: (() => void) | null = null;
+        let mounted = true;
+        
+        // Try to subscribe, handling the case where WorkerDataSync might not be ready
+        const trySubscribe = () => {
+            try {
+                unsubscribe = subscribeToDebugInfo((data) => {
+                    if (!mounted) return;
+                    
+                    if (data?.cpu) {
+                        const pc = data.cpu.REG_PC || data.cpu.PC;
+                        if (pc !== undefined) {
+                            const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                            setCurrentPC(pcValue);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn('Failed to subscribe to debug info, will retry:', error);
+                // Retry after a short delay
+                if (mounted) {
+                    setTimeout(trySubscribe, 100);
                 }
             }
-        });
+        };
         
-        return unsubscribe;
+        trySubscribe();
+        
+        return () => {
+            mounted = false;
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
     }, [subscribeToDebugInfo]);
     
     // Update debugger active state based on context
