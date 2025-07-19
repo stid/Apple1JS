@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../apple1/TSTypes';
 import { OPCODES } from '../constants/opcodes';
 import PaginatedTableView from './PaginatedTableView';
-import { usePaginatedTable } from '../hooks/usePaginatedTable';
-import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
@@ -26,79 +24,74 @@ interface DisassemblyLine {
     operandType?: 'absolute' | 'branch' | 'zeropage';
 }
 
-
-const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, currentAddress: externalAddress, onAddressChange }) => {
+const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ 
+    workerManager, 
+    currentAddress: externalAddress, 
+    onAddressChange 
+}) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
+    const [viewStartAddress, setViewStartAddress] = useState(0x0000);
+    const [visibleRows, setVisibleRows] = useState(20);
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
+    
+    const containerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     
     // Get emulation state from context
     const { 
         isPaused, 
         executionState, 
-        currentPC: contextPC, 
+        currentPC, 
         debugInfo, 
-        breakpoints: contextBreakpoints,
+        breakpoints,
         pause, 
         resume, 
         step: contextStep,
         toggleBreakpoint: contextToggleBreakpoint 
     } = useEmulation();
     
-    // Use context values
-    const currentPC = contextPC;
-    const breakpoints = contextBreakpoints;
-    
-    // Debug: log PC changes
+    // Calculate visible rows based on container height
     useEffect(() => {
-    }, [currentPC]);
-    
-    // We fetch more than needed to ensure we have enough instructions
-    const MEMORY_CHUNK_SIZE = 512;
-    
-    // Use navigation hook for external sync
-    const { currentAddress: syncedAddress, navigateInternal } = useNavigableComponent({
-        initialAddress: externalAddress ?? 0x0000,
-        ...(onAddressChange !== undefined && { onAddressChange })
-    });
-    
-    // Use the pagination hook for internal mechanics
-    const {
-        currentAddress,
-        visibleRows,
-        navigateTo: paginatedNavigateTo,
-        containerRef,
-        contentRef,
-        getAddressRange
-    } = usePaginatedTable({
-        initialAddress: syncedAddress,
-        bytesPerRow: 1, // Not really used for disassembly
-        rowHeight: 24, // Same as memory viewer
-        onDataRequest: async (addr) => {
-            // Request memory for disassembly
-            const length = Math.min(MEMORY_CHUNK_SIZE, 0x10000 - addr);
-            const memoryData = await workerManager.readMemoryRange(addr, length);
-            if (memoryData) {
-                const disassembly = disassembleMemory(addr, memoryData.length, memoryData);
-                // Trim to visible rows
-                const trimmedLines = disassembly.slice(0, visibleRows);
-                setLines(trimmedLines);
-            }
+        const calculateRows = () => {
+            if (!contentRef.current) return;
+            
+            const content = contentRef.current;
+            const table = content.querySelector('table');
+            if (!table) return;
+            
+            const thead = table.querySelector('thead') as HTMLElement;
+            if (!thead) return;
+            
+            const contentRect = content.getBoundingClientRect();
+            const theadRect = thead.getBoundingClientRect();
+            const availableHeight = contentRect.height - theadRect.height;
+            const rowHeight = 24;
+            const possibleRows = Math.floor(availableHeight / rowHeight);
+            
+            setVisibleRows(Math.max(10, Math.min(30, possibleRows)));
+        };
+        
+        const timer = setTimeout(calculateRows, 100);
+        const resizeObserver = new ResizeObserver(calculateRows);
+        
+        if (contentRef.current) {
+            resizeObserver.observe(contentRef.current);
         }
-    });
-    
-    // Wrapper to use internal navigation
-    const navigateTo = useCallback((address: number) => {
-        paginatedNavigateTo(address);
-        navigateInternal(address);
-    }, [paginatedNavigateTo, navigateInternal]);
+        
+        return () => {
+            clearTimeout(timer);
+            resizeObserver.disconnect();
+        };
+    }, []);
     
     // Disassemble memory
-    const disassembleMemory = useCallback((startAddr: number, length: number, memory: number[]): DisassemblyLine[] => {
+    const disassembleMemory = useCallback((startAddr: number, memory: Uint8Array): DisassemblyLine[] => {
         const result: DisassemblyLine[] = [];
         let addr = startAddr;
+        let memIndex = 0;
         
-        while (addr < startAddr + length && addr < 0x10000) {
-            const opcode = memory[addr - startAddr] || 0;
+        while (memIndex < memory.length && addr <= 0xFFFF) {
+            const opcode = memory[memIndex];
             const opcodeInfo = OPCODES[opcode];
             
             if (!opcodeInfo) {
@@ -109,16 +102,19 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
                     operand: `$${Formatters.hex(opcode, 2)}`,
                 });
                 addr++;
+                memIndex++;
                 continue;
             }
 
             const bytes: number[] = [opcode];
             let operand = '';
+            let operandAddress: number | undefined;
+            let operandType: 'absolute' | 'branch' | 'zeropage' | undefined;
             
             // Get operand bytes
             for (let i = 1; i < opcodeInfo.bytes; i++) {
-                if (addr + i < 0x10000 && addr + i - startAddr < memory.length) {
-                    bytes.push(memory[addr + i - startAddr] || 0);
+                if (memIndex + i < memory.length) {
+                    bytes.push(memory[memIndex + i]);
                 }
             }
 
@@ -126,87 +122,41 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
             switch (opcodeInfo.mode) {
                 case 'imp':
                 case 'acc':
-                    operand = '';
                     break;
                 case 'imm':
                     operand = `#$${Formatters.hex(bytes[1] ?? 0, 2)}`;
                     break;
-                case 'zp': {
-                    const zpAddr = bytes[1] || 0;
-                    operand = `$${Formatters.hex(zpAddr, 2)}`;
-                    result.push({
-                        address: addr,
-                        bytes: bytes,
-                        instruction: opcodeInfo.name,
-                        operand: operand,
-                        operandAddress: zpAddr,
-                        operandType: 'zeropage'
-                    });
-                    addr += opcodeInfo.bytes;
-                    continue;
-                }
+                case 'zp':
+                    operandAddress = bytes[1] || 0;
+                    operandType = 'zeropage';
+                    operand = `$${Formatters.hex(operandAddress, 2)}`;
+                    break;
                 case 'zpx':
                     operand = `$${Formatters.hex(bytes[1] ?? 0, 2)},X`;
                     break;
                 case 'zpy':
                     operand = `$${Formatters.hex(bytes[1] ?? 0, 2)},Y`;
                     break;
-                case 'abs': {
-                    const absAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${Formatters.hex(absAddr, 4)}`;
-                    result.push({
-                        address: addr,
-                        bytes: bytes,
-                        instruction: opcodeInfo.name,
-                        operand: operand,
-                        operandAddress: absAddr,
-                        operandType: 'absolute'
-                    });
-                    addr += opcodeInfo.bytes;
-                    continue;
-                }
-                case 'abx': {
-                    const abxAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${Formatters.hex(abxAddr, 4)},X`;
-                    result.push({
-                        address: addr,
-                        bytes: bytes,
-                        instruction: opcodeInfo.name,
-                        operand: operand,
-                        operandAddress: abxAddr,
-                        operandType: 'absolute'
-                    });
-                    addr += opcodeInfo.bytes;
-                    continue;
-                }
-                case 'aby': {
-                    const abyAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `$${Formatters.hex(abyAddr, 4)},Y`;
-                    result.push({
-                        address: addr,
-                        bytes: bytes,
-                        instruction: opcodeInfo.name,
-                        operand: operand,
-                        operandAddress: abyAddr,
-                        operandType: 'absolute'
-                    });
-                    addr += opcodeInfo.bytes;
-                    continue;
-                }
-                case 'ind': {
-                    const indAddr = (bytes[2] || 0) << 8 | (bytes[1] || 0);
-                    operand = `($${Formatters.hex(indAddr, 4)})`;
-                    result.push({
-                        address: addr,
-                        bytes: bytes,
-                        instruction: opcodeInfo.name,
-                        operand: operand,
-                        operandAddress: indAddr,
-                        operandType: 'absolute'
-                    });
-                    addr += opcodeInfo.bytes;
-                    continue;
-                }
+                case 'abs':
+                    operandAddress = (bytes[2] || 0) << 8 | (bytes[1] || 0);
+                    operandType = 'absolute';
+                    operand = `$${Formatters.hex(operandAddress, 4)}`;
+                    break;
+                case 'abx':
+                    operandAddress = (bytes[2] || 0) << 8 | (bytes[1] || 0);
+                    operandType = 'absolute';
+                    operand = `$${Formatters.hex(operandAddress, 4)},X`;
+                    break;
+                case 'aby':
+                    operandAddress = (bytes[2] || 0) << 8 | (bytes[1] || 0);
+                    operandType = 'absolute';
+                    operand = `$${Formatters.hex(operandAddress, 4)},Y`;
+                    break;
+                case 'ind':
+                    operandAddress = (bytes[2] || 0) << 8 | (bytes[1] || 0);
+                    operandType = 'absolute';
+                    operand = `($${Formatters.hex(operandAddress, 4)})`;
+                    break;
                 case 'izx':
                     operand = `($${Formatters.hex(bytes[1] ?? 0, 2)},X)`;
                     break;
@@ -216,34 +166,91 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
                 case 'rel': {
                     const offset = bytes[1] || 0;
                     const target = addr + 2 + (offset > 127 ? offset - 256 : offset);
-                    operand = `$${Formatters.hex(target, 4)}`;
-                    result.push({
-                        address: addr,
-                        bytes: bytes,
-                        instruction: opcodeInfo.name,
-                        operand: operand,
-                        operandAddress: target,
-                        operandType: 'branch'
-                    });
-                    addr += opcodeInfo.bytes;
-                    continue;
+                    operandAddress = target & 0xFFFF;
+                    operandType = 'branch';
+                    operand = `$${Formatters.hex(operandAddress, 4)}`;
+                    break;
                 }
             }
 
             result.push({
                 address: addr,
-                bytes: bytes,
+                bytes,
                 instruction: opcodeInfo.name,
-                operand: operand,
+                ...(operand && { operand }),
+                ...(operandAddress !== undefined && { operandAddress }),
+                ...(operandType !== undefined && { operandType })
             });
 
             addr += opcodeInfo.bytes;
+            memIndex += opcodeInfo.bytes;
         }
         
         return result;
     }, []);
     
-    // Subscribe to run-to-cursor target updates
+    // Fetch and disassemble memory for current view
+    const fetchAndDisassemble = useCallback(async (startAddr: number) => {
+        // Calculate how many bytes we need to fetch to fill the view
+        // Average instruction is about 2 bytes, fetch extra to be safe
+        const bytesToFetch = Math.min(visibleRows * 3, 0x10000 - startAddr);
+        
+        if (bytesToFetch <= 0) return;
+        
+        try {
+            const memoryData = await workerManager.readMemoryRange(startAddr, bytesToFetch);
+            if (memoryData) {
+                const disassembly = disassembleMemory(startAddr, new Uint8Array(memoryData));
+                // Take only the lines we need for display
+                setLines(disassembly.slice(0, visibleRows));
+            }
+        } catch (error) {
+            console.error('Failed to fetch memory:', error);
+        }
+    }, [workerManager, disassembleMemory, visibleRows]);
+    
+    // Fetch data when view address or visible rows change
+    useEffect(() => {
+        fetchAndDisassemble(viewStartAddress);
+    }, [viewStartAddress, fetchAndDisassemble]);
+    
+    // Navigation function
+    const navigateTo = useCallback((address: number) => {
+        // Clamp address to valid range
+        const clampedAddr = Math.max(0, Math.min(0xFFFF, address));
+        setViewStartAddress(clampedAddr);
+        onAddressChange?.(clampedAddr);
+    }, [onAddressChange]);
+    
+    // Handle PC tracking
+    useEffect(() => {
+        if (currentPC === undefined) return;
+        
+        // Check if PC is visible in current view
+        const firstAddr = lines[0]?.address;
+        const lastAddr = lines[lines.length - 1]?.address;
+        
+        if (firstAddr !== undefined && lastAddr !== undefined) {
+            const pcVisible = currentPC >= firstAddr && currentPC <= lastAddr;
+            
+            if (!pcVisible && !isPaused) {
+                // PC is not visible and we're running, navigate to show it
+                // Put PC in upper portion of view for context
+                const targetAddr = Math.max(0, currentPC - 5);
+                navigateTo(targetAddr);
+            }
+        }
+    }, [currentPC, lines, isPaused, navigateTo]);
+    
+    // Handle external address changes (e.g., from breakpoints)
+    useEffect(() => {
+        if (externalAddress !== undefined && externalAddress !== viewStartAddress) {
+            navigateTo(externalAddress);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [externalAddress]); // Intentionally not including viewStartAddress to avoid loops
+    
+    // Subscribe to run-to-cursor updates
     useEffect(() => {
         let unsubscribe: (() => void) | undefined;
         
@@ -265,80 +272,39 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
         };
     }, [workerManager]);
     
-    // No longer need to listen for emulation status - handled by EmulationContext
-    
-    // Track previous PC to detect changes
-    const [previousPC, setPreviousPC] = useState<number | null>(null);
-    
-    // Auto-follow PC when it changes
+    // Request debug info periodically when paused
     useEffect(() => {
-        if (currentPC === undefined || currentPC === previousPC) return;
-        
-        setPreviousPC(currentPC);
-        
-        // Always navigate to PC when it changes
-        navigateTo(currentPC);
-    }, [currentPC, previousPC, navigateTo]);
-    
-    // Sync with navigation hook address
-    useEffect(() => {
-        if (syncedAddress !== currentAddress) {
-            paginatedNavigateTo(syncedAddress);
-        }
-    }, [syncedAddress, currentAddress, paginatedNavigateTo]);
-    
-    // Initial load and request breakpoints
-    useEffect(() => {
-        // Navigate to the external address if provided
-        if (externalAddress !== undefined) {
-            navigateTo(externalAddress);
-        } else if (currentPC !== undefined) {
-            // If no external address, go to PC
-            navigateTo(currentPC);
-        }
-        // Breakpoints are now managed by EmulationContext
-    }, [navigateTo, workerManager, externalAddress, currentPC]);
-    
-    // Request debug info periodically - but only when paused (for register display)
-    useEffect(() => {
-        if (!isPaused) return; // Only request when paused
+        if (!isPaused) return;
         
         const requestDebugInfo = async () => {
             await workerManager.getDebugInfo();
         };
         
-        requestDebugInfo(); // Initial request
+        requestDebugInfo();
         const interval = setInterval(requestDebugInfo, REFRESH_RATES.FAST);
         return () => clearInterval(interval);
     }, [workerManager, isPaused]);
     
-    // Navigation overrides for instruction-aware navigation
+    // Navigation handlers
     const handleNavigateUp = useCallback(() => {
-        // Go back by approximately the same amount we're showing
-        // Use average of 2 bytes per instruction as estimate
-        const bytesToMove = Math.max(16, visibleRows * 2);
-        const newAddr = Math.max(0, currentAddress - bytesToMove);
+        const newAddr = Math.max(0, viewStartAddress - Math.floor(visibleRows / 2));
         navigateTo(newAddr);
-    }, [currentAddress, visibleRows, navigateTo]);
+    }, [viewStartAddress, visibleRows, navigateTo]);
     
     const handleNavigateDown = useCallback(() => {
-        // Move forward by the bytes consumed by actually rendered instructions
-        if (lines.length > 0) {
-            const lastLine = lines[lines.length - 1];
-            const nextAddr = lastLine.address + lastLine.bytes.length;
-            navigateTo(Math.min(0xFFFF, nextAddr));
+        // Find the last complete instruction in current view
+        const lastLine = lines[lines.length - 1];
+        if (lastLine) {
+            navigateTo(lastLine.address);
         }
     }, [lines, navigateTo]);
     
-    // Jump to PC - works during both execution and paused states
+    // Jump to PC
     const jumpToPC = useCallback(() => {
-        if (currentPC !== undefined && currentPC >= 0) {
-            navigateTo(currentPC);
+        if (currentPC !== undefined) {
+            navigateTo(Math.max(0, currentPC - 5));
         }
     }, [currentPC, navigateTo]);
-    
-    // Use toggleBreakpoint from context
-    const toggleBreakpoint = contextToggleBreakpoint;
     
     // Execution controls
     const handleStep = useCallback(() => {
@@ -357,21 +323,13 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
         await workerManager.keyDown('Tab');
     }, [workerManager]);
     
-    // Calculate end address based on actual instructions
-    const endAddress = lines.length > 0 
-        ? lines[lines.length - 1].address + lines[lines.length - 1].bytes.length - 1
-        : currentAddress;
-    
-    // Get instruction info/hints
+    // Get instruction info
     const getInstructionInfo = (line: DisassemblyLine): string => {
         const opcode = line.bytes[0];
         const opcodeInfo = OPCODES[opcode];
         
         if (!opcodeInfo) return '';
         
-        let info = '';
-        
-        // Add addressing mode hint
         const modeNames: Record<string, string> = {
             'imp': 'Implied',
             'acc': 'Accumulator',
@@ -388,9 +346,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
             'rel': 'Relative'
         };
         
-        info = modeNames[opcodeInfo.mode] || opcodeInfo.mode;
+        let info = modeNames[opcodeInfo.mode] || opcodeInfo.mode;
         
-        // Add special hints for certain instructions
+        // Add special hints
         if (line.instruction === 'BRK') {
             info += ' • Software interrupt';
         } else if (line.instruction === 'RTS') {
@@ -422,7 +380,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
         return info;
     };
     
-    // Render functions for the table
+    // Render functions
     const renderTableHeader = () => (
         <thead className="bg-surface-secondary">
             <tr className="text-text-accent">
@@ -437,7 +395,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
     
     const renderTableRows = () => {
         return lines.map((line, index) => {
-            const isCurrentPC = line.address === currentPC;
+            const isCurrentPC = currentPC !== undefined && line.address === currentPC;
             const hasBreakpoint = breakpoints.has(line.address);
             const isRunToCursor = line.address === runToCursorTarget;
             const bytesHex = line.bytes.map(b => Formatters.hex(b, 2)).join(' ');
@@ -453,7 +411,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
                 >
                     <td 
                         className="px-xs py-1 align-middle cursor-pointer text-center"
-                        onClick={() => toggleBreakpoint(line.address)}
+                        onClick={() => contextToggleBreakpoint(line.address)}
                         title={
                             isRunToCursor ? "Run-to-cursor target" :
                             hasBreakpoint ? "Remove breakpoint" : 
@@ -487,37 +445,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
                     </td>
                     <td className="px-sm py-1 align-middle w-48">
                         <span className="text-data-status font-medium">{line.instruction}</span>
-                        {line.operand && line.operandAddress !== undefined ? (
+                        {line.operand && (
                             <span className="ml-2">
-                                {/* Handle different operand display formats */}
-                                {line.operand.startsWith('(') ? (
-                                    // Indirect addressing: ($XXXX)
-                                    <>
-                                        <span className="text-data-value">(</span>
-                                        <AddressLink 
-                                            address={line.operandAddress} 
-                                            className="text-data-value hover:text-data-value-hover"
-                                            workerManager={workerManager}
-                                            showContextMenu={true}
-                                            showRunToCursor={true}
-                                        />
-                                        <span className="text-data-value">)</span>
-                                    </>
-                                ) : line.operand.includes(',') ? (
-                                    // Indexed addressing: $XXXX,X or $XXXX,Y
-                                    <>
-                                        <AddressLink 
-                                            address={line.operandAddress} 
-                                            format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
-                                            className="text-data-value hover:text-data-value-hover"
-                                            workerManager={workerManager}
-                                            showContextMenu={true}
-                                            showRunToCursor={true}
-                                        />
-                                        <span className="text-data-value">{line.operand.slice(line.operand.indexOf(','))}</span>
-                                    </>
-                                ) : (
-                                    // Simple absolute or branch addressing
+                                {line.operandAddress !== undefined ? (
                                     <AddressLink 
                                         address={line.operandAddress} 
                                         format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
@@ -526,11 +456,11 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
                                         showContextMenu={true}
                                         showRunToCursor={true}
                                     />
+                                ) : (
+                                    <span className="text-data-value">{line.operand}</span>
                                 )}
                             </span>
-                        ) : line.operand ? (
-                            <span className="text-data-value ml-2">{line.operand}</span>
-                        ) : null}
+                        )}
                     </td>
                     <td className="px-sm py-1 align-middle text-text-secondary text-xs">
                         {getInstructionInfo(line)}
@@ -582,7 +512,6 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
             >
                 →PC
             </button>
-            
         </div>
     );
     
@@ -598,16 +527,19 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
         </span>
     );
     
-    // Custom address range display for disassembly
-    const getCustomAddressRange = () => {
-        if (lines.length === 0) return getAddressRange();
-        return `$${Formatters.hex(currentAddress, 4)}-$${Formatters.hex(endAddress, 4)}`;
+    // Calculate address range
+    const getAddressRange = () => {
+        const start = Formatters.hex(viewStartAddress, 4);
+        const lastLine = lines[lines.length - 1];
+        const end = lastLine 
+            ? Formatters.hex(lastLine.address + lastLine.bytes.length - 1, 4)
+            : Formatters.hex(viewStartAddress, 4);
+        return `$${start}-$${end}`;
     };
     
-    // Keyboard shortcuts - handled separately due to complexity
+    // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Don't handle shortcuts if input is focused
             if (document.activeElement?.tagName === 'INPUT') return;
             
             if ((e.key === 'F10' || (e.key === ' ' && e.target === document.body)) && isPaused) {
@@ -621,29 +553,27 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
                 jumpToPC();
             } else if (e.key === 'F9' && currentPC !== undefined) {
                 e.preventDefault();
-                toggleBreakpoint(currentPC);
+                contextToggleBreakpoint(currentPC);
             }
         };
         
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentPC, isPaused, handleStep, handleRunPause, jumpToPC, toggleBreakpoint]);
+    }, [currentPC, isPaused, handleStep, handleRunPause, jumpToPC, contextToggleBreakpoint]);
     
     return (
         <div className="flex flex-col h-full">
-            {/* Compact CPU Registers - only show when paused/stepping */}
             {isPaused && (
                 <CompactCpuRegisters debugInfo={debugInfo} workerManager={workerManager} />
             )}
             
-            {/* Disassembler Table */}
             <div className="flex-1">
                 <PaginatedTableView
-                    currentAddress={currentAddress}
+                    currentAddress={viewStartAddress}
                     onAddressChange={navigateTo}
                     onNavigateUp={handleNavigateUp}
                     onNavigateDown={handleNavigateDown}
-                    addressRange={getCustomAddressRange()}
+                    addressRange={getAddressRange()}
                     rowCount={lines.length}
                     renderTableHeader={renderTableHeader}
                     renderTableRows={renderTableRows}
