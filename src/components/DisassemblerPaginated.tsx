@@ -48,6 +48,10 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
     const currentPC = contextPC;
     const breakpoints = contextBreakpoints;
     
+    // Debug: log PC changes
+    useEffect(() => {
+    }, [currentPC]);
+    
     // We fetch more than needed to ensure we have enough instructions
     const MEMORY_CHUNK_SIZE = 512;
     
@@ -266,25 +270,15 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
     // Track previous PC to detect changes
     const [previousPC, setPreviousPC] = useState<number | null>(null);
     
-    // Auto-follow PC when it changes (e.g., during stepping)
+    // Auto-follow PC when it changes
     useEffect(() => {
-        if (currentPC !== previousPC && currentPC !== undefined) {
-            setPreviousPC(currentPC);
-            
-            // Only auto-navigate when paused to avoid disrupting user scrolling
-            if (isPaused) {
-                // Check if PC is visible in current view
-                const firstVisibleAddr = lines[0]?.address;
-                const lastVisibleAddr = lines[lines.length - 1]?.address;
-                
-                if (firstVisibleAddr !== undefined && lastVisibleAddr !== undefined &&
-                    (currentPC < firstVisibleAddr || currentPC > lastVisibleAddr)) {
-                    // PC is not visible, navigate to it
-                    navigateTo(currentPC);
-                }
-            }
-        }
-    }, [currentPC, previousPC, isPaused, lines, navigateTo]);
+        if (currentPC === undefined || currentPC === previousPC) return;
+        
+        setPreviousPC(currentPC);
+        
+        // Always navigate to PC when it changes
+        navigateTo(currentPC);
+    }, [currentPC, previousPC, navigateTo]);
     
     // Sync with navigation hook address
     useEffect(() => {
@@ -298,9 +292,12 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
         // Navigate to the external address if provided
         if (externalAddress !== undefined) {
             navigateTo(externalAddress);
+        } else if (currentPC !== undefined) {
+            // If no external address, go to PC
+            navigateTo(currentPC);
         }
         // Breakpoints are now managed by EmulationContext
-    }, [navigateTo, workerManager, externalAddress]);
+    }, [navigateTo, workerManager, externalAddress, currentPC]);
     
     // Request debug info periodically - but only when paused (for register display)
     useEffect(() => {
@@ -333,7 +330,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
         }
     }, [lines, navigateTo]);
     
-    // Jump to PC
+    // Jump to PC - works during both execution and paused states
     const jumpToPC = useCallback(() => {
         if (currentPC !== undefined && currentPC >= 0) {
             navigateTo(currentPC);
@@ -585,6 +582,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, cur
             >
                 →PC
             </button>
+            
         </div>
     );
     

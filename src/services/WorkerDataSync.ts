@@ -216,6 +216,7 @@ export class WorkerDataSync {
      * Start polling for debug info
      */
     private startDebugInfoPolling(): void {
+        
         // Fetch immediately
         this.fetchDebugInfo();
         
@@ -301,6 +302,7 @@ export class WorkerDataSync {
             if (!data) {
                 throw new Error('No debug info received');
             }
+            
             
             // Update cache
             this.debugInfoCache = {

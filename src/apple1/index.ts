@@ -315,6 +315,9 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
 
         this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
 
+        // Initialize CPU by calling reset to set PC to reset vector
+        this.cpu.reset();
+
         // Debug output commented out to reduce startup logs
         // loggingService.info('Apple1', `System Clock: ${JSON.stringify(this.clock.toDebug())}`);
         // loggingService.info('Apple1', `Bus: ${JSON.stringify(this.bus.toDebug())}`);

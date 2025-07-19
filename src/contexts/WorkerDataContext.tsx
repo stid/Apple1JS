@@ -42,10 +42,13 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     const [breakpoints, setBreakpoints] = useState<number[]>([]);
     const dataSyncRef = useRef<WorkerDataSync | null>(null);
     
+    // Initialize WorkerDataSync synchronously
+    if (!dataSyncRef.current) {
+        dataSyncRef.current = new WorkerDataSync(workerManager);
+    }
+    
     useEffect(() => {
-        // Create WorkerDataSync instance
-        const dataSync = new WorkerDataSync(workerManager);
-        dataSyncRef.current = dataSync;
+        const dataSync = dataSyncRef.current!;
         
         // Subscribe to debug info updates
         const unsubscribeDebug = dataSync.subscribeToDebugInfo((data) => {
@@ -68,8 +71,8 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     
     const subscribeToDebugInfo = useCallback((callback: (data: FilteredDebugData) => void) => {
         if (!dataSyncRef.current) {
-            // Return a no-op unsubscribe function if not initialized yet
-            console.warn('WorkerDataSync not initialized yet, deferring subscription');
+            // This should not happen now that we initialize synchronously
+            console.error('WorkerDataSync is null - this should not happen');
             return () => {};
         }
         return dataSyncRef.current.subscribeToDebugInfo(callback);
@@ -77,8 +80,8 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     
     const subscribeToBreakpoints = useCallback((callback: (data: number[]) => void) => {
         if (!dataSyncRef.current) {
-            // Return a no-op unsubscribe function if not initialized yet
-            console.warn('WorkerDataSync not initialized yet, deferring subscription');
+            // This should not happen now that we initialize synchronously
+            console.error('WorkerDataSync is null - this should not happen');
             return () => {};
         }
         return dataSyncRef.current.subscribeToBreakpoints(callback);
@@ -86,8 +89,8 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     
     const subscribeToMemoryRange = useCallback((start: number, length: number, callback: (data: number[]) => void) => {
         if (!dataSyncRef.current) {
-            // Return a no-op unsubscribe function if not initialized yet
-            console.warn('WorkerDataSync not initialized yet, deferring subscription');
+            // This should not happen now that we initialize synchronously
+            console.error('WorkerDataSync is null - this should not happen');
             return () => {};
         }
         return dataSyncRef.current.subscribeToMemoryRange(start, length, callback);

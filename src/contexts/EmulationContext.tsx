@@ -218,7 +218,9 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         const trySubscribe = () => {
             try {
                 unsubscribe = subscribeToDebugInfo((data) => {
-                    if (!mounted) return;
+                    if (!mounted) {
+                        return;
+                    }
                     
                     if (data?.cpu) {
                         const pc = data.cpu.REG_PC || data.cpu.PC;
