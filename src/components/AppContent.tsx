@@ -63,11 +63,11 @@ const AppContentInner = ({
     }, []);
 
     const handleKeyDown = useCallback(
-        (e: KeyboardEvent) => {
+        async (e: KeyboardEvent) => {
             if (e.metaKey || e.ctrlKey || e.altKey) {
                 return;
             }
-            workerManager.keyDown(e.key);
+            await workerManager.keyDown(e.key);
             e.preventDefault();
         },
         [workerManager],
@@ -79,9 +79,9 @@ const AppContentInner = ({
             if (text) {
                 // Send characters with a small delay between them to avoid overwhelming the Apple 1
                 text.split('').forEach((char, index) => {
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
-                        workerManager.keyDown(keyToSend);
+                        await workerManager.keyDown(keyToSend);
                     }, index * 160); // 160ms delay between each character
                 });
             }
@@ -137,7 +137,7 @@ const AppContentInner = ({
     // Sync debugger active state with worker
     useEffect(() => {
         const isDebuggerActive = rightTab === 'debugger';
-        workerManager.setDebuggerActive(isDebuggerActive);
+        workerManager.setDebuggerActive(isDebuggerActive).catch(console.error);
     }, [rightTab, workerManager]);
 
     const handleSaveState = useCallback(
@@ -211,16 +211,16 @@ const AppContentInner = ({
                     <Actions
                         supportBS={supportBS}
                         onReset={useCallback(
-                            (e) => {
+                            async (e) => {
                                 e.preventDefault();
-                                workerManager.keyDown('Tab');
+                                await workerManager.keyDown('Tab');
                             },
                             [workerManager],
                         )}
                         onBS={useCallback(
-                            (e) => {
+                            async (e) => {
                                 e.preventDefault();
-                                workerManager.setCrtBsSupport(!supportBS);
+                                await workerManager.setCrtBsSupport(!supportBS);
                                 setSupportBS((prev) => !prev);
                             },
                             [workerManager, supportBS],
@@ -232,9 +232,9 @@ const AppContentInner = ({
                         onRefocus={focusHiddenInput}
                         cycleAccurateTiming={cycleAccurateTiming}
                         onCycleAccurateTiming={useCallback(
-                            (e) => {
+                            async (e) => {
                                 e.preventDefault();
-                                workerManager.setCycleAccurateMode(!cycleAccurateTiming);
+                                await workerManager.setCycleAccurateMode(!cycleAccurateTiming);
                                 setCycleAccurateTiming((prev) => !prev);
                             },
                             [workerManager, cycleAccurateTiming],

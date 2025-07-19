@@ -30,9 +30,9 @@ const CompactExecutionControls: React.FC<CompactExecutionControlsProps> = ({
         }
     }, [isPaused, pause, resume]);
 
-    const handleReset = useCallback(() => {
+    const handleReset = useCallback(async () => {
         // Send Tab key to trigger Apple 1 reset, like the main reset button
-        workerManager.keyDown('Tab');
+        await workerManager.keyDown('Tab');
     }, [workerManager]);
 
     // No longer need to listen for emulation status - handled by EmulationContext

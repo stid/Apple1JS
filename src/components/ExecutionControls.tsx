@@ -43,10 +43,10 @@ const ExecutionControls: React.FC<ExecutionControlsProps> = ({ workerManager }) 
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isPaused, handleStep, handleRunPause]);
 
-    const handleReset = () => {
+    const handleReset = useCallback(async () => {
         // Send Tab key to trigger Apple 1 reset
-        workerManager.keyDown('Tab');
-    };
+        await workerManager.keyDown('Tab');
+    }, [workerManager]);
 
     return (
         <div className="bg-surface-primary rounded-lg p-md border border-border-primary">

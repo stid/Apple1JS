@@ -48,11 +48,11 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
     // Control debugger visibility state in worker
     useEffect(() => {
         // Notify worker that debugger is active
-        workerManager.setDebuggerActive(true);
+        workerManager.setDebuggerActive(true).catch(console.error);
         
         // Cleanup: notify worker that debugger is inactive
         return () => {
-            workerManager.setDebuggerActive(false);
+            workerManager.setDebuggerActive(false).catch(console.error);
         };
     }, [workerManager]);
     

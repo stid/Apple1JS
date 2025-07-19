@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/types/components';
 import { DebugData } from '../apple1/types/worker-messages';
 import { OPCODES } from '../constants/opcodes';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -14,7 +15,7 @@ interface InspectorViewProps {
 }
 
 const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
-    const [debugInfo] = useState<DebugData>({});
+    const [debugInfo, setDebugInfo] = useState<DebugData>({});
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
 
     // Helper function to translate hex opcode to human-readable mnemonic
@@ -25,17 +26,28 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         return opcodeInfo ? opcodeInfo.name : opcodeHex; // Fall back to hex if not found
     };
 
-    // TODO: Implement debug info polling with WorkerManager
-    // For now, debug info polling is disabled until we implement
-    // debug info subscriptions in WorkerManager
+    // Poll for debug info using WorkerManager
     useEffect(() => {
-        // if (!workerManager) return;
+        if (!workerManager) return;
         
-        // Debug info polling would go here
-        // const interval = setInterval(() => {
-        //     workerManager.getDebugInfo();
-        // }, DEBUG_REFRESH_RATES.INSPECTOR);
-        // return () => clearInterval(interval);
+        const fetchDebugInfo = async () => {
+            try {
+                const info = await workerManager.getDebugInfo();
+                if (info) {
+                    setDebugInfo(info);
+                }
+            } catch (error) {
+                console.error('Failed to fetch debug info:', error);
+            }
+        };
+        
+        // Initial fetch
+        fetchDebugInfo();
+        
+        // Set up polling
+        const interval = setInterval(fetchDebugInfo, DEBUG_REFRESH_RATES.INSPECTOR);
+        
+        return () => clearInterval(interval);
     }, [workerManager]);
 
 
