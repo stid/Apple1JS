@@ -179,6 +179,7 @@ export class WorkerAPI implements IWorkerAPI {
     setBreakpoint(address: number): number[] {
         this.workerState.breakpoints.add(address);
         this.workerState.updateBreakpointHook();
+        
         return Array.from(this.workerState.breakpoints);
     }
     

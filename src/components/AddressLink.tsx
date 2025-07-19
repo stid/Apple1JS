@@ -73,7 +73,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     
     const disassemblyOption = document.createElement('button');
     disassemblyOption.className = 'block w-full text-left px-3 py-1 hover:bg-surface-secondary text-sm text-text-primary hover:text-text-accent transition-colors';
-    disassemblyOption.innerHTML = '<span class="mr-2 opacity-60">↗</span>View in Disassembly';
+    disassemblyOption.textContent = '↗ View in Disassembly';
     disassemblyOption.onclick = () => {
       navigate(address, 'disassembly');
       safeRemoveMenu();
@@ -81,7 +81,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     
     const memoryOption = document.createElement('button');
     memoryOption.className = 'block w-full text-left px-3 py-1 hover:bg-surface-secondary text-sm text-text-primary hover:text-text-accent transition-colors';
-    memoryOption.innerHTML = '<span class="mr-2 opacity-60">⬡</span>View in Memory Editor';
+    memoryOption.textContent = '⬡ View in Memory Editor';
     memoryOption.onclick = () => {
       navigate(address, 'memory');
       safeRemoveMenu();
@@ -98,7 +98,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
       
       const runToCursorOption = document.createElement('button');
       runToCursorOption.className = 'block w-full text-left px-3 py-1 hover:bg-warning/20 text-sm text-warning font-medium transition-colors';
-      runToCursorOption.innerHTML = '<span class="mr-2">▶</span>Run to Cursor';
+      runToCursorOption.textContent = '▶ Run to Cursor';
       runToCursorOption.onclick = async () => {
         try {
           await workerManager.runToAddress(address);
