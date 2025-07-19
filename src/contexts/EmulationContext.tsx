@@ -197,6 +197,9 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     }, [workerManager, breakpoints]);
 
     // Poll for debug info periodically to get current PC
+    // TODO: Multiple components are polling debug info independently causing 30+ calls/sec
+    // when paused. This blocks the main thread and stops CSS animations. We need a
+    // centralized debug data manager that polls once and distributes to all components.
     useEffect(() => {
         let intervalId: ReturnType<typeof setInterval> | undefined;
         
@@ -219,11 +222,11 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         // Initial fetch
         fetchDebugInfo();
         
-        // Poll more frequently when paused
+        // Poll less frequently to avoid blocking main thread
         if (isPaused) {
-            intervalId = setInterval(fetchDebugInfo, 100); // 100ms when paused
+            intervalId = setInterval(fetchDebugInfo, 500); // 500ms when paused (was 100ms)
         } else {
-            intervalId = setInterval(fetchDebugInfo, 1000); // 1s when running
+            intervalId = setInterval(fetchDebugInfo, 2000); // 2s when running (was 1s)
         }
         
         return () => {
