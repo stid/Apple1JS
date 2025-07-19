@@ -111,7 +111,7 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
 
 
     return (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" style={{ position: 'relative', zIndex: 10 }}>
             <Badge count={counts.info} level="info" onClick={onInfoClick} />
             <Badge count={counts.warn} level="warn" onClick={onWarnClick} />
             <Badge count={counts.error} level="error" onClick={onErrorClick} />

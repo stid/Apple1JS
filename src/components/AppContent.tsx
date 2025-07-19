@@ -67,8 +67,15 @@ const AppContentInner = ({
             if (e.metaKey || e.ctrlKey || e.altKey) {
                 return;
             }
+            // Prevent default immediately for Tab and other special keys
+            if (e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+            }
             await workerManager.keyDown(e.key);
-            e.preventDefault();
+            // Prevent default for all other keys after processing
+            if (e.key !== 'Tab' && e.key !== 'Enter' && e.key !== 'Escape') {
+                e.preventDefault();
+            }
         },
         [workerManager],
     );
@@ -105,8 +112,9 @@ const AppContentInner = ({
     }, [handleKeyDown, handlePaste]);
 
     useEffect(() => {
+        // Only focus on initial mount
         focusHiddenInput();
-    }, [focusHiddenInput]);
+    }, []); // Remove dependency to prevent re-focusing
 
     // Handle log messages from worker via WorkerManager
     useEffect(() => {
@@ -204,7 +212,12 @@ const AppContentInner = ({
                 className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
                 style={{ maxWidth: '538px' }}
             >
-                <div className="w-full flex justify-center" onClick={focusHiddenInput} role="presentation">
+                <div className="w-full flex justify-center" onClick={(e) => {
+                    // Only refocus if clicking directly on CRT, not on child elements
+                    if (e.target === e.currentTarget) {
+                        focusHiddenInput();
+                    }
+                }} role="presentation">
                     <CRTWorker workerManager={workerManager} />
                 </div>
                 <div className="mt-md w-full">
