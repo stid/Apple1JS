@@ -38,6 +38,9 @@ export class WorkerAPI implements IWorkerAPI {
             },
             onBreakpoint: (address) => {
                 this.breakpointCallbacks.forEach(cb => cb(address));
+            },
+            onLog: (data) => {
+                this.logCallbacks.forEach(cb => cb(data));
             }
         });
     }
@@ -67,16 +70,24 @@ export class WorkerAPI implements IWorkerAPI {
             });
         }
         
-        // Note: LoggingService doesn't have subscribe method
-        // Log messages will need to be handled differently or LoggingService needs to be extended
+        // Set up logging handler to forward messages
+        loggingService.addHandler((level, source, message) => {
+            this.logCallbacks.forEach(cb => {
+                try {
+                    cb({ level, source, message });
+                } catch (error) {
+                    console.error('Error calling log callback:', error);
+                }
+            });
+        });
     }
     
     /**
      * Filter debug data to only include string and number values for backward compatibility
      * But preserve _PERF_DATA object for profiling
      */
-    private filterDebugData(data: Record<string, unknown>): Record<string, any> {
-        const filtered: Record<string, any> = {};
+    private filterDebugData(data: Record<string, unknown>): Record<string, string | number | object> {
+        const filtered: Record<string, string | number | object> = {};
         for (const [key, value] of Object.entries(data)) {
             if (typeof value === 'string' || typeof value === 'number') {
                 filtered[key] = value;
@@ -129,6 +140,7 @@ export class WorkerAPI implements IWorkerAPI {
         
         // Clear stepping flag
         this.workerState.isStepping = false;
+        
         
         // Check if we hit a breakpoint after stepping (at the new PC)
         if (this.workerState.breakpoints.has(this.workerState.apple1.cpu.PC)) {

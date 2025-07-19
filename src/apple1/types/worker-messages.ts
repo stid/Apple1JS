@@ -38,7 +38,7 @@ export enum WORKER_MESSAGES {
 
 // Interface for DebugData: a dictionary of debugging information
 export interface DebugData {
-    [key: string]: { [key: string]: any };
+    [key: string]: { [key: string]: string | number | object };
 }
 
 // Extended debug data that supports additional types

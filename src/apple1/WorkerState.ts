@@ -31,6 +31,7 @@ export class WorkerState implements IWorkerState {
     // Callbacks for events
     private statusCallback?: (status: 'running' | 'paused') => void;
     private breakpointCallback?: (address: number) => void;
+    private logCallback?: (data: { level: string; source: string; message: string }) => void;
     
     constructor() {
         // Initialize video and keyboard
@@ -73,8 +74,11 @@ export class WorkerState implements IWorkerState {
      * Set up logging service handler
      */
     private setupLoggingHandler(): void {
-        // Logging is now handled through WorkerAPI
-        // Keep this method for compatibility
+        loggingService.addHandler((level, source, message) => {
+            if (this.logCallback) {
+                this.logCallback({ level, source, message });
+            }
+        });
     }
     
     /**
@@ -119,9 +123,11 @@ export class WorkerState implements IWorkerState {
     public setCallbacks(callbacks: {
         onStatus?: (status: 'running' | 'paused') => void;
         onBreakpoint?: (address: number) => void;
+        onLog?: (data: { level: string; source: string; message: string }) => void;
     }): void {
         if (callbacks.onStatus) this.statusCallback = callbacks.onStatus;
         if (callbacks.onBreakpoint) this.breakpointCallback = callbacks.onBreakpoint;
+        if (callbacks.onLog) this.logCallback = callbacks.onLog;
     }
     
     /**
