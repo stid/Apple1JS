@@ -109,6 +109,7 @@ const AlertBadges: React.FC<AlertBadgesProps> = ({ onInfoClick, onWarnClick, onE
         );
     };
 
+
     return (
         <div className="flex items-center gap-1">
             <Badge count={counts.info} level="info" onClick={onInfoClick} />

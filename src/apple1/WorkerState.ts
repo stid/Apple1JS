@@ -55,8 +55,7 @@ export class WorkerState implements IWorkerState {
         // Set up video subscription
         this.setupVideoSubscription();
         
-        // Set up logging handler
-        this.setupLoggingHandler();
+        // Note: Logging handler will be set up after callbacks are configured
         
         // Initialize breakpoint hook
         this.updateBreakpointHook();
@@ -128,6 +127,9 @@ export class WorkerState implements IWorkerState {
         if (callbacks.onStatus) this.statusCallback = callbacks.onStatus;
         if (callbacks.onBreakpoint) this.breakpointCallback = callbacks.onBreakpoint;
         if (callbacks.onLog) this.logCallback = callbacks.onLog;
+        
+        // Now set up the logging handler after callbacks are configured
+        this.setupLoggingHandler();
     }
     
     /**
@@ -154,8 +156,6 @@ export class WorkerState implements IWorkerState {
         this.apple1.startLoop();
         this.isPaused = false;
         
-        // Test logging
-        loggingService.log('info', 'Emulator', 'Apple 1 emulation started');
     }
     
     /**

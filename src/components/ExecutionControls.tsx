@@ -1,7 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useEmulation } from '../contexts/EmulationContext';
 import type { WorkerManager } from '../services/WorkerManager';
-import { loggingService } from '../services/LoggingService';
 
 interface ExecutionControlsProps {
     workerManager: WorkerManager;
@@ -18,10 +17,8 @@ const ExecutionControls: React.FC<ExecutionControlsProps> = ({ workerManager }) 
     const handleRunPause = useCallback(() => {
         if (isPaused) {
             resume();
-            loggingService.log('info', 'ExecutionControls', 'Resumed emulation');
         } else {
             pause();
-            loggingService.log('info', 'ExecutionControls', 'Paused emulation');
         }
     }, [isPaused, pause, resume]);
 
