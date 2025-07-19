@@ -30,6 +30,16 @@ export class WorkerAPI implements IWorkerAPI {
     constructor(private workerState: WorkerState) {
         // Set up internal event subscriptions
         this.setupInternalSubscriptions();
+        
+        // Set up callbacks for WorkerState to use
+        this.workerState.setCallbacks({
+            onStatus: (status) => {
+                this.statusCallbacks.forEach(cb => cb(status));
+            },
+            onBreakpoint: (address) => {
+                this.breakpointCallbacks.forEach(cb => cb(address));
+            }
+        });
     }
     
     /**

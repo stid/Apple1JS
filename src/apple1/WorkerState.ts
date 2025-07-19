@@ -2,7 +2,6 @@ import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
 import type { IWorkerState } from './types/worker-api';
-import type { WebCrtVideoSubFuncVideoType } from './TSTypes';
 import { WORKER_MESSAGES } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
@@ -32,6 +31,10 @@ export class WorkerState implements IWorkerState {
     // Debugger state
     public debuggerActive: boolean;
     public debugUpdateInterval: number | null;
+    
+    // Callbacks for events
+    private statusCallback?: (status: 'running' | 'paused') => void;
+    private breakpointCallback?: (address: number) => void;
     
     constructor() {
         // Initialize video and keyboard
@@ -66,13 +69,8 @@ export class WorkerState implements IWorkerState {
      * Set up video update subscription
      */
     private setupVideoSubscription(): void {
-        this.video.subscribe((data: WebCrtVideoSubFuncVideoType) => {
-            const { buffer, row, column } = data;
-            postMessage({ 
-                data: { buffer, row, column }, 
-                type: WORKER_MESSAGES.UPDATE_VIDEO_BUFFER 
-            });
-        });
+        // Video updates are handled directly in WorkerAPI
+        // This is kept for compatibility
     }
     
     /**
@@ -107,14 +105,13 @@ export class WorkerState implements IWorkerState {
                     // Hit a breakpoint - pause execution
                     this.apple1.clock.pause();
                     this.isPaused = true;
-                    postMessage({ 
-                        data: { paused: true }, 
-                        type: WORKER_MESSAGES.EMULATION_STATUS 
-                    });
-                    postMessage({ 
-                        data: pc, 
-                        type: WORKER_MESSAGES.BREAKPOINT_HIT 
-                    });
+                    // Use callbacks if available
+                    if (this.statusCallback) {
+                        this.statusCallback('paused');
+                    }
+                    if (this.breakpointCallback) {
+                        this.breakpointCallback(pc);
+                    }
                     loggingService.log('info', 'Breakpoint', 
                         `Hit breakpoint at ${Formatters.address(pc)}`);
                     return false; // Halt execution
@@ -125,22 +122,26 @@ export class WorkerState implements IWorkerState {
     }
     
     /**
+     * Set callbacks for events
+     */
+    public setCallbacks(callbacks: {
+        onStatus?: (status: 'running' | 'paused') => void;
+        onBreakpoint?: (address: number) => void;
+    }): void {
+        if (callbacks.onStatus) this.statusCallback = callbacks.onStatus;
+        if (callbacks.onBreakpoint) this.breakpointCallback = callbacks.onBreakpoint;
+    }
+    
+    /**
      * Update debugger state and manage debug update interval
      */
     public updateDebuggerState(active: boolean): void {
         this.debuggerActive = active;
         
         if (active && !this.debugUpdateInterval) {
-            // Start sending debug updates
-            this.debugUpdateInterval = setInterval(() => {
-                const { cpu } = this.apple1;
-                postMessage({
-                    data: {
-                        cpu: cpu.toDebug()
-                    },
-                    type: WORKER_MESSAGES.DEBUG_DATA,
-                });
-            }, this.isPaused ? 100 : 250) as unknown as number; // Faster updates when paused
+            // Debug updates are now handled by polling from main thread
+            // Keep interval for compatibility but don't send postMessage
+            this.debugUpdateInterval = 1; // Just a placeholder
         } else if (!active && this.debugUpdateInterval) {
             // Stop sending debug updates
             clearInterval(this.debugUpdateInterval);
