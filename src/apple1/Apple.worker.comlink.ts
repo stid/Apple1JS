@@ -35,6 +35,9 @@ globalThis.addEventListener('beforeunload', () => {
  * This wraps the existing WorkerAPI and adds event subscription support
  */
 class ComlinkWorkerAPI implements IWorkerAPI {
+    private subscriptionId = 0;
+    private subscriptions = new Map<number, () => void>();
+
     constructor(private api: WorkerAPI) {
         // No hybrid mode support - pure Comlink implementation
     }
@@ -66,8 +69,18 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     onVideoUpdate(callback: (data: VideoData) => void): () => void {
         try {
             const unsubscribe = this.api.onVideoUpdate(callback);
-            // Return the unsubscribe function directly
-            return unsubscribe;
+            // Store the unsubscribe function and return a serializable function
+            const id = ++this.subscriptionId;
+            this.subscriptions.set(id, unsubscribe);
+            
+            // Return a proxy function that can be called from the main thread
+            return Comlink.proxy(() => {
+                const unsub = this.subscriptions.get(id);
+                if (unsub) {
+                    unsub();
+                    this.subscriptions.delete(id);
+                }
+            });
         } catch (error) {
             console.error('Error setting up video update subscription:', error);
             throw error;
@@ -76,27 +89,67 @@ class ComlinkWorkerAPI implements IWorkerAPI {
 
     onBreakpointHit(callback: (address: number) => void): () => void {
         const unsubscribe = this.api.onBreakpointHit(callback);
-        return unsubscribe;
+        const id = ++this.subscriptionId;
+        this.subscriptions.set(id, unsubscribe);
+        return Comlink.proxy(() => {
+            const unsub = this.subscriptions.get(id);
+            if (unsub) {
+                unsub();
+                this.subscriptions.delete(id);
+            }
+        });
     }
 
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
         const unsubscribe = this.api.onEmulationStatus(callback);
-        return unsubscribe;
+        const id = ++this.subscriptionId;
+        this.subscriptions.set(id, unsubscribe);
+        return Comlink.proxy(() => {
+            const unsub = this.subscriptions.get(id);
+            if (unsub) {
+                unsub();
+                this.subscriptions.delete(id);
+            }
+        });
     }
 
     onLogMessage(callback: (data: LogMessageData) => void): () => void {
         const unsubscribe = this.api.onLogMessage(callback);
-        return unsubscribe;
+        const id = ++this.subscriptionId;
+        this.subscriptions.set(id, unsubscribe);
+        return Comlink.proxy(() => {
+            const unsub = this.subscriptions.get(id);
+            if (unsub) {
+                unsub();
+                this.subscriptions.delete(id);
+            }
+        });
     }
 
     onClockData(callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void): () => void {
         const unsubscribe = this.api.onClockData(callback);
-        return unsubscribe;
+        const id = ++this.subscriptionId;
+        this.subscriptions.set(id, unsubscribe);
+        return Comlink.proxy(() => {
+            const unsub = this.subscriptions.get(id);
+            if (unsub) {
+                unsub();
+                this.subscriptions.delete(id);
+            }
+        });
     }
 
     onRunToCursorTarget(callback: (target: number | null) => void): () => void {
         const unsubscribe = this.api.onRunToCursorTarget(callback);
-        return unsubscribe;
+        const id = ++this.subscriptionId;
+        this.subscriptions.set(id, unsubscribe);
+        return Comlink.proxy(() => {
+            const unsub = this.subscriptions.get(id);
+            if (unsub) {
+                unsub();
+                this.subscriptions.delete(id);
+            }
+        });
     }
 }
 
