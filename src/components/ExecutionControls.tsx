@@ -1,13 +1,13 @@
 import React, { useEffect, useCallback } from 'react';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useEmulation } from '../contexts/EmulationContext';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface ExecutionControlsProps {
-    worker: Worker;
+    workerManager: WorkerManager;
 }
 
 
-const ExecutionControls: React.FC<ExecutionControlsProps> = ({ worker }) => {
+const ExecutionControls: React.FC<ExecutionControlsProps> = ({ workerManager }) => {
     const { isPaused, executionState, pause, resume, step: contextStep } = useEmulation();
 
     const handleStep = useCallback(() => {
@@ -45,7 +45,7 @@ const ExecutionControls: React.FC<ExecutionControlsProps> = ({ worker }) => {
 
     const handleReset = () => {
         // Send Tab key to trigger Apple 1 reset
-        worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
+        workerManager.keyDown('Tab');
     };
 
     return (

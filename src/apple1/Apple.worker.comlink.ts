@@ -8,12 +8,11 @@ import type { EmulatorState } from './types/emulator-state';
 
 /**
  * Comlink-based worker implementation for Apple1JS.
- * This is a parallel implementation that will eventually replace the 
- * postMessage-based worker.
+ * This provides a clean RPC-style API for worker communication,
+ * replacing the previous postMessage-based implementation.
  * 
- * Phase 1: Hybrid approach
- * - Command operations use Comlink
- * - High-frequency video updates remain on postMessage for performance
+ * All operations including high-frequency video updates now use Comlink
+ * for consistent type-safe communication.
  */
 
 // Create the worker state instance
@@ -62,35 +61,42 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
 
-    // Event subscription methods - forward to underlying WorkerAPI with Comlink proxy
+    // Event subscription methods - forward to underlying WorkerAPI
+    // Note: Callbacks are already proxied by WorkerManager
     onVideoUpdate(callback: (data: VideoData) => void): () => void {
-        const proxiedCallback = Comlink.proxy(callback);
-        return this.api.onVideoUpdate(proxiedCallback);
+        try {
+            const unsubscribe = this.api.onVideoUpdate(callback);
+            // Return the unsubscribe function directly
+            return unsubscribe;
+        } catch (error) {
+            console.error('Error setting up video update subscription:', error);
+            throw error;
+        }
     }
 
     onBreakpointHit(callback: (address: number) => void): () => void {
-        const proxiedCallback = Comlink.proxy(callback);
-        return this.api.onBreakpointHit(proxiedCallback);
+        const unsubscribe = this.api.onBreakpointHit(callback);
+        return unsubscribe;
     }
 
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
-        const proxiedCallback = Comlink.proxy(callback);
-        return this.api.onEmulationStatus(proxiedCallback);
+        const unsubscribe = this.api.onEmulationStatus(callback);
+        return unsubscribe;
     }
 
     onLogMessage(callback: (data: LogMessageData) => void): () => void {
-        const proxiedCallback = Comlink.proxy(callback);
-        return this.api.onLogMessage(proxiedCallback);
+        const unsubscribe = this.api.onLogMessage(callback);
+        return unsubscribe;
     }
 
     onClockData(callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void): () => void {
-        const proxiedCallback = Comlink.proxy(callback);
-        return this.api.onClockData(proxiedCallback);
+        const unsubscribe = this.api.onClockData(callback);
+        return unsubscribe;
     }
 
     onRunToCursorTarget(callback: (target: number | null) => void): () => void {
-        const proxiedCallback = Comlink.proxy(callback);
-        return this.api.onRunToCursorTarget(proxiedCallback);
+        const unsubscribe = this.api.onRunToCursorTarget(callback);
+        return unsubscribe;
     }
 }
 

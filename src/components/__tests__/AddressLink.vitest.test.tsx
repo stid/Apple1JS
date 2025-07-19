@@ -1,8 +1,9 @@
-import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import { describe, expect, beforeEach, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import AddressLink from '../AddressLink';
-import { WORKER_MESSAGES } from '../../apple1/TSTypes';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
+import type { WorkerManager } from '../../services/WorkerManager';
 
 // Mock navigation hook
 const mockNavigate = vi.fn();
@@ -13,12 +14,10 @@ vi.mock('../../contexts/DebuggerNavigationContext', () => ({
 }));
 
 describe('AddressLink component', () => {
-    let mockWorker: { postMessage: Mock };
+    let mockWorkerManager: WorkerManager;
     
     beforeEach(() => {
-        mockWorker = {
-            postMessage: vi.fn()
-        };
+        mockWorkerManager = createMockWorkerManager();
         mockNavigate.mockClear();
     });
     
@@ -157,7 +156,7 @@ describe('AddressLink component', () => {
                 <AddressLink 
                     address={0x9000} 
                     showContextMenu={true} 
-                    worker={mockWorker as unknown as Worker}
+                    workerManager={mockWorkerManager}
                     showRunToCursor={true}
                 />
             );
@@ -174,7 +173,7 @@ describe('AddressLink component', () => {
                 <AddressLink 
                     address={0xA000} 
                     showContextMenu={true} 
-                    worker={mockWorker as unknown as Worker}
+                    workerManager={mockWorkerManager}
                     showRunToCursor={true}
                 />
             );
@@ -186,10 +185,7 @@ describe('AddressLink component', () => {
                 fireEvent.click(runOption);
             });
             
-            expect(mockWorker.postMessage).toHaveBeenCalledWith({
-                type: WORKER_MESSAGES.RUN_TO_ADDRESS,
-                data: 0xA000
-            });
+            expect(mockWorkerManager.runToAddress).toHaveBeenCalledWith(0xA000);
         });
         
         it('should close context menu when clicking outside', async () => {

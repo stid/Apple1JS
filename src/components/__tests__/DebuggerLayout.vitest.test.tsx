@@ -1,8 +1,10 @@
 import { describe, expect, beforeEach, vi } from 'vitest';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DebuggerLayout from '../DebuggerLayout';
 import { IInspectableComponent } from '../../core/types/components';
 import { DebuggerNavigationProvider } from '../../contexts/DebuggerNavigationContext';
+import type { WorkerManager } from '../../services/WorkerManager';
 
 // Mock the child components
 vi.mock('../DisassemblerPaginated', () => ({
@@ -36,12 +38,7 @@ vi.mock('../ExecutionControls', () => ({
 }));
 
 describe('DebuggerLayout', () => {
-    const mockWorker = {
-        postMessage: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-    } as unknown as Worker;
-
+    let mockWorkerManager: WorkerManager;
     const mockRoot = {} as IInspectableComponent;
 
     let memoryViewAddress: number;
@@ -50,6 +47,7 @@ describe('DebuggerLayout', () => {
     const setDisassemblerAddress = vi.fn((addr: number) => { disassemblerAddress = addr; });
 
     beforeEach(() => {
+        mockWorkerManager = createMockWorkerManager();
         vi.clearAllMocks();
         memoryViewAddress = 0x0000;
         disassemblerAddress = 0x0000;
@@ -60,7 +58,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -79,7 +77,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -104,7 +102,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -133,7 +131,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -157,7 +155,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -186,7 +184,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -210,7 +208,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}
@@ -240,7 +238,7 @@ describe('DebuggerLayout', () => {
             <DebuggerNavigationProvider>
                 <DebuggerLayout 
                     root={mockRoot} 
-                    worker={mockWorker}
+                    workerManager={mockWorkerManager}
                     memoryViewAddress={memoryViewAddress}
                     setMemoryViewAddress={setMemoryViewAddress}
                     disassemblerAddress={disassemblerAddress}

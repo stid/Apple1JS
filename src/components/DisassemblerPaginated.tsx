@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { WORKER_MESSAGES, MemoryRangeRequest, MemoryRangeData } from '../apple1/TSTypes';
+import '../apple1/TSTypes';
 import { OPCODES } from '../constants/opcodes';
 import PaginatedTableView from './PaginatedTableView';
 import { usePaginatedTable } from '../hooks/usePaginatedTable';
@@ -9,9 +9,10 @@ import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { useEmulation } from '../contexts/EmulationContext';
 import { REFRESH_RATES } from '../constants/ui';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface DisassemblerProps {
-    worker: Worker;
+    workerManager: WorkerManager;
     currentAddress?: number;
     onAddressChange?: (address: number) => void;
 }
@@ -26,7 +27,7 @@ interface DisassemblyLine {
 }
 
 
-const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAddress: externalAddress, onAddressChange }) => {
+const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ workerManager, currentAddress: externalAddress, onAddressChange }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
     
@@ -68,14 +69,16 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         initialAddress: syncedAddress,
         bytesPerRow: 1, // Not really used for disassembly
         rowHeight: 24, // Same as memory viewer
-        onDataRequest: (addr) => {
+        onDataRequest: async (addr) => {
             // Request memory for disassembly
             const length = Math.min(MEMORY_CHUNK_SIZE, 0x10000 - addr);
-            const request: MemoryRangeRequest = { start: addr, length };
-            worker.postMessage({
-                type: WORKER_MESSAGES.GET_MEMORY_RANGE,
-                data: request
-            });
+            const memoryData = await workerManager.readMemoryRange(addr, length);
+            if (memoryData) {
+                const disassembly = disassembleMemory(addr, memoryData.length, memoryData);
+                // Trim to visible rows
+                const trimmedLines = disassembly.slice(0, visibleRows);
+                setLines(trimmedLines);
+            }
         }
     });
     
@@ -236,35 +239,27 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         return result;
     }, []);
     
-    // Handle worker messages
+    // Subscribe to run-to-cursor target updates
     useEffect(() => {
-        const handleWorkerMessage = (event: MessageEvent) => {
-            if (event.data?.type === WORKER_MESSAGES.MEMORY_RANGE_DATA) {
-                const memoryData = event.data.data as MemoryRangeData;
-                const disassembly = disassembleMemory(memoryData.start, memoryData.data.length, memoryData.data);
-                // Trim to visible rows
-                const trimmedLines = disassembly.slice(0, visibleRows);
-                setLines(trimmedLines);
-            }
-            
-            // DEBUG_DATA is now handled by EmulationContext
-            
-            // Breakpoints are now provided by EmulationContext
-            
-            // Breakpoint hits are now handled by EmulationContext
-            
-            // DEBUG_INFO is now handled by EmulationContext
-            
-            if (event.data?.type === WORKER_MESSAGES.RUN_TO_CURSOR_TARGET) {
-                // Update run-to-cursor target address
-                const target = event.data.data as number | null;
+        let unsubscribe: (() => void) | undefined;
+        
+        const setupRunToCursorUpdates = async () => {
+            const result = await workerManager.onRunToCursorTarget((target) => {
                 setRunToCursorTarget(target);
+            });
+            if (result) {
+                unsubscribe = result;
             }
         };
-
-        worker.addEventListener('message', handleWorkerMessage);
-        return () => worker.removeEventListener('message', handleWorkerMessage);
-    }, [worker, disassembleMemory, navigateTo, visibleRows, executionState, lines, currentAddress]);
+        
+        setupRunToCursorUpdates();
+        
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [workerManager]);
     
     // No longer need to listen for emulation status - handled by EmulationContext
     
@@ -302,17 +297,20 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
             navigateTo(externalAddress);
         }
         // Breakpoints are now managed by EmulationContext
-    }, [navigateTo, worker, externalAddress]);
+    }, [navigateTo, workerManager, externalAddress]);
     
     // Request debug info periodically - but only when paused (for register display)
     useEffect(() => {
         if (!isPaused) return; // Only request when paused
         
-        const interval = setInterval(() => {
-            worker.postMessage({ type: WORKER_MESSAGES.DEBUG_INFO, data: '' });
-        }, REFRESH_RATES.FAST);
+        const requestDebugInfo = async () => {
+            await workerManager.getDebugInfo();
+        };
+        
+        requestDebugInfo(); // Initial request
+        const interval = setInterval(requestDebugInfo, REFRESH_RATES.FAST);
         return () => clearInterval(interval);
-    }, [worker, isPaused]);
+    }, [workerManager, isPaused]);
     
     // Navigation overrides for instruction-aware navigation
     const handleNavigateUp = useCallback(() => {
@@ -355,9 +353,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         }
     }, [isPaused, pause, resume]);
 
-    const handleReset = useCallback(() => {
-        worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
-    }, [worker]);
+    const handleReset = useCallback(async () => {
+        await workerManager.keyDown('Tab');
+    }, [workerManager]);
     
     // Calculate end address based on actual instructions
     const endAddress = lines.length > 0 
@@ -478,7 +476,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                             address={line.address}
                             format="hex4"
                             prefix="$"
-                            worker={worker}
+                            workerManager={workerManager}
                             showContextMenu={true}
                             showRunToCursor={true}
                             className="font-mono"
@@ -499,7 +497,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                         <AddressLink 
                                             address={line.operandAddress} 
                                             className="text-data-value hover:text-data-value-hover"
-                                            worker={worker}
+                                            workerManager={workerManager}
                                             showContextMenu={true}
                                             showRunToCursor={true}
                                         />
@@ -512,7 +510,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                             address={line.operandAddress} 
                                             format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
                                             className="text-data-value hover:text-data-value-hover"
-                                            worker={worker}
+                                            workerManager={workerManager}
                                             showContextMenu={true}
                                             showRunToCursor={true}
                                         />
@@ -524,7 +522,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
                                         address={line.operandAddress} 
                                         format={line.operandType === 'zeropage' ? 'hex2' : 'hex4'}
                                         className="text-data-value"
-                                        worker={worker}
+                                        workerManager={workerManager}
                                         showContextMenu={true}
                                         showRunToCursor={true}
                                     />
@@ -634,7 +632,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({ worker, currentAdd
         <div className="flex flex-col h-full">
             {/* Compact CPU Registers - only show when paused/stepping */}
             {isPaused && (
-                <CompactCpuRegisters debugInfo={debugInfo} worker={worker} />
+                <CompactCpuRegisters debugInfo={debugInfo} workerManager={workerManager} />
             )}
             
             {/* Disassembler Table */}

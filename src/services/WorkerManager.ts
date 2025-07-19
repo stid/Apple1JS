@@ -3,7 +3,7 @@ import { WORKER_MESSAGES, WorkerMessage } from '../apple1/types/worker-messages'
 import type { IWorkerAPI } from '../apple1/types/worker-api';
 import type { EmulatorState } from '../apple1/types/emulator-state';
 import type { VideoData } from '../apple1/types/video';
-import type { LogMessageData, DebugData } from '../apple1/types/worker-messages';
+import type { LogMessageData, DebugData, MemoryMapData } from '../apple1/types/worker-messages';
 // CONFIG no longer needed since Comlink is the only implementation
 
 /**
@@ -40,7 +40,8 @@ export class WorkerManager {
         // Wrap the worker with Comlink
         this.comlinkAPI = Comlink.wrap<IWorkerAPI>(this.worker);
         
-        // Set up message handler for hybrid mode (video updates still use postMessage)
+        // Set up message handler for backward compatibility
+        // Note: All events now go through Comlink, this is kept for potential future use
         this.worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
             const handler = this.messageHandlers.get(e.data.type);
             if (handler && 'data' in e.data) {
@@ -150,6 +151,18 @@ export class WorkerManager {
         }
     }
 
+    async getDebugInfo(): Promise<DebugData | void> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.getDebugInfo();
+        }
+    }
+
+    async getMemoryMap(): Promise<MemoryMapData | void> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.getMemoryMap();
+        }
+    }
+
     // ========== Configuration ==========
 
     async setCrtBsSupport(enabled: boolean): Promise<void> {
@@ -188,42 +201,57 @@ export class WorkerManager {
 
     async onVideoUpdate(callback: (data: VideoData) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
-            return await this.comlinkAPI.onVideoUpdate(callback);
+            try {
+                console.log('WorkerManager: Setting up video update subscription');
+                // Proxy the callback for cross-boundary communication
+                const proxiedCallback = Comlink.proxy(callback);
+                const unsubscribe = await this.comlinkAPI.onVideoUpdate(proxiedCallback);
+                console.log('WorkerManager: Video update subscription successful');
+                return unsubscribe;
+            } catch (error) {
+                console.error('WorkerManager: Error setting up video update subscription:', error);
+                throw error;
+            }
         }
         // Legacy mode removed
     }
 
     async onBreakpointHit(callback: (address: number) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
-            return await this.comlinkAPI.onBreakpointHit(callback);
+            const proxiedCallback = Comlink.proxy(callback);
+            return await this.comlinkAPI.onBreakpointHit(proxiedCallback);
         }
         // Legacy mode removed
     }
 
     async onEmulationStatus(callback: (status: 'running' | 'paused') => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
-            return await this.comlinkAPI.onEmulationStatus(callback);
+            const proxiedCallback = Comlink.proxy(callback);
+            return await this.comlinkAPI.onEmulationStatus(proxiedCallback);
         }
         // Legacy mode removed
     }
 
     async onLogMessage(callback: (data: LogMessageData) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
-            return await this.comlinkAPI.onLogMessage(callback);
+            const proxiedCallback = Comlink.proxy(callback);
+            return await this.comlinkAPI.onLogMessage(proxiedCallback);
         }
         // Legacy mode removed
     }
 
     async onClockData(callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
-            return await this.comlinkAPI.onClockData(callback);
+            const proxiedCallback = Comlink.proxy(callback);
+            return await this.comlinkAPI.onClockData(proxiedCallback);
         }
         // Legacy mode removed
     }
 
     async onRunToCursorTarget(callback: (target: number | null) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
-            return await this.comlinkAPI.onRunToCursorTarget(callback);
+            const proxiedCallback = Comlink.proxy(callback);
+            return await this.comlinkAPI.onRunToCursorTarget(proxiedCallback);
         }
         // Legacy mode removed
     }

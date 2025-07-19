@@ -39,7 +39,21 @@ export class WorkerAPI implements IWorkerAPI {
         // Subscribe to video updates
         if (this.workerState.video && typeof this.workerState.video.subscribe === 'function') {
             this.workerState.video.subscribe((data: VideoData) => {
-                this.videoCallbacks.forEach(cb => cb(data));
+                try {
+                    // Ensure data can be structured cloned before sending
+                    if (typeof globalThis.structuredClone !== 'undefined') {
+                        globalThis.structuredClone(data);
+                    }
+                    this.videoCallbacks.forEach(cb => {
+                        try {
+                            cb(data);
+                        } catch (error) {
+                            console.error('Error calling video callback:', error);
+                        }
+                    });
+                } catch (error) {
+                    console.error('VideoData cannot be structured cloned:', error, data);
+                }
             });
         }
         

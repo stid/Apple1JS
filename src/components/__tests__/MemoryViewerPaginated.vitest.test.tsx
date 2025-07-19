@@ -1,26 +1,27 @@
 import { describe, expect, beforeEach, vi } from 'vitest';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
 import { render, screen, fireEvent, waitFor, act } from '../../test-utils/render';
 import MemoryViewerPaginated from '../MemoryViewerPaginated';
 import { WORKER_MESSAGES } from '../../apple1/TSTypes';
+import type { WorkerManager } from '../../services/WorkerManager';
 
 describe('MemoryViewerPaginated', () => {
-    const mockWorker = {
-        postMessage: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-    } as unknown as Worker;
-
+    let mockWorkerManager: WorkerManager;
     let messageHandler: (event: MessageEvent) => void;
 
     beforeEach(() => {
+        mockWorkerManager = createMockWorkerManager();
         vi.clearAllMocks();
         
         // Capture the message handler
-        mockWorker.addEventListener = vi.fn((event: string, handler: EventListenerOrEventListenerObject) => {
-            if (event === 'message' && typeof handler === 'function') {
-                messageHandler = handler as (event: MessageEvent) => void;
-            }
-        });
+        const worker = mockWorkerManager.getWorker();
+        if (worker) {
+            worker.addEventListener = vi.fn((event: string, handler: EventListenerOrEventListenerObject) => {
+                if (event === 'message' && typeof handler === 'function') {
+                    messageHandler = handler as (event: MessageEvent) => void;
+                }
+            });
+        }
     });
 
     const simulateMemoryData = (start: number, length: number) => {
@@ -37,7 +38,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('renders with initial address', () => {
         render(
-                <MemoryViewerPaginated worker={mockWorker} startAddress={0x1000} />
+                <MemoryViewerPaginated workerManager={mockWorkerManager} startAddress={0x1000} />
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
@@ -47,7 +48,7 @@ describe('MemoryViewerPaginated', () => {
     it('uses external address when provided', () => {
         render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     startAddress={0x1000}
                     currentAddress={0x2000}
                 />
@@ -61,7 +62,7 @@ describe('MemoryViewerPaginated', () => {
         const onAddressChange = vi.fn();
         render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     onAddressChange={onAddressChange}
                 />
         );
@@ -81,7 +82,7 @@ describe('MemoryViewerPaginated', () => {
         const onAddressChange = vi.fn();
         render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
@@ -106,7 +107,7 @@ describe('MemoryViewerPaginated', () => {
         const onAddressChange = vi.fn();
         const { rerender } = render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
@@ -118,7 +119,7 @@ describe('MemoryViewerPaginated', () => {
         // Re-render with same address - should not trigger onChange
         rerender(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
@@ -129,7 +130,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('displays memory data correctly', () => {
         render(
-                <MemoryViewerPaginated worker={mockWorker} />
+                <MemoryViewerPaginated workerManager={mockWorkerManager} />
         );
         
         // Simulate memory data
@@ -145,7 +146,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('handles address input validation', () => {
         render(
-                <MemoryViewerPaginated worker={mockWorker} />
+                <MemoryViewerPaginated workerManager={mockWorkerManager} />
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
@@ -161,7 +162,7 @@ describe('MemoryViewerPaginated', () => {
 
     it('limits address input to 4 characters', () => {
         render(
-                <MemoryViewerPaginated worker={mockWorker} />
+                <MemoryViewerPaginated workerManager={mockWorkerManager} />
         );
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;

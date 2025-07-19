@@ -2,16 +2,17 @@ import React, { memo } from 'react';
 import { DebugData } from '../apple1/TSTypes';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface CompactCpuRegistersProps {
     debugInfo: DebugData;
-    worker?: Worker;
+    workerManager?: WorkerManager;
 }
 
 // Use unified formatter
 const { formatHex } = Formatters;
 
-const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debugInfo, worker }) => {
+const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debugInfo, workerManager }) => {
     const cpu = debugInfo.cpu || {};
     
     // Extract register values with defaults
@@ -43,7 +44,7 @@ const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debu
                         <AddressLink 
                             address={parseInt(registers.pc.replace('$', ''), 16)} 
                             className="font-mono"
-                            {...(worker !== undefined && { worker })}
+                            {...(workerManager !== undefined && { workerManager })}
                             showContextMenu={true}
                             showRunToCursor={true}
                         />

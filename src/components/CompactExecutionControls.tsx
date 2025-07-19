@@ -1,9 +1,9 @@
 import React, { useEffect, useCallback } from 'react';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { useEmulation } from '../contexts/EmulationContext';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface CompactExecutionControlsProps {
-    worker: Worker;
+    workerManager: WorkerManager;
     address: string;
     onAddressChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onAddressSubmit: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -11,7 +11,7 @@ interface CompactExecutionControlsProps {
 
 
 const CompactExecutionControls: React.FC<CompactExecutionControlsProps> = ({ 
-    worker, 
+    workerManager, 
     address, 
     onAddressChange, 
     onAddressSubmit 
@@ -32,8 +32,8 @@ const CompactExecutionControls: React.FC<CompactExecutionControlsProps> = ({
 
     const handleReset = useCallback(() => {
         // Send Tab key to trigger Apple 1 reset, like the main reset button
-        worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
-    }, [worker]);
+        workerManager.keyDown('Tab');
+    }, [workerManager]);
 
     // No longer need to listen for emulation status - handled by EmulationContext
 

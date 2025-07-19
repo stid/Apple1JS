@@ -1,4 +1,6 @@
 import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
+import type { WorkerManager } from '../../services/WorkerManager';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, act } from '../../test-utils/render';
 import InspectorView from '../InspectorView';
@@ -33,20 +35,10 @@ const mockInspectable: IInspectableComponent = {
 };
 
 describe('InspectorView component', () => {
-    let mockWorker: Worker;
+    let mockWorkerManager: WorkerManager;
 
     beforeEach(() => {
-        // Mock Worker
-        mockWorker = {
-            postMessage: vi.fn(),
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-            terminate: vi.fn(),
-            onmessage: null,
-            onerror: null,
-            onmessageerror: null,
-        } as unknown as Worker;
-
+        mockWorkerManager = createMockWorkerManager();
         vi.useFakeTimers();
     });
 
@@ -96,22 +88,24 @@ describe('InspectorView component', () => {
     });
 
     it('should set up interval to request debug info when worker is provided', () => {
-        render(<InspectorView root={mockInspectable} worker={mockWorker} />);
+        render(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
         
         // Fast forward time to trigger the interval
         act(() => {
             vi.advanceTimersByTime(1000); // DEBUG_REFRESH_RATES.INSPECTOR is 1000ms
         });
 
-        expect(mockWorker.postMessage).toHaveBeenCalledWith({
+        const worker = mockWorkerManager.getWorker();
+        expect(worker?.postMessage).toHaveBeenCalledWith({
             type: WORKER_MESSAGES.DEBUG_INFO
         });
     });
 
     it('should add event listener for worker messages', () => {
-        render(<InspectorView root={mockInspectable} worker={mockWorker} />);
+        render(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
         
-        expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+        const worker = mockWorkerManager.getWorker();
+        expect(worker?.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
     });
 
     it('should integrate debug data into architecture tree components', () => {
@@ -135,11 +129,12 @@ describe('InspectorView component', () => {
             })
         };
 
-        const { rerender } = render(<InspectorView root={mockInspectableWithCPU} worker={mockWorker} />);
+        const { rerender } = render(<InspectorView root={mockInspectableWithCPU} workerManager={mockWorkerManager} />);
         
         // Simulate receiving debug data for CPU
-        const addEventListener = mockWorker.addEventListener as Mock;
-        const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
+        const worker = mockWorkerManager.getWorker();
+        const addEventListener = worker?.addEventListener as Mock;
+        const messageHandler = addEventListener?.mock.calls.find(call => call[0] === 'message')?.[1];
         
         if (messageHandler) {
             act(() => {
@@ -160,7 +155,7 @@ describe('InspectorView component', () => {
         }
 
         // Force re-render to show updated state
-        rerender(<InspectorView root={mockInspectableWithCPU} worker={mockWorker} />);
+        rerender(<InspectorView root={mockInspectableWithCPU} workerManager={mockWorkerManager} />);
         
         // Check that CPU debug data is integrated into the architecture tree
         expect(screen.getAllByText('REG_PC:').length).toBeGreaterThanOrEqual(1);
@@ -174,10 +169,11 @@ describe('InspectorView component', () => {
     });
 
     it('should handle empty debug data gracefully', () => {
-        render(<InspectorView root={mockInspectable} worker={mockWorker} />);
+        render(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
         
-        const addEventListener = mockWorker.addEventListener as Mock;
-        const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
+        const worker = mockWorkerManager.getWorker();
+        const addEventListener = worker?.addEventListener as Mock;
+        const messageHandler = addEventListener?.mock.calls.find(call => call[0] === 'message')?.[1];
         
         if (messageHandler) {
             act(() => {
@@ -196,11 +192,12 @@ describe('InspectorView component', () => {
     });
 
     it('should clean up intervals and event listeners on unmount', () => {
-        const { unmount } = render(<InspectorView root={mockInspectable} worker={mockWorker} />);
+        const { unmount } = render(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
         
         unmount();
         
-        expect(mockWorker.removeEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+        const worker = mockWorkerManager.getWorker();
+        expect(worker?.removeEventListener).toHaveBeenCalledWith('message', expect.any(Function));
     });
 
     it('should handle components without names gracefully', () => {
@@ -300,11 +297,12 @@ describe('InspectorView component', () => {
             })
         };
 
-        const { rerender } = render(<InspectorView root={mockInspectableWithCPU6502} worker={mockWorker} />);
+        const { rerender } = render(<InspectorView root={mockInspectableWithCPU6502} workerManager={mockWorkerManager} />);
         
         // Simulate receiving debug data for CPU6502 component
-        const addEventListener = mockWorker.addEventListener as Mock;
-        const messageHandler = addEventListener.mock.calls.find(call => call[0] === 'message')?.[1];
+        const worker = mockWorkerManager.getWorker();
+        const addEventListener = worker?.addEventListener as Mock;
+        const messageHandler = addEventListener?.mock.calls.find(call => call[0] === 'message')?.[1];
         
         if (messageHandler) {
             act(() => {
@@ -326,7 +324,7 @@ describe('InspectorView component', () => {
         }
 
         // Force re-render to show updated state
-        rerender(<InspectorView root={mockInspectableWithCPU6502} worker={mockWorker} />);
+        rerender(<InspectorView root={mockInspectableWithCPU6502} workerManager={mockWorkerManager} />);
         
         // Check that CPU6502 debug data is integrated - now appears in both CPU Registers section and architecture tree
         expect(screen.getAllByText('REG_PC:').length).toBeGreaterThanOrEqual(1);

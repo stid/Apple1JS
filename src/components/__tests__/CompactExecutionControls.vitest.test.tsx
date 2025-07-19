@@ -1,4 +1,6 @@
 import { describe, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
+import type { WorkerManager } from '../../services/WorkerManager';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CompactExecutionControls from '../CompactExecutionControls';
@@ -7,11 +9,13 @@ import { EmulationProvider } from '../../contexts/EmulationContext';
 import { createMockWorker } from '../../test-support/worker-test-helpers';
 
 describe('CompactExecutionControls component', () => {
+    let mockWorkerManager: WorkerManager;
     let mockWorker: ReturnType<typeof createMockWorker>;
     let mockOnAddressChange: Mock;
     let mockOnAddressSubmit: Mock;
     
     beforeEach(() => {
+        mockWorkerManager = createMockWorkerManager();
         mockWorker = createMockWorker();
         mockOnAddressChange = vi.fn();
         mockOnAddressSubmit = vi.fn();
@@ -26,14 +30,14 @@ describe('CompactExecutionControls component', () => {
     
     const renderComponent = (props = {}) => {
         const defaultProps = {
-            worker: mockWorker as unknown as Worker,
+            workerManager: mockWorkerManager,
             address: '1000',
             onAddressChange: mockOnAddressChange,
             onAddressSubmit: mockOnAddressSubmit,
             ...props
         };
         return render(
-            <EmulationProvider worker={mockWorker as unknown as Worker}>
+            <EmulationProvider workerManager={mockWorkerManager}>
                 <CompactExecutionControls {...defaultProps} />
             </EmulationProvider>
         );

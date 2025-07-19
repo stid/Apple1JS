@@ -298,6 +298,7 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 ### 🚀 **Next Priority (Phase 1 Continuation)**
 1. **Restore type-check to CI pipeline** - Re-enable after migration
 2. **Implement Comlink for worker communication** - Type-safe worker messaging  
+   - **STATUS: WORKING - Tests need update** - See `docs/archive/2025-07_comlink_migration_status.md`
 3. **Create base classes for common patterns** - Reduce code duplication
 4. **Add comprehensive error handling** - Robust error boundaries
 

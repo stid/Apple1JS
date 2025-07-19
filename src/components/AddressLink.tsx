@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { Formatters } from '../utils/formatters';
+import type { WorkerManager } from '../services/WorkerManager';
 
 /**
  * AddressLink - Clickable address component with context menu
@@ -19,7 +19,7 @@ interface AddressLinkProps {
   format?: 'hex4' | 'hex2' | 'raw';
   prefix?: string;
   showContextMenu?: boolean;
-  worker?: Worker;
+  workerManager?: WorkerManager;
   showRunToCursor?: boolean;
 }
 
@@ -30,7 +30,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
   format = 'hex4',
   prefix = '$',
   showContextMenu = false,
-  worker,
+  workerManager,
   showRunToCursor = false,
 }) => {
   const { navigate } = useDebuggerNavigation();
@@ -91,7 +91,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     menu.appendChild(memoryOption);
     
     // Add run-to-cursor option if enabled
-    if (worker && showRunToCursor) {
+    if (workerManager && showRunToCursor) {
       const separator = document.createElement('div');
       separator.className = 'border-t border-border-subtle my-1';
       menu.appendChild(separator);
@@ -99,11 +99,12 @@ const AddressLink: React.FC<AddressLinkProps> = ({
       const runToCursorOption = document.createElement('button');
       runToCursorOption.className = 'block w-full text-left px-3 py-1 hover:bg-warning/20 text-sm text-warning font-medium transition-colors';
       runToCursorOption.innerHTML = '<span class="mr-2">▶</span>Run to Cursor';
-      runToCursorOption.onclick = () => {
-        worker.postMessage({
-          type: WORKER_MESSAGES.RUN_TO_ADDRESS,
-          data: address
-        });
+      runToCursorOption.onclick = async () => {
+        try {
+          await workerManager.runToAddress(address);
+        } catch (error) {
+          console.error('Failed to run to address:', error);
+        }
         safeRemoveMenu();
       };
       menu.appendChild(runToCursorOption);
@@ -114,7 +115,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     setTimeout(() => {
       document.addEventListener('click', removeMenuListener);
     }, 0);
-  }, [address, navigate, showContextMenu, worker, showRunToCursor]);
+  }, [address, navigate, showContextMenu, workerManager, showRunToCursor]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
