@@ -153,6 +153,9 @@ export class WorkerState implements IWorkerState {
     public startEmulation(): void {
         this.apple1.startLoop();
         this.isPaused = false;
+        
+        // Test logging
+        loggingService.log('info', 'Emulator', 'Apple 1 emulation started');
     }
     
     /**

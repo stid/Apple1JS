@@ -28,9 +28,6 @@ export class WorkerAPI implements IWorkerAPI {
     private runToCursorCallbacks = new Set<(target: number | null) => void>();
     
     constructor(private workerState: WorkerState) {
-        // Set up internal event subscriptions
-        this.setupInternalSubscriptions();
-        
         // Set up callbacks for WorkerState to use
         this.workerState.setCallbacks({
             onStatus: (status) => {
@@ -43,6 +40,9 @@ export class WorkerAPI implements IWorkerAPI {
                 this.logCallbacks.forEach(cb => cb(data));
             }
         });
+        
+        // Set up internal event subscriptions (including logging handler)
+        this.setupInternalSubscriptions();
     }
     
     /**
@@ -70,16 +70,7 @@ export class WorkerAPI implements IWorkerAPI {
             });
         }
         
-        // Set up logging handler to forward messages
-        loggingService.addHandler((level, source, message) => {
-            this.logCallbacks.forEach(cb => {
-                try {
-                    cb({ level, source, message });
-                } catch (error) {
-                    console.error('Error calling log callback:', error);
-                }
-            });
-        });
+        // Note: Logging handler is set up in WorkerState which forwards to our callbacks
     }
     
     /**
@@ -188,6 +179,7 @@ export class WorkerAPI implements IWorkerAPI {
     setBreakpoint(address: number): number[] {
         this.workerState.breakpoints.add(address);
         this.workerState.updateBreakpointHook();
+        loggingService.log('info', 'Debugger', `Breakpoint set at ${Formatters.address(address)}`);
         return Array.from(this.workerState.breakpoints);
     }
     
