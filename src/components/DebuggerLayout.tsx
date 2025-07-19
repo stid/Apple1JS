@@ -4,10 +4,9 @@ import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/types';
-import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
+import { useWorkerData } from '../contexts/WorkerDataContext';
 import AddressLink from './AddressLink';
-import { REFRESH_RATES } from '../constants/ui';
 import type { WorkerManager } from '../services/WorkerManager';
 
 interface DebuggerLayoutProps {
@@ -25,8 +24,8 @@ type DebugView = 'overview' | 'memory' | 'disassembly';
 
 const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialNavigation, onNavigationHandled, memoryViewAddress, setMemoryViewAddress, disassemblerAddress, setDisassemblerAddress }) => {
     const [activeView, setActiveView] = useState<DebugView>('overview');
-    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
     const { subscribeToNavigation } = useDebuggerNavigation();
+    const { debugInfo, setDebuggerActive } = useWorkerData();
     
     // Handle initial navigation from parent
     useEffect(() => {
@@ -42,39 +41,18 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
         }
     }, [initialNavigation, onNavigationHandled, setDisassemblerAddress, setMemoryViewAddress]);
 
-    // Note: Debug info subscription not yet available in WorkerManager
-    // For now, we'll poll for debug info when needed
-
-    // Control debugger visibility state in worker
+    // Control debugger visibility state using WorkerDataContext
     useEffect(() => {
-        // Notify worker that debugger is active
-        workerManager.setDebuggerActive(true).catch(console.error);
+        // Notify that debugger is active
+        setDebuggerActive(true);
         
-        // Cleanup: notify worker that debugger is inactive
+        // Cleanup: notify that debugger is inactive
         return () => {
-            workerManager.setDebuggerActive(false).catch(console.error);
+            setDebuggerActive(false);
         };
-    }, [workerManager]);
+    }, [setDebuggerActive]);
     
-    // Request debug info periodically - but only when on overview tab
-    useEffect(() => {
-        if (activeView !== 'overview') return;
-        
-        const fetchDebugInfo = async () => {
-            try {
-                const info = await workerManager.getDebugInfo();
-                if (info) {
-                    setDebugInfo(info);
-                }
-            } catch (error) {
-                console.error('Error fetching debug info:', error);
-            }
-        };
-        
-        fetchDebugInfo();
-        const interval = setInterval(fetchDebugInfo, REFRESH_RATES.FAST);
-        return () => clearInterval(interval);
-    }, [workerManager, activeView]);
+    // Debug info is now provided by WorkerDataContext, no need to poll
 
     // Subscribe to navigation events
     useEffect(() => {

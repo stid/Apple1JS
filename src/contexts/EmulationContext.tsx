@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import type { WorkerManager } from '../services/WorkerManager';
+import { useWorkerData } from './WorkerDataContext';
 
 type ExecutionState = 'running' | 'paused' | 'stepping';
 
@@ -44,7 +45,8 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const [isPaused, setIsPaused] = useState(false);
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [currentPC, setCurrentPC] = useState(0);
-    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
+    // Get debug info from WorkerDataContext
+    const { debugInfo, subscribeToDebugInfo, setDebuggerActive } = useWorkerData();
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     // Note: Debug info subscription not yet implemented in WorkerManager
     // const [lastStepPC, setLastStepPC] = useState<number | null>(null);
@@ -119,7 +121,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
                     setCurrentPC(pcValue);
                 }
-                setDebugInfo(debugData);
+                // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
             console.error('Failed to pause emulation:', error);
@@ -144,7 +146,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
                     setCurrentPC(pcValue);
                 }
-                setDebugInfo(debugData);
+                // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
             console.error('Failed to step:', error);
@@ -163,7 +165,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
                     setCurrentPC(pcValue);
                 }
-                setDebugInfo(debugData);
+                // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
             console.error('Failed to step over:', error);
@@ -196,45 +198,29 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         }
     }, [workerManager, breakpoints]);
 
-    // Poll for debug info periodically to get current PC
-    // TODO: Multiple components are polling debug info independently causing 30+ calls/sec
-    // when paused. This blocks the main thread and stops CSS animations. We need a
-    // centralized debug data manager that polls once and distributes to all components.
+    // Subscribe to debug info updates from WorkerDataContext
     useEffect(() => {
-        let intervalId: ReturnType<typeof setInterval> | undefined;
-        
-        const fetchDebugInfo = async () => {
-            try {
-                const debugData = await workerManager.getDebugInfo();
-                if (debugData?.cpu) {
-                    const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
-                    if (pc !== undefined) {
-                        const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
-                        setCurrentPC(pcValue);
-                    }
-                    setDebugInfo(debugData);
+        const unsubscribe = subscribeToDebugInfo((data) => {
+            if (data?.cpu) {
+                const pc = data.cpu.REG_PC || data.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    setCurrentPC(pcValue);
                 }
-            } catch (error) {
-                console.warn('Failed to fetch debug info:', error);
             }
-        };
+        });
         
-        // Initial fetch
-        fetchDebugInfo();
-        
-        // Poll less frequently to avoid blocking main thread
-        if (isPaused) {
-            intervalId = setInterval(fetchDebugInfo, 500); // 500ms when paused (was 100ms)
-        } else {
-            intervalId = setInterval(fetchDebugInfo, 2000); // 2s when running (was 1s)
-        }
-        
+        return unsubscribe;
+    }, [subscribeToDebugInfo]);
+    
+    // Update debugger active state based on context
+    useEffect(() => {
+        // This context is typically used when debugger UI is visible
+        setDebuggerActive(true);
         return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
+            setDebuggerActive(false);
         };
-    }, [workerManager, isPaused]);
+    }, [setDebuggerActive]);
 
     const clearAllBreakpoints = useCallback(async () => {
         try {

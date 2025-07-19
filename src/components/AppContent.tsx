@@ -11,6 +11,7 @@ import AlertPanel from './AlertPanel';
 import { useLogging } from '../contexts/LoggingContext';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
+import { WorkerDataProvider } from '../contexts/WorkerDataContext';
 import { IInspectableComponent } from '../core/types';
 import type { WorkerManager } from '../services/WorkerManager';
 
@@ -388,19 +389,21 @@ export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Elemen
     }, []);
     
     return (
-        <EmulationProvider 
-            workerManager={workerManager} 
-            onBreakpointHit={handleBreakpointHit}
-            onRunToCursorSet={handleRunToCursorSet}
-        >
-            <AppContentInner 
+        <WorkerDataProvider workerManager={workerManager}>
+            <EmulationProvider 
                 workerManager={workerManager} 
-                {...(apple1Instance !== undefined && { apple1Instance })}
-                rightTab={rightTab}
-                setRightTab={setRightTab}
-                pendingNavigation={pendingNavigation}
-                setPendingNavigation={setPendingNavigation}
-            />
-        </EmulationProvider>
+                onBreakpointHit={handleBreakpointHit}
+                onRunToCursorSet={handleRunToCursorSet}
+            >
+                <AppContentInner 
+                    workerManager={workerManager} 
+                    {...(apple1Instance !== undefined && { apple1Instance })}
+                    rightTab={rightTab}
+                    setRightTab={setRightTab}
+                    pendingNavigation={pendingNavigation}
+                    setPendingNavigation={setPendingNavigation}
+                />
+            </EmulationProvider>
+        </WorkerDataProvider>
     );
 };

@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { IInspectableComponent } from '../core/types/components';
-import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { OPCODES } from '../constants/opcodes';
-import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
 import type { WorkerManager } from '../services/WorkerManager';
+import { useWorkerData } from '../contexts/WorkerDataContext';
 
 import type { InspectableData } from '../core/types/components';
 
@@ -15,7 +14,7 @@ interface InspectorViewProps {
 }
 
 const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
-    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
+    const { debugInfo } = useWorkerData();
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
 
     // Helper function to translate hex opcode to human-readable mnemonic
@@ -26,29 +25,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         return opcodeInfo ? opcodeInfo.name : opcodeHex; // Fall back to hex if not found
     };
 
-    // Poll for debug info using WorkerManager
-    useEffect(() => {
-        if (!workerManager) return;
-        
-        const fetchDebugInfo = async () => {
-            try {
-                const info = await workerManager.getDebugInfo();
-                if (info) {
-                    setDebugInfo(info);
-                }
-            } catch (error) {
-                console.error('Failed to fetch debug info:', error);
-            }
-        };
-        
-        // Initial fetch
-        fetchDebugInfo();
-        
-        // Set up polling
-        const interval = setInterval(fetchDebugInfo, DEBUG_REFRESH_RATES.INSPECTOR);
-        
-        return () => clearInterval(interval);
-    }, [workerManager]);
+    // Debug info is now provided by WorkerDataContext, no need to poll
 
 
 
