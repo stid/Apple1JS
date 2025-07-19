@@ -44,7 +44,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const [isPaused, setIsPaused] = useState(false);
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [currentPC, setCurrentPC] = useState(0);
-    const [debugInfo] = useState<DebugData>({});
+    const [debugInfo, setDebugInfo] = useState<DebugData>({});
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     // Note: Debug info subscription not yet implemented in WorkerManager
     // const [lastStepPC, setLastStepPC] = useState<number | null>(null);
@@ -111,6 +111,16 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const pause = useCallback(async () => {
         try {
             await workerManager.pauseEmulation();
+            // Get current PC when pausing
+            const debugData = await workerManager.getDebugInfo();
+            if (debugData?.cpu) {
+                const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    setCurrentPC(pcValue);
+                }
+                setDebugInfo(debugData);
+            }
         } catch (error) {
             console.error('Failed to pause emulation:', error);
         }
@@ -125,10 +135,17 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     }, [workerManager]);
 
     const step = useCallback(async () => {
-        // Note: Step PC tracking not implemented yet
-        // setLastStepPC(currentPC); // Remember where we were before stepping
         try {
-            await workerManager.step();
+            const debugData = await workerManager.step();
+            if (debugData?.cpu) {
+                // Update PC from debug data
+                const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    setCurrentPC(pcValue);
+                }
+                setDebugInfo(debugData);
+            }
         } catch (error) {
             console.error('Failed to step:', error);
         }
@@ -138,7 +155,16 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         // Step over not implemented in worker yet, just do regular step
         setExecutionState('stepping');
         try {
-            await workerManager.step();
+            const debugData = await workerManager.step();
+            if (debugData?.cpu) {
+                // Update PC from debug data
+                const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    setCurrentPC(pcValue);
+                }
+                setDebugInfo(debugData);
+            }
         } catch (error) {
             console.error('Failed to step over:', error);
         }
@@ -169,6 +195,43 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             console.error('Failed to toggle breakpoint:', error);
         }
     }, [workerManager, breakpoints]);
+
+    // Poll for debug info periodically to get current PC
+    useEffect(() => {
+        let intervalId: ReturnType<typeof setInterval> | undefined;
+        
+        const fetchDebugInfo = async () => {
+            try {
+                const debugData = await workerManager.getDebugInfo();
+                if (debugData?.cpu) {
+                    const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                    if (pc !== undefined) {
+                        const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                        setCurrentPC(pcValue);
+                    }
+                    setDebugInfo(debugData);
+                }
+            } catch (error) {
+                console.warn('Failed to fetch debug info:', error);
+            }
+        };
+        
+        // Initial fetch
+        fetchDebugInfo();
+        
+        // Poll more frequently when paused
+        if (isPaused) {
+            intervalId = setInterval(fetchDebugInfo, 100); // 100ms when paused
+        } else {
+            intervalId = setInterval(fetchDebugInfo, 1000); // 1s when running
+        }
+        
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [workerManager, isPaused]);
 
     const clearAllBreakpoints = useCallback(async () => {
         try {
