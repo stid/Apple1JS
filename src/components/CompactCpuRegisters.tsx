@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
+import { getDebugValueOrDefault } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 
 interface CompactCpuRegistersProps {
@@ -17,11 +18,11 @@ const CompactCpuRegistersComponent: React.FC<CompactCpuRegistersProps> = ({ debu
     
     // Extract register values with defaults
     const registers = {
-        pc: formatHex(cpu.REG_PC || cpu.PC, 4),
-        a: formatHex(cpu.REG_A || cpu.A, 2),
-        x: formatHex(cpu.REG_X || cpu.X, 2),
-        y: formatHex(cpu.REG_Y || cpu.Y, 2),
-        sp: formatHex(cpu.REG_S || cpu.S, 2),
+        pc: formatHex(getDebugValueOrDefault(cpu.REG_PC || cpu.PC, 0), 4),
+        a: formatHex(getDebugValueOrDefault(cpu.REG_A || cpu.A, 0), 2),
+        x: formatHex(getDebugValueOrDefault(cpu.REG_X || cpu.X, 0), 2),
+        y: formatHex(getDebugValueOrDefault(cpu.REG_Y || cpu.Y, 0), 2),
+        sp: formatHex(getDebugValueOrDefault(cpu.REG_S || cpu.S, 0), 2),
     };
     
     // Extract flag values
@@ -93,11 +94,11 @@ const areRegistersEqual = (prevProps: CompactCpuRegistersProps, nextProps: Compa
     
     // Compare register values with consistent formatting
     const prevRegs = {
-        pc: formatHex(prevCpu.REG_PC || prevCpu.PC, 4),
-        a: formatHex(prevCpu.REG_A || prevCpu.A, 2),
-        x: formatHex(prevCpu.REG_X || prevCpu.X, 2),
-        y: formatHex(prevCpu.REG_Y || prevCpu.Y, 2),
-        sp: formatHex(prevCpu.REG_S || prevCpu.S, 2),
+        pc: formatHex(getDebugValueOrDefault(prevCpu.REG_PC || prevCpu.PC, 0), 4),
+        a: formatHex(getDebugValueOrDefault(prevCpu.REG_A || prevCpu.A, 0), 2),
+        x: formatHex(getDebugValueOrDefault(prevCpu.REG_X || prevCpu.X, 0), 2),
+        y: formatHex(getDebugValueOrDefault(prevCpu.REG_Y || prevCpu.Y, 0), 2),
+        sp: formatHex(getDebugValueOrDefault(prevCpu.REG_S || prevCpu.S, 0), 2),
         flagN: prevCpu.FLAG_N === 'SET' || prevCpu.N === 'SET',
         flagV: prevCpu.FLAG_V === 'SET' || prevCpu.V === 'SET',
         flagD: prevCpu.FLAG_D === 'SET' || prevCpu.D === 'SET',
@@ -107,11 +108,11 @@ const areRegistersEqual = (prevProps: CompactCpuRegistersProps, nextProps: Compa
     };
     
     const nextRegs = {
-        pc: formatHex(nextCpu.REG_PC || nextCpu.PC, 4),
-        a: formatHex(nextCpu.REG_A || nextCpu.A, 2),
-        x: formatHex(nextCpu.REG_X || nextCpu.X, 2),
-        y: formatHex(nextCpu.REG_Y || nextCpu.Y, 2),
-        sp: formatHex(nextCpu.REG_S || nextCpu.S, 2),
+        pc: formatHex(getDebugValueOrDefault(nextCpu.REG_PC || nextCpu.PC, 0), 4),
+        a: formatHex(getDebugValueOrDefault(nextCpu.REG_A || nextCpu.A, 0), 2),
+        x: formatHex(getDebugValueOrDefault(nextCpu.REG_X || nextCpu.X, 0), 2),
+        y: formatHex(getDebugValueOrDefault(nextCpu.REG_Y || nextCpu.Y, 0), 2),
+        sp: formatHex(getDebugValueOrDefault(nextCpu.REG_S || nextCpu.S, 0), 2),
         flagN: nextCpu.FLAG_N === 'SET' || nextCpu.N === 'SET',
         flagV: nextCpu.FLAG_V === 'SET' || nextCpu.V === 'SET',
         flagD: nextCpu.FLAG_D === 'SET' || nextCpu.D === 'SET',

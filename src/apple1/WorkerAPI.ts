@@ -74,26 +74,17 @@ export class WorkerAPI implements IWorkerAPI {
     }
     
     /**
-     * Filter debug data to only include string and number values for backward compatibility
-     * Note: We preserve _PERF_DATA separately by injecting it back after filtering
+     * Filter debug data to include string, number, and object values
+     * Now properly supports nested objects like _PERF_DATA without workarounds
      */
-    private filterDebugData(data: Record<string, unknown>): Record<string, string | number> {
-        const filtered: Record<string, string | number> = {};
-        let perfData: object | null = null;
+    private filterDebugData(data: Record<string, unknown>): Record<string, string | number | object> {
+        const filtered: Record<string, string | number | object> = {};
         
         for (const [key, value] of Object.entries(data)) {
-            if (typeof value === 'string' || typeof value === 'number') {
-                filtered[key] = value;
-            } else if (key === '_PERF_DATA' && typeof value === 'object' && value !== null) {
-                // Store _PERF_DATA to inject back later
-                perfData = value;
+            if (typeof value === 'string' || typeof value === 'number' || 
+                (typeof value === 'object' && value !== null)) {
+                filtered[key] = value as string | number | object;
             }
-        }
-        
-        // Inject _PERF_DATA back as a special case
-        // This is a temporary workaround until we can update all components
-        if (perfData) {
-            (filtered as Record<string, unknown>)._PERF_DATA = perfData;
         }
         
         return filtered;

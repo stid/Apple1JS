@@ -302,10 +302,10 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 - **Type Safety Improvements** - Full TypeScript strict mode compliance
 
 ### 🚀 **Next Priority (Phase 1 Continuation)**
-1. **Restore type-check to CI pipeline** - Re-enable after migration
-2. **Implement Comlink for worker communication** - Type-safe worker messaging  
-   - **STATUS: WORKING - Tests need update** - See `docs/archive/2025-07_comlink_migration_status.md`
-3. **Create base classes for common patterns** - Reduce code duplication
+1. **Update FilteredDebugData type system** - Remove workarounds, properly type nested objects
+   - See `docs/archive/2025-01_debugging_improvements_status.md` for details
+2. **Create base classes for common patterns** - Extract worker state sync patterns
+3. **Add integration tests for worker communication** - Full flow testing
 4. **Add comprehensive error handling** - Robust error boundaries
 
 ### 🔄 **Phase 2: Core Optimizations**

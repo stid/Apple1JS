@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
+import { getNumericDebugValue } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from './WorkerDataContext';
 
@@ -101,7 +102,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 if (debugData?.cpu) {
                     const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
                     if (pc !== undefined) {
-                        const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                        const pcValue = getNumericDebugValue(pc, 0);
                         setCurrentPC(pcValue);
                     }
                 }
@@ -128,7 +129,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             if (debugData?.cpu) {
                 const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
                 if (pc !== undefined) {
-                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    const pcValue = getNumericDebugValue(pc, 0);
                     setCurrentPC(pcValue);
                 }
                 // Debug info is now managed by WorkerDataContext
@@ -153,7 +154,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Update PC from debug data
                 const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
                 if (pc !== undefined) {
-                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    const pcValue = getNumericDebugValue(pc, 0);
                     setCurrentPC(pcValue);
                 }
                 // Debug info is now managed by WorkerDataContext
@@ -172,7 +173,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Update PC from debug data
                 const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
                 if (pc !== undefined) {
-                    const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                    const pcValue = getNumericDebugValue(pc, 0);
                     setCurrentPC(pcValue);
                 }
                 // Debug info is now managed by WorkerDataContext
@@ -222,7 +223,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     if (data?.cpu) {
                         const pc = data.cpu.REG_PC || data.cpu.PC;
                         if (pc !== undefined) {
-                            const pcValue = typeof pc === 'string' ? parseInt(pc.replace('$', ''), 16) : pc;
+                            const pcValue = getNumericDebugValue(pc, 0);
                             setCurrentPC(pcValue);
                         }
                     }

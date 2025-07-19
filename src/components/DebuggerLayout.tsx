@@ -6,6 +6,7 @@ import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/types';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { useWorkerData } from '../contexts/WorkerDataContext';
+import { getDebugValueOrDefault, getNumericDebugValue } from '../utils/debug-helpers';
 import AddressLink from './AddressLink';
 import type { WorkerManager } from '../services/WorkerManager';
 
@@ -122,7 +123,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                                     <div className="text-xs font-mono text-text-secondary">
                                         PC: {debugInfo.cpu?.REG_PC ? (
                                             <AddressLink 
-                                                address={parseInt(String(debugInfo.cpu.REG_PC).replace('$', ''), 16)} 
+                                                address={getNumericDebugValue(debugInfo.cpu.REG_PC, 0)} 
                                                 showContextMenu={true}
                                                 workerManager={workerManager}
                                                 showRunToCursor={true}
@@ -135,19 +136,19 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                                 <div className="grid grid-cols-3 gap-sm text-sm">
                                     <div>
                                         <span className="text-text-secondary">A:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_A || '$00'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_A, '$00')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">X:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_X || '$00'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_X, '$00')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">Y:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_Y || '$00'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_Y, '$00')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">SP:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_S || '$FF'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_S, '$FF')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">Status:</span>
@@ -164,7 +165,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">Cycles:</span>
-                                        <div className="font-mono text-data-status">{debugInfo.cpu?.HW_CYCLES || '0'}</div>
+                                        <div className="font-mono text-data-status">{getDebugValueOrDefault(debugInfo.cpu?.HW_CYCLES, '0')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -175,22 +176,22 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                                 <div className="space-y-sm text-sm">
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">Last Opcode:</span>
-                                        <span className="font-mono text-data-value">{debugInfo.cpu?.HW_OPCODE || '$00'}</span>
+                                        <span className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.HW_OPCODE, '$00')}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">Instructions:</span>
-                                        <span className="font-mono text-data-status">{debugInfo.cpu?.PERF_INSTRUCTIONS || '0'}</span>
+                                        <span className="font-mono text-data-status">{getDebugValueOrDefault(debugInfo.cpu?.PERF_INSTRUCTIONS, '0')}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">IRQ Line:</span>
                                         <span className={`font-mono text-sm ${debugInfo.cpu?.IRQ_LINE === 'ACTIVE' ? 'text-warning' : 'text-text-secondary'}`}>
-                                            {debugInfo.cpu?.IRQ_LINE || 'INACTIVE'}
+                                            {getDebugValueOrDefault(debugInfo.cpu?.IRQ_LINE, 'INACTIVE')}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">NMI Line:</span>
                                         <span className={`font-mono text-sm ${debugInfo.cpu?.NMI_LINE === 'ACTIVE' ? 'text-warning' : 'text-text-secondary'}`}>
-                                            {debugInfo.cpu?.NMI_LINE || 'INACTIVE'}
+                                            {getDebugValueOrDefault(debugInfo.cpu?.NMI_LINE, 'INACTIVE')}
                                         </span>
                                     </div>
                                 </div>
@@ -246,7 +247,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                             <div className="flex-1" style={{ minHeight: 0 }}>
                                 <StackViewer
                                     workerManager={workerManager}
-                                    stackPointer={parseInt(String(debugInfo.cpu?.REG_S || '$FF').replace('$', ''), 16)}
+                                    stackPointer={getNumericDebugValue(debugInfo.cpu?.REG_S, 0xFF)}
                                 />
                             </div>
                         </div>

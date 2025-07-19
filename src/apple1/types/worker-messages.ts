@@ -41,10 +41,10 @@ export interface DebugData {
     [key: string]: { [key: string]: string | number | object };
 }
 
-// Filtered debug data that only contains string and number values
-// Note: Special objects like _PERF_DATA are preserved separately in WorkerAPI
+// Filtered debug data that supports string, number, and nested object values
+// This properly supports special objects like _PERF_DATA without workarounds
 export interface FilteredDebugData {
-    [key: string]: { [key: string]: string | number };
+    [key: string]: { [key: string]: string | number | object };
 }
 
 // Extended debug data that supports additional types

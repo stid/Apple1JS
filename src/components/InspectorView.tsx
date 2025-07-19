@@ -3,6 +3,7 @@ import { IInspectableComponent } from '../core/types/components';
 import { OPCODES } from '../constants/opcodes';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
+import { getDebugValueOrDefault } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from '../contexts/WorkerDataContext';
 
@@ -111,11 +112,14 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 if (typeof value === 'object' && value !== null) {
                     // Flatten nested objects like REG: { PC: '0x1234' } -> REG_PC: '0x1234'
                     Object.entries(value).forEach(([subKey, subValue]) => {
-                        result[`${key}_${subKey}`] = subValue as string | number | boolean;
+                        // Only include string/number/boolean values
+                        if (typeof subValue === 'string' || typeof subValue === 'number' || typeof subValue === 'boolean') {
+                            result[`${key}_${subKey}`] = subValue;
+                        }
                     });
-                } else {
+                } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
                     // Keep flat values as-is (like REG_PC: '$1234')
-                    result[key] = value as string | number | boolean;
+                    result[key] = value;
                 }
             });
             return result;
@@ -271,34 +275,34 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
     const cpuRegisterData = React.useMemo(() => {
         const cpu = debugInfo.cpu || {};
         return {
-            pc: cpu.REG_PC || cpu.PC || '$0000',
-            a: cpu.REG_A || cpu.A || '$00',
-            x: cpu.REG_X || cpu.X || '$00',
-            y: cpu.REG_Y || cpu.Y || '$00',
-            s: cpu.REG_S || cpu.S || '$00',
+            pc: getDebugValueOrDefault(cpu.REG_PC || cpu.PC, '$0000'),
+            a: getDebugValueOrDefault(cpu.REG_A || cpu.A, '$00'),
+            x: getDebugValueOrDefault(cpu.REG_X || cpu.X, '$00'),
+            y: getDebugValueOrDefault(cpu.REG_Y || cpu.Y, '$00'),
+            s: getDebugValueOrDefault(cpu.REG_S || cpu.S, '$00'),
             // Flags
-            flagN: cpu.FLAG_N || cpu.N || 'CLR',
-            flagZ: cpu.FLAG_Z || cpu.Z || 'CLR',
-            flagC: cpu.FLAG_C || cpu.C || 'CLR',
-            flagV: cpu.FLAG_V || cpu.V || 'CLR',
-            flagI: cpu.FLAG_I || cpu.I || 'SET',
-            flagD: cpu.FLAG_D || cpu.D || 'CLR',
+            flagN: getDebugValueOrDefault(cpu.FLAG_N || cpu.N, 'CLR'),
+            flagZ: getDebugValueOrDefault(cpu.FLAG_Z || cpu.Z, 'CLR'),
+            flagC: getDebugValueOrDefault(cpu.FLAG_C || cpu.C, 'CLR'),
+            flagV: getDebugValueOrDefault(cpu.FLAG_V || cpu.V, 'CLR'),
+            flagI: getDebugValueOrDefault(cpu.FLAG_I || cpu.I, 'SET'),
+            flagD: getDebugValueOrDefault(cpu.FLAG_D || cpu.D, 'CLR'),
             // Memory info
-            ramBank2Address: cpu.ramBank2Address || '$F000 - $FFFF',
-            piaAddress: cpu.piaAddress || '$D010 - $D013',
+            ramBank2Address: getDebugValueOrDefault(cpu.ramBank2Address, '$F000 - $FFFF'),
+            piaAddress: getDebugValueOrDefault(cpu.piaAddress, '$D010 - $D013'),
             // Execution
-            hwAddr: cpu.HW_ADDR || '$FFFE',
-            hwData: cpu.HW_DATA || '$00',
-            hwOpcode: cpu.HW_OPCODE || '$00',
-            hwCycles: cpu.HW_CYCLES || '40,259,072',
-            irqLine: cpu.IRQ_LINE || 'INACTIVE',
-            nmiLine: cpu.NMI_LINE || 'INACTIVE',
-            irqPending: cpu.IRQ_PENDING || 'NO',
-            nmiPending: cpu.NMI_PENDING || 'NO',
-            execTmp: cpu.EXEC_TMP || '$00',
-            execAddr: cpu.EXEC_ADDR || '$0000',
-            perfEnabled: cpu.PERF_ENABLED || 'YES',
-            perfInstructions: cpu.PERF_INSTRUCTIONS || '4,297,966',
+            hwAddr: getDebugValueOrDefault(cpu.HW_ADDR, '$FFFE'),
+            hwData: getDebugValueOrDefault(cpu.HW_DATA, '$00'),
+            hwOpcode: getDebugValueOrDefault(cpu.HW_OPCODE, '$00'),
+            hwCycles: getDebugValueOrDefault(cpu.HW_CYCLES, '40,259,072'),
+            irqLine: getDebugValueOrDefault(cpu.IRQ_LINE, 'INACTIVE'),
+            nmiLine: getDebugValueOrDefault(cpu.NMI_LINE, 'INACTIVE'),
+            irqPending: getDebugValueOrDefault(cpu.IRQ_PENDING, 'NO'),
+            nmiPending: getDebugValueOrDefault(cpu.NMI_PENDING, 'NO'),
+            execTmp: getDebugValueOrDefault(cpu.EXEC_TMP, '$00'),
+            execAddr: getDebugValueOrDefault(cpu.EXEC_ADDR, '$0000'),
+            perfEnabled: getDebugValueOrDefault(cpu.PERF_ENABLED, 'YES'),
+            perfInstructions: getDebugValueOrDefault(cpu.PERF_INSTRUCTIONS, '4,297,966'),
         };
     }, [debugInfo.cpu]);
 
