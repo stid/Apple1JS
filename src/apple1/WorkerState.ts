@@ -2,12 +2,8 @@ import Apple1 from '.';
 import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
 import type { IWorkerState } from './types/worker-api';
-import { WORKER_MESSAGES } from './types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
-
-// Declare postMessage for worker context
-declare function postMessage(message: unknown, transfer?: Transferable[]): void;
 
 /**
  * WorkerState encapsulates all the state that was previously at module level.
@@ -77,12 +73,8 @@ export class WorkerState implements IWorkerState {
      * Set up logging service handler
      */
     private setupLoggingHandler(): void {
-        loggingService.addHandler((level, source, message) => {
-            postMessage({ 
-                data: { level, source, message }, 
-                type: WORKER_MESSAGES.LOG_MESSAGE 
-            });
-        });
+        // Logging is now handled through WorkerAPI
+        // Keep this method for compatibility
     }
     
     /**
