@@ -114,7 +114,7 @@ const AppContentInner = ({
     useEffect(() => {
         // Only focus on initial mount
         focusHiddenInput();
-    }, []); // Remove dependency to prevent re-focusing
+    }, [focusHiddenInput]);
 
     // Handle log messages from worker via WorkerManager
     useEffect(() => {
@@ -206,17 +206,20 @@ const AppContentInner = ({
     );
 
     return (
-        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
+        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1" onClick={(e) => {
+            // Refocus hidden input when clicking on the background
+            if (e.target === e.currentTarget) {
+                focusHiddenInput();
+            }
+        }}>
             {/* Left column: CRT, Actions */}
             <div
                 className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
                 style={{ maxWidth: '538px' }}
             >
-                <div className="w-full flex justify-center" onClick={(e) => {
-                    // Only refocus if clicking directly on CRT, not on child elements
-                    if (e.target === e.currentTarget) {
-                        focusHiddenInput();
-                    }
+                <div className="w-full flex justify-center" onClick={() => {
+                    // Always refocus when clicking anywhere in the CRT area
+                    focusHiddenInput();
                 }} role="presentation">
                     <CRTWorker workerManager={workerManager} />
                 </div>

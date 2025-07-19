@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { DebugData } from '../apple1/types/worker-messages';
+import { FilteredDebugData } from '../apple1/types/worker-messages';
 import type { WorkerManager } from '../services/WorkerManager';
 
 type ExecutionState = 'running' | 'paused' | 'stepping';
@@ -9,7 +9,7 @@ interface EmulationContextType {
     isPaused: boolean;
     executionState: ExecutionState;
     currentPC: number;
-    debugInfo: DebugData;
+    debugInfo: FilteredDebugData;
     breakpoints: Set<number>;
     
     // Actions
@@ -44,7 +44,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const [isPaused, setIsPaused] = useState(false);
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [currentPC, setCurrentPC] = useState(0);
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
     // Note: Debug info subscription not yet implemented in WorkerManager
     // const [lastStepPC, setLastStepPC] = useState<number | null>(null);

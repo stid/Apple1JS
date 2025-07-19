@@ -41,6 +41,11 @@ export interface DebugData {
     [key: string]: { [key: string]: string | number | object };
 }
 
+// Filtered debug data that only contains string and number values
+export interface FilteredDebugData {
+    [key: string]: { [key: string]: string | number };
+}
+
 // Extended debug data that supports additional types
 export interface ExtendedDebugData {
     [key: string]: { [key: string]: string | number | boolean | object };

@@ -1,6 +1,6 @@
 import type { EmulatorState } from './emulator-state';
 import type { VideoData } from './video';
-import type { DebugData, MemoryMapData, LogMessageData } from './worker-messages';
+import type { FilteredDebugData, MemoryMapData, LogMessageData } from './worker-messages';
 
 /**
  * Worker API Interface for Comlink migration
@@ -25,7 +25,7 @@ export interface IWorkerAPI {
      * Execute a single CPU instruction
      * @returns Debug data after the step
      */
-    step(): DebugData;
+    step(): FilteredDebugData;
     
     /**
      * Save the current emulator state
@@ -141,7 +141,7 @@ export interface IWorkerAPI {
      * Get current debug information for all components
      * @returns Debug data for CPU, PIA, Bus, and Clock
      */
-    getDebugInfo(): DebugData;
+    getDebugInfo(): FilteredDebugData;
     
     // ========== Event Subscriptions ==========
     // These will use Comlink.proxy for callbacks

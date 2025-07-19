@@ -3,7 +3,7 @@ import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
 import type { VideoData } from './types/video';
 import type { 
-    DebugData, 
+    FilteredDebugData, 
     MemoryMapData, 
     LogMessageData,
     ClockData
@@ -75,17 +75,14 @@ export class WorkerAPI implements IWorkerAPI {
     
     /**
      * Filter debug data to only include string and number values for backward compatibility
-     * But preserve _PERF_DATA object for profiling
      */
-    private filterDebugData(data: Record<string, unknown>): Record<string, string | number | object> {
-        const filtered: Record<string, string | number | object> = {};
+    private filterDebugData(data: Record<string, unknown>): Record<string, string | number> {
+        const filtered: Record<string, string | number> = {};
         for (const [key, value] of Object.entries(data)) {
             if (typeof value === 'string' || typeof value === 'number') {
                 filtered[key] = value;
-            } else if (key === '_PERF_DATA' && typeof value === 'object' && value !== null) {
-                // Preserve performance data object
-                filtered[key] = value;
             }
+            // TODO: Handle _PERF_DATA object once components are updated to support it
         }
         return filtered;
     }
@@ -118,7 +115,7 @@ export class WorkerAPI implements IWorkerAPI {
         this.statusCallbacks.forEach(cb => cb('running'));
     }
     
-    step(): DebugData {
+    step(): FilteredDebugData {
         // First pause the clock to prevent concurrent execution
         this.workerState.apple1.clock.pause();
         this.workerState.isPaused = true;
@@ -376,12 +373,13 @@ export class WorkerAPI implements IWorkerAPI {
     // ========== Input ==========
     
     keyDown(key: string): void {
+        console.log('[WorkerAPI] keyDown called with key:', key);
         this.workerState.keyboard.write(key);
     }
     
     // ========== Debug Information ==========
     
-    getDebugInfo(): DebugData {
+    getDebugInfo(): FilteredDebugData {
         const { clock, cpu, pia, bus } = this.workerState.apple1;
         return {
             cpu: this.filterDebugData(cpu.toDebug()),

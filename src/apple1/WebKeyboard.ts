@@ -44,6 +44,7 @@ class Keyboard implements IoComponent, IInspectableComponent {
             // Standard Keys
             switch (key) {
                 case 'Tab':
+                    console.log('[WebKeyboard] Tab key pressed, sending RESET_CODE:', RESET_CODE);
                     result = await wireWrite(RESET_CODE);
                     break;
                 case 'Backspace':

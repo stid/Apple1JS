@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IInspectableComponent } from '../core/types/components';
-import { DebugData } from '../apple1/types/worker-messages';
+import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { OPCODES } from '../constants/opcodes';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import { MetricCard } from './MetricCard';
@@ -15,7 +15,7 @@ interface InspectorViewProps {
 }
 
 const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
 
     // Helper function to translate hex opcode to human-readable mnemonic

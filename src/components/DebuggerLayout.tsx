@@ -4,7 +4,7 @@ import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/types';
-import { DebugData } from '../apple1/TSTypes';
+import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import AddressLink from './AddressLink';
 import { REFRESH_RATES } from '../constants/ui';
@@ -25,7 +25,7 @@ type DebugView = 'overview' | 'memory' | 'disassembly';
 
 const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialNavigation, onNavigationHandled, memoryViewAddress, setMemoryViewAddress, disassemblerAddress, setDisassemblerAddress }) => {
     const [activeView, setActiveView] = useState<DebugView>('overview');
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
     const { subscribeToNavigation } = useDebuggerNavigation();
     
     // Handle initial navigation from parent

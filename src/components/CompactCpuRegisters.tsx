@@ -1,11 +1,11 @@
 import React, { memo } from 'react';
-import { DebugData } from '../apple1/TSTypes';
+import { FilteredDebugData } from '../apple1/types/worker-messages';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import type { WorkerManager } from '../services/WorkerManager';
 
 interface CompactCpuRegistersProps {
-    debugInfo: DebugData;
+    debugInfo: FilteredDebugData;
     workerManager?: WorkerManager;
 }
 

@@ -3,7 +3,7 @@ import { WORKER_MESSAGES, WorkerMessage } from '../apple1/types/worker-messages'
 import type { IWorkerAPI } from '../apple1/types/worker-api';
 import type { EmulatorState } from '../apple1/types/emulator-state';
 import type { VideoData } from '../apple1/types/video';
-import type { LogMessageData, DebugData, MemoryMapData } from '../apple1/types/worker-messages';
+import type { LogMessageData, FilteredDebugData, MemoryMapData } from '../apple1/types/worker-messages';
 // CONFIG no longer needed since Comlink is the only implementation
 
 /**
@@ -87,7 +87,7 @@ export class WorkerManager {
         }
     }
 
-    async step(): Promise<DebugData | void> {
+    async step(): Promise<FilteredDebugData | void> {
         if (this.comlinkAPI) {
             return await this.comlinkAPI.step();
         }
@@ -151,7 +151,7 @@ export class WorkerManager {
         }
     }
 
-    async getDebugInfo(): Promise<DebugData | void> {
+    async getDebugInfo(): Promise<FilteredDebugData | void> {
         if (this.comlinkAPI) {
             return await this.comlinkAPI.getDebugInfo();
         }
