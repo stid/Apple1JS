@@ -406,6 +406,7 @@ Refinements and nice-to-haves:
 **Consolidation Notes**:
 
 This document replaced:
+
 - `/docs/active/roadmap.md` (removed on 2025-07-20)
 - `/docs/active/disassembler_issues_roadmap.md` (removed on 2025-07-20)
 
