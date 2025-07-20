@@ -31,7 +31,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
 }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [viewStartAddress, setViewStartAddress] = useState(0x0000);
-    const [visibleRows, setVisibleRows] = useState(20);
+    const [visibleRows, setVisibleRows] = useState(16); // Default to reasonable value
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
     
     const containerRef = useRef<HTMLDivElement>(null);
@@ -60,16 +60,19 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             const table = content.querySelector('table');
             if (!table) return;
             
-            const tbody = table.querySelector('tbody');
-            if (!tbody) return;
+            const thead = table.querySelector('thead') as HTMLElement;
+            if (!thead) return;
             
-            // Get the actual visible height for tbody
-            const tbodyRect = tbody.getBoundingClientRect();
+            // Get container height and subtract header
+            const contentRect = content.getBoundingClientRect();
+            const theadRect = thead.getBoundingClientRect();
+            const availableHeight = contentRect.height - theadRect.height;
             const rowHeight = 24; // This should match the actual row height in CSS
-            const possibleRows = Math.floor(tbodyRect.height / rowHeight);
+            const possibleRows = Math.floor(availableHeight / rowHeight);
             
-            // Set visible rows based on what actually fits
-            setVisibleRows(Math.max(10, possibleRows));
+            // Clamp to reasonable values
+            const calculatedRows = Math.max(10, Math.min(50, possibleRows));
+            setVisibleRows(calculatedRows);
         };
         
         const timer = setTimeout(calculateRows, 100);
@@ -90,8 +93,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         const result: DisassemblyLine[] = [];
         let addr = startAddr;
         let memIndex = 0;
+        const maxLines = 100; // Safety limit to prevent runaway loops
         
-        while (memIndex < memory.length && addr <= 0xFFFF) {
+        while (memIndex < memory.length && addr <= 0xFFFF && result.length < maxLines) {
             const opcode = memory[memIndex];
             const opcodeInfo = OPCODES[opcode];
             
