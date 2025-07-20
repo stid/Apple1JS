@@ -32,6 +32,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [viewStartAddress, setViewStartAddress] = useState(0x0000);
     const [visibleRows, setVisibleRows] = useState(16); // Default to reasonable value
+    const [actualVisibleRows, setActualVisibleRows] = useState(16); // Track what's actually shown
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
     
     const containerRef = useRef<HTMLDivElement>(null);
@@ -57,34 +58,59 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             if (!contentRef.current) return;
             
             const content = contentRef.current;
-            const table = content.querySelector('table');
-            if (!table) return;
             
-            const thead = table.querySelector('thead') as HTMLElement;
-            if (!thead) return;
-            
-            // Get container height and subtract header
-            const contentRect = content.getBoundingClientRect();
-            const theadRect = thead.getBoundingClientRect();
-            const availableHeight = contentRect.height - theadRect.height;
-            const rowHeight = 24; // This should match the actual row height in CSS
-            const possibleRows = Math.floor(availableHeight / rowHeight);
-            
-            // Clamp to reasonable values
-            const calculatedRows = Math.max(10, Math.min(50, possibleRows));
-            setVisibleRows(calculatedRows);
+            window.requestAnimationFrame(() => {
+                const table = content.querySelector('table');
+                if (!table) return;
+                
+                const thead = table.querySelector('thead') as HTMLElement;
+                if (!thead) return;
+                
+                // Measure actual row height if possible
+                const tbody = table.querySelector('tbody');
+                let actualRowHeight = 24; // Default row height
+                
+                if (tbody) {
+                    const firstRow = tbody.querySelector('tr');
+                    if (firstRow) {
+                        const rowRect = firstRow.getBoundingClientRect();
+                        actualRowHeight = rowRect.height || 24;
+                    }
+                }
+                
+                // Get actual measurements
+                const contentRect = content.getBoundingClientRect();
+                const theadRect = thead.getBoundingClientRect();
+                
+                // Available height for tbody
+                const availableHeight = contentRect.height - theadRect.height;
+                
+                // Calculate rows
+                const possibleRows = Math.floor(availableHeight / actualRowHeight);
+                
+                // Set visible rows with reasonable limits
+                const calculatedRows = Math.max(10, Math.min(50, possibleRows));
+                setVisibleRows(calculatedRows + 10); // Fetch extra for scrolling
+                setActualVisibleRows(calculatedRows);
+            });
         };
         
-        const timer = setTimeout(calculateRows, 100);
+        // Initial calculation with proper delay
+        const timer = setTimeout(calculateRows, 150);
+        
+        // Recalculate on resize
         const resizeObserver = new ResizeObserver(calculateRows);
         
         if (contentRef.current) {
             resizeObserver.observe(contentRef.current);
         }
         
+        window.addEventListener('resize', calculateRows);
+        
         return () => {
             clearTimeout(timer);
             resizeObserver.disconnect();
+            window.removeEventListener('resize', calculateRows);
         };
     }, []);
     
@@ -207,13 +233,14 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             const memoryData = await workerManager.readMemoryRange(startAddr, bytesToFetch);
             if (memoryData) {
                 const disassembly = disassembleMemory(startAddr, new Uint8Array(memoryData));
-                // Take exactly the number of lines that fit in the view
-                setLines(disassembly.slice(0, visibleRows));
+                // Take only what actually fits in the view
+                const linesToShow = Math.min(actualVisibleRows, disassembly.length);
+                setLines(disassembly.slice(0, linesToShow));
             }
         } catch (error) {
             console.error('Failed to fetch memory:', error);
         }
-    }, [workerManager, disassembleMemory, visibleRows]);
+    }, [workerManager, disassembleMemory, visibleRows, actualVisibleRows]);
     
     // Fetch data when view address or visible rows change
     useEffect(() => {
@@ -284,8 +311,8 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Navigation handlers
     const handleNavigateUp = useCallback(() => {
-        // Navigate up by half the visible rows to maintain context
-        const scrollAmount = Math.max(1, Math.floor(visibleRows / 2));
+        // Navigate up by half the actual visible rows to maintain context
+        const scrollAmount = Math.max(1, Math.floor(actualVisibleRows / 2));
         // Find the address that's scrollAmount rows up from current view
         let targetAddr = viewStartAddress;
         let bytesToSkip = 0;
@@ -297,11 +324,11 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         
         targetAddr = Math.max(0, viewStartAddress - bytesToSkip);
         navigateTo(targetAddr);
-    }, [viewStartAddress, visibleRows, navigateTo]);
+    }, [viewStartAddress, actualVisibleRows, navigateTo]);
     
     const handleNavigateDown = useCallback(() => {
-        // Navigate down by half the visible rows to maintain context
-        const scrollAmount = Math.max(1, Math.floor(visibleRows / 2));
+        // Navigate down by half the actual visible rows to maintain context
+        const scrollAmount = Math.max(1, Math.floor(actualVisibleRows / 2));
         
         // Find the address that's scrollAmount rows down from current view
         if (lines.length > scrollAmount) {
@@ -316,7 +343,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                 navigateTo(lastLine.address + lastLine.bytes.length);
             }
         }
-    }, [lines, visibleRows, navigateTo]);
+    }, [lines, actualVisibleRows, navigateTo]);
     
     // Jump to PC
     const jumpToPC = useCallback(() => {
@@ -596,7 +623,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                     onNavigateUp={handleNavigateUp}
                     onNavigateDown={handleNavigateDown}
                     addressRange={getAddressRange()}
-                    rowCount={Math.min(lines.length, visibleRows)}
+                    rowCount={lines.length}
                     renderTableHeader={renderTableHeader}
                     renderTableRows={renderTableRows}
                     renderExtraControls={renderExtraControls}
