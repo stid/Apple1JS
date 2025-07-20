@@ -47,7 +47,8 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         pause, 
         resume, 
         step: contextStep,
-        toggleBreakpoint: contextToggleBreakpoint 
+        toggleBreakpoint: contextToggleBreakpoint,
+        subscribeToNavigationEvents
     } = useEmulation();
     
     // Calculate visible rows based on container height
@@ -222,25 +223,16 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         onAddressChange?.(clampedAddr);
     }, [onAddressChange]);
     
-    // Handle PC tracking
+    // Subscribe to navigation events for auto-follow
     useEffect(() => {
-        if (currentPC === undefined) return;
+        const unsubscribe = subscribeToNavigationEvents((event) => {
+            // Navigate to show the address with some context
+            const targetAddr = Math.max(0, event.address - 5);
+            navigateTo(targetAddr);
+        });
         
-        // Check if PC is visible in current view
-        const firstAddr = lines[0]?.address;
-        const lastAddr = lines[lines.length - 1]?.address;
-        
-        if (firstAddr !== undefined && lastAddr !== undefined) {
-            const pcVisible = currentPC >= firstAddr && currentPC <= lastAddr;
-            
-            if (!pcVisible && !isPaused) {
-                // PC is not visible and we're running, navigate to show it
-                // Put PC in upper portion of view for context
-                const targetAddr = Math.max(0, currentPC - 5);
-                navigateTo(targetAddr);
-            }
-        }
-    }, [currentPC, lines, isPaused, navigateTo]);
+        return unsubscribe;
+    }, [subscribeToNavigationEvents, navigateTo]);
     
     // Handle external address changes (e.g., from breakpoints)
     useEffect(() => {

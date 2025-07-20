@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { getNumericDebugValue } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -26,7 +26,15 @@ interface EmulationContextType {
     // Events
     onBreakpointHit?: (address: number) => void;
     onRunToCursorSet?: (address: number | null) => void;
+    
+    // Navigation events
+    subscribeToNavigationEvents: (callback: (event: NavigationEvent) => void) => () => void;
 }
+
+export type NavigationEvent = 
+    | { type: 'pause-clicked'; address: number }
+    | { type: 'breakpoint-hit'; address: number }
+    | { type: 'step-completed'; address: number };
 
 const EmulationContext = createContext<EmulationContextType | undefined>(undefined);
 
@@ -49,8 +57,28 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     // Get debug info from WorkerDataContext
     const { debugInfo, subscribeToDebugInfo, setDebuggerActive } = useWorkerData();
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
-    // Note: Debug info subscription not yet implemented in WorkerManager
-    // const [lastStepPC, setLastStepPC] = useState<number | null>(null);
+    
+    // Navigation event subscribers
+    const navigationSubscribersRef = useRef<Set<(event: NavigationEvent) => void>>(new Set());
+    
+    // Helper to emit navigation events
+    const emitNavigationEvent = useCallback((event: NavigationEvent) => {
+        navigationSubscribersRef.current.forEach(callback => {
+            try {
+                callback(event);
+            } catch (error) {
+                console.error('Navigation event callback error:', error);
+            }
+        });
+    }, []);
+    
+    // Subscribe to navigation events
+    const subscribeToNavigationEvents = useCallback((callback: (event: NavigationEvent) => void): (() => void) => {
+        navigationSubscribersRef.current.add(callback);
+        return () => {
+            navigationSubscribersRef.current.delete(callback);
+        };
+    }, []);
 
     // Handle worker events via WorkerManager
     useEffect(() => {
@@ -78,6 +106,8 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 setIsPaused(true);
                 setExecutionState('paused');
                 onBreakpointHit?.(hitAddress);
+                // Emit navigation event for breakpoint hit
+                emitNavigationEvent({ type: 'breakpoint-hit', address: hitAddress });
             });
             if (breakpointResult) {
                 unsubscribeBreakpoint = breakpointResult;
@@ -118,7 +148,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             if (unsubscribeBreakpoint) unsubscribeBreakpoint();
             if (unsubscribeRunToCursor) unsubscribeRunToCursor();
         };
-    }, [workerManager, onBreakpointHit, onRunToCursorSet]);
+    }, [workerManager, onBreakpointHit, onRunToCursorSet, emitNavigationEvent]);
 
     // Actions
     const pause = useCallback(async () => {
@@ -131,13 +161,15 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 if (pc !== undefined) {
                     const pcValue = getNumericDebugValue(pc, 0);
                     setCurrentPC(pcValue);
+                    // Emit navigation event for pause clicked
+                    emitNavigationEvent({ type: 'pause-clicked', address: pcValue });
                 }
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
             console.error('Failed to pause emulation:', error);
         }
-    }, [workerManager]);
+    }, [workerManager, emitNavigationEvent]);
 
     const resume = useCallback(async () => {
         try {
@@ -156,13 +188,15 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 if (pc !== undefined) {
                     const pcValue = getNumericDebugValue(pc, 0);
                     setCurrentPC(pcValue);
+                    // Emit navigation event for step completed
+                    emitNavigationEvent({ type: 'step-completed', address: pcValue });
                 }
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
             console.error('Failed to step:', error);
         }
-    }, [workerManager]);
+    }, [workerManager, emitNavigationEvent]);
 
     const stepOver = useCallback(async () => {
         // Step over not implemented in worker yet, just do regular step
@@ -175,13 +209,15 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 if (pc !== undefined) {
                     const pcValue = getNumericDebugValue(pc, 0);
                     setCurrentPC(pcValue);
+                    // Emit navigation event for step completed
+                    emitNavigationEvent({ type: 'step-completed', address: pcValue });
                 }
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
             console.error('Failed to step over:', error);
         }
-    }, [workerManager]);
+    }, [workerManager, emitNavigationEvent]);
 
     const runToAddress = useCallback(async (address: number) => {
         try {
@@ -280,6 +316,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         runToAddress,
         toggleBreakpoint,
         clearAllBreakpoints,
+        subscribeToNavigationEvents,
         ...(onBreakpointHit !== undefined && { onBreakpointHit }),
         ...(onRunToCursorSet !== undefined && { onRunToCursorSet })
     };
