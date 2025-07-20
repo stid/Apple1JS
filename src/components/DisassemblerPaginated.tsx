@@ -31,7 +31,6 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
 }) => {
     const [lines, setLines] = useState<DisassemblyLine[]>([]);
     const [viewStartAddress, setViewStartAddress] = useState(0x0000);
-    const [visibleRows, setVisibleRows] = useState(16); // Default to reasonable value
     const [actualVisibleRows, setActualVisibleRows] = useState(16); // Track what's actually shown
     const [runToCursorTarget, setRunToCursorTarget] = useState<number | null>(null);
     
@@ -90,7 +89,6 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                 
                 // Set visible rows with reasonable limits
                 const calculatedRows = Math.max(10, Math.min(50, possibleRows));
-                setVisibleRows(calculatedRows + 10); // Fetch extra for scrolling
                 setActualVisibleRows(calculatedRows);
             });
         };
@@ -228,30 +226,68 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             return;
         }
         
-        // Calculate how many bytes we need to fetch to fill the view
-        // Average instruction is about 2 bytes, but some are 3 bytes
-        // Fetch extra to ensure we have enough instructions
-        const maxBytes = 0x10000 - startAddr; // Can't fetch beyond 0xFFFF
-        const desiredBytes = visibleRows * 4;
-        const bytesToFetch = Math.min(desiredBytes, maxBytes);
+        const targetRows = actualVisibleRows;
         
-        if (bytesToFetch <= 0) {
-            setLines([]);
+        // Special handling for addresses near the end of memory
+        // We need to ensure we can show a full page
+        if (startAddr > 0xFFFF - (targetRows * 3)) {
+            // Near the end - fetch backwards to fill the view
+            
+            // Fetch more than we need and work backwards
+            const fetchStart = Math.max(0, startAddr - (targetRows * 3));
+            const fetchSize = 0x10000 - fetchStart;
+            
+            try {
+                const memoryData = await workerManager.readMemoryRange(fetchStart, fetchSize);
+                if (memoryData) {
+                    const allLines = disassembleMemory(fetchStart, new Uint8Array(memoryData));
+                    
+                    // Find the line that starts at or after our target address
+                    let startIdx = 0;
+                    for (let i = 0; i < allLines.length; i++) {
+                        if (allLines[i].address >= startAddr) {
+                            startIdx = i;
+                            break;
+                        }
+                    }
+                    
+                    // Take targetRows from that point, or whatever is available
+                    const finalLines = allLines.slice(startIdx, startIdx + targetRows);
+                    
+                    // If we don't have enough lines to fill the view, adjust start
+                    if (finalLines.length < targetRows && startIdx > 0) {
+                        // Move start back to get more lines
+                        const needed = targetRows - finalLines.length;
+                        const newStartIdx = Math.max(0, startIdx - needed);
+                        setLines(allLines.slice(newStartIdx, newStartIdx + targetRows));
+                        // Update view start to match what we're showing
+                        if (allLines[newStartIdx]) {
+                            setViewStartAddress(allLines[newStartIdx].address);
+                        }
+                    } else {
+                        setLines(finalLines);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch memory:', error);
+            }
             return;
         }
         
+        // Normal case - fetch forward
         try {
+            // Fetch enough to guarantee we get targetRows instructions
+            const bytesToFetch = Math.min(targetRows * 4, 0x10000 - startAddr);
             const memoryData = await workerManager.readMemoryRange(startAddr, bytesToFetch);
             if (memoryData) {
                 const disassembly = disassembleMemory(startAddr, new Uint8Array(memoryData));
-                // Take only what actually fits in the view
-                const linesToShow = Math.min(actualVisibleRows, disassembly.length);
-                setLines(disassembly.slice(0, linesToShow));
+                // Take exactly the target number of rows
+                setLines(disassembly.slice(0, targetRows));
             }
         } catch (error) {
             console.error('Failed to fetch memory:', error);
         }
-    }, [workerManager, disassembleMemory, visibleRows, actualVisibleRows]);
+    }, [workerManager, disassembleMemory, actualVisibleRows]);
     
     // Fetch data when view address or visible rows change
     useEffect(() => {
@@ -322,20 +358,49 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Navigation handlers
     const handleNavigateUp = useCallback(() => {
-        if (lines.length === 0) return;
+        if (lines.length === 0 || viewStartAddress === 0) return;
         
-        // Navigate up by approximately one page worth of content
-        // Since we don't know exact instruction sizes before current view,
-        // estimate based on current page's byte count
-        const firstLine = lines[0];
-        const lastLine = lines[lines.length - 1];
-        if (firstLine && lastLine) {
-            // Calculate approximate bytes per page from current view
-            const currentPageBytes = (lastLine.address + lastLine.bytes.length) - firstLine.address;
-            const targetAddr = Math.max(0, viewStartAddress - currentPageBytes);
-            navigateTo(targetAddr);
+        // To navigate up consistently, we need to fetch backwards and find
+        // the right starting point to show a full page
+        const targetRows = actualVisibleRows;
+        
+        // Fetch enough bytes backwards to guarantee we can show a full page
+        const fetchStart = Math.max(0, viewStartAddress - (targetRows * 3));
+        const fetchSize = viewStartAddress - fetchStart;
+        
+        if (fetchSize <= 0) {
+            navigateTo(0);
+            return;
         }
-    }, [viewStartAddress, lines, navigateTo]);
+        
+        workerManager.readMemoryRange(fetchStart, fetchSize).then(memoryData => {
+            if (memoryData) {
+                const allLines = disassembleMemory(fetchStart, new Uint8Array(memoryData));
+                
+                // Find the right starting line to show exactly targetRows
+                // ending just before our current view
+                let bestStartIdx = 0;
+                for (let i = 0; i < allLines.length; i++) {
+                    const slice = allLines.slice(i, i + targetRows);
+                    if (slice.length >= targetRows) {
+                        const lastInSlice = slice[slice.length - 1];
+                        // Check if this slice would end just before our current view
+                        if (lastInSlice.address + lastInSlice.bytes.length <= viewStartAddress) {
+                            bestStartIdx = i;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                
+                if (allLines[bestStartIdx]) {
+                    navigateTo(allLines[bestStartIdx].address);
+                }
+            }
+        }).catch(error => {
+            console.error('Failed to navigate up:', error);
+        });
+    }, [viewStartAddress, actualVisibleRows, navigateTo, disassembleMemory, workerManager, lines.length]);
     
     const handleNavigateDown = useCallback(() => {
         if (lines.length === 0) return;

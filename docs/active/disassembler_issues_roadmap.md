@@ -31,22 +31,23 @@ As of version 4.33.30, we've completed a major refactoring of the DisassemblerPa
    - Both "4610" and "$4610" now work correctly
    - Debug logging has been removed after verification
 
-2. **Memory Boundary Edge Cases** (#35) - IN PROGRESS
+2. **Memory Boundary Edge Cases** (#35) - ✅ COMPLETED
    - Scrolling near $FFFF may cause issues
    - `Math.min(0xFFFF, nextAddr)` might not handle end of memory correctly
    - Scroll up at end of memory needs testing
    
-   **Changes implemented:**
-   - Modified handleNavigateDown to check if nextAddr > 0xFFFF and prevent scrolling
-   - Enhanced fetchAndDisassemble to handle startAddr > 0xFFFF gracefully
-   - Improved bytesToFetch calculation to never exceed memory bounds (0x10000 - startAddr)
-   - Clear lines array when no valid data can be fetched
+   **Solution implemented:**
+   - Rewrote fetchAndDisassemble with special handling for addresses near memory end
+   - When near end (within targetRows * 3 bytes), fetch backwards to ensure full page
+   - Automatically adjust view to show maximum content without exceeding $FFFF
+   - Implemented precise scroll up that pre-fetches and calculates exact page boundaries
+   - No more accumulating errors from byte estimation
    
-   **Test scenarios:**
-   - Navigate to address FFF0 and try scrolling down
-   - Navigate to address FFFF and verify display
-   - Try scrolling up from near the end of memory
-   - Enter invalid addresses like 10000 and verify behavior
+   **Key improvements:**
+   - Navigation is now instruction-aware, not byte-based
+   - Consistent page sizes maintained throughout scrolling
+   - Memory boundaries handled gracefully with automatic adjustment
+   - No partial views at memory edges
 
 3. **Race Conditions** (#37)
    - `actualVisibleRows` set async with requestAnimationFrame
@@ -55,9 +56,14 @@ As of version 4.33.30, we've completed a major refactoring of the DisassemblerPa
 
 ### Medium Priority
 
-4. **Variable Instruction Size Handling** (#36)
+4. **Variable Instruction Size Handling** (#36) - ✅ COMPLETED
    - Scroll up estimates bytes based on current page
    - If previous page has very different instruction mix (1 vs 3 byte), scroll amount may be incorrect
+   
+   **Solution implemented:**
+   - Scroll up now pre-fetches memory and disassembles to find exact page boundaries
+   - No more byte-based estimation - actual instruction counting
+   - Ensures consistent page sizes regardless of instruction mix
 
 5. **Component Unmount Safety** (#38)
    - 150ms timeout could error if component unmounts quickly
