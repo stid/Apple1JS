@@ -311,39 +311,33 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Navigation handlers
     const handleNavigateUp = useCallback(() => {
-        // Navigate up by half the actual visible rows to maintain context
-        const scrollAmount = Math.max(1, Math.floor(actualVisibleRows / 2));
-        // Find the address that's scrollAmount rows up from current view
-        let targetAddr = viewStartAddress;
-        let bytesToSkip = 0;
+        if (lines.length === 0) return;
         
-        // Estimate bytes to go back (average 2 bytes per instruction)
-        for (let i = 0; i < scrollAmount; i++) {
-            bytesToSkip += 2;
+        // Navigate up by approximately one page worth of content
+        // Since we don't know exact instruction sizes before current view,
+        // estimate based on current page's byte count
+        const firstLine = lines[0];
+        const lastLine = lines[lines.length - 1];
+        if (firstLine && lastLine) {
+            // Calculate approximate bytes per page from current view
+            const currentPageBytes = (lastLine.address + lastLine.bytes.length) - firstLine.address;
+            const targetAddr = Math.max(0, viewStartAddress - currentPageBytes);
+            navigateTo(targetAddr);
         }
-        
-        targetAddr = Math.max(0, viewStartAddress - bytesToSkip);
-        navigateTo(targetAddr);
-    }, [viewStartAddress, actualVisibleRows, navigateTo]);
+    }, [viewStartAddress, lines, navigateTo]);
     
     const handleNavigateDown = useCallback(() => {
-        // Navigate down by half the actual visible rows to maintain context
-        const scrollAmount = Math.max(1, Math.floor(actualVisibleRows / 2));
+        if (lines.length === 0) return;
         
-        // Find the address that's scrollAmount rows down from current view
-        if (lines.length > scrollAmount) {
-            const targetLine = lines[scrollAmount];
-            if (targetLine) {
-                navigateTo(targetLine.address);
-            }
-        } else if (lines.length > 0) {
-            // If we have fewer lines than scroll amount, go to last line
-            const lastLine = lines[lines.length - 1];
-            if (lastLine) {
-                navigateTo(lastLine.address + lastLine.bytes.length);
-            }
+        // Navigate by a full page worth of content
+        // Use the last visible line's address as the new start
+        const lastLine = lines[lines.length - 1];
+        if (lastLine) {
+            // Start the next view right after the last visible instruction
+            const nextAddr = lastLine.address + lastLine.bytes.length;
+            navigateTo(Math.min(0xFFFF, nextAddr));
         }
-    }, [lines, actualVisibleRows, navigateTo]);
+    }, [lines, navigateTo]);
     
     // Jump to PC
     const jumpToPC = useCallback(() => {
