@@ -4,7 +4,7 @@
 
 ### Major Issues Resolved
 
-1. **DataCloneError FIXED**: 
+1. **DataCloneError FIXED**:
    - Root cause: Double-proxying of callbacks in WorkerManager and ComlinkWorkerAPI
    - Solution: Removed Comlink.proxy() call in WorkerManager, kept only in worker
    - All event subscriptions now working correctly
@@ -31,12 +31,14 @@
 ### What We've Done
 
 #### Phase 1: Initial Comlink Setup ✅
+
 - Added Comlink dependencies
 - Created ComlinkWorkerAPI wrapper
 - Set up WorkerManager to use Comlink.wrap()
 - Implemented event subscriptions with callbacks
 
 #### Phase 2: Full Migration ✅
+
 - Refactored WorkerAPI to use callback-based events
 - Updated ComlinkWorkerAPI to use Comlink.proxy for callbacks
 - Removed 1,049+ lines of legacy postMessage code
@@ -44,6 +46,7 @@
 - Simplified WorkerManager by removing conditional logic
 
 #### Phase 3: Component Migration ✅
+
 - ✅ Updated all components to use WorkerManager
 - ✅ Fixed double-proxy serialization issues
 - ✅ Fixed unserializable return value issues
@@ -51,6 +54,7 @@
 - ✅ Fixed all async method calls to use await
 
 #### Phase 4: Test Migration ✅
+
 - ✅ Created WorkerManager.mock.ts with full API coverage
 - ✅ Updated all 45 test files to use WorkerManager
 - ✅ Fixed mock implementations for all methods
@@ -59,6 +63,7 @@
 ### Key Fixes Applied
 
 1. **Fixed Double-Proxy Issue**:
+
    ```typescript
    // Before (BROKEN):
    async onVideoUpdate(callback: (data: VideoData) => void): Promise<(() => void) | void> {
@@ -77,6 +82,7 @@
    ```
 
 2. **Fixed Unserializable Return Values**:
+
    ```typescript
    onVideoUpdate(callback: (data: VideoData) => void): () => void {
        const unsubscribe = this.api.onVideoUpdate(callback);
@@ -94,6 +100,7 @@
    ```
 
 3. **Fixed Async Method Calls**:
+
    ```typescript
    // Before (BROKEN):
    workerManager.keyDown('Tab');
@@ -105,17 +112,20 @@
 ### Files Changed
 
 #### Core Infrastructure
+
 - `/src/apple1/Apple.worker.comlink.ts` - Comlink worker implementation
 - `/src/apple1/WorkerAPI.ts` - Refactored to callback-based events
 - `/src/services/WorkerManager.ts` - Fixed serialization issues, added missing methods
 - `/src/config.ts` - Removed USE_COMLINK_WORKER flag
 
 #### All Components Updated ✅
+
 - All 16 components migrated to WorkerManager
 - All async method calls properly awaited
 - All event subscriptions working correctly
 
 #### Test Infrastructure ✅
+
 - `/src/test-support/mocks/WorkerManager.mock.ts` - Comprehensive mock implementation
 - All 45 test files updated to use WorkerManager
 - All tests passing with proper mocks
@@ -165,6 +175,7 @@
 ### Performance Results
 
 The Comlink migration has been completed successfully with no performance regression:
+
 - Video updates remain smooth at 30 FPS
 - Debug info polling works correctly
 - Event subscriptions are properly cleaned up

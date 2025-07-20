@@ -51,6 +51,10 @@ cat src/version.ts  # Current: 4.21.0
 
 ### Want to see what's in progress?
 
+→ `docs/active/consolidated_roadmap.md`
+
+### Looking for UX ideas and improvements?
+
 → `docs/active/user_experience_analysis.md`
 
 ### Need type definitions?
@@ -123,6 +127,7 @@ src/
 ## 🧪 Testing Strategy
 
 **CRITICAL: ALL TESTS MUST PASS BEFORE COMMITTING!**
+
 - Never break the test suite - if tests fail after your changes, fix them
 - Always run `yarn test:ci` before committing any changes
 - If adding new features, add corresponding tests
@@ -293,40 +298,30 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 4. **Don't hardcode colors** - Use design tokens (except CRT display)
 5. **Remember version bump** - Required for every PR
 
-## 📊 Architecture Modernization Roadmap
+## 📊 Project Roadmap
 
-### ✅ **Completed (Phase 1)**
-- **Jest to Vitest Migration** - All 601 tests migrated with 100% pass rate
-- **Modern Testing Infrastructure** - ~2x faster execution, better DX
-- **Worker Test Mocking** - Sophisticated manual mocks for complex scenarios
-- **Type Safety Improvements** - Full TypeScript strict mode compliance
+**See `docs/active/consolidated_roadmap.md` for the complete, prioritized roadmap.**
 
-### 🚀 **Next Priority (Phase 1 Continuation)**
-1. **Update FilteredDebugData type system** - Remove workarounds, properly type nested objects
-   - See `docs/archive/2025-01_debugging_improvements_status.md` for details
-2. **Create base classes for common patterns** - Extract worker state sync patterns
-3. **Add integration tests for worker communication** - Full flow testing
-4. **Add comprehensive error handling** - Robust error boundaries
+### Quick Summary of Priorities:
 
-### 🔄 **Phase 2: Core Optimizations**
-- **Split CPU6502.ts into modules** - Better maintainability  
-- **Optimize React contexts (memoization)** - Performance improvements
-- **Create EmulationAPI abstraction layer** - Clean architecture
-- **Extract test utilities** - Reusable testing patterns
+🛑 **Critical** - Test stability & core issues
+🔴 **High** - Core functionality & architecture  
+🟡 **Medium** - Enhanced features
+🟢 **Low** - Refinements & polish
 
-### 📈 **Phase 3: Advanced Features**
-- **Add Web Vitals monitoring** - Performance insights
-- **Implement performance optimizations** - Runtime improvements  
-- **Add E2E tests with Playwright** - Integration testing
-- **Complete formatter migration** - Consistent code style
+### Recently Completed ✅
+- Jest to Vitest Migration (601 tests)
+- Comlink Worker Migration (Phase 2)
+- Type System Organization
+- State Management Interfaces
+- Formatter Migration (97 instances)
 
-### 🎯 **Current User Experience Focus**
+### Current Focus Areas:
+1. **Stabilization** - Fix type workarounds, race conditions
+2. **Architecture** - Split large modules, create reusable patterns
+3. **Features** - Memory search, conditional breakpoints, watch expressions
 
-From `docs/active/user_experience_analysis.md`:
-- Execution control (step/breakpoints)
-- Memory search functionality
-- Watch expressions
-- Hardware authenticity features
+For detailed task breakdowns, timelines, and execution strategy, refer to the consolidated roadmap.
 
 ## 🎨 Visual References
 
@@ -357,7 +352,8 @@ From `docs/active/user_experience_analysis.md`:
 
 - **Documentation Hub**: `docs/README.md`
 - **Architecture**: `docs/active/architecture.md`
-- **Current Work**: `docs/active/standardization-progress.md`
+- **Roadmap & Priorities**: `docs/active/consolidated_roadmap.md`
+- **Standardization Progress**: `docs/active/standardization-progress.md`
 - **Test Guidelines**: `docs/active/cpu_test_guidelines.md`
 
 ### External Resources
