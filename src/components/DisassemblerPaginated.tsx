@@ -60,16 +60,16 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             const table = content.querySelector('table');
             if (!table) return;
             
-            const thead = table.querySelector('thead') as HTMLElement;
-            if (!thead) return;
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
             
-            const contentRect = content.getBoundingClientRect();
-            const theadRect = thead.getBoundingClientRect();
-            const availableHeight = contentRect.height - theadRect.height;
-            const rowHeight = 24;
-            const possibleRows = Math.floor(availableHeight / rowHeight);
+            // Get the actual visible height for tbody
+            const tbodyRect = tbody.getBoundingClientRect();
+            const rowHeight = 24; // This should match the actual row height in CSS
+            const possibleRows = Math.floor(tbodyRect.height / rowHeight);
             
-            setVisibleRows(Math.max(10, Math.min(30, possibleRows)));
+            // Set visible rows based on what actually fits
+            setVisibleRows(Math.max(10, possibleRows));
         };
         
         const timer = setTimeout(calculateRows, 100);
@@ -193,8 +193,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     // Fetch and disassemble memory for current view
     const fetchAndDisassemble = useCallback(async (startAddr: number) => {
         // Calculate how many bytes we need to fetch to fill the view
-        // Average instruction is about 2 bytes, fetch extra to be safe
-        const bytesToFetch = Math.min(visibleRows * 3, 0x10000 - startAddr);
+        // Average instruction is about 2 bytes, but some are 3 bytes
+        // Fetch extra to ensure we have enough instructions
+        const bytesToFetch = Math.min(visibleRows * 4, 0x10000 - startAddr);
         
         if (bytesToFetch <= 0) return;
         
@@ -202,7 +203,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             const memoryData = await workerManager.readMemoryRange(startAddr, bytesToFetch);
             if (memoryData) {
                 const disassembly = disassembleMemory(startAddr, new Uint8Array(memoryData));
-                // Take only the lines we need for display
+                // Take exactly the number of lines that fit in the view
                 setLines(disassembly.slice(0, visibleRows));
             }
         } catch (error) {
@@ -279,17 +280,39 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Navigation handlers
     const handleNavigateUp = useCallback(() => {
-        const newAddr = Math.max(0, viewStartAddress - Math.floor(visibleRows / 2));
-        navigateTo(newAddr);
+        // Navigate up by half the visible rows to maintain context
+        const scrollAmount = Math.max(1, Math.floor(visibleRows / 2));
+        // Find the address that's scrollAmount rows up from current view
+        let targetAddr = viewStartAddress;
+        let bytesToSkip = 0;
+        
+        // Estimate bytes to go back (average 2 bytes per instruction)
+        for (let i = 0; i < scrollAmount; i++) {
+            bytesToSkip += 2;
+        }
+        
+        targetAddr = Math.max(0, viewStartAddress - bytesToSkip);
+        navigateTo(targetAddr);
     }, [viewStartAddress, visibleRows, navigateTo]);
     
     const handleNavigateDown = useCallback(() => {
-        // Find the last complete instruction in current view
-        const lastLine = lines[lines.length - 1];
-        if (lastLine) {
-            navigateTo(lastLine.address);
+        // Navigate down by half the visible rows to maintain context
+        const scrollAmount = Math.max(1, Math.floor(visibleRows / 2));
+        
+        // Find the address that's scrollAmount rows down from current view
+        if (lines.length > scrollAmount) {
+            const targetLine = lines[scrollAmount];
+            if (targetLine) {
+                navigateTo(targetLine.address);
+            }
+        } else if (lines.length > 0) {
+            // If we have fewer lines than scroll amount, go to last line
+            const lastLine = lines[lines.length - 1];
+            if (lastLine) {
+                navigateTo(lastLine.address + lastLine.bytes.length);
+            }
         }
-    }, [lines, navigateTo]);
+    }, [lines, visibleRows, navigateTo]);
     
     // Jump to PC
     const jumpToPC = useCallback(() => {
@@ -519,13 +542,16 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         </span>
     );
     
-    // Calculate address range
+    // Calculate address range for display
     const getAddressRange = () => {
-        const start = Formatters.hex(viewStartAddress, 4);
+        if (lines.length === 0) {
+            const start = Formatters.hex(viewStartAddress, 4);
+            return `$${start}-$${start}`;
+        }
+        
+        const start = Formatters.hex(lines[0].address, 4);
         const lastLine = lines[lines.length - 1];
-        const end = lastLine 
-            ? Formatters.hex(lastLine.address + lastLine.bytes.length - 1, 4)
-            : Formatters.hex(viewStartAddress, 4);
+        const end = Formatters.hex(lastLine.address, 4);
         return `$${start}-$${end}`;
     };
     
@@ -566,7 +592,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                     onNavigateUp={handleNavigateUp}
                     onNavigateDown={handleNavigateDown}
                     addressRange={getAddressRange()}
-                    rowCount={lines.length}
+                    rowCount={Math.min(lines.length, visibleRows)}
                     renderTableHeader={renderTableHeader}
                     renderTableRows={renderTableRows}
                     renderExtraControls={renderExtraControls}
