@@ -222,6 +222,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Fetch and disassemble memory for current view
     const fetchAndDisassemble = useCallback(async (startAddr: number) => {
+        console.log('[DisassemblerPaginated] fetchAndDisassemble called with startAddr:', startAddr, 'hex:', startAddr.toString(16));
         // Calculate how many bytes we need to fetch to fill the view
         // Average instruction is about 2 bytes, but some are 3 bytes
         // Fetch extra to ensure we have enough instructions
@@ -249,8 +250,10 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Navigation function
     const navigateTo = useCallback((address: number) => {
+        console.log('[DisassemblerPaginated] navigateTo called with address:', address, 'hex:', address.toString(16));
         // Clamp address to valid range
         const clampedAddr = Math.max(0, Math.min(0xFFFF, address));
+        console.log('[DisassemblerPaginated] setting viewStartAddress to:', clampedAddr, 'hex:', clampedAddr.toString(16));
         setViewStartAddress(clampedAddr);
         onAddressChange?.(clampedAddr);
     }, [onAddressChange]);

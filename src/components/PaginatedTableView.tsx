@@ -66,16 +66,35 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     
     // Handle address input
     const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
-        if (value.length <= 4) {
-            setAddressInput(value);
+        // Allow $ prefix and hex digits
+        const value = e.target.value.toUpperCase();
+        
+        // If it starts with $, keep it and ensure the rest is hex
+        if (value.startsWith('$')) {
+            const hexPart = value.slice(1).replace(/[^0-9A-F]/g, '');
+            if (hexPart.length <= 4) {
+                setAddressInput('$' + hexPart);
+            }
+        } else {
+            // No $, just hex digits
+            const hexValue = value.replace(/[^0-9A-F]/g, '');
+            if (hexValue.length <= 4) {
+                setAddressInput(hexValue);
+            }
         }
     }, []);
     
     const handleAddressSubmit = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            const addr = parseInt(addressInput || '0', 16);
+            console.log('[PaginatedTableView] Enter pressed, addressInput:', addressInput);
+            // Handle $ prefix for hex values
+            const cleanInput = addressInput.startsWith('$') 
+                ? addressInput.slice(1) 
+                : addressInput;
+            const addr = parseInt(cleanInput || '0', 16);
+            console.log('[PaginatedTableView] Parsed address:', addr, 'isNaN:', isNaN(addr));
             if (!isNaN(addr) && addr >= 0 && addr <= 0xFFFF) {
+                console.log('[PaginatedTableView] Calling onAddressChange with:', addr);
                 onAddressChange(addr);
             }
         }
