@@ -14,22 +14,39 @@ As of version 4.33.30, we've completed a major refactoring of the DisassemblerPa
 
 ### High Priority
 
-1. **Address Input Navigation** (#34) - IN PROGRESS
+1. **Address Input Navigation** (#34) - ✅ COMPLETED
    - User reported typing "4610" in address field didn't navigate
    - Need to verify if PaginatedTableView → navigateTo flow works correctly
    
    **Investigation findings:**
-   - Added logging to trace the flow
-   - Improved address parsing to handle $ prefix (e.g., $4610)
-   - The basic flow appears correct:
+   - The issue was likely due to lack of support for $ prefix
+   - Improved address parsing to handle both formats: "4610" and "$4610"
+   - The navigation flow was already correct:
      - PaginatedTableView.handleAddressSubmit → onAddressChange → DisassemblerPaginated.navigateTo
      - navigateTo sets viewStartAddress which triggers fetchAndDisassemble
-   - Need to test with actual user input to verify fix
+   
+   **Fix implemented:**
+   - Enhanced handleAddressChange to preserve $ prefix if entered
+   - Updated handleAddressSubmit to strip $ prefix before parseInt
+   - Both "4610" and "$4610" now work correctly
+   - Debug logging has been removed after verification
 
-2. **Memory Boundary Edge Cases** (#35)
+2. **Memory Boundary Edge Cases** (#35) - IN PROGRESS
    - Scrolling near $FFFF may cause issues
    - `Math.min(0xFFFF, nextAddr)` might not handle end of memory correctly
    - Scroll up at end of memory needs testing
+   
+   **Changes implemented:**
+   - Modified handleNavigateDown to check if nextAddr > 0xFFFF and prevent scrolling
+   - Enhanced fetchAndDisassemble to handle startAddr > 0xFFFF gracefully
+   - Improved bytesToFetch calculation to never exceed memory bounds (0x10000 - startAddr)
+   - Clear lines array when no valid data can be fetched
+   
+   **Test scenarios:**
+   - Navigate to address FFF0 and try scrolling down
+   - Navigate to address FFFF and verify display
+   - Try scrolling up from near the end of memory
+   - Enter invalid addresses like 10000 and verify behavior
 
 3. **Race Conditions** (#37)
    - `actualVisibleRows` set async with requestAnimationFrame

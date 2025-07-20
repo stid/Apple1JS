@@ -86,15 +86,12 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     
     const handleAddressSubmit = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            console.log('[PaginatedTableView] Enter pressed, addressInput:', addressInput);
             // Handle $ prefix for hex values
             const cleanInput = addressInput.startsWith('$') 
                 ? addressInput.slice(1) 
                 : addressInput;
             const addr = parseInt(cleanInput || '0', 16);
-            console.log('[PaginatedTableView] Parsed address:', addr, 'isNaN:', isNaN(addr));
             if (!isNaN(addr) && addr >= 0 && addr <= 0xFFFF) {
-                console.log('[PaginatedTableView] Calling onAddressChange with:', addr);
                 onAddressChange(addr);
             }
         }
