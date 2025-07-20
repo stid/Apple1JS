@@ -18,7 +18,7 @@ git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, ch
 yarn test:ci
 
 # 4. Check current version
-cat src/version.ts  # Current: 4.21.0
+cat src/version.ts  # Current: 4.33.33
 
 # 5. ALWAYS use TodoWrite tool for multi-step tasks!
 ```
@@ -253,9 +253,9 @@ alias a1-check="a1-lint && a1-test"
 
     ```bash
     # Edit src/version.ts
-    # Patch: 4.21.0 → 4.21.1 (bug fixes)
-    # Minor: 4.21.0 → 4.22.0 (new features)
-    # Major: 4.21.0 → 5.0.0 (breaking changes)
+    # Patch: 4.33.33 → 4.33.34 (bug fixes)
+    # Minor: 4.33.33 → 4.34.0 (new features)
+    # Major: 4.33.33 → 5.0.0 (breaking changes)
     ```
 
 4. **Commit with conventional format**:

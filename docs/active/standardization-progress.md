@@ -340,5 +340,32 @@ grep -r "from.*@types/" src --include="*.ts" --include="*.tsx"
 - Completed full type consolidation as outlined in type-hierarchy.md
 
 ---
-Last updated: 2025-01-08
-Current version: 4.20.0
+
+### 10. ✅ Comlink Worker Migration (v4.33.0)
+
+**Status:** Completed on 2025-07-13
+
+**Migration Summary:**
+
+- ✅ Replaced manual postMessage/onmessage with Comlink RPC
+- ✅ Reduced worker communication code by ~50% (1,049+ lines removed)
+- ✅ Type-safe async/await worker communication
+- ✅ All components migrated to WorkerManager
+- ✅ Test helpers created for Comlink mocking
+
+### 11. ✅ UI Logging Badge System (v4.33.0)
+
+**Status:** Completed on 2025-07
+
+**Implementation:**
+
+- ✅ Created AlertBadges component for header display
+- ✅ Created AlertPanel for slide-out details
+- ✅ Non-intrusive notification system
+- ✅ Badge counters with semantic colors
+- ✅ Filterable alert list with dismissal
+
+---
+
+Last updated: 2025-07-20
+Current version: 4.33.33
