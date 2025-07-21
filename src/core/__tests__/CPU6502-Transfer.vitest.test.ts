@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'vitest';
-import CPU6502 from '../CPU6502';
+import CPU6502 from '../cpu6502';
 import ROM from '../ROM';
 import RAM from '../RAM';
 import Bus from '../Bus';

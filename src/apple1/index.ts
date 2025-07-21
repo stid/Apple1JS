@@ -2,7 +2,7 @@
 import type { EmulatorState, PIAState, VideoState } from './TSTypes';
 import type { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from '../core/types';
 import { StateError } from '../core/types';
-import CPU6502 from '../core/CPU6502';
+import CPU6502 from '../core/cpu6502';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
 import ROM from '../core/ROM';
