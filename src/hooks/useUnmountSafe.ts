@@ -9,11 +9,13 @@ export function useUnmountSafe() {
 
     useEffect(() => {
         mountedRef.current = true;
+        // Capture the current timeouts set to avoid the ref warning
+        const timeouts = timeoutsRef.current;
         return () => {
             mountedRef.current = false;
             // Clear all pending timeouts on unmount
-            timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-            timeoutsRef.current.clear();
+            timeouts.forEach(timeout => clearTimeout(timeout));
+            timeouts.clear();
         };
     }, []);
 
