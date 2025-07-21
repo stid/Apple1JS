@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { Formatters } from '../utils/formatters';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -34,6 +34,8 @@ const AddressLink: React.FC<AddressLinkProps> = ({
   showRunToCursor = false,
 }) => {
   const { navigate } = useDebuggerNavigation();
+  const removeMenuListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const pendingListenerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatAddress = useCallback(() => {
     switch (format) {
@@ -70,6 +72,9 @@ const AddressLink: React.FC<AddressLinkProps> = ({
         safeRemoveMenu();
       }
     };
+    
+    // Store the listener ref for cleanup
+    removeMenuListenerRef.current = removeMenuListener;
     
     const disassemblyOption = document.createElement('button');
     disassemblyOption.className = 'block w-full text-left px-3 py-1 hover:bg-surface-secondary text-sm text-text-primary hover:text-text-accent transition-colors';
@@ -112,8 +117,16 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     document.body.appendChild(menu);
     
     // Add click listener after a tick to avoid immediate removal
-    setTimeout(() => {
-      document.addEventListener('click', removeMenuListener);
+    // Clear any pending timeout
+    if (pendingListenerTimeoutRef.current) {
+      clearTimeout(pendingListenerTimeoutRef.current);
+    }
+    
+    pendingListenerTimeoutRef.current = setTimeout(() => {
+      if (removeMenuListenerRef.current) {
+        document.addEventListener('click', removeMenuListenerRef.current);
+      }
+      pendingListenerTimeoutRef.current = null;
     }, 0);
   }, [address, navigate, showContextMenu, workerManager, showRunToCursor]);
 
@@ -142,6 +155,20 @@ const AddressLink: React.FC<AddressLinkProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
+  }, []);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      // Clear any pending timeout
+      if (pendingListenerTimeoutRef.current) {
+        clearTimeout(pendingListenerTimeoutRef.current);
+      }
+      // Remove any active listener
+      if (removeMenuListenerRef.current) {
+        document.removeEventListener('click', removeMenuListenerRef.current);
+      }
+    };
   }, []);
 
   return (

@@ -14,6 +14,7 @@ import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
 import { WorkerDataProvider } from '../contexts/WorkerDataContext';
 import { IInspectableComponent } from '../core/types';
 import type { WorkerManager } from '../services/WorkerManager';
+import { useUnmountSafe } from '../hooks/useUnmountSafe';
 
 type Props = {
     workerManager: WorkerManager;
@@ -42,6 +43,7 @@ const AppContentInner = ({
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
     const { subscribeToNavigation } = useDebuggerNavigation();
+    const { safeSetTimeout } = useUnmountSafe();
     
     // Persist debugger view states across tab switches
     const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
@@ -87,7 +89,7 @@ const AppContentInner = ({
             if (text) {
                 // Send characters with a small delay between them to avoid overwhelming the Apple 1
                 text.split('').forEach((char, index) => {
-                    setTimeout(async () => {
+                    safeSetTimeout(async () => {
                         const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
                         await workerManager.keyDown(keyToSend);
                     }, index * 160); // 160ms delay between each character
@@ -95,7 +97,7 @@ const AppContentInner = ({
             }
             e.preventDefault();
         },
-        [workerManager],
+        [workerManager, safeSetTimeout],
     );
 
     useEffect(() => {
@@ -162,8 +164,10 @@ const AppContentInner = ({
                 a.download = 'apple1_state.json';
                 document.body.appendChild(a);
                 a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
+                safeSetTimeout(() => {
+                    if (document.body.contains(a)) {
+                        document.body.removeChild(a);
+                    }
                     URL.revokeObjectURL(url);
                 }, 100);
             } catch (error) {
@@ -171,7 +175,7 @@ const AppContentInner = ({
                 window.alert('Failed to save state.');
             }
         },
-        [workerManager],
+        [workerManager, safeSetTimeout],
     );
 
     const handleLoadState = useCallback(

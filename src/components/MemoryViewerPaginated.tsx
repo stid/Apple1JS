@@ -5,6 +5,7 @@ import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import { WorkerManager } from '../services/WorkerManager';
+import { useUnmountSafe } from '../hooks/useUnmountSafe';
 
 interface MemoryViewerProps {
     workerManager: WorkerManager;
@@ -174,6 +175,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [visibleRows, setVisibleRows] = useState(15);
+    const { safeSetTimeout } = useUnmountSafe();
     
     // Fetch memory map on mount
     useEffect(() => {
@@ -405,7 +407,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 
                 if (nextAddress <= maxAddress && nextAddress <= 0xFFFF) {
                     // Small delay to ensure the current edit is processed
-                    setTimeout(() => {
+                    safeSetTimeout(() => {
                         handleCellClick(nextAddress);
                     }, 50);
                 }
@@ -414,7 +416,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             setEditingCell(null);
             setEditValue('');
         }
-    }, [editingCell, currentAddress, size, handleCellEditComplete, handleCellClick]);
+    }, [editingCell, currentAddress, size, handleCellEditComplete, handleCellClick, safeSetTimeout]);
 
     const renderMemoryRow = useCallback((rowIndex: number) => {
         const baseAddr = currentAddress + (rowIndex * bytesPerRow);
