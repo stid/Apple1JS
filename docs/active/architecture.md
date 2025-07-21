@@ -93,7 +93,14 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript and 
 src/
 ├── core/               # Core emulation engine
 │   ├── types/         # Core type definitions
-│   ├── CPU6502.ts     # 6502 processor emulation
+│   ├── cpu6502/       # 6502 processor emulation (modular)
+│   │   ├── types.ts   # CPU interfaces and types
+│   │   ├── opcodes.ts # Opcode table (256 entries)
+│   │   ├── addressing.ts # Addressing mode implementations
+│   │   ├── instructions.ts # Instruction implementations
+│   │   ├── debug.ts   # Debugging functionality
+│   │   ├── core.ts    # Main CPU class
+│   │   └── index.ts   # Module exports
 │   ├── Bus.ts         # System bus implementation
 │   ├── RAM.ts         # RAM component
 │   ├── ROM.ts         # ROM component
@@ -133,7 +140,10 @@ src/
 ├── hooks/             # Custom React hooks
 │   ├── useNavigableComponent.ts
 │   ├── usePaginatedTable.ts
-│   └── useVisibleRows.ts
+│   ├── useVisibleRows.ts
+│   ├── useWorkerState.ts        # Generic worker state sync
+│   ├── useWorkerDebugInfo.ts    # Debug info synchronization
+│   └── useWorkerBreakpoints.ts  # Breakpoint management
 │
 ├── utils/             # Utility functions
 │   ├── formatters.ts  # Unified formatting utilities
@@ -310,7 +320,7 @@ React contexts manage UI-level state:
 ### Testing
 
 - Vitest test framework (migrated from Jest)
-- 591 unit and integration tests
+- 626 unit and integration tests
 - Custom test utilities for consistency
 - Worker test helpers for Comlink mocking
 
@@ -343,6 +353,20 @@ React contexts manage UI-level state:
 - WorkerDataSync for UI synchronization
 - WorkerDataContext for React integration
 - Improved separation of concerns
+
+### CPU Module Refactoring (Completed)
+
+- Split monolithic CPU6502.ts (2583 lines) into 6 focused modules
+- Improved maintainability and code organization
+- Clear separation of concerns: opcodes, addressing, instructions, debug
+- All tests passing with modular structure
+
+### Reusable Hooks for Worker State (Completed)
+
+- Created generic `useWorkerState<T>` hook for state synchronization
+- Built specialized hooks: `useWorkerDebugInfo`, `useWorkerBreakpoints`
+- Reduced code duplication across components
+- Type-safe with TypeScript generics
 
 ## Future Extensibility
 

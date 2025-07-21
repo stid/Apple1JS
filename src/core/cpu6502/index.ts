@@ -9,7 +9,14 @@ export { default } from './core';
 export { default as CPU6502 } from './core';
 
 // Export types
-export type { CPU6502Interface } from './types';
+export type { 
+    CPU6502Interface, 
+    CPU6502State,
+    DisassemblyLine,
+    TraceEntry,
+    CPU6502DebugExtensions,
+    CPU6502WithDebug
+} from './types';
 
 // Export the opcode table if needed by external modules
 export { default as CPU6502op } from './opcodes';

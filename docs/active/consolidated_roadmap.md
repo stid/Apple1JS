@@ -2,7 +2,7 @@
 
 > **Purpose**: This document consolidates all todos and roadmap items from across the project into a single, organized plan.
 > **Priority System**: 🛑 Critical (test stability) | 🔴 High (regression risk) | 🟡 Medium (core features) | 🟢 Low (refinements)
-> **Last Updated**: July 2025 | **Current Version**: 4.21.0
+> **Last Updated**: July 2025 | **Current Version**: 4.35.3
 
 ## 🛑 Critical Priority - Test Stability & Core Issues
 
@@ -85,31 +85,54 @@ src/core/cpu6502/
 
 ### 5. Base Classes for Common Patterns
 
-**Status**: ❌ Not Started  
-**From**: CLAUDE.md roadmap
+**Status**: ✅ Mostly Complete (2025-07-21)  
+**From**: CLAUDE.md roadmap  
+**Branch**: `refactor/base-classes-common-patterns` (merged)
 
-**Tasks**:
+**Completed Tasks**:
 
-- Extract worker state sync patterns into reusable hooks
-- Create `useWorkerState<T>` hook
-- Standardize error handling patterns
-- Document common patterns
+- ✅ Analyzed existing worker state sync patterns across components
+- ✅ Created generic `useWorkerState<T>` hook with:
+  - Polling and subscription support
+  - Optimistic updates
+  - Error handling with custom handlers
+  - Transform functions for data processing
+  - Caching capabilities
+- ✅ Created specialized hooks using `useWorkerState`:
+  - `useWorkerDebugInfo` - Adaptive polling based on pause state
+  - `useWorkerBreakpoints` - Helper functions for breakpoint management
+- ✅ Fixed duplicate CPU type definitions (moved to `core/cpu6502/types.ts`)
+- ✅ All tests passing (626 passed, 0 skipped)
+- ✅ App running successfully with no regressions
 
-**Why High**: Reduces code duplication and prevents inconsistent implementations
+**Remaining Tasks** (Nice-to-have):
+
+- Create additional error handling patterns/utilities
+- Migrate more components to use new patterns
+- Document common patterns and usage
+
+**Results**: Successfully reduced code duplication with reusable hooks
 
 ---
 
 ### 6. Integration Tests for Worker Communication
 
-**Status**: ❌ Not Started  
+**Status**: ✅ Complete  
 **From**: CLAUDE.md roadmap
 
 **Tasks**:
 
-- Test full flow: CPU → Worker → UI
-- Test error scenarios and recovery
-- Test performance under load
-- Add Comlink-specific integration tests
+- ✅ Test full flow: CPU → Worker → UI
+- ✅ Test error scenarios and recovery
+- ✅ Test performance under load
+- ✅ Add Comlink-specific integration tests
+
+**Implementation**:
+
+- Created 30 comprehensive integration tests in `src/__integration__/`
+- Tests cover worker communication, performance, and Comlink patterns
+- All tests passing in CI/CD pipeline
+- Tests validate CPU→Worker→UI data flow and error recovery
 
 **Why High**: Current unit tests don't catch worker communication issues
 
@@ -357,6 +380,7 @@ From various documents:
 - ✅ Worker Communication Race Conditions (commit 68c7431)
 - ✅ Component Unmount Safety (commit b02bec4)
 - ✅ CPU6502 Module Split (PR #131)
+- ✅ Base Classes for Common Patterns (mostly complete)
 
 ---
 

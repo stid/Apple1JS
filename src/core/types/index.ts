@@ -13,14 +13,14 @@ export type {
     WithBusMetadata
 } from './bus';
 
-// CPU 6502 types
+// CPU 6502 types - now exported from cpu6502 module
 export type {
     CPU6502State,
     DisassemblyLine,
     TraceEntry,
     CPU6502DebugExtensions,
     CPU6502WithDebug
-} from './cpu';
+} from '../cpu6502';
 
 // Clock and timing types
 export type {
