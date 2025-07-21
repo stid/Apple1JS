@@ -36,6 +36,8 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+    const rowCalculationInProgress = useRef(false);
+    const pendingFetchAddress = useRef<number | null>(null);
     
     // Get emulation state from context
     const { 
@@ -54,16 +56,25 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     // Calculate visible rows based on container height
     useEffect(() => {
         const calculateRows = () => {
-            if (!contentRef.current) return;
+            if (!contentRef.current || rowCalculationInProgress.current) return;
+            
+            // Mark calculation as in progress
+            rowCalculationInProgress.current = true;
             
             const content = contentRef.current;
             
             window.requestAnimationFrame(() => {
                 const table = content.querySelector('table');
-                if (!table) return;
+                if (!table) {
+                    rowCalculationInProgress.current = false;
+                    return;
+                }
                 
                 const thead = table.querySelector('thead') as HTMLElement;
-                if (!thead) return;
+                if (!thead) {
+                    rowCalculationInProgress.current = false;
+                    return;
+                }
                 
                 // Measure actual row height if possible
                 const tbody = table.querySelector('tbody');
@@ -90,25 +101,52 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                 // Set visible rows with reasonable limits
                 const calculatedRows = Math.max(10, Math.min(50, possibleRows));
                 setActualVisibleRows(calculatedRows);
+                
+                // Mark calculation as complete
+                rowCalculationInProgress.current = false;
+                
+                // If there's a pending fetch, trigger a re-render to process it
+                if (pendingFetchAddress.current !== null) {
+                    // The pending address will be processed by the viewStartAddress effect
+                    // once rowCalculationInProgress is false
+                    setViewStartAddress(prev => {
+                        // If the pending address is different, use it
+                        if (pendingFetchAddress.current !== null && pendingFetchAddress.current !== prev) {
+                            const addr = pendingFetchAddress.current;
+                            pendingFetchAddress.current = null;
+                            return addr;
+                        }
+                        // Otherwise trigger the effect by returning the same value
+                        return prev;
+                    });
+                }
             });
+        };
+        
+        // Debounced resize handler to prevent rapid recalculations
+        let resizeTimeout: ReturnType<typeof setTimeout>;
+        const debouncedCalculateRows = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(calculateRows, 100);
         };
         
         // Initial calculation with proper delay
         const timer = setTimeout(calculateRows, 150);
         
-        // Recalculate on resize
-        const resizeObserver = new ResizeObserver(calculateRows);
+        // Recalculate on resize with debouncing
+        const resizeObserver = new ResizeObserver(debouncedCalculateRows);
         
         if (contentRef.current) {
             resizeObserver.observe(contentRef.current);
         }
         
-        window.addEventListener('resize', calculateRows);
+        window.addEventListener('resize', debouncedCalculateRows);
         
         return () => {
             clearTimeout(timer);
+            clearTimeout(resizeTimeout);
             resizeObserver.disconnect();
-            window.removeEventListener('resize', calculateRows);
+            window.removeEventListener('resize', debouncedCalculateRows);
         };
     }, []);
     
@@ -291,6 +329,12 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     
     // Fetch data when view address or visible rows change
     useEffect(() => {
+        // If row calculation is in progress, store the address for later
+        if (rowCalculationInProgress.current) {
+            pendingFetchAddress.current = viewStartAddress;
+            return;
+        }
+        
         fetchAndDisassemble(viewStartAddress);
     }, [viewStartAddress, fetchAndDisassemble]);
     
