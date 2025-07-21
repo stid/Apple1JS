@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface StackViewerProps {
-    worker: Worker;
+    workerManager: WorkerManager;
     stackPointer?: number; // Current stack pointer value
 }
 
@@ -13,7 +13,7 @@ interface StackMemoryData {
     [address: string]: number;
 }
 
-const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }) => {
+const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer = 0xFF }) => {
     const [stackData, setStackData] = useState<StackMemoryData>({});
     
     // 6502 stack is at $0100-$01FF
@@ -22,44 +22,26 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
 
     // Request stack memory data
     useEffect(() => {
-        const requestStackMemory = () => {
-            worker.postMessage({
-                type: WORKER_MESSAGES.GET_MEMORY_RANGE,
-                data: {
-                    start: STACK_BASE,
-                    length: STACK_SIZE
+        const requestStackMemory = async () => {
+            try {
+                const memoryData = await workerManager.readMemoryRange(STACK_BASE, STACK_SIZE);
+                if (memoryData) {
+                    const newStackData: StackMemoryData = {};
+                    memoryData.forEach((value: number, index: number) => {
+                        const addr = STACK_BASE + index;
+                        newStackData[Formatters.hexWord(addr)] = value;
+                    });
+                    setStackData(newStackData);
                 }
-            });
+            } catch (error) {
+                console.error('Error reading stack memory:', error);
+            }
         };
 
         requestStackMemory();
         const interval = setInterval(requestStackMemory, DEBUG_REFRESH_RATES.STACK_VIEW);
         return () => clearInterval(interval);
-    }, [worker]);
-
-    // Listen for memory data from worker
-    useEffect(() => {
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data.type === WORKER_MESSAGES.MEMORY_RANGE_DATA) {
-                // Convert array data to memory map
-                const rangeData = e.data.data;
-                if (rangeData && rangeData.data && rangeData.start >= STACK_BASE && rangeData.start < STACK_BASE + STACK_SIZE) {
-                    const newStackData: StackMemoryData = {};
-                    rangeData.data.forEach((value: number, index: number) => {
-                        const addr = rangeData.start + index;
-                        if (addr >= STACK_BASE && addr < STACK_BASE + STACK_SIZE) {
-                            newStackData[`0x${Formatters.hex(addr, 4)}`] = value;
-                        }
-                    });
-                    setStackData(prev => ({ ...prev, ...newStackData }));
-                }
-            }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
-
+    }, [workerManager]);
 
     // Show only the active portion of the stack (from SP to FF)
     const renderStackEntries = () => {
@@ -68,7 +50,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
         // Stack grows downward, so we show from current SP up to FF
         for (let offset = stackPointer; offset <= 0xFF; offset++) {
             const addr = STACK_BASE + offset;
-            const addrKey = `0x${Formatters.hex(addr, 4)}`;
+            const addrKey = Formatters.hexWord(addr);
             const value = stackData[addrKey] ?? 0;
             const isCurrent = offset === stackPointer;
             
@@ -85,7 +67,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ worker, stackPointer = 0xFF }
                             address={addr}
                             format="hex4"
                             prefix=""
-                            worker={worker}
+                            workerManager={workerManager}
                             showContextMenu={true}
                             showRunToCursor={true}
                             className="text-xs"

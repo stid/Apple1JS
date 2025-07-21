@@ -22,17 +22,23 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript and 
 │  └─────────────┘ └──────────────┘ └────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────┤
 │  Service Layer                                                   │
-│  ┌─────────────────┐ ┌───────────────────┐ ┌─────────────────┐ │
-│  │ LoggingService  │ │ WorkerCommService │ │ StatePersistence│ │
-│  └─────────────────┘ └───────────────────┘ └─────────────────┘ │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌───────────────────┐ │
+│  │ LoggingService  │ │ WorkerManager   │ │ StatePersistence  │ │
+│  └─────────────────┘ └─────────────────┘ └───────────────────┘ │
+│  ┌─────────────────┐ ┌───────────────────┐                     │
+│  │ WorkerDataSync  │ │ WorkerCommService │                     │
+│  └─────────────────┘ └───────────────────┘                     │
 ├─────────────────────────────────────────────────────────────────┤
 │  React Contexts                                                  │
 │  ┌─────────────────┐ ┌───────────────────┐ ┌─────────────────┐ │
 │  │EmulationContext │ │DebuggerNavContext│ │ LoggingContext  │ │
 │  └─────────────────┘ └───────────────────┘ └─────────────────┘ │
+│  ┌──────────────────┐                                           │
+│  │WorkerDataContext │                                           │
+│  └──────────────────┘                                           │
 └─────────────────────────────────────────────────────────────────┘
                                │
-                    Worker Message Protocol
+                    Comlink RPC Communication
                                │
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Web Worker Thread                         │
@@ -66,7 +72,7 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript and 
 
 - **UI Thread**: React components, user interaction, display rendering
 - **Worker Thread**: CPU emulation, memory management, system timing
-- **Message Protocol**: Type-safe communication between threads
+- **Communication**: Comlink RPC for type-safe worker interaction
 
 ### 2. Component-Based Design
 
@@ -77,8 +83,9 @@ Apple1JS is a browser-based Apple 1 computer emulator built with TypeScript and 
 ### 3. Type Safety
 
 - Comprehensive TypeScript types throughout
-- Discriminated unions for message passing
-- Type-safe state serialization
+- Type-safe RPC with Comlink
+- Organized type hierarchy in dedicated type directories
+- Type-safe state serialization with versioning
 
 ## Module Structure
 
@@ -96,7 +103,9 @@ src/
 ├── apple1/            # Apple 1 specific implementation
 │   ├── types/         # Apple 1 type definitions
 │   ├── index.ts       # Main Apple1 class
-│   ├── Apple.worker.ts # Web Worker entry point
+│   ├── Apple.worker.comlink.ts # Comlink-based worker
+│   ├── WorkerAPI.ts   # Worker API implementation
+│   ├── WorkerState.ts # Encapsulated worker state
 │   ├── KeyboardLogic.ts
 │   └── DisplayLogic.ts
 │
@@ -110,13 +119,16 @@ src/
 ├── services/          # Service layer
 │   ├── types/         # Service type definitions
 │   ├── LoggingService.ts
+│   ├── WorkerManager.ts      # Worker lifecycle management
+│   ├── WorkerDataSync.ts     # Worker data synchronization
 │   ├── WorkerCommunicationService.ts
 │   └── StatePersistenceService.ts
 │
 ├── contexts/          # React contexts
 │   ├── EmulationContext.tsx
 │   ├── DebuggerNavigationContext.tsx
-│   └── LoggingContext.tsx
+│   ├── LoggingContext.tsx
+│   └── WorkerDataContext.tsx  # Worker data provider
 │
 ├── hooks/             # Custom React hooks
 │   ├── useNavigableComponent.ts
@@ -194,21 +206,32 @@ The Apple 1 memory layout is faithfully reproduced:
 
 ## Worker Communication
 
-Communication between UI and Worker threads uses a type-safe message protocol:
+Communication uses Comlink for type-safe RPC between UI and Worker:
 
 ```typescript
-enum WORKER_MESSAGES {
-    UPDATE_VIDEO_BUFFER,
-    KEY_DOWN,
-    DEBUG_INFO,
-    CLOCK_DATA,
-    SAVE_STATE,
-    LOAD_STATE,
-    // ... etc
+// Worker API interface
+interface IWorkerAPI {
+    // Emulation control
+    pauseEmulation(): void;
+    resumeEmulation(): void;
+    step(): DebugData;
+    
+    // Breakpoints
+    setBreakpoint(address: number): number[];
+    clearBreakpoint(address: number): number[];
+    
+    // Memory operations
+    readMemoryRange(start: number, length: number): number[];
+    writeMemory(address: number, value: number): void;
+    
+    // State management
+    saveState(): EmulatorState;
+    loadState(state: EmulatorState): void;
 }
 
-// Type-safe message creation
-sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
+// Usage via WorkerManager
+const api = await WorkerManager.getInstance();
+const breakpoints = await api.setBreakpoint(0x300);
 ```
 
 ## State Management
@@ -228,6 +251,7 @@ React contexts manage UI-level state:
 - **EmulationContext**: Execution control, breakpoints, debugging
 - **DebuggerNavigationContext**: Component navigation
 - **LoggingContext**: UI logging with history
+- **WorkerDataContext**: Provides worker data to components
 
 ## Performance Considerations
 
@@ -235,7 +259,8 @@ React contexts manage UI-level state:
 
 - CPU emulation runs in separate thread
 - Prevents UI blocking during execution
-- Message batching reduces overhead
+- Comlink handles serialization/deserialization
+- Async/await pattern for worker calls
 
 ### Update Optimization
 
@@ -284,10 +309,40 @@ React contexts manage UI-level state:
 
 ### Testing
 
-- Unit tests for core components
-- Integration tests for complex features
-- ~90% coverage for critical paths
+- Vitest test framework (migrated from Jest)
+- 591 unit and integration tests
 - Custom test utilities for consistency
+- Worker test helpers for Comlink mocking
+
+## Recent Architectural Improvements
+
+### Comlink Migration (Completed)
+
+- Replaced manual postMessage/onmessage with Comlink RPC
+- Type-safe worker communication with async/await
+- Reduced worker communication code by ~50%
+- Improved error handling and debugging
+
+### Type System Reorganization (Completed)
+
+- Removed legacy `@types/` directories
+- Organized types by module: `core/types/`, `apple1/types/`, etc.
+- Centralized type definitions with clean exports
+- Better type safety and maintainability
+
+### State Management Standardization (Completed)
+
+- All components implement `IVersionedStatefulComponent`
+- Version tracking and migration support
+- Comprehensive state validation
+- Backward compatibility maintained
+
+### Service Layer Enhancement (Completed)
+
+- Added WorkerManager for lifecycle management
+- WorkerDataSync for UI synchronization
+- WorkerDataContext for React integration
+- Improved separation of concerns
 
 ## Future Extensibility
 

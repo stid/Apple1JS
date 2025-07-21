@@ -1,13 +1,14 @@
 import React from 'react';
 import { typography, color } from '../styles/utils';
 import AddressLink from './AddressLink';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface RegisterRowProps {
   label: string;
   value: string | number;
   type?: 'address' | 'value' | 'flag' | 'status';
   className?: string;
-  worker?: Worker;
+  workerManager?: WorkerManager;
   showAddressLink?: boolean;
 }
 
@@ -23,7 +24,7 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
   value, 
   type = 'value',
   className = '',
-  worker,
+  workerManager,
   showAddressLink = true
 }) => {
   // Parse address value for AddressLink
@@ -39,7 +40,7 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
     return null;
   };
 
-  const shouldShowLink = type === 'address' && worker && showAddressLink;
+  const shouldShowLink = type === 'address' && workerManager && showAddressLink;
   const addressValue = shouldShowLink ? parseAddressValue(value) : null;
 
   return (
@@ -64,7 +65,7 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
           address={addressValue}
           format="hex4"
           prefix="$"
-          worker={worker}
+          workerManager={workerManager}
           showContextMenu={true}
           showRunToCursor={true}
           className="text-xs font-medium"

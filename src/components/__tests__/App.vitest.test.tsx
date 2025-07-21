@@ -4,6 +4,8 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from '../App';
 import { IInspectableComponent } from '../../core/types/components';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
+import type { WorkerManager } from '../../services/WorkerManager';
 
 // Mock child components
 vi.mock('../Error', () => ({
@@ -18,19 +20,19 @@ vi.mock('../../contexts/DebuggerNavigationContext', () => ({
 }));
 
 vi.mock('../AppContent', () => ({
-    AppContent: ({ worker, apple1Instance }: { worker: Worker; apple1Instance?: IInspectableComponent | null }) => (
+    AppContent: ({ workerManager, apple1Instance }: { workerManager: WorkerManager; apple1Instance?: IInspectableComponent | null }) => (
         <div data-testid="app-content">
-            AppContent - Worker: {worker ? 'yes' : 'no'}, Instance: {apple1Instance ? 'yes' : 'no'}
+            AppContent - WorkerManager: {workerManager ? 'yes' : 'no'}, Instance: {apple1Instance ? 'yes' : 'no'}
         </div>
     )
 }));
 
 describe('App component', () => {
-    let mockWorker: Worker;
+    let mockWorkerManager: WorkerManager;
     let mockApple1Instance: IInspectableComponent;
     
     beforeEach(() => {
-        mockWorker = {} as Worker;
+        mockWorkerManager = createMockWorkerManager();
         mockApple1Instance = {
             inspect: vi.fn().mockReturnValue({
                 name: 'Apple1',
@@ -41,7 +43,7 @@ describe('App component', () => {
     });
     
     it('should render with error boundary and navigation provider', () => {
-        render(<App worker={mockWorker} apple1Instance={mockApple1Instance} />);
+        render(<App workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
         
         expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
         expect(screen.getByTestId('debugger-navigation-provider')).toBeInTheDocument();
@@ -49,28 +51,28 @@ describe('App component', () => {
     });
     
     it('should pass props correctly to AppContent', () => {
-        render(<App worker={mockWorker} apple1Instance={mockApple1Instance} />);
+        render(<App workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
         
         const appContent = screen.getByTestId('app-content');
-        expect(appContent).toHaveTextContent('AppContent - Worker: yes, Instance: yes');
+        expect(appContent).toHaveTextContent('AppContent - WorkerManager: yes, Instance: yes');
     });
     
     it('should render without apple1Instance', () => {
-        render(<App worker={mockWorker} />);
+        render(<App workerManager={mockWorkerManager} />);
         
         const appContent = screen.getByTestId('app-content');
-        expect(appContent).toHaveTextContent('AppContent - Worker: yes, Instance: no');
+        expect(appContent).toHaveTextContent('AppContent - WorkerManager: yes, Instance: no');
     });
     
     it('should render with null apple1Instance', () => {
-        render(<App worker={mockWorker} apple1Instance={null} />);
+        render(<App workerManager={mockWorkerManager} apple1Instance={null} />);
         
         const appContent = screen.getByTestId('app-content');
-        expect(appContent).toHaveTextContent('AppContent - Worker: yes, Instance: no');
+        expect(appContent).toHaveTextContent('AppContent - WorkerManager: yes, Instance: no');
     });
     
     it('should have correct component hierarchy', () => {
-        const { container } = render(<App worker={mockWorker} apple1Instance={mockApple1Instance} />);
+        const { container } = render(<App workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
         
         // Check hierarchy: ErrorBoundary > DebuggerNavigationProvider > AppContent
         const errorBoundary = container.querySelector('[data-testid="error-boundary"]');
@@ -84,11 +86,11 @@ describe('App component', () => {
     });
     
     it('should update when props change', () => {
-        const { rerender } = render(<App worker={mockWorker} apple1Instance={mockApple1Instance} />);
+        const { rerender } = render(<App workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
         
         expect(screen.getByTestId('app-content')).toHaveTextContent('Instance: yes');
         
-        rerender(<App worker={mockWorker} apple1Instance={null} />);
+        rerender(<App workerManager={mockWorkerManager} apple1Instance={null} />);
         expect(screen.getByTestId('app-content')).toHaveTextContent('Instance: no');
     });
 });

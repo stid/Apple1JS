@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
-import { WORKER_MESSAGES } from '../apple1/TSTypes';
 import { Formatters } from '../utils/formatters';
+import type { WorkerManager } from '../services/WorkerManager';
 
 /**
  * AddressLink - Clickable address component with context menu
@@ -19,7 +19,7 @@ interface AddressLinkProps {
   format?: 'hex4' | 'hex2' | 'raw';
   prefix?: string;
   showContextMenu?: boolean;
-  worker?: Worker;
+  workerManager?: WorkerManager;
   showRunToCursor?: boolean;
 }
 
@@ -30,10 +30,12 @@ const AddressLink: React.FC<AddressLinkProps> = ({
   format = 'hex4',
   prefix = '$',
   showContextMenu = false,
-  worker,
+  workerManager,
   showRunToCursor = false,
 }) => {
   const { navigate } = useDebuggerNavigation();
+  const removeMenuListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const pendingListenerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatAddress = useCallback(() => {
     switch (format) {
@@ -71,9 +73,12 @@ const AddressLink: React.FC<AddressLinkProps> = ({
       }
     };
     
+    // Store the listener ref for cleanup
+    removeMenuListenerRef.current = removeMenuListener;
+    
     const disassemblyOption = document.createElement('button');
     disassemblyOption.className = 'block w-full text-left px-3 py-1 hover:bg-surface-secondary text-sm text-text-primary hover:text-text-accent transition-colors';
-    disassemblyOption.innerHTML = '<span class="mr-2 opacity-60">↗</span>View in Disassembly';
+    disassemblyOption.textContent = '↗ View in Disassembly';
     disassemblyOption.onclick = () => {
       navigate(address, 'disassembly');
       safeRemoveMenu();
@@ -81,7 +86,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     
     const memoryOption = document.createElement('button');
     memoryOption.className = 'block w-full text-left px-3 py-1 hover:bg-surface-secondary text-sm text-text-primary hover:text-text-accent transition-colors';
-    memoryOption.innerHTML = '<span class="mr-2 opacity-60">⬡</span>View in Memory Editor';
+    memoryOption.textContent = '⬡ View in Memory Editor';
     memoryOption.onclick = () => {
       navigate(address, 'memory');
       safeRemoveMenu();
@@ -91,19 +96,20 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     menu.appendChild(memoryOption);
     
     // Add run-to-cursor option if enabled
-    if (worker && showRunToCursor) {
+    if (workerManager && showRunToCursor) {
       const separator = document.createElement('div');
       separator.className = 'border-t border-border-subtle my-1';
       menu.appendChild(separator);
       
       const runToCursorOption = document.createElement('button');
       runToCursorOption.className = 'block w-full text-left px-3 py-1 hover:bg-warning/20 text-sm text-warning font-medium transition-colors';
-      runToCursorOption.innerHTML = '<span class="mr-2">▶</span>Run to Cursor';
-      runToCursorOption.onclick = () => {
-        worker.postMessage({
-          type: WORKER_MESSAGES.RUN_TO_ADDRESS,
-          data: address
-        });
+      runToCursorOption.textContent = '▶ Run to Cursor';
+      runToCursorOption.onclick = async () => {
+        try {
+          await workerManager.runToAddress(address);
+        } catch (error) {
+          console.error('Failed to run to address:', error);
+        }
         safeRemoveMenu();
       };
       menu.appendChild(runToCursorOption);
@@ -111,10 +117,18 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     document.body.appendChild(menu);
     
     // Add click listener after a tick to avoid immediate removal
-    setTimeout(() => {
-      document.addEventListener('click', removeMenuListener);
+    // Clear any pending timeout
+    if (pendingListenerTimeoutRef.current) {
+      clearTimeout(pendingListenerTimeoutRef.current);
+    }
+    
+    pendingListenerTimeoutRef.current = setTimeout(() => {
+      if (removeMenuListenerRef.current) {
+        document.addEventListener('click', removeMenuListenerRef.current);
+      }
+      pendingListenerTimeoutRef.current = null;
     }, 0);
-  }, [address, navigate, showContextMenu, worker, showRunToCursor]);
+  }, [address, navigate, showContextMenu, workerManager, showRunToCursor]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -141,6 +155,20 @@ const AddressLink: React.FC<AddressLinkProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
+  }, []);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      // Clear any pending timeout
+      if (pendingListenerTimeoutRef.current) {
+        clearTimeout(pendingListenerTimeoutRef.current);
+      }
+      // Remove any active listener
+      if (removeMenuListenerRef.current) {
+        document.removeEventListener('click', removeMenuListenerRef.current);
+      }
+    };
   }, []);
 
   return (

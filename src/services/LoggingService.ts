@@ -33,6 +33,7 @@ class LoggingService {
             }
         }
 
+
         // Forward to registered handlers (UI)
         this.handlers.forEach(handler => {
             try {

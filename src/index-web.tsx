@@ -2,10 +2,7 @@ import Main from './components/Main';
 import { createRoot } from 'react-dom/client';
 import { LoggingProvider } from './contexts/LoggingContext';
 import { loggingService } from './services/LoggingService';
-
-const createAppleWorker = (): Worker => {
-    return new Worker(new URL('./apple1/Apple.worker.ts', import.meta.url), { type: 'module' });
-};
+import { workerManager } from './services/WorkerManager';
 
 // Import Apple1 and dependencies for inspector
 import Apple1 from './apple1';
@@ -14,7 +11,7 @@ import WebWorkerKeyboard from './apple1/WebKeyboard';
 
 let apple1Instance: Apple1 | null = null;
 
-const renderApp = (worker: Worker) => {
+const renderApp = () => {
     const container = document.getElementById('app');
     if (container) {
         // Create a real Apple1 instance for inspector (not the worker one)
@@ -26,7 +23,7 @@ const renderApp = (worker: Worker) => {
         const root = createRoot(container);
         root.render(
             <LoggingProvider>
-                <Main worker={worker} apple1Instance={apple1Instance} />
+                <Main workerManager={workerManager} apple1Instance={apple1Instance} />
             </LoggingProvider>
         );
     } else {
@@ -34,9 +31,9 @@ const renderApp = (worker: Worker) => {
     }
 };
 
-const main = () => {
-    const appleWorker = createAppleWorker();
-    renderApp(appleWorker);
+const main = async () => {
+    await workerManager.initializeWorker();
+    renderApp();
 };
 
 main();

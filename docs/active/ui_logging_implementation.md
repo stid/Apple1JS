@@ -2,11 +2,13 @@
 
 This system replaces console output with contextual, user-friendly feedback in the emulator UI.
 
+> **Note**: The UI has been enhanced with an **Alert Badge System** (v4.33.0) that displays notification counts in the header with a slide-out panel for details. See `AlertBadges.tsx` and `AlertPanel.tsx` for implementation.
+
 ## ✅ What Was Fixed
 
 1. Removed `[CPU6502] reset called` console.log
 2. Replaced ROM write warnings with UI-based logging
-3. All tests pass (21 suites, 84 tests) – no breaking changes
+3. All tests pass (46 test suites, 591 tests) – no breaking changes
 
 ## 📍 Location
 

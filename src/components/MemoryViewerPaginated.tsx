@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { WORKER_MESSAGES, sendWorkerMessage, MemoryRegion, MemoryMapData } from '../apple1/types/worker-messages';
+import { MemoryRegion } from '../apple1/types/worker-messages';
 import { useNavigableComponent } from '../hooks/useNavigableComponent';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
+import { WorkerManager } from '../services/WorkerManager';
+import { useUnmountSafe } from '../hooks/useUnmountSafe';
 
 interface MemoryViewerProps {
-    worker: Worker;
+    workerManager: WorkerManager;
     startAddress?: number;
     currentAddress?: number;
     onAddressChange?: (address: number) => void;
@@ -22,7 +24,7 @@ interface MemoryRowProps {
     memoryData: MemoryData;
     editingCell: number | null;
     editValue: string;
-    worker: Worker;
+    workerManager: WorkerManager;
     maxAddress: number;
     memoryMap: MemoryRegion[];
     onCellClick: (address: number) => void;
@@ -39,7 +41,7 @@ const MemoryRow = memo<MemoryRowProps>(({
     memoryData, 
     editingCell, 
     editValue, 
-    worker,
+    workerManager,
     maxAddress,
     memoryMap,
     onCellClick,
@@ -63,7 +65,7 @@ const MemoryRow = memo<MemoryRowProps>(({
                 address={baseAddr}
                 format="hex4"
                 prefix=""
-                worker={worker}
+                workerManager={workerManager}
                 showContextMenu={true}
                 showRunToCursor={true}
                 className="font-mono text-xs"
@@ -154,7 +156,7 @@ const MemoryRow = memo<MemoryRowProps>(({
 MemoryRow.displayName = 'MemoryRow';
 
 const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({ 
-    worker, 
+    workerManager, 
     startAddress = 0x0000,
     currentAddress: externalAddress,
     onAddressChange
@@ -173,25 +175,25 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [visibleRows, setVisibleRows] = useState(15);
+    const { safeSetTimeout } = useUnmountSafe();
     
     // Fetch memory map on mount
     useEffect(() => {
-        if (!worker) return;
+        if (!workerManager) return;
         
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data.type === WORKER_MESSAGES.MEMORY_MAP_DATA) {
-                const mapData = e.data.data as MemoryMapData;
-                setMemoryMap(mapData.regions);
+        const fetchMemoryMap = async () => {
+            try {
+                const mapData = await workerManager.getMemoryMap();
+                if (mapData) {
+                    setMemoryMap(mapData.regions);
+                }
+            } catch (error) {
+                console.error('Error fetching memory map:', error);
             }
         };
         
-        worker.addEventListener('message', handleMessage);
-        sendWorkerMessage(worker, WORKER_MESSAGES.GET_MEMORY_MAP);
-        
-        return () => {
-            worker.removeEventListener('message', handleMessage);
-        };
-    }, [worker]);
+        fetchMemoryMap();
+    }, [workerManager]);
     
     // Calculate visible rows based on actual container
     useEffect(() => {
@@ -266,59 +268,47 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
 
     // Request memory data
     useEffect(() => {
-        const requestMemory = () => {
-            worker.postMessage({
-                type: WORKER_MESSAGES.GET_MEMORY_RANGE,
-                data: {
-                    start: currentAddress,
-                    length: size
+        const requestMemory = async () => {
+            try {
+                const data = await workerManager.readMemoryRange(currentAddress, size);
+                if (data) {
+                    const newMemData: MemoryData = {};
+                    data.forEach((value: number, index: number) => {
+                        const addr = currentAddress + index;
+                        newMemData[`0x${Formatters.hex(addr, 4)}`] = value;
+                    });
+                    
+                    // Only update state if memory actually changed
+                    setMemoryData(prevData => {
+                        // Quick check: if sizes differ, data definitely changed
+                        const prevKeys = Object.keys(prevData);
+                        const newKeys = Object.keys(newMemData);
+                        if (prevKeys.length !== newKeys.length) {
+                            return newMemData;
+                        }
+                        
+                        // Check if any values changed
+                        for (const key of newKeys) {
+                            if (prevData[key] !== newMemData[key]) {
+                                return newMemData;
+                            }
+                        }
+                        
+                        // No changes, return previous data to avoid re-render
+                        return prevData;
+                    });
                 }
-            });
+            } catch (error) {
+                console.error('Error reading memory:', error);
+            }
         };
 
         requestMemory();
         const interval = setInterval(requestMemory, DEBUG_REFRESH_RATES.MEMORY_VIEW);
         return () => clearInterval(interval);
-    }, [worker, currentAddress, size]);
+    }, [workerManager, currentAddress, size]);
 
-    // Listen for memory data from worker
-    useEffect(() => {
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data.type === WORKER_MESSAGES.MEMORY_RANGE_DATA) {
-                const newMemData: MemoryData = {};
-                const rangeData = e.data.data;
-                if (rangeData && rangeData.data) {
-                    rangeData.data.forEach((value: number, index: number) => {
-                        const addr = rangeData.start + index;
-                        newMemData[`0x${Formatters.hex(addr, 4)}`] = value;
-                    });
-                }
-                
-                // Only update state if memory actually changed
-                setMemoryData(prevData => {
-                    // Quick check: if sizes differ, data definitely changed
-                    const prevKeys = Object.keys(prevData);
-                    const newKeys = Object.keys(newMemData);
-                    if (prevKeys.length !== newKeys.length) {
-                        return newMemData;
-                    }
-                    
-                    // Check if any values changed
-                    for (const key of newKeys) {
-                        if (prevData[key] !== newMemData[key]) {
-                            return newMemData;
-                        }
-                    }
-                    
-                    // No changes, return previous data to avoid re-render
-                    return prevData;
-                });
-            }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
+    // Memory data is now fetched in the request effect above
 
     const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
@@ -397,14 +387,11 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             const paddedValue = editValue.padStart(2, '0');
             const value = parseInt(paddedValue, 16);
             // Send memory write to worker
-            sendWorkerMessage(worker, WORKER_MESSAGES.WRITE_MEMORY, {
-                address: editingCell,
-                value: value
-            });
+            workerManager.writeMemory(editingCell, value);
         }
         setEditingCell(null);
         setEditValue('');
-    }, [editingCell, editValue, worker]);
+    }, [editingCell, editValue, workerManager]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -420,7 +407,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 
                 if (nextAddress <= maxAddress && nextAddress <= 0xFFFF) {
                     // Small delay to ensure the current edit is processed
-                    setTimeout(() => {
+                    safeSetTimeout(() => {
                         handleCellClick(nextAddress);
                     }, 50);
                 }
@@ -429,7 +416,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             setEditingCell(null);
             setEditValue('');
         }
-    }, [editingCell, currentAddress, size, handleCellEditComplete, handleCellClick]);
+    }, [editingCell, currentAddress, size, handleCellEditComplete, handleCellClick, safeSetTimeout]);
 
     const renderMemoryRow = useCallback((rowIndex: number) => {
         const baseAddr = currentAddress + (rowIndex * bytesPerRow);
@@ -442,7 +429,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 memoryData={memoryData}
                 editingCell={editingCell}
                 editValue={editValue}
-                worker={worker}
+                workerManager={workerManager}
                 maxAddress={0xFFFF}
                 memoryMap={memoryMap}
                 onCellClick={handleCellClick}
@@ -451,7 +438,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                 onKeyDown={handleKeyDown}
             />
         );
-    }, [currentAddress, bytesPerRow, memoryData, editingCell, editValue, worker, memoryMap,
+    }, [currentAddress, bytesPerRow, memoryData, editingCell, editValue, workerManager, memoryMap,
         handleCellClick, handleCellEdit, handleCellEditComplete, handleKeyDown]);
 
     return (

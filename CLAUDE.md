@@ -18,7 +18,7 @@ git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, ch
 yarn test:ci
 
 # 4. Check current version
-cat src/version.ts  # Current: 4.21.0
+cat src/version.ts  # Current: 4.33.33
 
 # 5. ALWAYS use TodoWrite tool for multi-step tasks!
 ```
@@ -50,6 +50,10 @@ cat src/version.ts  # Current: 4.21.0
 → Check module structure in architecture.md
 
 ### Want to see what's in progress?
+
+→ `docs/active/consolidated_roadmap.md`
+
+### Looking for UX ideas and improvements?
 
 → `docs/active/user_experience_analysis.md`
 
@@ -121,6 +125,13 @@ src/
 ```
 
 ## 🧪 Testing Strategy
+
+**CRITICAL: ALL TESTS MUST PASS BEFORE COMMITTING!**
+
+- Never break the test suite - if tests fail after your changes, fix them
+- Always run `yarn test:ci` before committing any changes
+- If adding new features, add corresponding tests
+- If changing component behavior, update tests to match
 
 ### Test-Driven Development (TDD) Approach
 
@@ -242,9 +253,9 @@ alias a1-check="a1-lint && a1-test"
 
     ```bash
     # Edit src/version.ts
-    # Patch: 4.21.0 → 4.21.1 (bug fixes)
-    # Minor: 4.21.0 → 4.22.0 (new features)
-    # Major: 4.21.0 → 5.0.0 (breaking changes)
+    # Patch: 4.33.33 → 4.33.34 (bug fixes)
+    # Minor: 4.33.33 → 4.34.0 (new features)
+    # Major: 4.33.33 → 5.0.0 (breaking changes)
     ```
 
 4. **Commit with conventional format**:
@@ -287,14 +298,30 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 4. **Don't hardcode colors** - Use design tokens (except CRT display)
 5. **Remember version bump** - Required for every PR
 
-## 📊 Current Focus Areas
+## 📊 Project Roadmap
 
-From `docs/active/user_experience_analysis.md`:
+**See `docs/active/consolidated_roadmap.md` for the complete, prioritized roadmap.**
 
-- Execution control (step/breakpoints)
-- Memory search functionality
-- Watch expressions
-- Hardware authenticity features
+### Quick Summary of Priorities:
+
+🛑 **Critical** - Test stability & core issues
+🔴 **High** - Core functionality & architecture  
+🟡 **Medium** - Enhanced features
+🟢 **Low** - Refinements & polish
+
+### Recently Completed ✅
+- Jest to Vitest Migration (601 tests)
+- Comlink Worker Migration (Phase 2)
+- Type System Organization
+- State Management Interfaces
+- Formatter Migration (97 instances)
+
+### Current Focus Areas:
+1. **Stabilization** - Fix type workarounds, race conditions
+2. **Architecture** - Split large modules, create reusable patterns
+3. **Features** - Memory search, conditional breakpoints, watch expressions
+
+For detailed task breakdowns, timelines, and execution strategy, refer to the consolidated roadmap.
 
 ## 🎨 Visual References
 
@@ -325,7 +352,8 @@ From `docs/active/user_experience_analysis.md`:
 
 - **Documentation Hub**: `docs/README.md`
 - **Architecture**: `docs/active/architecture.md`
-- **Current Work**: `docs/active/standardization-progress.md`
+- **Roadmap & Priorities**: `docs/active/consolidated_roadmap.md`
+- **Standardization Progress**: `docs/active/standardization-progress.md`
 - **Test Guidelines**: `docs/active/cpu_test_guidelines.md`
 
 ### External Resources

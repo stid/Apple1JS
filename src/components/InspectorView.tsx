@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { IInspectableComponent } from '../core/types/components';
-import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
 import { OPCODES } from '../constants/opcodes';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
-import { DEBUG_REFRESH_RATES } from '../constants/ui';
+import { getDebugValueOrDefault } from '../utils/debug-helpers';
+import type { WorkerManager } from '../services/WorkerManager';
+import { useWorkerData } from '../contexts/WorkerDataContext';
 
 import type { InspectableData } from '../core/types/components';
 
 interface InspectorViewProps {
     root: IInspectableComponent;
-    worker?: Worker;
+    workerManager?: WorkerManager;
 }
 
-const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
+    const { debugInfo } = useWorkerData();
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
+    const [profilingPending, setProfilingPending] = useState<boolean>(false);
 
     // Helper function to translate hex opcode to human-readable mnemonic
     const getOpcodeMnemonic = (opcodeHex: string): string => {
@@ -25,55 +27,48 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         return opcodeInfo ? opcodeInfo.name : opcodeHex; // Fall back to hex if not found
     };
 
-    // Set up an interval to request debug information from the worker.
-    useEffect(() => {
-        if (!worker) return;
-        
-        const interval = setInterval(() => {
-            sendWorkerMessage(worker, WORKER_MESSAGES.DEBUG_INFO);
-        }, DEBUG_REFRESH_RATES.INSPECTOR);
-        return () => clearInterval(interval);
-    }, [worker]);
-
-    // Listen for messages from the worker and update the debugInfo state.
-    useEffect(() => {
-        if (!worker) return;
-        
-        const handleMessage = (e: MessageEvent) => {
-            const message = e.data;
-            if (!isWorkerMessage(message)) {
-                return;
-            }
-            
-            const { type } = message;
-            const data = 'data' in message ? message.data : undefined;
-            
-            if (type === WORKER_MESSAGES.DEBUG_INFO) {
-                setDebugInfo(data as DebugData);
-            }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
+    // Debug info is now provided by WorkerDataContext, no need to poll
 
 
 
     // Handler for profiling toggle
-    const handleProfilingToggle = () => {
+    const handleProfilingToggle = async () => {
+        if (!workerManager || profilingPending) return;
+        
         const newProfilingState = !profilingEnabled;
-        setProfilingEnabled(newProfilingState);
-        if (worker) {
-            sendWorkerMessage(worker, WORKER_MESSAGES.SET_CPU_PROFILING, newProfilingState);
+        setProfilingPending(true);
+        
+        try {
+            await workerManager.setCpuProfiling(newProfilingState);
+            setProfilingEnabled(newProfilingState);
+            
+            // Force a debug info refresh to get updated profiling state
+            if (workerManager.getDebugInfo) {
+                await workerManager.getDebugInfo();
+            }
+        } catch (error) {
+            console.error('Failed to toggle CPU profiling:', error);
+            // Revert state on error
+            setProfilingEnabled(!newProfilingState);
+        } finally {
+            setProfilingPending(false);
         }
     };
 
     // Get CPU performance data if available
     const cpuDebugData = debugInfo.cpu || {};
-    const perfData = cpuDebugData._PERF_DATA as { 
-        stats?: { instructionCount: number; totalInstructions: number; profilingEnabled: boolean };
-        topOpcodes?: Array<{ opcode: string; count: number; cycles: number; avgCycles: number }>;
-    } | undefined;
+    const perfData = cpuDebugData._PERF_DATA;
+    
+    // Sync profiling state with actual worker state from debug info
+    React.useEffect(() => {
+        // Only sync if we have actual profiling state from worker
+        if (cpuDebugData.PERF_ENABLED !== undefined && !profilingPending) {
+            const actualProfilingEnabled = cpuDebugData.PERF_ENABLED === 'YES';
+            if (actualProfilingEnabled !== profilingEnabled) {
+                setProfilingEnabled(actualProfilingEnabled);
+            }
+        }
+    }, [cpuDebugData.PERF_ENABLED, profilingEnabled, profilingPending]);
 
     // Type guard for children property
     function hasChildren(node: InspectableData): node is InspectableData & { children: InspectableData[] } {
@@ -98,9 +93,28 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
         };
         
         const debugDomain = typeToDebugDomain[node.type];
-        if (!debugDomain || !debugInfo[debugDomain]) return {};
+        if (!debugDomain) return {};
         
-        const domainData = debugInfo[debugDomain];
+        // Type-safe access to debug domains
+        let domainData: Record<string, string | number | object> | undefined;
+        switch (debugDomain) {
+            case 'cpu':
+                domainData = debugInfo.cpu;
+                break;
+            case 'pia':
+                domainData = debugInfo.pia;
+                break;
+            case 'Bus':
+                domainData = debugInfo.Bus;
+                break;
+            case 'clock':
+                domainData = debugInfo.clock;
+                break;
+            default:
+                return {};
+        }
+        
+        if (!domainData) return {};
         
         // Handle CPU debug data (could be flat or nested depending on source)
         if (debugDomain === 'cpu' && typeof domainData === 'object') {
@@ -114,11 +128,14 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                 if (typeof value === 'object' && value !== null) {
                     // Flatten nested objects like REG: { PC: '0x1234' } -> REG_PC: '0x1234'
                     Object.entries(value).forEach(([subKey, subValue]) => {
-                        result[`${key}_${subKey}`] = subValue as string | number | boolean;
+                        // Only include string/number/boolean values
+                        if (typeof subValue === 'string' || typeof subValue === 'number' || typeof subValue === 'boolean') {
+                            result[`${key}_${subKey}`] = subValue;
+                        }
                     });
-                } else {
+                } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
                     // Keep flat values as-is (like REG_PC: '$1234')
-                    result[key] = value as string | number | boolean;
+                    result[key] = value;
                 }
             });
             return result;
@@ -213,13 +230,13 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                         {filteredConfigEntries.map(([k, v]) => {
                             const isDebugData = k in debugData;
                             const formattedValue = formatValue(k, v as string | number | boolean);
-                            return worker ? (
+                            return workerManager ? (
                                 <RegisterRow 
                                     key={k} 
                                     label={k} 
                                     value={formattedValue}
                                     type={isDebugData ? getDataType(k) : 'status'}
-                                    worker={worker}
+                                    workerManager={workerManager}
                                 />
                             ) : (
                                 <RegisterRow 
@@ -274,34 +291,34 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
     const cpuRegisterData = React.useMemo(() => {
         const cpu = debugInfo.cpu || {};
         return {
-            pc: cpu.REG_PC || cpu.PC || '$0000',
-            a: cpu.REG_A || cpu.A || '$00',
-            x: cpu.REG_X || cpu.X || '$00',
-            y: cpu.REG_Y || cpu.Y || '$00',
-            s: cpu.REG_S || cpu.S || '$00',
+            pc: getDebugValueOrDefault(cpu.REG_PC || cpu.PC, '$0000'),
+            a: getDebugValueOrDefault(cpu.REG_A || cpu.A, '$00'),
+            x: getDebugValueOrDefault(cpu.REG_X || cpu.X, '$00'),
+            y: getDebugValueOrDefault(cpu.REG_Y || cpu.Y, '$00'),
+            s: getDebugValueOrDefault(cpu.REG_S || cpu.S, '$00'),
             // Flags
-            flagN: cpu.FLAG_N || cpu.N || 'CLR',
-            flagZ: cpu.FLAG_Z || cpu.Z || 'CLR',
-            flagC: cpu.FLAG_C || cpu.C || 'CLR',
-            flagV: cpu.FLAG_V || cpu.V || 'CLR',
-            flagI: cpu.FLAG_I || cpu.I || 'SET',
-            flagD: cpu.FLAG_D || cpu.D || 'CLR',
+            flagN: getDebugValueOrDefault(cpu.FLAG_N || cpu.N, 'CLR'),
+            flagZ: getDebugValueOrDefault(cpu.FLAG_Z || cpu.Z, 'CLR'),
+            flagC: getDebugValueOrDefault(cpu.FLAG_C || cpu.C, 'CLR'),
+            flagV: getDebugValueOrDefault(cpu.FLAG_V || cpu.V, 'CLR'),
+            flagI: getDebugValueOrDefault(cpu.FLAG_I || cpu.I, 'SET'),
+            flagD: getDebugValueOrDefault(cpu.FLAG_D || cpu.D, 'CLR'),
             // Memory info
-            ramBank2Address: cpu.ramBank2Address || '$F000 - $FFFF',
-            piaAddress: cpu.piaAddress || '$D010 - $D013',
+            ramBank2Address: getDebugValueOrDefault(cpu.ramBank2Address, '$F000 - $FFFF'),
+            piaAddress: getDebugValueOrDefault(cpu.piaAddress, '$D010 - $D013'),
             // Execution
-            hwAddr: cpu.HW_ADDR || '$FFFE',
-            hwData: cpu.HW_DATA || '$00',
-            hwOpcode: cpu.HW_OPCODE || '$00',
-            hwCycles: cpu.HW_CYCLES || '40,259,072',
-            irqLine: cpu.IRQ_LINE || 'INACTIVE',
-            nmiLine: cpu.NMI_LINE || 'INACTIVE',
-            irqPending: cpu.IRQ_PENDING || 'NO',
-            nmiPending: cpu.NMI_PENDING || 'NO',
-            execTmp: cpu.EXEC_TMP || '$00',
-            execAddr: cpu.EXEC_ADDR || '$0000',
-            perfEnabled: cpu.PERF_ENABLED || 'YES',
-            perfInstructions: cpu.PERF_INSTRUCTIONS || '4,297,966',
+            hwAddr: getDebugValueOrDefault(cpu.HW_ADDR, '$FFFE'),
+            hwData: getDebugValueOrDefault(cpu.HW_DATA, '$00'),
+            hwOpcode: getDebugValueOrDefault(cpu.HW_OPCODE, '$00'),
+            hwCycles: getDebugValueOrDefault(cpu.HW_CYCLES, '40,259,072'),
+            irqLine: getDebugValueOrDefault(cpu.IRQ_LINE, 'INACTIVE'),
+            nmiLine: getDebugValueOrDefault(cpu.NMI_LINE, 'INACTIVE'),
+            irqPending: getDebugValueOrDefault(cpu.IRQ_PENDING, 'NO'),
+            nmiPending: getDebugValueOrDefault(cpu.NMI_PENDING, 'NO'),
+            execTmp: getDebugValueOrDefault(cpu.EXEC_TMP, '$00'),
+            execAddr: getDebugValueOrDefault(cpu.EXEC_ADDR, '$0000'),
+            perfEnabled: getDebugValueOrDefault(cpu.PERF_ENABLED, 'YES'),
+            perfInstructions: getDebugValueOrDefault(cpu.PERF_INSTRUCTIONS, '4,297,966'),
         };
     }, [debugInfo.cpu]);
 
@@ -316,47 +333,66 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     </h3>
                     <button
                         onClick={handleProfilingToggle}
+                        disabled={profilingPending || !workerManager}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            profilingEnabled
-                                ? 'bg-success text-white hover:bg-success/80'
-                                : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
-                        }`}
+                            profilingPending 
+                                ? 'bg-border-secondary text-text-disabled cursor-wait'
+                                : profilingEnabled
+                                    ? 'bg-success text-white hover:bg-success/80'
+                                    : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
+                        } ${!workerManager ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                        {profilingEnabled ? 'Disable Profiling' : 'Enable Profiling'}
+                        {profilingPending 
+                            ? 'Updating...' 
+                            : profilingEnabled 
+                                ? 'Disable Profiling' 
+                                : 'Enable Profiling'}
                     </button>
                 </div>
                 
-                {profilingEnabled && perfData && (
+                {profilingEnabled && (
                     <div className="space-y-md">
-                        <div className="grid grid-cols-3 gap-md">
-                            <MetricCard 
-                                label="Instructions" 
-                                value={perfData.stats?.instructionCount.toLocaleString() || '0'}
-                                status="info"
-                            />
-                            <MetricCard 
-                                label="Unique Opcodes" 
-                                value={perfData.stats?.totalInstructions || '0'}
-                                status="info"
-                            />
-                            <MetricCard 
-                                label="Status" 
-                                value="ACTIVE"
-                                status="success"
-                            />
-                        </div>
-                        
-                        {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
-                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
-                                <div className="text-sm font-medium text-text-secondary mb-sm">Top Instructions</div>
-                                <div className="space-y-sm">
-                                    {perfData.topOpcodes.slice(0, 3).map((opcode) => (
-                                        <div key={opcode.opcode} className="flex justify-between items-center text-sm font-mono">
-                                            <span className="text-data-status font-medium">{getOpcodeMnemonic(opcode.opcode)}</span>
-                                            <span className="text-data-value">{opcode.count.toLocaleString()}</span>
-                                            <span className="text-data-flag">{opcode.avgCycles}c</span>
+                        {perfData ? (
+                            <>
+                                <div className="grid grid-cols-3 gap-md">
+                                    <MetricCard 
+                                        label="Instructions" 
+                                        value={perfData.stats?.instructionCount.toLocaleString() || '0'}
+                                        status="info"
+                                    />
+                                    <MetricCard 
+                                        label="Unique Opcodes" 
+                                        value={perfData.stats?.totalInstructions || '0'}
+                                        status="info"
+                                    />
+                                    <MetricCard 
+                                        label="Status" 
+                                        value="ACTIVE"
+                                        status="success"
+                                    />
+                                </div>
+                                
+                                {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
+                                    <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                                        <div className="text-sm font-medium text-text-secondary mb-sm">Top Instructions</div>
+                                        <div className="space-y-sm">
+                                            {perfData.topOpcodes.slice(0, 3).map((opcode) => (
+                                                <div key={opcode.opcode} className="flex justify-between items-center text-sm font-mono">
+                                                    <span className="text-data-status font-medium">{getOpcodeMnemonic(opcode.opcode)}</span>
+                                                    <span className="text-data-value">{opcode.count.toLocaleString()}</span>
+                                                    <span className="text-data-flag">{opcode.avgCycles}c</span>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                                <div className="text-sm text-text-secondary text-center">
+                                    {profilingPending 
+                                        ? 'Initializing profiler...' 
+                                        : 'Waiting for profiling data... Run some code to see statistics.'}
                                 </div>
                             </div>
                         )}
@@ -371,8 +407,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     CPU Registers
                 </h3>
                 <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
-                    {worker ? (
-                        <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" worker={worker} />
+                    {workerManager ? (
+                        <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" workerManager={workerManager} />
                     ) : (
                         <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" />
                     )}
@@ -396,11 +432,11 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     Memory & I/O
                 </h3>
                 <div className="space-y-sm">
-                    {worker ? (
+                    {workerManager ? (
                         <>
-                            <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" worker={worker} />
-                            <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" worker={worker} />
-                            <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" worker={worker} />
+                            <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" workerManager={workerManager} />
+                            <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" workerManager={workerManager} />
+                            <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" workerManager={workerManager} />
                         </>
                     ) : (
                         <>
@@ -417,8 +453,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, worker }) => {
                     <RegisterRow label="IRQ_PENDING" value={cpuRegisterData.irqPending} type="flag" />
                     <RegisterRow label="NMI_PENDING" value={cpuRegisterData.nmiPending} type="flag" />
                     <RegisterRow label="EXEC_TMP" value={cpuRegisterData.execTmp} type="value" />
-                    {worker ? (
-                        <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" worker={worker} />
+                    {workerManager ? (
+                        <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" workerManager={workerManager} />
                     ) : (
                         <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" />
                     )}

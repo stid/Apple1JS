@@ -1,67 +1,66 @@
-import { describe, expect, beforeEach, vi } from 'vitest';
+import { describe, expect, beforeEach, vi, type Mock } from 'vitest';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
 import { render, screen, fireEvent, waitFor, act } from '../../test-utils/render';
 import MemoryViewerPaginated from '../MemoryViewerPaginated';
-import { WORKER_MESSAGES } from '../../apple1/TSTypes';
+import type { WorkerManager } from '../../services/WorkerManager';
 
 describe('MemoryViewerPaginated', () => {
-    const mockWorker = {
-        postMessage: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-    } as unknown as Worker;
-
-    let messageHandler: (event: MessageEvent) => void;
+    let mockWorkerManager: WorkerManager;
 
     beforeEach(() => {
+        mockWorkerManager = createMockWorkerManager();
         vi.clearAllMocks();
         
-        // Capture the message handler
-        mockWorker.addEventListener = vi.fn((event: string, handler: EventListenerOrEventListenerObject) => {
-            if (event === 'message' && typeof handler === 'function') {
-                messageHandler = handler as (event: MessageEvent) => void;
-            }
+        // Mock the getMemoryMap method used by the component
+        (mockWorkerManager.getMemoryMap as Mock).mockResolvedValue({
+            regions: [
+                { name: 'RAM', start: 0x0000, end: 0x0FFF, type: 'ram' },
+                { name: 'ROM', start: 0xF000, end: 0xFFFF, type: 'rom' }
+            ]
         });
-    });
-
-    const simulateMemoryData = (start: number, length: number) => {
-        const data = new Array(length).fill(0).map((_, i) => (start + i) % 256);
-        act(() => {
-            messageHandler(new MessageEvent('message', {
-                data: {
-                    type: WORKER_MESSAGES.MEMORY_RANGE_DATA,
-                    data: { start, data }
-                }
-            }));
-        });
-    };
-
-    it('renders with initial address', () => {
-        render(
-                <MemoryViewerPaginated worker={mockWorker} startAddress={0x1000} />
-        );
         
-        const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
-        expect(addressInput.value).toBe('1000');
+        // Mock readMemoryRange method to return test data
+        (mockWorkerManager.readMemoryRange as Mock).mockImplementation((start: number, length: number) => {
+            const data = new Array(length).fill(0).map((_, i) => (start + i) % 256);
+            return Promise.resolve(data);
+        });
     });
 
-    it('uses external address when provided', () => {
-        render(
+    it('renders with initial address', async () => {
+        await act(async () => {
+            render(
+                <MemoryViewerPaginated workerManager={mockWorkerManager} startAddress={0x1000} />
+            );
+        });
+        
+        await waitFor(() => {
+            const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
+            expect(addressInput.value).toBe('1000');
+        });
+    });
+
+    it('uses external address when provided', async () => {
+        await act(async () => {
+            render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     startAddress={0x1000}
                     currentAddress={0x2000}
                 />
-        );
+            );
+        });
         
-        const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
-        expect(addressInput.value).toBe('2000');
+        await waitFor(() => {
+            const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
+            expect(addressInput.value).toBe('2000');
+        });
     });
 
     it('calls onAddressChange when address changes', async () => {
         const onAddressChange = vi.fn();
         render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     onAddressChange={onAddressChange}
                 />
         );
@@ -79,16 +78,20 @@ describe('MemoryViewerPaginated', () => {
 
     it('navigates with arrow buttons', async () => {
         const onAddressChange = vi.fn();
-        render(
+        await act(async () => {
+            render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
-        );
+            );
+        });
         
-        // Simulate memory data
-        simulateMemoryData(0x1000, 256);
+        // Wait for initial render and memory load
+        await waitFor(() => {
+            expect(mockWorkerManager.readMemoryRange).toHaveBeenCalled();
+        });
         
         // Click down arrow
         const downButton = screen.getByTitle('Next page (↓)');
@@ -102,51 +105,75 @@ describe('MemoryViewerPaginated', () => {
         });
     });
 
-    it('does not cause flickering with external address changes', () => {
+    it('does not cause flickering with external address changes', async () => {
         const onAddressChange = vi.fn();
-        const { rerender } = render(
+        let rerender: ReturnType<typeof render>['rerender'];
+        
+        await act(async () => {
+            const result = render(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
-        );
+            );
+            rerender = result.rerender;
+        });
+        
+        // Wait for initial load
+        await waitFor(() => {
+            expect(mockWorkerManager.readMemoryRange).toHaveBeenCalled();
+        });
         
         // Clear initial calls
         onAddressChange.mockClear();
         
         // Re-render with same address - should not trigger onChange
-        rerender(
+        await act(async () => {
+            rerender(
                 <MemoryViewerPaginated 
-                    worker={mockWorker} 
+                    workerManager={mockWorkerManager} 
                     currentAddress={0x1000}
                     onAddressChange={onAddressChange}
                 />
-        );
+            );
+        });
         
         expect(onAddressChange).not.toHaveBeenCalled();
     });
 
-    it('displays memory data correctly', () => {
-        render(
-                <MemoryViewerPaginated worker={mockWorker} />
-        );
+    it('displays memory data correctly', async () => {
+        await act(async () => {
+            render(
+                <MemoryViewerPaginated workerManager={mockWorkerManager} />
+            );
+        });
         
-        // Simulate memory data
-        simulateMemoryData(0x0000, 256);
+        // Wait for memory data to load
+        await waitFor(() => {
+            expect(mockWorkerManager.readMemoryRange).toHaveBeenCalled();
+        });
         
         // Check that hex values are displayed (00 appears multiple times, use getAllByText)
-        const hexValues = screen.getAllByText('00');
-        expect(hexValues.length).toBeGreaterThan(0);
+        await waitFor(() => {
+            const hexValues = screen.getAllByText('00');
+            expect(hexValues.length).toBeGreaterThan(0);
+        });
         
         // Check that ASCII column exists
         expect(screen.getByText('ASCII')).toBeInTheDocument();
     });
 
-    it('handles address input validation', () => {
-        render(
-                <MemoryViewerPaginated worker={mockWorker} />
-        );
+    it('handles address input validation', async () => {
+        await act(async () => {
+            render(
+                <MemoryViewerPaginated workerManager={mockWorkerManager} />
+            );
+        });
+        
+        await waitFor(() => {
+            expect(mockWorkerManager.readMemoryRange).toHaveBeenCalled();
+        });
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
         
@@ -159,10 +186,16 @@ describe('MemoryViewerPaginated', () => {
         expect(addressInput.value).toBe('ABCD');
     });
 
-    it('limits address input to 4 characters', () => {
-        render(
-                <MemoryViewerPaginated worker={mockWorker} />
-        );
+    it('limits address input to 4 characters', async () => {
+        await act(async () => {
+            render(
+                <MemoryViewerPaginated workerManager={mockWorkerManager} />
+            );
+        });
+        
+        await waitFor(() => {
+            expect(mockWorkerManager.readMemoryRange).toHaveBeenCalled();
+        });
         
         const addressInput = screen.getByPlaceholderText('0000') as HTMLInputElement;
         

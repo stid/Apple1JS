@@ -4,17 +4,20 @@ import InspectorView from './InspectorView';
 import DebuggerLayout from './DebuggerLayout';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
-import { WORKER_MESSAGES, LogMessageData } from '../apple1/TSTypes';
+import { LogMessageData } from '../apple1/TSTypes';
 import Actions from './Actions';
 import AlertBadges from './AlertBadges';
 import AlertPanel from './AlertPanel';
 import { useLogging } from '../contexts/LoggingContext';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
+import { WorkerDataProvider } from '../contexts/WorkerDataContext';
 import { IInspectableComponent } from '../core/types';
+import type { WorkerManager } from '../services/WorkerManager';
+import { useUnmountSafe } from '../hooks/useUnmountSafe';
 
 type Props = {
-    worker: Worker;
+    workerManager: WorkerManager;
     apple1Instance?: IInspectableComponent | null;
 };
 
@@ -26,7 +29,7 @@ interface AppContentInnerProps extends Props {
 }
 
 const AppContentInner = ({ 
-    worker, 
+    workerManager, 
     apple1Instance,
     rightTab,
     setRightTab,
@@ -40,6 +43,7 @@ const AppContentInner = ({
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { addMessage } = useLogging();
     const { subscribeToNavigation } = useDebuggerNavigation();
+    const { safeSetTimeout } = useUnmountSafe();
     
     // Persist debugger view states across tab switches
     const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
@@ -62,14 +66,21 @@ const AppContentInner = ({
     }, []);
 
     const handleKeyDown = useCallback(
-        (e: KeyboardEvent) => {
+        async (e: KeyboardEvent) => {
             if (e.metaKey || e.ctrlKey || e.altKey) {
                 return;
             }
-            worker.postMessage({ data: e.key, type: WORKER_MESSAGES.KEY_DOWN });
-            e.preventDefault();
+            // Prevent default immediately for Tab and other special keys
+            if (e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+            }
+            await workerManager.keyDown(e.key);
+            // Prevent default for all other keys after processing
+            if (e.key !== 'Tab' && e.key !== 'Enter' && e.key !== 'Escape') {
+                e.preventDefault();
+            }
         },
-        [worker],
+        [workerManager],
     );
 
     const handlePaste = useCallback(
@@ -78,15 +89,15 @@ const AppContentInner = ({
             if (text) {
                 // Send characters with a small delay between them to avoid overwhelming the Apple 1
                 text.split('').forEach((char, index) => {
-                    setTimeout(() => {
+                    safeSetTimeout(async () => {
                         const keyToSend = char === '\n' || char === '\r' ? 'Enter' : char;
-                        worker.postMessage({ data: keyToSend, type: WORKER_MESSAGES.KEY_DOWN });
+                        await workerManager.keyDown(keyToSend);
                     }, index * 160); // 160ms delay between each character
                 });
             }
             e.preventDefault();
         },
-        [worker],
+        [workerManager, safeSetTimeout],
     );
 
     useEffect(() => {
@@ -104,59 +115,67 @@ const AppContentInner = ({
     }, [handleKeyDown, handlePaste]);
 
     useEffect(() => {
+        // Only focus on initial mount
         focusHiddenInput();
     }, [focusHiddenInput]);
 
-    // Handle log messages from worker
+    // Handle log messages from worker via WorkerManager
     useEffect(() => {
-        const handleWorkerMessage = (event: MessageEvent) => {
-            if (event.data && event.data.type === WORKER_MESSAGES.LOG_MESSAGE) {
-                const logData = event.data.data as LogMessageData;
+        let unsubscribe: (() => void) | undefined;
+        
+        const setupLogMessages = async () => {
+            const result = await workerManager.onLogMessage((logData: LogMessageData) => {
                 addMessage({
                     level: logData.level,
                     source: logData.source,
                     message: logData.message
                 });
+            });
+            if (result) {
+                unsubscribe = result;
             }
         };
         
-        worker.addEventListener('message', handleWorkerMessage);
+        setupLogMessages();
+        
         return () => {
-            worker.removeEventListener('message', handleWorkerMessage);
+            if (unsubscribe) {
+                unsubscribe();
+            }
         };
-    }, [worker, addMessage]);
+    }, [workerManager, addMessage]);
 
     // Sync debugger active state with worker
     useEffect(() => {
         const isDebuggerActive = rightTab === 'debugger';
-        worker.postMessage({ data: isDebuggerActive, type: WORKER_MESSAGES.SET_DEBUGGER_ACTIVE });
-    }, [rightTab, worker]);
+        workerManager.setDebuggerActive(isDebuggerActive).catch(console.error);
+    }, [rightTab, workerManager]);
 
     const handleSaveState = useCallback(
-        (e: React.MouseEvent<HTMLAnchorElement>) => {
+        async (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault();
-            // Request state from worker
-            const handleStateData = (event: MessageEvent) => {
-                if (event.data && event.data.type === WORKER_MESSAGES.STATE_DATA) {
-                    const state = event.data.data;
-                    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'apple1_state.json';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
+            try {
+                // Get state from WorkerManager
+                const state = await workerManager.saveState();
+                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'apple1_state.json';
+                document.body.appendChild(a);
+                a.click();
+                safeSetTimeout(() => {
+                    if (document.body.contains(a)) {
                         document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    }, 100);
-                    worker.removeEventListener('message', handleStateData);
-                }
-            };
-            worker.addEventListener('message', handleStateData);
-            worker.postMessage({ type: WORKER_MESSAGES.SAVE_STATE });
+                    }
+                    URL.revokeObjectURL(url);
+                }, 100);
+            } catch (error) {
+                console.error('Failed to save state:', error);
+                window.alert('Failed to save state.');
+            }
         },
-        [worker],
+        [workerManager, safeSetTimeout],
     );
 
     const handleLoadState = useCallback(
@@ -167,7 +186,7 @@ const AppContentInner = ({
             reader.onload = (event) => {
                 try {
                     const state = JSON.parse(event.target?.result as string);
-                    worker.postMessage({ type: WORKER_MESSAGES.LOAD_STATE, data: state });
+                    workerManager.loadState(state);
                     // Reset input so selecting the same file again triggers change
                     e.target.value = '';
                 } catch {
@@ -176,7 +195,7 @@ const AppContentInner = ({
             };
             reader.readAsText(file);
         },
-        [worker],
+        [workerManager],
     );
 
     const handlePauseResume = useCallback(
@@ -192,35 +211,40 @@ const AppContentInner = ({
     );
 
     return (
-        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1">
+        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1" onClick={(e) => {
+            // Refocus hidden input when clicking on the background
+            if (e.target === e.currentTarget) {
+                focusHiddenInput();
+            }
+        }}>
             {/* Left column: CRT, Actions */}
             <div
                 className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
                 style={{ maxWidth: '538px' }}
             >
-                <div className="w-full flex justify-center" onClick={focusHiddenInput} role="presentation">
-                    <CRTWorker worker={worker} />
+                <div className="w-full flex justify-center" onClick={() => {
+                    // Always refocus when clicking anywhere in the CRT area
+                    focusHiddenInput();
+                }} role="presentation">
+                    <CRTWorker workerManager={workerManager} />
                 </div>
                 <div className="mt-md w-full">
                     <Actions
                         supportBS={supportBS}
                         onReset={useCallback(
-                            (e) => {
+                            async (e) => {
                                 e.preventDefault();
-                                worker.postMessage({ data: 'Tab', type: WORKER_MESSAGES.KEY_DOWN });
+                                await workerManager.keyDown('Tab');
                             },
-                            [worker],
+                            [workerManager],
                         )}
                         onBS={useCallback(
-                            (e) => {
+                            async (e) => {
                                 e.preventDefault();
-                                worker.postMessage({
-                                    data: !supportBS,
-                                    type: WORKER_MESSAGES.SET_CRT_BS_SUPPORT_FLAG,
-                                });
+                                await workerManager.setCrtBsSupport(!supportBS);
                                 setSupportBS((prev) => !prev);
                             },
-                            [worker, supportBS],
+                            [workerManager, supportBS],
                         )}
                         onSaveState={handleSaveState}
                         onLoadState={handleLoadState}
@@ -229,15 +253,12 @@ const AppContentInner = ({
                         onRefocus={focusHiddenInput}
                         cycleAccurateTiming={cycleAccurateTiming}
                         onCycleAccurateTiming={useCallback(
-                            (e) => {
+                            async (e) => {
                                 e.preventDefault();
-                                worker.postMessage({
-                                    data: !cycleAccurateTiming,
-                                    type: WORKER_MESSAGES.SET_CYCLE_ACCURATE_TIMING,
-                                });
+                                await workerManager.setCycleAccurateMode(!cycleAccurateTiming);
                                 setCycleAccurateTiming((prev) => !prev);
                             },
-                            [worker, cycleAccurateTiming],
+                            [workerManager, cycleAccurateTiming],
                         )}
                     />
                 </div>
@@ -301,7 +322,7 @@ const AppContentInner = ({
                     )}
                     {rightTab === 'inspector' && apple1Instance && (
                         <div className="overflow-auto h-full">
-                            <InspectorView root={apple1Instance} worker={worker} />
+                            <InspectorView root={apple1Instance} workerManager={workerManager} />
                         </div>
                     )}
                     {rightTab === 'inspector' && !apple1Instance && (
@@ -311,7 +332,7 @@ const AppContentInner = ({
                         <div className="h-full" style={{ overflow: 'hidden' }}>
                             <DebuggerLayout 
                                 root={apple1Instance} 
-                                worker={worker} 
+                                workerManager={workerManager} 
                                 initialNavigation={pendingNavigation}
                                 onNavigationHandled={() => setPendingNavigation(null)}
                                 memoryViewAddress={memoryViewAddress}
@@ -353,7 +374,7 @@ const AppContentInner = ({
     );
 };
 
-export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
+export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Element => {
     const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
     const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
     
@@ -372,19 +393,21 @@ export const AppContent = ({ worker, apple1Instance }: Props): JSX.Element => {
     }, []);
     
     return (
-        <EmulationProvider 
-            worker={worker} 
-            onBreakpointHit={handleBreakpointHit}
-            onRunToCursorSet={handleRunToCursorSet}
-        >
-            <AppContentInner 
-                worker={worker} 
-                {...(apple1Instance !== undefined && { apple1Instance })}
-                rightTab={rightTab}
-                setRightTab={setRightTab}
-                pendingNavigation={pendingNavigation}
-                setPendingNavigation={setPendingNavigation}
-            />
-        </EmulationProvider>
+        <WorkerDataProvider workerManager={workerManager}>
+            <EmulationProvider 
+                workerManager={workerManager} 
+                onBreakpointHit={handleBreakpointHit}
+                onRunToCursorSet={handleRunToCursorSet}
+            >
+                <AppContentInner 
+                    workerManager={workerManager} 
+                    {...(apple1Instance !== undefined && { apple1Instance })}
+                    rightTab={rightTab}
+                    setRightTab={setRightTab}
+                    pendingNavigation={pendingNavigation}
+                    setPendingNavigation={setPendingNavigation}
+                />
+            </EmulationProvider>
+        </WorkerDataProvider>
     );
 };

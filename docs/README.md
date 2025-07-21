@@ -10,7 +10,7 @@ Living documents that are actively maintained and reflect the current state of t
 
 - **[architecture.md](active/architecture.md)** - Primary architecture reference with system overview, module structure, and key interfaces
 - **[cpu_test_guidelines.md](active/cpu_test_guidelines.md)** - Guidelines for writing and maintaining CPU tests
-- **[roadmap.md](active/roadmap.md)** - Feature roadmap and improvement tracking for the project
+- **[consolidated_roadmap.md](active/consolidated_roadmap.md)** - Prioritized roadmap consolidating all todos and future work
 - **[standardization-progress.md](active/standardization-progress.md)** - Tracks ongoing code standardization efforts and completed work
 - **[type-hierarchy.md](active/type-hierarchy.md)** - Documents the TypeScript type system organization
 - **[user_experience_analysis.md](active/user_experience_analysis.md)** - UX improvements tracking and ideas to explore
@@ -29,17 +29,20 @@ Captures significant architectural decisions with their context and rationale.
 
 Design documents for features that have been proposed but not yet implemented.
 
-- **[ui_logging_badge_system.md](proposals/ui_logging_badge_system.md)** - Proposed alert badge system (NOT IMPLEMENTED)
+(Currently empty - all proposals have been implemented or archived)
 
 ### `/archive/` - Historical Documentation
 
 Point-in-time analyses and completed work for historical reference.
 
 - **2024-12_architecture_analysis.md** - Initial architecture analysis and refactoring notes
+- **2025-01_debugging_improvements_status.md** - Debugging feature improvements documentation
 - **2025-01_state_management_analysis.md** - State management patterns investigation
+- **2025-07_comlink_migration_plan_completed.md** - Completed Comlink worker migration
 - **2025-07_cpu_timing_validation.md** - CPU timing accuracy validation report
 - **2025-07_performance_analysis_debugger.md** - Debugger performance investigation
 - **2025-07_test_coverage_snapshot.md** - Test coverage analysis at a point in time
+- **2025-07_ui_logging_badge_system_implemented.md** - Implemented alert badge system
 - **type_consolidation_plan_completed.md** - Completed type system consolidation plan
 
 ## 🧭 Which Document Do I Need?
@@ -70,7 +73,7 @@ Point-in-time analyses and completed work for historical reference.
 
 ### For Future Plans and Improvements
 
-→ Check **[roadmap.md](active/roadmap.md)**
+→ Check **[consolidated_roadmap.md](active/consolidated_roadmap.md)**
 
 ### For Using the Apple 1
 

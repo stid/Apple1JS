@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { WORKER_MESSAGES, DebugData, sendWorkerMessage, isWorkerMessage } from '../apple1/types/worker-messages';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { FilteredDebugData } from '../apple1/types/worker-messages';
+import { getNumericDebugValue } from '../utils/debug-helpers';
+import type { WorkerManager } from '../services/WorkerManager';
+import { useWorkerData } from './WorkerDataContext';
 
 type ExecutionState = 'running' | 'paused' | 'stepping';
 
@@ -8,7 +11,7 @@ interface EmulationContextType {
     isPaused: boolean;
     executionState: ExecutionState;
     currentPC: number;
-    debugInfo: DebugData;
+    debugInfo: FilteredDebugData;
     breakpoints: Set<number>;
     
     // Actions
@@ -23,150 +26,282 @@ interface EmulationContextType {
     // Events
     onBreakpointHit?: (address: number) => void;
     onRunToCursorSet?: (address: number | null) => void;
+    
+    // Navigation events
+    subscribeToNavigationEvents: (callback: (event: NavigationEvent) => void) => () => void;
 }
+
+export type NavigationEvent = 
+    | { type: 'pause-clicked'; address: number }
+    | { type: 'breakpoint-hit'; address: number }
+    | { type: 'step-completed'; address: number };
 
 const EmulationContext = createContext<EmulationContextType | undefined>(undefined);
 
 interface EmulationProviderProps {
     children: ReactNode;
-    worker: Worker;
+    workerManager: WorkerManager;
     onBreakpointHit?: (address: number) => void;
     onRunToCursorSet?: (address: number | null) => void;
 }
 
 export const EmulationProvider: React.FC<EmulationProviderProps> = ({ 
     children, 
-    worker,
+    workerManager,
     onBreakpointHit,
     onRunToCursorSet 
 }) => {
     const [isPaused, setIsPaused] = useState(false);
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [currentPC, setCurrentPC] = useState(0);
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
+    // Get debug info from WorkerDataContext
+    const { debugInfo, subscribeToDebugInfo, setDebuggerActive } = useWorkerData();
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
-    const [lastStepPC, setLastStepPC] = useState<number | null>(null);
+    
+    // Navigation event subscribers
+    const navigationSubscribersRef = useRef<Set<(event: NavigationEvent) => void>>(new Set());
+    
+    // Helper to emit navigation events
+    const emitNavigationEvent = useCallback((event: NavigationEvent) => {
+        navigationSubscribersRef.current.forEach(callback => {
+            try {
+                callback(event);
+            } catch (error) {
+                console.error('Navigation event callback error:', error);
+            }
+        });
+    }, []);
+    
+    // Subscribe to navigation events
+    const subscribeToNavigationEvents = useCallback((callback: (event: NavigationEvent) => void): (() => void) => {
+        navigationSubscribersRef.current.add(callback);
+        return () => {
+            navigationSubscribersRef.current.delete(callback);
+        };
+    }, []);
 
-    // Handle worker messages
+    // Handle worker events via WorkerManager
     useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            const message = event.data;
-            if (!isWorkerMessage(message)) {
-                return;
+        let unsubscribeStatus: (() => void) | undefined;
+        let unsubscribeBreakpoint: (() => void) | undefined;
+        let unsubscribeRunToCursor: (() => void) | undefined;
+        
+        const setupEventHandlers = async () => {
+            // Set up event subscriptions
+            const statusResult = await workerManager.onEmulationStatus((status: 'running' | 'paused') => {
+                if (status === 'paused') {
+                    setIsPaused(true);
+                    setExecutionState('paused');
+                } else if (status === 'running') {
+                    setIsPaused(false);
+                    setExecutionState('running');
+                }
+            });
+            if (statusResult) {
+                unsubscribeStatus = statusResult;
             }
             
-            const { type } = message;
-            const data = 'data' in message ? message.data : undefined;
+            const breakpointResult = await workerManager.onBreakpointHit((hitAddress: number) => {
+                setCurrentPC(hitAddress);
+                setIsPaused(true);
+                setExecutionState('paused');
+                onBreakpointHit?.(hitAddress);
+                // Emit navigation event for breakpoint hit
+                emitNavigationEvent({ type: 'breakpoint-hit', address: hitAddress });
+            });
+            if (breakpointResult) {
+                unsubscribeBreakpoint = breakpointResult;
+            }
             
-            switch (type) {
-                case WORKER_MESSAGES.EMULATION_STATUS:
-                    if (data === 'paused') {
-                        setIsPaused(true);
-                        setExecutionState('paused');
-                    } else if (data === 'running') {
-                        setIsPaused(false);
-                        setExecutionState('running');
-                    }
-                    break;
-                    
-                case WORKER_MESSAGES.BREAKPOINT_HIT: {
-                    // Data is the PC address
-                    if (typeof data === 'number') {
-                        const hitAddress = data;
-                        setCurrentPC(hitAddress);
-                        setIsPaused(true);
-                        setExecutionState('paused');
-                        onBreakpointHit?.(hitAddress);
-                    }
-                    break;
+            const runToCursorResult = await workerManager.onRunToCursorTarget((target: number | null) => {
+                onRunToCursorSet?.(target);
+            });
+            if (runToCursorResult) {
+                unsubscribeRunToCursor = runToCursorResult;
+            }
+            
+            // Get initial state
+            try {
+                const breakpoints = await workerManager.getBreakpoints();
+                if (breakpoints) {
+                    setBreakpoints(new Set(breakpoints));
                 }
-                    
-                case WORKER_MESSAGES.RUN_TO_CURSOR_TARGET:
-                    // Data is the target address or null
-                    if (typeof data === 'number' || data === null) {
-                        onRunToCursorSet?.(data);
+                
+                // Get initial PC value from debug info
+                const debugData = await workerManager.getDebugInfo();
+                if (debugData?.cpu) {
+                    const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                    if (pc !== undefined) {
+                        const pcValue = getNumericDebugValue(pc, 0);
+                        setCurrentPC(pcValue);
                     }
-                    break;
-                    
-                case WORKER_MESSAGES.DEBUG_INFO:
-                case WORKER_MESSAGES.DEBUG_DATA: {
-                    if (data && typeof data === 'object' && 'cpu' in data) {
-                        const debugData = data as DebugData;
-                        setDebugInfo(debugData);
-                        // Check for REG_PC first (from toDebug()), then fall back to PC
-                        const pcValue = debugData.cpu?.REG_PC || debugData.cpu?.PC;
-                        if (pcValue !== undefined) {
-                            const pc = typeof pcValue === 'string' 
-                                ? parseInt(pcValue.replace('$', ''), 16)
-                                : pcValue;
-                            setCurrentPC(pc);
-                            
-                            // If we just stepped and PC changed, mark that we need to follow
-                            if (lastStepPC !== null && pc !== lastStepPC) {
-                                setLastStepPC(null); // Clear the flag
-                            }
-                        }
-                    }
-                    break;
                 }
-                    
-                case WORKER_MESSAGES.BREAKPOINTS_DATA:
-                    if (Array.isArray(data) && data.every(item => typeof item === 'number')) {
-                        setBreakpoints(new Set(data));
-                    }
-                    break;
-                    
-                // Stepping state is managed locally when step is called
+            } catch (error) {
+                console.warn('Failed to get initial state:', error);
             }
         };
         
-        worker.addEventListener('message', handleMessage);
-        
-        // Request initial state
-        sendWorkerMessage(worker, WORKER_MESSAGES.GET_EMULATION_STATUS);
-        sendWorkerMessage(worker, WORKER_MESSAGES.GET_BREAKPOINTS);
+        setupEventHandlers();
         
         return () => {
-            worker.removeEventListener('message', handleMessage);
+            if (unsubscribeStatus) unsubscribeStatus();
+            if (unsubscribeBreakpoint) unsubscribeBreakpoint();
+            if (unsubscribeRunToCursor) unsubscribeRunToCursor();
         };
-    }, [worker, onBreakpointHit, onRunToCursorSet, lastStepPC]);
+    }, [workerManager, onBreakpointHit, onRunToCursorSet, emitNavigationEvent]);
 
     // Actions
-    const pause = useCallback(() => {
-        sendWorkerMessage(worker, WORKER_MESSAGES.PAUSE_EMULATION);
-    }, [worker]);
+    const pause = useCallback(async () => {
+        try {
+            await workerManager.pauseEmulation();
+            // Get current PC when pausing
+            const debugData = await workerManager.getDebugInfo();
+            if (debugData?.cpu) {
+                const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = getNumericDebugValue(pc, 0);
+                    setCurrentPC(pcValue);
+                    // Emit navigation event for pause clicked
+                    emitNavigationEvent({ type: 'pause-clicked', address: pcValue });
+                }
+                // Debug info is now managed by WorkerDataContext
+            }
+        } catch (error) {
+            console.error('Failed to pause emulation:', error);
+        }
+    }, [workerManager, emitNavigationEvent]);
 
-    const resume = useCallback(() => {
-        sendWorkerMessage(worker, WORKER_MESSAGES.RESUME_EMULATION);
-    }, [worker]);
+    const resume = useCallback(async () => {
+        try {
+            await workerManager.resumeEmulation();
+        } catch (error) {
+            console.error('Failed to resume emulation:', error);
+        }
+    }, [workerManager]);
 
-    const step = useCallback(() => {
-        setLastStepPC(currentPC); // Remember where we were before stepping
-        sendWorkerMessage(worker, WORKER_MESSAGES.STEP);
-    }, [worker, currentPC]);
+    const step = useCallback(async () => {
+        try {
+            const debugData = await workerManager.step();
+            if (debugData?.cpu) {
+                // Update PC from debug data
+                const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = getNumericDebugValue(pc, 0);
+                    setCurrentPC(pcValue);
+                    // Emit navigation event for step completed
+                    emitNavigationEvent({ type: 'step-completed', address: pcValue });
+                }
+                // Debug info is now managed by WorkerDataContext
+            }
+        } catch (error) {
+            console.error('Failed to step:', error);
+        }
+    }, [workerManager, emitNavigationEvent]);
 
-    const stepOver = useCallback(() => {
+    const stepOver = useCallback(async () => {
         // Step over not implemented in worker yet, just do regular step
         setExecutionState('stepping');
-        sendWorkerMessage(worker, WORKER_MESSAGES.STEP);
-    }, [worker]);
-
-    const runToAddress = useCallback((address: number) => {
-        sendWorkerMessage(worker, WORKER_MESSAGES.RUN_TO_ADDRESS, address);
-    }, [worker]);
-
-    const toggleBreakpoint = useCallback((address: number) => {
-        // Need to check current state and send appropriate message
-        if (breakpoints.has(address)) {
-            sendWorkerMessage(worker, WORKER_MESSAGES.CLEAR_BREAKPOINT, address);
-        } else {
-            sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
+        try {
+            const debugData = await workerManager.step();
+            if (debugData?.cpu) {
+                // Update PC from debug data
+                const pc = debugData.cpu.REG_PC || debugData.cpu.PC;
+                if (pc !== undefined) {
+                    const pcValue = getNumericDebugValue(pc, 0);
+                    setCurrentPC(pcValue);
+                    // Emit navigation event for step completed
+                    emitNavigationEvent({ type: 'step-completed', address: pcValue });
+                }
+                // Debug info is now managed by WorkerDataContext
+            }
+        } catch (error) {
+            console.error('Failed to step over:', error);
         }
-    }, [worker, breakpoints]);
+    }, [workerManager, emitNavigationEvent]);
 
-    const clearAllBreakpoints = useCallback(() => {
-        sendWorkerMessage(worker, WORKER_MESSAGES.CLEAR_ALL_BREAKPOINTS);
-    }, [worker]);
+    const runToAddress = useCallback(async (address: number) => {
+        try {
+            await workerManager.runToAddress(address);
+        } catch (error) {
+            console.error('Failed to run to address:', error);
+        }
+    }, [workerManager]);
+
+    const toggleBreakpoint = useCallback(async (address: number) => {
+        try {
+            if (breakpoints.has(address)) {
+                const newBreakpoints = await workerManager.clearBreakpoint(address);
+                if (newBreakpoints) {
+                    setBreakpoints(new Set(newBreakpoints));
+                }
+            } else {
+                const newBreakpoints = await workerManager.setBreakpoint(address);
+                if (newBreakpoints) {
+                    setBreakpoints(new Set(newBreakpoints));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to toggle breakpoint:', error);
+        }
+    }, [workerManager, breakpoints]);
+
+    // Subscribe to debug info updates from WorkerDataContext
+    useEffect(() => {
+        let unsubscribe: (() => void) | null = null;
+        let mounted = true;
+        
+        // Try to subscribe, handling the case where WorkerDataSync might not be ready
+        const trySubscribe = () => {
+            try {
+                unsubscribe = subscribeToDebugInfo((data) => {
+                    if (!mounted) {
+                        return;
+                    }
+                    
+                    if (data?.cpu) {
+                        const pc = data.cpu.REG_PC || data.cpu.PC;
+                        if (pc !== undefined) {
+                            const pcValue = getNumericDebugValue(pc, 0);
+                            setCurrentPC(pcValue);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn('Failed to subscribe to debug info, will retry:', error);
+                // Retry after a short delay
+                if (mounted) {
+                    setTimeout(trySubscribe, 100);
+                }
+            }
+        };
+        
+        trySubscribe();
+        
+        return () => {
+            mounted = false;
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [subscribeToDebugInfo]);
+    
+    // Update debugger active state based on context
+    useEffect(() => {
+        // This context is typically used when debugger UI is visible
+        setDebuggerActive(true);
+        return () => {
+            setDebuggerActive(false);
+        };
+    }, [setDebuggerActive]);
+
+    const clearAllBreakpoints = useCallback(async () => {
+        try {
+            await workerManager.clearAllBreakpoints();
+            setBreakpoints(new Set());
+        } catch (error) {
+            console.error('Failed to clear all breakpoints:', error);
+        }
+    }, [workerManager]);
 
     const value: EmulationContextType = {
         isPaused,
@@ -181,6 +316,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         runToAddress,
         toggleBreakpoint,
         clearAllBreakpoints,
+        subscribeToNavigationEvents,
         ...(onBreakpointHit !== undefined && { onBreakpointHit }),
         ...(onRunToCursorSet !== undefined && { onRunToCursorSet })
     };

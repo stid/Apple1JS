@@ -4,14 +4,15 @@ import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
 import { IInspectableComponent } from '../core/types';
-import { WORKER_MESSAGES, DebugData } from '../apple1/TSTypes';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
+import { useWorkerData } from '../contexts/WorkerDataContext';
+import { getDebugValueOrDefault, getNumericDebugValue } from '../utils/debug-helpers';
 import AddressLink from './AddressLink';
-import { REFRESH_RATES } from '../constants/ui';
+import type { WorkerManager } from '../services/WorkerManager';
 
 interface DebuggerLayoutProps {
     root: IInspectableComponent;
-    worker: Worker;
+    workerManager: WorkerManager;
     initialNavigation?: { address: number; target: 'memory' | 'disassembly' } | null;
     onNavigationHandled?: () => void;
     memoryViewAddress: number;
@@ -22,10 +23,10 @@ interface DebuggerLayoutProps {
 
 type DebugView = 'overview' | 'memory' | 'disassembly';
 
-const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigation, onNavigationHandled, memoryViewAddress, setMemoryViewAddress, disassemblerAddress, setDisassemblerAddress }) => {
+const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialNavigation, onNavigationHandled, memoryViewAddress, setMemoryViewAddress, disassemblerAddress, setDisassemblerAddress }) => {
     const [activeView, setActiveView] = useState<DebugView>('overview');
-    const [debugInfo, setDebugInfo] = useState<DebugData>({});
     const { subscribeToNavigation } = useDebuggerNavigation();
+    const { debugInfo, setDebuggerActive } = useWorkerData();
     
     // Handle initial navigation from parent
     useEffect(() => {
@@ -41,38 +42,18 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
         }
     }, [initialNavigation, onNavigationHandled, setDisassemblerAddress, setMemoryViewAddress]);
 
-    // Listen for debug info updates
+    // Control debugger visibility state using WorkerDataContext
     useEffect(() => {
-        const handleMessage = (e: MessageEvent) => {
-            if (e.data.type === WORKER_MESSAGES.DEBUG_INFO) {
-                setDebugInfo(e.data.data as DebugData);
-            }
-        };
-
-        worker.addEventListener('message', handleMessage);
-        return () => worker.removeEventListener('message', handleMessage);
-    }, [worker]);
-
-    // Control debugger visibility state in worker
-    useEffect(() => {
-        // Notify worker that debugger is active
-        worker.postMessage({ type: WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, data: true });
+        // Notify that debugger is active
+        setDebuggerActive(true);
         
-        // Cleanup: notify worker that debugger is inactive
+        // Cleanup: notify that debugger is inactive
         return () => {
-            worker.postMessage({ type: WORKER_MESSAGES.SET_DEBUGGER_ACTIVE, data: false });
+            setDebuggerActive(false);
         };
-    }, [worker]);
+    }, [setDebuggerActive]);
     
-    // Request debug info periodically - but only when on overview tab
-    useEffect(() => {
-        if (activeView !== 'overview') return;
-        
-        const interval = setInterval(() => {
-            worker.postMessage({ type: WORKER_MESSAGES.DEBUG_INFO, data: '' });
-        }, REFRESH_RATES.FAST);
-        return () => clearInterval(interval);
-    }, [worker, activeView]);
+    // Debug info is now provided by WorkerDataContext, no need to poll
 
     // Subscribe to navigation events
     useEffect(() => {
@@ -133,7 +114,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                         {/* Left Column */}
                         <div className="space-y-md">
                             {/* Execution Controls */}
-                            <ExecutionControls worker={worker} />
+                            <ExecutionControls workerManager={workerManager} />
                             
                             {/* CPU State */}
                             <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
@@ -142,9 +123,9 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="text-xs font-mono text-text-secondary">
                                         PC: {debugInfo.cpu?.REG_PC ? (
                                             <AddressLink 
-                                                address={parseInt(String(debugInfo.cpu.REG_PC).replace('$', ''), 16)} 
+                                                address={getNumericDebugValue(debugInfo.cpu.REG_PC, 0)} 
                                                 showContextMenu={true}
-                                                worker={worker}
+                                                workerManager={workerManager}
                                                 showRunToCursor={true}
                                             />
                                         ) : (
@@ -155,19 +136,19 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                 <div className="grid grid-cols-3 gap-sm text-sm">
                                     <div>
                                         <span className="text-text-secondary">A:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_A || '$00'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_A, '$00')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">X:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_X || '$00'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_X, '$00')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">Y:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_Y || '$00'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_Y, '$00')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">SP:</span>
-                                        <div className="font-mono text-data-value">{debugInfo.cpu?.REG_S || '$FF'}</div>
+                                        <div className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.REG_S, '$FF')}</div>
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">Status:</span>
@@ -184,7 +165,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     </div>
                                     <div>
                                         <span className="text-text-secondary">Cycles:</span>
-                                        <div className="font-mono text-data-status">{debugInfo.cpu?.HW_CYCLES || '0'}</div>
+                                        <div className="font-mono text-data-status">{getDebugValueOrDefault(debugInfo.cpu?.HW_CYCLES, '0')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -195,22 +176,22 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                 <div className="space-y-sm text-sm">
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">Last Opcode:</span>
-                                        <span className="font-mono text-data-value">{debugInfo.cpu?.HW_OPCODE || '$00'}</span>
+                                        <span className="font-mono text-data-value">{getDebugValueOrDefault(debugInfo.cpu?.HW_OPCODE, '$00')}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">Instructions:</span>
-                                        <span className="font-mono text-data-status">{debugInfo.cpu?.PERF_INSTRUCTIONS || '0'}</span>
+                                        <span className="font-mono text-data-status">{getDebugValueOrDefault(debugInfo.cpu?.PERF_INSTRUCTIONS, '0')}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">IRQ Line:</span>
                                         <span className={`font-mono text-sm ${debugInfo.cpu?.IRQ_LINE === 'ACTIVE' ? 'text-warning' : 'text-text-secondary'}`}>
-                                            {debugInfo.cpu?.IRQ_LINE || 'INACTIVE'}
+                                            {getDebugValueOrDefault(debugInfo.cpu?.IRQ_LINE, 'INACTIVE')}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-text-secondary">NMI Line:</span>
                                         <span className={`font-mono text-sm ${debugInfo.cpu?.NMI_LINE === 'ACTIVE' ? 'text-warning' : 'text-text-secondary'}`}>
-                                            {debugInfo.cpu?.NMI_LINE || 'INACTIVE'}
+                                            {getDebugValueOrDefault(debugInfo.cpu?.NMI_LINE, 'INACTIVE')}
                                         </span>
                                     </div>
                                 </div>
@@ -223,15 +204,15 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Zero Page:</span>
                                         <span>
-                                            <AddressLink address={0x0000} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
-                                            <AddressLink address={0x00FF} showContextMenu={true} worker={worker} showRunToCursor={true} />
+                                            <AddressLink address={0x0000} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} /> - 
+                                            <AddressLink address={0x00FF} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} />
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Stack:</span>
                                         <span>
-                                            <AddressLink address={0x0100} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
-                                            <AddressLink address={0x01FF} showContextMenu={true} worker={worker} showRunToCursor={true} />
+                                            <AddressLink address={0x0100} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} /> - 
+                                            <AddressLink address={0x01FF} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} />
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -241,8 +222,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">PIA I/O:</span>
                                         <span>
-                                            <AddressLink address={0xD010} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
-                                            <AddressLink address={0xD013} showContextMenu={true} worker={worker} showRunToCursor={true} />
+                                            <AddressLink address={0xD010} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} /> - 
+                                            <AddressLink address={0xD013} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} />
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -252,8 +233,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">WOZ Mon:</span>
                                         <span>
-                                            <AddressLink address={0xFF00} showContextMenu={true} worker={worker} showRunToCursor={true} /> - 
-                                            <AddressLink address={0xFFFF} showContextMenu={true} worker={worker} showRunToCursor={true} />
+                                            <AddressLink address={0xFF00} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} /> - 
+                                            <AddressLink address={0xFFFF} showContextMenu={true} workerManager={workerManager} showRunToCursor={true} />
                                         </span>
                                     </div>
                                 </div>
@@ -265,8 +246,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                             <h3 className="text-sm font-medium text-text-accent mb-sm flex-none">Stack</h3>
                             <div className="flex-1" style={{ minHeight: 0 }}>
                                 <StackViewer
-                                    worker={worker}
-                                    stackPointer={parseInt(String(debugInfo.cpu?.REG_S || '$FF').replace('$', ''), 16)}
+                                    workerManager={workerManager}
+                                    stackPointer={getNumericDebugValue(debugInfo.cpu?.REG_S, 0xFF)}
                                 />
                             </div>
                         </div>
@@ -276,7 +257,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                 {activeView === 'memory' && (
                     <div className="h-full">
                         <MemoryViewerPaginated
-                            worker={worker}
+                            workerManager={workerManager}
                             currentAddress={memoryViewAddress}
                             onAddressChange={setMemoryViewAddress}
                         />
@@ -286,7 +267,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ worker, initialNavigati
                 {activeView === 'disassembly' && (
                     <div className="h-full">
                         <DisassemblerPaginated 
-                            worker={worker}
+                            workerManager={workerManager}
                             currentAddress={disassemblerAddress}
                             onAddressChange={setDisassemblerAddress}
                         />
