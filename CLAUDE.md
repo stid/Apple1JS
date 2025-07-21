@@ -18,7 +18,7 @@ git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, ch
 yarn test:ci
 
 # 4. Check current version
-cat src/version.ts  # Current: 4.33.33
+cat src/version.ts  # Current: 4.35.1
 
 # 5. ALWAYS use TodoWrite tool for multi-step tasks!
 ```
@@ -310,11 +310,13 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 🟢 **Low** - Refinements & polish
 
 ### Recently Completed ✅
-- Jest to Vitest Migration (601 tests)
+- Jest to Vitest Migration (626 tests)
 - Comlink Worker Migration (Phase 2)
 - Type System Organization
 - State Management Interfaces
 - Formatter Migration (97 instances)
+- CPU6502 Module Split (6 focused modules)
+- Base Classes for Common Patterns (useWorkerState hooks)
 
 ### Current Focus Areas:
 1. **Stabilization** - Fix type workarounds, race conditions

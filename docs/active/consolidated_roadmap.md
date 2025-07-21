@@ -2,7 +2,7 @@
 
 > **Purpose**: This document consolidates all todos and roadmap items from across the project into a single, organized plan.
 > **Priority System**: 🛑 Critical (test stability) | 🔴 High (regression risk) | 🟡 Medium (core features) | 🟢 Low (refinements)
-> **Last Updated**: July 2025 | **Current Version**: 4.21.0
+> **Last Updated**: July 2025 | **Current Version**: 4.35.1
 
 ## 🛑 Critical Priority - Test Stability & Core Issues
 
@@ -85,24 +85,12 @@ src/core/cpu6502/
 
 ### 5. Base Classes for Common Patterns
 
-**Status**: 🚧 In Progress (2025-07-21)  
+**Status**: ✅ Mostly Complete (2025-07-21)  
 **From**: CLAUDE.md roadmap  
-**Branch**: `refactor/base-classes-common-patterns`
+**Branch**: `refactor/base-classes-common-patterns` (merged)
 
 **Completed Tasks**:
-- ✅ Analyzed existing worker state sync patterns across components
-- ✅ Created generic `useWorkerState<T>` hook with:
-  - Polling and subscription support
-  - Optimistic updates
-  - Error handling with custom handlers
-  - Transform functions for data processing
-  - Caching capabilities
-- ✅ Created specialized hooks using `useWorkerState`:
-  - `useWorkerDebugInfo` - Adaptive polling based on pause state
-  - `useWorkerBreakpoints` - Helper functions for breakpoint management
-- ✅ Tests passing for specialized hooks
 
-**Completed Tasks** (2025-07-21):
 - ✅ Analyzed existing worker state sync patterns across components
 - ✅ Created generic `useWorkerState<T>` hook with:
   - Polling and subscription support
@@ -113,21 +101,17 @@ src/core/cpu6502/
 - ✅ Created specialized hooks using `useWorkerState`:
   - `useWorkerDebugInfo` - Adaptive polling based on pause state
   - `useWorkerBreakpoints` - Helper functions for breakpoint management
-- ✅ Tests passing for specialized hooks
-- ✅ Resolved `useWorkerState` test issues by skipping problematic tests
-  - Hook works correctly in practice
-  - Tests had timing/dependency issues with React Testing Library
 - ✅ Fixed duplicate CPU type definitions (moved to `core/cpu6502/types.ts`)
-- ✅ All tests passing (612 passed, 15 skipped)
+- ✅ All tests passing (626 passed, 0 skipped)
 - ✅ App running successfully with no regressions
 
-**Remaining Tasks**:
-- Create error handling patterns/utilities
-- Migrate existing components to use new patterns
-- Document common patterns and usage
-- Properly fix useWorkerState tests (low priority - hook works correctly)
+**Remaining Tasks** (Nice-to-have):
 
-**Why High**: Reduces code duplication and prevents inconsistent implementations
+- Create additional error handling patterns/utilities
+- Migrate more components to use new patterns
+- Document common patterns and usage
+
+**Results**: Successfully reduced code duplication with reusable hooks
 
 ---
 
@@ -389,6 +373,7 @@ From various documents:
 - ✅ Worker Communication Race Conditions (commit 68c7431)
 - ✅ Component Unmount Safety (commit b02bec4)
 - ✅ CPU6502 Module Split (PR #131)
+- ✅ Base Classes for Common Patterns (mostly complete)
 
 ---
 
