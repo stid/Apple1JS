@@ -1,6 +1,5 @@
-import { vi, type Mock } from 'vitest';
+import { vi } from 'vitest';
 import type { WorkerMessage } from '../apple1/types/worker-messages';
-import type { IWorkerAPI } from '../apple1/types/worker-api';
 import type { DebugData, MemoryMapData } from '../apple1/types/worker-messages';
 import type { EmulatorState } from '../apple1/types/emulator-state';
 
@@ -41,7 +40,7 @@ export function createMockWorker() {
  * Creates a mock Comlink Worker API for testing components
  * that will use the new Comlink-based API.
  */
-export function createMockWorkerAPI(): IWorkerAPI & { __mocks: Record<string, Mock> } {
+export function createMockWorkerAPI() {
     const mocks = {
         pauseEmulation: vi.fn(),
         resumeEmulation: vi.fn(),
@@ -116,6 +115,7 @@ export function createMockWorkerManager() {
         setCrtBsSupport: mockAPI.setCrtBsSupport,
         setDebuggerActive: mockAPI.setDebuggerActive,
         keyDown: mockAPI.keyDown,
+        getDebugInfo: mockAPI.getDebugInfo,
         
         // Event subscriptions
         onVideoUpdate: mockAPI.onVideoUpdate,
