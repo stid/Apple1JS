@@ -101,31 +101,25 @@ export function useWorkerState<T>(
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     
-    // Refs for cleanup and state management
-    const mountedRef = useRef(true);
-    const intervalRef = useRef<number | null>(null);
-    const unsubscribeRef = useRef<(() => void) | null>(null);
-    const cacheRef = useRef<{ data: T; timestamp: number } | null>(null);
-    
-    // Store latest values in refs to use in callbacks
-    const stateRef = useRef({ workerManager, fetcher, subscriber, transform, onError, cache });
-    
-    // Update ref on every render
-    stateRef.current = { workerManager, fetcher, subscriber, transform, onError, cache };
+    // Store all mutable values in refs to avoid stale closures
+    const refs = useRef({
+        mounted: true,
+        cache: cache ? { data: initialValue, timestamp: Date.now() } : null,
+        intervalId: null as number | null,
+        unsubscribe: null as (() => void) | null
+    });
     
     // Track mount state
     useEffect(() => {
-        mountedRef.current = true;
+        refs.current.mounted = true;
         return () => {
-            mountedRef.current = false;
+            refs.current.mounted = false;
         };
     }, []);
     
-    // Stable fetch function that uses refs
+    // Fetch data function
     const fetchData = useCallback(async () => {
-        if (!mountedRef.current) return;
-        
-        const { workerManager, fetcher, transform, onError, cache } = stateRef.current;
+        if (!refs.current.mounted) return;
         
         try {
             setLoading(true);
@@ -134,12 +128,12 @@ export function useWorkerState<T>(
             const rawData = await fetcher(workerManager);
             const processedData = transform ? transform(rawData) : rawData;
             
-            if (mountedRef.current) {
+            if (refs.current.mounted) {
                 setData(processedData);
                 
                 // Update cache
-                if (cache) {
-                    cacheRef.current = {
+                if (cache && refs.current.cache) {
+                    refs.current.cache = {
                         data: processedData,
                         timestamp: Date.now()
                     };
@@ -147,7 +141,7 @@ export function useWorkerState<T>(
             }
         } catch (err) {
             const error = err as Error;
-            if (mountedRef.current) {
+            if (refs.current.mounted) {
                 setError(error);
                 if (onError) {
                     onError(error);
@@ -156,62 +150,58 @@ export function useWorkerState<T>(
                 }
             }
         } finally {
-            if (mountedRef.current) {
+            if (refs.current.mounted) {
                 setLoading(false);
             }
         }
-    }, []); // No dependencies - uses refs instead
+    }, [workerManager, fetcher, transform, cache, onError]);
     
-    // Manual refresh function
+    // Manual refresh
     const refresh = useCallback(async () => {
         await fetchData();
     }, [fetchData]);
     
-    // Optimistic update function
+    // Optimistic update
     const setOptimistic = useCallback((value: T) => {
         setData(value);
-        const { cache } = stateRef.current;
-        if (cache) {
-            cacheRef.current = {
+        if (cache && refs.current.cache) {
+            refs.current.cache = {
                 data: value,
                 timestamp: Date.now()
             };
         }
-    }, []);
+    }, [cache]);
     
-    // Set up subscription and/or polling
+    // Main effect for fetching and subscriptions
     useEffect(() => {
-        let isCancelled = false;
+        let cancelled = false;
         
-        const setup = async () => {
-            const { workerManager, subscriber } = stateRef.current;
-            
+        // Async setup function
+        (async () => {
             // Set up subscription if provided
-            if (subscriber && !isCancelled) {
+            if (subscriber && !cancelled) {
                 try {
-                    const unsubscribe = await subscriber(workerManager, (newData) => {
-                        if (!mountedRef.current || isCancelled) return;
+                    const cleanup = await subscriber(workerManager, (newData) => {
+                        if (cancelled || !refs.current.mounted) return;
                         
-                        const { transform, cache } = stateRef.current;
                         const processedData = transform ? transform(newData) : newData;
                         setData(processedData);
                         
-                        if (cache) {
-                            cacheRef.current = {
+                        if (cache && refs.current.cache) {
+                            refs.current.cache = {
                                 data: processedData,
                                 timestamp: Date.now()
                             };
                         }
                     });
                     
-                    if (unsubscribe && typeof unsubscribe === 'function' && !isCancelled) {
-                        unsubscribeRef.current = unsubscribe;
+                    if (cleanup && typeof cleanup === 'function' && !cancelled) {
+                        refs.current.unsubscribe = cleanup;
                     }
                 } catch (err) {
-                    const error = err as Error;
-                    if (mountedRef.current && !isCancelled) {
+                    if (!cancelled && refs.current.mounted) {
+                        const error = err as Error;
                         setError(error);
-                        const { onError } = stateRef.current;
                         if (onError) {
                             onError(error);
                         }
@@ -220,40 +210,48 @@ export function useWorkerState<T>(
             }
             
             // Initial fetch
-            if (!isCancelled) {
+            if (!cancelled && refs.current.mounted) {
                 await fetchData();
             }
             
-            // Set up polling if enabled
-            if (enablePolling && pollInterval && pollInterval > 0 && !isCancelled) {
-                intervalRef.current = window.setInterval(() => {
-                    if (!isCancelled && mountedRef.current) {
+            // Set up polling
+            if (enablePolling && pollInterval && pollInterval > 0 && !cancelled) {
+                refs.current.intervalId = window.setInterval(() => {
+                    if (refs.current.mounted) {
                         fetchData();
                     }
                 }, pollInterval);
             }
-        };
-        
-        setup();
+        })();
         
         // Cleanup
         return () => {
-            isCancelled = true;
+            cancelled = true;
             
             // Clear interval
-            if (intervalRef.current !== null) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
+            if (refs.current.intervalId) {
+                clearInterval(refs.current.intervalId);
+                refs.current.intervalId = null;
             }
             
             // Unsubscribe
-            if (unsubscribeRef.current) {
-                unsubscribeRef.current();
-                unsubscribeRef.current = null;
+            if (refs.current.unsubscribe) {
+                refs.current.unsubscribe();
+                refs.current.unsubscribe = null;
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fetchData, enablePolling, pollInterval, ...dependencies]);
+    }, [
+        workerManager,
+        fetcher,
+        subscriber,
+        enablePolling,
+        pollInterval,
+        transform,
+        cache,
+        onError,
+        ...dependencies
+    ]);
     
     return {
         data,
