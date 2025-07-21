@@ -38,7 +38,12 @@ interface WorkerDataProviderProps {
 }
 
 export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerManager, children }) => {
-    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({});
+    const [debugInfo, setDebugInfo] = useState<FilteredDebugData>({
+        cpu: {},
+        pia: {},
+        Bus: {},
+        clock: {}
+    });
     const [breakpoints, setBreakpoints] = useState<number[]>([]);
     const dataSyncRef = useRef<WorkerDataSync | null>(null);
     

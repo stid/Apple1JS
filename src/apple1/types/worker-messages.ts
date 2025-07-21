@@ -41,15 +41,48 @@ export interface DebugData {
     [key: string]: { [key: string]: string | number | object };
 }
 
+// CPU Debug data structure
+export interface CPUDebugData {
+    [key: string]: string | number | object;
+    _PERF_DATA?: CPUPerfData;
+}
+
+// Component debug data structure  
+export interface ComponentDebugData {
+    [key: string]: string | number | object;
+}
+
 // Filtered debug data that supports string, number, and nested object values
 // This properly supports special objects like _PERF_DATA without workarounds
 export interface FilteredDebugData {
-    [key: string]: { [key: string]: string | number | object };
+    cpu: CPUDebugData;
+    pia: ComponentDebugData;
+    Bus: ComponentDebugData;
+    clock: ComponentDebugData;
 }
 
 // Extended debug data that supports additional types
 export interface ExtendedDebugData {
     [key: string]: { [key: string]: string | number | boolean | object };
+}
+
+// Type for CPU performance data
+export interface CPUPerfStats {
+    instructionCount: number;
+    totalInstructions: number;
+    profilingEnabled: boolean;
+}
+
+export interface CPUPerfOpcode {
+    opcode: string;
+    count: number;
+    cycles: number;
+    avgCycles: number;
+}
+
+export interface CPUPerfData {
+    stats?: CPUPerfStats;
+    topOpcodes?: CPUPerfOpcode[];
 }
 
 // Type for log messages from worker

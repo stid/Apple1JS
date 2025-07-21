@@ -57,10 +57,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
 
     // Get CPU performance data if available
     const cpuDebugData = debugInfo.cpu || {};
-    const perfData = cpuDebugData._PERF_DATA as { 
-        stats?: { instructionCount: number; totalInstructions: number; profilingEnabled: boolean };
-        topOpcodes?: Array<{ opcode: string; count: number; cycles: number; avgCycles: number }>;
-    } | undefined;
+    const perfData = cpuDebugData._PERF_DATA;
     
     // Sync profiling state with actual worker state from debug info
     React.useEffect(() => {
@@ -96,9 +93,28 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         };
         
         const debugDomain = typeToDebugDomain[node.type];
-        if (!debugDomain || !debugInfo[debugDomain]) return {};
+        if (!debugDomain) return {};
         
-        const domainData = debugInfo[debugDomain];
+        // Type-safe access to debug domains
+        let domainData: Record<string, string | number | object> | undefined;
+        switch (debugDomain) {
+            case 'cpu':
+                domainData = debugInfo.cpu;
+                break;
+            case 'pia':
+                domainData = debugInfo.pia;
+                break;
+            case 'Bus':
+                domainData = debugInfo.Bus;
+                break;
+            case 'clock':
+                domainData = debugInfo.clock;
+                break;
+            default:
+                return {};
+        }
+        
+        if (!domainData) return {};
         
         // Handle CPU debug data (could be flat or nested depending on source)
         if (debugDomain === 'cpu' && typeof domainData === 'object') {
