@@ -4,12 +4,12 @@
  * This is the main CPU class that combines all the modular components.
  */
 
-import type { IClockable, IInspectableComponent, InspectableData, CPU6502State, IVersionedStatefulComponent, StateValidationResult, StateOptions } from '../types';
+import type { IClockable, IInspectableComponent, InspectableData, IVersionedStatefulComponent, StateValidationResult, StateOptions } from '../types';
 import { StateError } from '../types';
 import type Bus from '../Bus';
 // Formatters imported through debug module
 import CPU6502op from './opcodes';
-import type { CPU6502Interface } from './types';
+import type { CPU6502Interface, CPU6502State } from './types';
 
 // Import addressing modes
 import * as addressing from './addressing';
