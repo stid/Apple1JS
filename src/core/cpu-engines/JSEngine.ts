@@ -34,10 +34,16 @@ export class JSEngine implements ICPUEngine {
     private breakpoints = new Set<number>();
     private metrics: EngineMetrics;
     private metricsStartTime: number;
+    private lastMetricsUpdate: number;
+    private lastSecondInstructions: number;
+    private lastSecondStartTime: number;
     
     constructor(private bus: Bus) {
         this.cpu = new CPU6502(bus);
         this.metricsStartTime = Date.now();
+        this.lastMetricsUpdate = Date.now();
+        this.lastSecondInstructions = 0;
+        this.lastSecondStartTime = Date.now();
         this.metrics = this.initializeMetrics();
     }
     
@@ -82,17 +88,29 @@ export class JSEngine implements ICPUEngine {
     
     performBulkSteps(cycles: number): void {
         const startTime = Date.now();
+        
         this.cpu.performBulkSteps(cycles);
         
         const duration = Date.now() - startTime;
         this.metrics.totalCycles += cycles;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
+        
+        // Estimate instructions executed (approximate - assume average 3 cycles per instruction)
+        const estimatedInstructions = Math.floor(cycles / 3);
+        this.metrics.instructionsExecuted += estimatedInstructions;
+        this.lastSecondInstructions += estimatedInstructions;
+        
+        // Update IPS calculation
+        this.updateIPSMetrics();
     }
     
     reset(): void {
         this.cpu.reset();
         this.metrics = this.initializeMetrics();
         this.metricsStartTime = Date.now();
+        this.lastMetricsUpdate = Date.now();
+        this.lastSecondInstructions = 0;
+        this.lastSecondStartTime = Date.now();
     }
     
     halt(): void {
@@ -194,12 +212,31 @@ export class JSEngine implements ICPUEngine {
     // ============ Performance & Metrics ============
     
     getMetrics(): EngineMetrics {
-        return { ...this.metrics };
+        // Force update IPS calculation when metrics are requested
+        this.updateIPSMetrics();
+        
+        // Calculate instantaneous IPS (last second)
+        const now = Date.now();
+        const timeSinceSecondStart = now - this.lastSecondStartTime;
+        let lastIPS = 0;
+        if (timeSinceSecondStart > 0) {
+            // Calculate IPS based on instructions in the current second window
+            lastIPS = Math.floor((this.lastSecondInstructions / timeSinceSecondStart) * 1000);
+        }
+        
+        return { 
+            ...this.metrics,
+            // Add lastIPS as a computed field
+            lastIPS: lastIPS || this.metrics.averageIPS
+        } as EngineMetrics;
     }
     
     resetMetrics(): void {
         this.metrics = this.initializeMetrics();
         this.metricsStartTime = Date.now();
+        this.lastMetricsUpdate = Date.now();
+        this.lastSecondInstructions = 0;
+        this.lastSecondStartTime = Date.now();
     }
     
     setProfiling(enabled: boolean): void {
@@ -232,17 +269,41 @@ export class JSEngine implements ICPUEngine {
     private updateMetrics(cycles: number, duration: number): void {
         this.metrics.totalCycles += cycles;
         this.metrics.instructionsExecuted++;
+        this.lastSecondInstructions++;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
         
-        // Calculate average IPS
-        const totalTime = Date.now() - this.metricsStartTime;
-        if (totalTime > 0) {
-            this.metrics.averageIPS = (this.metrics.instructionsExecuted / totalTime) * 1000;
-        }
+        // Update IPS calculation
+        this.updateIPSMetrics();
         
         // Update memory usage periodically
         if (this.metrics.instructionsExecuted % 1000 === 0) {
             this.metrics.memoryUsage = this.getMemoryUsage();
+        }
+    }
+    
+    private updateIPSMetrics(): void {
+        const now = Date.now();
+        const timeSinceLastUpdate = now - this.lastMetricsUpdate;
+        
+        // Update IPS every 100ms minimum OR when explicitly requested
+        if (timeSinceLastUpdate >= 100 || timeSinceLastUpdate === 0) {
+            // Calculate average IPS over entire runtime
+            const totalTime = now - this.metricsStartTime;
+            if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
+                this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
+            }
+            
+            // Reset last second counter every second for instantaneous IPS
+            const timeSinceSecondStart = now - this.lastSecondStartTime;
+            if (timeSinceSecondStart >= 1000) {
+                this.lastSecondInstructions = 0;
+                this.lastSecondStartTime = now;
+            }
+            
+            // Only update lastMetricsUpdate if time has actually passed
+            if (timeSinceLastUpdate > 0) {
+                this.lastMetricsUpdate = now;
+            }
         }
     }
     

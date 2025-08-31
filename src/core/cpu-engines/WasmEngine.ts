@@ -16,6 +16,7 @@ import type { WasmCPU } from './wasm-loader';
 import type Bus from '../Bus';
 import { initializeWasmModule, getWasmCPUClass, isWasmSupported } from './wasm-loader';
 import { loggingService } from '../../services/LoggingService';
+import { setBusForWasm, installMemoryBridge } from './wasm-memory-bridge';
 
 /**
  * WASM implementation of the CPU engine
@@ -36,21 +37,30 @@ export class WasmEngine implements ICPUEngine {
     private breakpoints = new Set<number>();
     private metrics: EngineMetrics;
     private metricsStartTime: number;
+    private lastMetricsUpdate: number;
+    private lastSecondInstructions: number;
+    private lastSecondStartTime: number;
     private initPromise: Promise<void> | null = null;
     private _isReady = false;
     
-    // Memory synchronization
-    private lastSyncedPC = -1;
     
     constructor(bus: Bus) {
         this.bus = bus;
         this.metricsStartTime = Date.now();
+        this.lastMetricsUpdate = Date.now();
+        this.lastSecondInstructions = 0;
+        this.lastSecondStartTime = Date.now();
         this.metrics = this.initializeMetrics();
         
         // Check WASM support
         if (!isWasmSupported()) {
             throw new Error('WebAssembly is not supported in this environment');
         }
+        
+        // Install memory bridge for WASM to use Bus as single source of truth
+        installMemoryBridge();
+        setBusForWasm(bus);
+        loggingService.info('WasmEngine', 'Memory bridge configured for single source of truth');
     }
     
     get isReady(): boolean {
@@ -101,12 +111,14 @@ export class WasmEngine implements ICPUEngine {
             
             // Create the WASM CPU instance
             this.wasmCpu = new WasmCPUClass();
+            loggingService.info('WasmEngine', 'WASM CPU instance created');
             
-            // Initialize CPU state
+            // IMPORTANT: Sync memory BEFORE reset so WASM can read the reset vector
+            // The reset vector at 0xFFFC-0xFFFD must be available
+            // No memory syncing needed - WASM calls JavaScript Bus directly
+            
+            // Now reset the CPU - it will read the reset vector from memory
             this.wasmCpu.reset();
-            
-            // Sync initial memory from Bus to WASM
-            this.syncMemoryFromBus();
             
             this._isReady = true;
             this.metrics.initializationTime = Date.now() - startTime;
@@ -124,24 +136,6 @@ export class WasmEngine implements ICPUEngine {
         }
     }
     
-    // ============ Memory Synchronization ============
-    
-    /**
-     * Sync memory from Bus to WASM
-     * This is needed because WASM has its own memory space
-     */
-    private syncMemoryFromBus(): void {
-        if (!this.wasmCpu) return;
-        
-        // Copy entire memory space from Bus to WASM
-        // This is expensive but necessary for initial sync
-        for (let addr = 0; addr < 0x10000; addr++) {
-            const value = this.bus.read(addr);
-            this.wasmCpu.write_memory(addr, value);
-        }
-    }
-    
-    
     // ============ Core Operations ============
     
     performSingleStep(): number {
@@ -156,25 +150,44 @@ export class WasmEngine implements ICPUEngine {
         // Check for breakpoints
         const pc = this.wasmCpu.pc;
         if (this.breakpoints.has(pc)) {
-            loggingService.info('WasmEngine', `Breakpoint hit at ${pc.toString(16)}`);
+            // Breakpoint handling is done through execution hook
+            // Don't log here as it can flood console
         }
+        
+        // Get opcode for metrics and debugging only
+        const opcode = this.bus.read(pc);
+        
+        // No memory syncing needed - WASM calls JavaScript Bus directly
         
         // Execute one instruction
         const cycles = this.wasmCpu.step();
         
-        // Check if PC changed (indicates memory access might have occurred)
+        // CRITICAL: If WASM returns 0 cycles, it means execution failed
+        // We should still advance to avoid infinite loops
+        const actualCycles = cycles || 2; // Default to 2 cycles if 0
+        
+        // Check if PC didn't advance (might indicate a halt or invalid instruction)
         const newPC = this.wasmCpu.pc;
-        if (newPC !== this.lastSyncedPC) {
-            // For now, we'll handle memory writes through the read/write methods
-            // In the future, we might batch these for performance
-            this.lastSyncedPC = newPC;
+        if (cycles === 0) {
+            loggingService.error('WasmEngine', 
+                `WASM returned 0 cycles at PC=${pc.toString(16)}, opcode=${opcode.toString(16)}, newPC=${newPC.toString(16)}`);
+            // Return at least 2 cycles to prevent infinite loop
+            return actualCycles;
         }
+        
+        if (newPC === pc && opcode !== 0x4C && opcode !== 0x6C && opcode !== 0x20) {
+            // Not a JMP, JMP indirect, or JSR - PC should have advanced
+            loggingService.warn('WasmEngine', 
+                `PC didn't advance at PC=${pc.toString(16)}, opcode=${opcode.toString(16)}`);
+        }
+        
+        // No write-back needed - WASM writes directly to Bus
         
         // Update metrics
         const duration = Date.now() - startTime;
-        this.updateMetrics(cycles, duration);
+        this.updateMetrics(actualCycles, duration);
         
-        return cycles;
+        return actualCycles;
     }
     
     performBulkSteps(cycles: number): void {
@@ -184,14 +197,21 @@ export class WasmEngine implements ICPUEngine {
             return;
         }
         
-        const startTime = Date.now();
+        // For bulk steps, execute instructions one by one to maintain Bus consistency
+        // This ensures proper I/O handling
+        let remainingCycles = cycles;
+        let totalExecuted = 0;
         
-        // Execute multiple cycles
-        const actualCycles = this.wasmCpu.step_cycles(cycles);
+        while (remainingCycles > 0 && totalExecuted < cycles) {
+            const executed = this.performSingleStep();
+            totalExecuted += executed;
+            remainingCycles -= executed;
+            
+            // Early exit if we've executed enough cycles
+            if (totalExecuted >= cycles) break;
+        }
         
-        const duration = Date.now() - startTime;
-        this.metrics.totalCycles += actualCycles;
-        this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
+        // Metrics are already updated by performSingleStep
     }
     
     reset(): void {
@@ -200,12 +220,16 @@ export class WasmEngine implements ICPUEngine {
             return;
         }
         
+        // Reset the CPU - it reads reset vector directly from Bus
         this.wasmCpu.reset();
+        
+        // Reset complete - PC set to reset vector
+        
         this.metrics = this.initializeMetrics();
         this.metricsStartTime = Date.now();
-        
-        // Re-sync memory after reset
-        this.syncMemoryFromBus();
+        this.lastMetricsUpdate = Date.now();
+        this.lastSecondInstructions = 0;
+        this.lastSecondStartTime = Date.now();
     }
     
     halt(): void {
@@ -300,9 +324,6 @@ export class WasmEngine implements ICPUEngine {
             // Set registers directly as fallback
             // The registers were already set above, so just log the error
         }
-        
-        // Sync memory after state load
-        this.syncMemoryFromBus();
     }
     
     getRegisters(): CPURegisters {
@@ -372,45 +393,36 @@ export class WasmEngine implements ICPUEngine {
     // ============ Memory Operations ============
     
     read(address: number): number {
-        // Always read from Bus to maintain consistency
+        // Read directly from Bus - WASM uses Bus for all memory access
         return this.bus.read(address);
     }
     
     write(address: number, value: number): void {
-        // Write to both WASM and Bus
-        if (this.wasmCpu) {
-            this.wasmCpu.write_memory(address, value);
-        }
+        // Write to Bus - WASM will read it from there
         this.bus.write(address, value);
     }
     
     readRange(start: number, length: number): Uint8Array {
-        if (!this.wasmCpu) {
-            // Fallback to Bus if WASM not ready
-            const data = new Uint8Array(length);
-            for (let i = 0; i < length; i++) {
-                data[i] = this.bus.read(start + i);
-            }
-            return data;
+        // Read from Bus - WASM uses Bus for all memory access
+        const data = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+            data[i] = this.bus.read(start + i);
         }
-        
-        // Use WASM's efficient range read
-        return this.wasmCpu.read_memory_range(start, length);
+        return data;
     }
     
     writeRange(start: number, data: Uint8Array): void {
-        if (this.wasmCpu) {
-            this.wasmCpu.write_memory_range(start, data);
-        }
-        
-        // Also write to Bus
+        // Write to Bus - WASM will read it from there
         for (let i = 0; i < data.length; i++) {
             this.bus.write(start + i, data[i]);
         }
     }
     
     loadProgram(program: Uint8Array, address = 0x0000): void {
-        this.writeRange(address, program);
+        // Load program into Bus - WASM will read it directly
+        for (let i = 0; i < program.length; i++) {
+            this.bus.write(address + i, program[i]);
+        }
     }
     
     // ============ Debugging Support ============
@@ -447,12 +459,34 @@ export class WasmEngine implements ICPUEngine {
             }
         }
         
-        return { ...this.metrics };
+        // Force update IPS calculation when metrics are requested
+        const now = Date.now();
+        const totalTime = now - this.metricsStartTime;
+        if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
+            this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
+        }
+        
+        // Calculate instantaneous IPS (last second)
+        const timeSinceSecondStart = now - this.lastSecondStartTime;
+        let lastIPS = 0;
+        if (timeSinceSecondStart > 0) {
+            // Calculate IPS based on instructions in the current second window
+            lastIPS = Math.floor((this.lastSecondInstructions / timeSinceSecondStart) * 1000);
+        }
+        
+        return { 
+            ...this.metrics,
+            // Add lastIPS as a computed field
+            lastIPS: lastIPS || this.metrics.averageIPS
+        } as EngineMetrics;
     }
     
     resetMetrics(): void {
         this.metrics = this.initializeMetrics();
         this.metricsStartTime = Date.now();
+        this.lastMetricsUpdate = Date.now();
+        this.lastSecondInstructions = 0;
+        this.lastSecondStartTime = Date.now();
         
         if (this.wasmCpu) {
             this.wasmCpu.reset_metrics();
@@ -470,12 +504,27 @@ export class WasmEngine implements ICPUEngine {
     private updateMetrics(cycles: number, duration: number): void {
         this.metrics.totalCycles += cycles;
         this.metrics.instructionsExecuted++;
+        this.lastSecondInstructions++;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
         
-        // Calculate average IPS
-        const totalTime = Date.now() - this.metricsStartTime;
-        if (totalTime > 0) {
-            this.metrics.averageIPS = (this.metrics.instructionsExecuted / totalTime) * 1000;
+        // Update IPS calculation periodically
+        const now = Date.now();
+        const timeSinceLastUpdate = now - this.lastMetricsUpdate;
+        
+        if (timeSinceLastUpdate >= 100) {
+            const totalTime = now - this.metricsStartTime;
+            if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
+                this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
+            }
+            
+            // Reset last second counter every second for instantaneous IPS
+            const timeSinceSecondStart = now - this.lastSecondStartTime;
+            if (timeSinceSecondStart >= 1000) {
+                this.lastSecondInstructions = 0;
+                this.lastSecondStartTime = now;
+            }
+            
+            this.lastMetricsUpdate = now;
         }
         
         // Update memory usage periodically

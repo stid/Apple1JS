@@ -46,6 +46,9 @@ export interface EngineMetrics {
     /** Average instructions per second */
     averageIPS: number;
     
+    /** Last second's instructions per second (instantaneous) */
+    lastIPS?: number;
+    
     /** Memory usage in bytes */
     memoryUsage: number;
     

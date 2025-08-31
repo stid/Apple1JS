@@ -52,29 +52,32 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
                 return updated;
             });
             
-            // Update max IPS
-            const currentMaxIPS = Math.max(
+            // Update max IPS using functional setState to avoid stale closure
+            setMaxIPS(prevMax => Math.max(
                 newPoint.jsIPS || 0,
                 newPoint.wasmIPS || 0,
-                maxIPS
-            );
-            setMaxIPS(currentMaxIPS);
+                prevMax
+            ));
             
-            // Calculate running averages
-            if (history.length > 0) {
-                const jsAvg = history
-                    .filter(h => h.jsIPS)
-                    .reduce((sum, h) => sum + (h.jsIPS || 0), 0) / history.length;
-                const wasmAvg = history
-                    .filter(h => h.wasmIPS)
-                    .reduce((sum, h) => sum + (h.wasmIPS || 0), 0) / history.length;
-                setAvgIPS({ js: jsAvg, wasm: wasmAvg });
-            }
+            // We'll calculate averages after history is updated
             
         } catch (error) {
             loggingService.error('PerformanceMetrics', `Failed to update metrics: ${error}`);
         }
-    }, [workerManager, history, maxIPS]);
+    }, [workerManager]); // Only depend on workerManager which doesn't change
+    
+    // Calculate averages when history changes
+    useEffect(() => {
+        if (history.length > 0) {
+            const jsAvg = history
+                .filter(h => h.jsIPS)
+                .reduce((sum, h) => sum + (h.jsIPS || 0), 0) / history.filter(h => h.jsIPS).length || 0;
+            const wasmAvg = history
+                .filter(h => h.wasmIPS)
+                .reduce((sum, h) => sum + (h.wasmIPS || 0), 0) / history.filter(h => h.wasmIPS).length || 0;
+            setAvgIPS({ js: jsAvg, wasm: wasmAvg });
+        }
+    }, [history]);
     
     // Set up periodic updates
     useEffect(() => {

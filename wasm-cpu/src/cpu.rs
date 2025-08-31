@@ -28,8 +28,7 @@ pub struct CPU6502 {
     pub(crate) s: u8,    // Stack Pointer
     pub(crate) status: u8, // Status Register (NV-BDIZC)
     
-    // Memory (64KB)
-    pub(crate) memory: Box<[u8; 65536]>,
+    // No internal memory - all memory access goes through JavaScript Bus
     
     // Interrupt state
     pub(crate) irq: bool,
@@ -58,7 +57,6 @@ impl CPU6502 {
             y: 0,
             s: 0xFF,
             status: flags::UNUSED | flags::INTERRUPT, // Start with interrupts disabled
-            memory: Box::new([0; 65536]),
             irq: false,
             nmi: false,
             nmi_pending: false,
@@ -70,9 +68,9 @@ impl CPU6502 {
     
     /// Reset the CPU
     pub fn reset(&mut self) {
-        // Read reset vector from 0xFFFC-0xFFFD
-        let low = self.memory[0xFFFC] as u16;
-        let high = self.memory[0xFFFD] as u16;
+        // Read reset vector from 0xFFFC-0xFFFD via Bus
+        let low = crate::bus_read(0xFFFC) as u16;
+        let high = crate::bus_read(0xFFFD) as u16;
         self.pc = (high << 8) | low;
         
         self.a = 0;
@@ -211,34 +209,34 @@ impl CPU6502 {
     
     // ============ Memory Access ============
     
-    /// Read a byte from memory
+    /// Read a byte from memory via JavaScript Bus
     pub fn read_memory(&self, address: u16) -> u8 {
-        self.memory[address as usize]
+        crate::bus_read(address)
     }
     
-    /// Write a byte to memory
+    /// Write a byte to memory via JavaScript Bus
     pub fn write_memory(&mut self, address: u16, value: u8) {
-        self.memory[address as usize] = value;
+        crate::bus_write(address, value);
     }
     
-    /// Read a range of memory
+    /// Read a range of memory via JavaScript Bus
     pub fn read_memory_range(&self, start: u16, length: u16) -> Vec<u8> {
-        let start = start as usize;
-        let end = (start + length as usize).min(65536);
-        self.memory[start..end].to_vec()
+        let mut result = Vec::with_capacity(length as usize);
+        for i in 0..length {
+            result.push(crate::bus_read(start + i));
+        }
+        result
     }
     
-    /// Write a range of memory
+    /// Write a range of memory via JavaScript Bus
     pub fn write_memory_range(&mut self, start: u16, data: &[u8]) {
-        let start = start as usize;
-        let len = data.len().min(65536 - start);
-        self.memory[start..start + len].copy_from_slice(&data[..len]);
+        for (i, &byte) in data.iter().enumerate() {
+            crate::bus_write(start + i as u16, byte);
+        }
     }
     
-    /// Get a pointer to the memory array (for SharedArrayBuffer)
-    pub fn memory_ptr(&self) -> *const u8 {
-        self.memory.as_ptr()
-    }
+    // Note: memory_ptr removed as we no longer have internal memory
+    // All memory access goes through JavaScript Bus
     
     // ============ Performance Metrics ============
     
@@ -284,16 +282,18 @@ impl CPU6502 {
 
 // Internal implementation
 impl CPU6502 {
-    /// Read a byte from memory (internal)
+    /// Read a byte from memory (internal) via JavaScript Bus
     pub(crate) fn read_byte(&mut self, address: u16) -> u8 {
         self.cycles += 1;
-        self.memory[address as usize]
+        // Use JavaScript Bus.read() as single source of truth
+        crate::bus_read(address)
     }
     
-    /// Write a byte to memory (internal)
+    /// Write a byte to memory (internal) via JavaScript Bus
     pub(crate) fn write_byte(&mut self, address: u16, value: u8) {
         self.cycles += 1;
-        self.memory[address as usize] = value;
+        // Use JavaScript Bus.write() as single source of truth
+        crate::bus_write(address, value);
     }
     
     /// Read a word from memory (little-endian)
@@ -411,9 +411,10 @@ impl CPU6502 {
     
     /// Check if page boundary was crossed for indirect indexed mode
     pub(crate) fn check_izy_page_cross(&mut self) -> bool {
-        let zp_addr = self.memory[(self.pc - 1) as usize];
-        let low = self.memory[zp_addr as usize] as u16;
-        let high = self.memory[zp_addr.wrapping_add(1) as usize] as u16;
+        // Read the indirect address from zero page via Bus
+        let zp_addr = crate::bus_read(self.pc - 1);
+        let low = crate::bus_read(zp_addr as u16) as u16;
+        let high = crate::bus_read(zp_addr.wrapping_add(1) as u16) as u16;
         let base_addr = (high << 8) | low;
         let final_addr = base_addr.wrapping_add(self.y as u16);
         (base_addr & 0xFF00) != (final_addr & 0xFF00)

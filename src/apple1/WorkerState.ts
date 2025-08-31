@@ -209,10 +209,9 @@ export class WorkerState implements IWorkerState {
         }
         
         const stats = dualEngine.getSwitchStats();
-        const jsMetrics = this.convertEngineMetrics(dualEngine['jsEngine']?.getMetrics());
-        const wasmEngine = dualEngine['wasmEngine'];
-        const wasmMetrics = wasmEngine && 'getMetrics' in wasmEngine ? 
-            this.convertEngineMetrics(wasmEngine.getMetrics()) : undefined;
+        const engineMetrics = dualEngine.getEngineMetrics();
+        const jsMetrics = engineMetrics.js ? this.convertEngineMetrics(engineMetrics.js) : undefined;
+        const wasmMetrics = engineMetrics.wasm ? this.convertEngineMetrics(engineMetrics.wasm) : undefined;
         
         const result: EngineStatusData = {
             currentEngine: stats.currentEngine,
@@ -269,11 +268,13 @@ export class WorkerState implements IWorkerState {
      */
     private convertEngineMetrics(metrics: unknown): EngineMetricsData {
         const metricsObj = metrics as Record<string, unknown> | undefined;
+        const avgIPS = (metricsObj?.averageIPS as number) || 0;
+        const lastIPS = (metricsObj?.lastIPS as number) || avgIPS; // Use lastIPS if available, fallback to average
         return {
             instructionsExecuted: (metricsObj?.instructionsExecuted as number) || 0,
-            averageIPS: (metricsObj?.averageIPS as number) || 0,
-            lastIPS: (metricsObj?.lastIPS as number) || 0,
-            cyclesExecuted: (metricsObj?.cyclesExecuted as number) || 0,
+            averageIPS: avgIPS,
+            lastIPS: lastIPS,
+            cyclesExecuted: (metricsObj?.totalCycles as number) || 0,
             memoryUsage: (metricsObj?.memoryUsage as number) || 0
         };
     }

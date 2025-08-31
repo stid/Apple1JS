@@ -133,6 +133,7 @@ export class DualEngine implements ICPUEngine {
     }
     
     performBulkSteps(cycles: number): void {
+        // Simply delegate to active engine
         this.activeEngine.performBulkSteps(cycles);
     }
     
@@ -231,7 +232,29 @@ export class DualEngine implements ICPUEngine {
     // ============ Performance & Metrics ============
     
     getMetrics(): EngineMetrics {
-        return this.activeEngine.getMetrics();
+        // Get fresh metrics from the active engine
+        const metrics = this.activeEngine.getMetrics();
+        
+        // Ensure metrics are properly populated
+        return {
+            totalCycles: metrics.totalCycles || 0,
+            instructionsExecuted: metrics.instructionsExecuted || 0,
+            averageIPS: metrics.averageIPS || 0,
+            memoryUsage: metrics.memoryUsage || 0,
+            lastStepDuration: metrics.lastStepDuration || 0,
+            initializationTime: metrics.initializationTime || 0,
+            efficiency: metrics.efficiency || 100
+        };
+    }
+    
+    /**
+     * Get metrics from individual engines for performance monitoring
+     */
+    getEngineMetrics(): { js: EngineMetrics | null; wasm: EngineMetrics | null } {
+        return {
+            js: this.jsEngine.getMetrics(),
+            wasm: this.wasmEngine?.getMetrics() || null
+        };
     }
     
     resetMetrics(): void {
@@ -469,5 +492,17 @@ export class DualEngine implements ICPUEngine {
         
         // Clear listeners
         this.switchListeners.clear();
+    }
+    
+    /**
+     * Get the internal JS CPU for compatibility with execution hooks
+     * This is needed for breakpoint functionality in WorkerState
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public getInternalCPU(): any {
+        // Access the private cpu property of JSEngine
+        // This is a workaround for breakpoint support
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.jsEngine as any).cpu;
     }
 }

@@ -34,6 +34,22 @@ extern "C" {
     
     #[wasm_bindgen(js_namespace = performance)]
     fn now() -> f64;
+    
+    // Memory bridge functions - these call back to JavaScript Bus
+    #[wasm_bindgen(js_namespace = wasmMemoryBridge)]
+    fn readByte(address: u16) -> u8;
+    
+    #[wasm_bindgen(js_namespace = wasmMemoryBridge)]
+    fn writeByte(address: u16, value: u8);
+}
+
+// Export memory bridge functions for internal use
+pub(crate) fn bus_read(address: u16) -> u8 {
+    readByte(address)
+}
+
+pub(crate) fn bus_write(address: u16, value: u8) {
+    writeByte(address, value)
 }
 
 // Macro for console logging
