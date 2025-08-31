@@ -384,4 +384,52 @@ impl CPU6502 {
     pub(crate) fn execute_instruction(&mut self, opcode: u8) {
         self.dispatch_opcode(opcode);
     }
+    
+    // ========== Addressing Mode Helpers ==========
+    
+    /// Get address for indexed indirect mode (zero page,X)
+    /// Used for instructions like LDA ($20,X)
+    pub(crate) fn get_izx_addr(&mut self) -> u16 {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let addr = base.wrapping_add(self.x);
+        let low = self.read_byte(addr as u16) as u16;
+        let high = self.read_byte(addr.wrapping_add(1) as u16) as u16;
+        (high << 8) | low
+    }
+    
+    /// Get address for indirect indexed mode (zero page),Y
+    /// Used for instructions like LDA ($20),Y
+    pub(crate) fn get_izy_addr(&mut self) -> u16 {
+        let zp_addr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let low = self.read_byte(zp_addr as u16) as u16;
+        let high = self.read_byte(zp_addr.wrapping_add(1) as u16) as u16;
+        let base_addr = (high << 8) | low;
+        base_addr.wrapping_add(self.y as u16)
+    }
+    
+    /// Check if page boundary was crossed for indirect indexed mode
+    pub(crate) fn check_izy_page_cross(&mut self) -> bool {
+        let zp_addr = self.memory[(self.pc - 1) as usize];
+        let low = self.memory[zp_addr as usize] as u16;
+        let high = self.memory[zp_addr.wrapping_add(1) as usize] as u16;
+        let base_addr = (high << 8) | low;
+        let final_addr = base_addr.wrapping_add(self.y as u16);
+        (base_addr & 0xFF00) != (final_addr & 0xFF00)
+    }
+    
+    /// Get address for zero page,Y mode
+    pub(crate) fn get_zpy_addr(&mut self) -> u16 {
+        let addr = self.read_byte(self.pc).wrapping_add(self.y);
+        self.pc = self.pc.wrapping_add(1);
+        addr as u16
+    }
+    
+    /// Get address for absolute,Y mode
+    pub(crate) fn get_aby_addr(&mut self) -> u16 {
+        let base_addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        base_addr.wrapping_add(self.y as u16)
+    }
 }

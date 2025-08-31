@@ -75,6 +75,27 @@ impl CPU6502 {
         }
     }
     
+    /// LDA Indexed Indirect (zero page,X)
+    pub(crate) fn lda_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        self.a = self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 6;
+    }
+    
+    /// LDA Indirect Indexed (zero page),Y
+    pub(crate) fn lda_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        self.a = self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
     /// LDX Immediate
     pub(crate) fn ldx_imm(&mut self) {
         self.x = self.read_byte(self.pc);
@@ -101,6 +122,29 @@ impl CPU6502 {
         self.cycles += 4;
     }
     
+    /// LDX Zero Page,Y
+    pub(crate) fn ldx_zpy(&mut self) {
+        let addr = self.get_zpy_addr();
+        self.x = self.read_byte(addr);
+        self.update_nz(self.x);
+        self.cycles += 4;
+    }
+    
+    /// LDX Absolute,Y
+    pub(crate) fn ldx_aby(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.x = self.read_byte(addr);
+        self.update_nz(self.x);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
     /// LDY Immediate
     pub(crate) fn ldy_imm(&mut self) {
         self.y = self.read_byte(self.pc);
@@ -125,6 +169,30 @@ impl CPU6502 {
         self.y = self.read_byte(addr);
         self.update_nz(self.y);
         self.cycles += 4;
+    }
+    
+    /// LDY Zero Page,X
+    pub(crate) fn ldy_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.y = self.read_byte(addr);
+        self.update_nz(self.y);
+        self.cycles += 4;
+    }
+    
+    /// LDY Absolute,X
+    pub(crate) fn ldy_abx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.y = self.read_byte(addr);
+        self.update_nz(self.y);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
     }
     
     // ========== Store Operations ==========
@@ -169,6 +237,20 @@ impl CPU6502 {
         self.cycles += 5;
     }
     
+    /// STA Indexed Indirect (zero page,X)
+    pub(crate) fn sta_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        self.write_byte(addr, self.a);
+        self.cycles += 6;
+    }
+    
+    /// STA Indirect Indexed (zero page),Y
+    pub(crate) fn sta_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        self.write_byte(addr, self.a);
+        self.cycles += 6;
+    }
+    
     /// STX Zero Page
     pub(crate) fn stx_zp(&mut self) {
         let addr = self.read_byte(self.pc) as u16;
@@ -185,6 +267,13 @@ impl CPU6502 {
         self.cycles += 4;
     }
     
+    /// STX Zero Page,Y
+    pub(crate) fn stx_zpy(&mut self) {
+        let addr = self.get_zpy_addr();
+        self.write_byte(addr, self.x);
+        self.cycles += 4;
+    }
+    
     /// STY Zero Page
     pub(crate) fn sty_zp(&mut self) {
         let addr = self.read_byte(self.pc) as u16;
@@ -197,6 +286,14 @@ impl CPU6502 {
     pub(crate) fn sty_abs(&mut self) {
         let addr = self.read_word(self.pc);
         self.pc = self.pc.wrapping_add(2);
+        self.write_byte(addr, self.y);
+        self.cycles += 4;
+    }
+    
+    /// STY Zero Page,X
+    pub(crate) fn sty_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
         self.write_byte(addr, self.y);
         self.cycles += 4;
     }
@@ -388,6 +485,66 @@ impl CPU6502 {
         self.cycles += 4;
     }
     
+    /// CMP Indexed Indirect (zero page,X)
+    pub(crate) fn cmp_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        let value = self.read_byte(addr);
+        self.compare(self.a, value);
+        self.cycles += 6;
+    }
+    
+    /// CMP Indirect Indexed (zero page),Y
+    pub(crate) fn cmp_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        let value = self.read_byte(addr);
+        self.compare(self.a, value);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
+    /// CMP Absolute,X
+    pub(crate) fn cmp_absx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.compare(self.a, value);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// CMP Absolute,Y
+    pub(crate) fn cmp_absy(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.compare(self.a, value);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// CMP Zero Page,X
+    pub(crate) fn cmp_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        let value = self.read_byte(addr);
+        self.compare(self.a, value);
+        self.cycles += 4;
+    }
+    
     /// CPX Immediate
     pub(crate) fn cpx_imm(&mut self) {
         let value = self.read_byte(self.pc);
@@ -405,6 +562,15 @@ impl CPU6502 {
         self.cycles += 3;
     }
     
+    /// CPX Absolute
+    pub(crate) fn cpx_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.compare(self.x, value);
+        self.cycles += 4;
+    }
+    
     /// CPY Immediate
     pub(crate) fn cpy_imm(&mut self) {
         let value = self.read_byte(self.pc);
@@ -420,6 +586,15 @@ impl CPU6502 {
         let value = self.read_byte(addr);
         self.compare(self.y, value);
         self.cycles += 3;
+    }
+    
+    /// CPY Absolute
+    pub(crate) fn cpy_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.compare(self.y, value);
+        self.cycles += 4;
     }
     
     // ========== Increment/Decrement Operations ==========
@@ -472,6 +647,26 @@ impl CPU6502 {
         self.cycles += 6;
     }
     
+    /// INC Zero Page,X
+    pub(crate) fn inc_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        let value = self.read_byte(addr).wrapping_add(1);
+        self.write_byte(addr, value);
+        self.update_nz(value);
+        self.cycles += 6;
+    }
+    
+    /// INC Absolute,X
+    pub(crate) fn inc_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr).wrapping_add(1);
+        self.write_byte(addr, value);
+        self.update_nz(value);
+        self.cycles += 7;
+    }
+    
     /// DEC Zero Page
     pub(crate) fn dec_zp(&mut self) {
         let addr = self.read_byte(self.pc) as u16;
@@ -490,6 +685,26 @@ impl CPU6502 {
         self.write_byte(addr, value);
         self.update_nz(value);
         self.cycles += 6;
+    }
+    
+    /// DEC Zero Page,X
+    pub(crate) fn dec_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        let value = self.read_byte(addr).wrapping_sub(1);
+        self.write_byte(addr, value);
+        self.update_nz(value);
+        self.cycles += 6;
+    }
+    
+    /// DEC Absolute,X
+    pub(crate) fn dec_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr).wrapping_sub(1);
+        self.write_byte(addr, value);
+        self.update_nz(value);
+        self.cycles += 7;
     }
     
     // ========== Arithmetic Operations ==========
@@ -520,6 +735,66 @@ impl CPU6502 {
         self.cycles += 4;
     }
     
+    /// ADC Indexed Indirect (zero page,X)
+    pub(crate) fn adc_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        let value = self.read_byte(addr);
+        self.adc(value);
+        self.cycles += 6;
+    }
+    
+    /// ADC Indirect Indexed (zero page),Y
+    pub(crate) fn adc_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        let value = self.read_byte(addr);
+        self.adc(value);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
+    /// ADC Absolute,X
+    pub(crate) fn adc_absx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.adc(value);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// ADC Absolute,Y
+    pub(crate) fn adc_absy(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.adc(value);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// ADC Zero Page,X
+    pub(crate) fn adc_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        let value = self.read_byte(addr);
+        self.adc(value);
+        self.cycles += 4;
+    }
+    
     /// SBC Immediate - Subtract with Carry
     pub(crate) fn sbc_imm(&mut self) {
         let value = self.read_byte(self.pc);
@@ -541,6 +816,66 @@ impl CPU6502 {
     pub(crate) fn sbc_abs(&mut self) {
         let addr = self.read_word(self.pc);
         self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.sbc(value);
+        self.cycles += 4;
+    }
+    
+    /// SBC Indexed Indirect (zero page,X)
+    pub(crate) fn sbc_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        let value = self.read_byte(addr);
+        self.sbc(value);
+        self.cycles += 6;
+    }
+    
+    /// SBC Indirect Indexed (zero page),Y
+    pub(crate) fn sbc_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        let value = self.read_byte(addr);
+        self.sbc(value);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
+    /// SBC Absolute,X
+    pub(crate) fn sbc_absx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.sbc(value);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// SBC Absolute,Y
+    pub(crate) fn sbc_absy(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.sbc(value);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// SBC Zero Page,X
+    pub(crate) fn sbc_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
         let value = self.read_byte(addr);
         self.sbc(value);
         self.cycles += 4;
@@ -575,6 +910,66 @@ impl CPU6502 {
         self.cycles += 4;
     }
     
+    /// AND Indexed Indirect (zero page,X)
+    pub(crate) fn and_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        self.a &= self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 6;
+    }
+    
+    /// AND Indirect Indexed (zero page),Y
+    pub(crate) fn and_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        self.a &= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
+    /// AND Absolute,X
+    pub(crate) fn and_absx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.a &= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// AND Absolute,Y
+    pub(crate) fn and_absy(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.a &= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// AND Zero Page,X
+    pub(crate) fn and_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.a &= self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 4;
+    }
+    
     /// ORA Immediate
     pub(crate) fn ora_imm(&mut self) {
         let value = self.read_byte(self.pc);
@@ -602,6 +997,66 @@ impl CPU6502 {
         self.cycles += 4;
     }
     
+    /// ORA Indexed Indirect (zero page,X)
+    pub(crate) fn ora_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        self.a |= self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 6;
+    }
+    
+    /// ORA Indirect Indexed (zero page),Y
+    pub(crate) fn ora_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        self.a |= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
+    /// ORA Absolute,X
+    pub(crate) fn ora_absx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.a |= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// ORA Absolute,Y
+    pub(crate) fn ora_absy(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.a |= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// ORA Zero Page,X
+    pub(crate) fn ora_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.a |= self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 4;
+    }
+    
     /// EOR Immediate
     pub(crate) fn eor_imm(&mut self) {
         let value = self.read_byte(self.pc);
@@ -624,6 +1079,66 @@ impl CPU6502 {
     pub(crate) fn eor_abs(&mut self) {
         let addr = self.read_word(self.pc);
         self.pc = self.pc.wrapping_add(2);
+        self.a ^= self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 4;
+    }
+    
+    /// EOR Indexed Indirect (zero page,X)
+    pub(crate) fn eor_izx(&mut self) {
+        let addr = self.get_izx_addr();
+        self.a ^= self.read_byte(addr);
+        self.update_nz(self.a);
+        self.cycles += 6;
+    }
+    
+    /// EOR Indirect Indexed (zero page),Y
+    pub(crate) fn eor_izy(&mut self) {
+        let addr = self.get_izy_addr();
+        self.a ^= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if self.check_izy_page_cross() {
+            self.cycles += 6;
+        } else {
+            self.cycles += 5;
+        }
+    }
+    
+    /// EOR Absolute,X
+    pub(crate) fn eor_absx(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.a ^= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// EOR Absolute,Y
+    pub(crate) fn eor_absy(&mut self) {
+        let base_addr = self.read_word(self.pc);
+        let addr = base_addr.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.a ^= self.read_byte(addr);
+        self.update_nz(self.a);
+        // Page boundary crossing adds a cycle
+        if (base_addr & 0xFF00) != (addr & 0xFF00) {
+            self.cycles += 5;
+        } else {
+            self.cycles += 4;
+        }
+    }
+    
+    /// EOR Zero Page,X
+    pub(crate) fn eor_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
         self.a ^= self.read_byte(addr);
         self.update_nz(self.a);
         self.cycles += 4;
@@ -688,6 +1203,240 @@ impl CPU6502 {
     /// NOP - No Operation
     pub(crate) fn nop(&mut self) {
         self.cycles += 2;
+    }
+    
+    // ========== Bit Operations ==========
+    
+    /// BIT - Test Bits in Memory with Accumulator
+    /// Sets Z flag based on A AND M
+    /// Sets N flag to bit 7 of memory value
+    /// Sets V flag to bit 6 of memory value
+    pub(crate) fn bit(&mut self, value: u8) {
+        let result = self.a & value;
+        self.set_flag(flags::ZERO, result == 0);
+        self.set_flag(flags::NEGATIVE, (value & 0x80) != 0);
+        self.set_flag(flags::OVERFLOW, (value & 0x40) != 0);
+    }
+    
+    /// BIT Zero Page
+    pub(crate) fn bit_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        let value = self.read_byte(addr);
+        self.bit(value);
+        self.cycles += 3;
+    }
+    
+    /// BIT Absolute
+    pub(crate) fn bit_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr);
+        self.bit(value);
+        self.cycles += 4;
+    }
+    
+    // ========== Shift and Rotate Operations ==========
+    
+    /// ASL - Arithmetic Shift Left (Accumulator)
+    pub(crate) fn asla(&mut self) {
+        let result = self.a << 1;
+        self.set_flag(flags::CARRY, (self.a & 0x80) != 0);
+        self.a = result;
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// ASL - Arithmetic Shift Left (Memory)
+    pub(crate) fn asl(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        let result = value << 1;
+        self.set_flag(flags::CARRY, (value & 0x80) != 0);
+        self.write_byte(addr, result);
+        self.update_nz(result);
+    }
+    
+    /// ASL Zero Page
+    pub(crate) fn asl_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.asl(addr);
+        self.cycles += 5;
+    }
+    
+    /// ASL Zero Page,X
+    pub(crate) fn asl_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.asl(addr);
+        self.cycles += 6;
+    }
+    
+    /// ASL Absolute
+    pub(crate) fn asl_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.asl(addr);
+        self.cycles += 6;
+    }
+    
+    /// ASL Absolute,X
+    pub(crate) fn asl_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.asl(addr);
+        self.cycles += 7;
+    }
+    
+    /// LSR - Logical Shift Right (Accumulator)
+    pub(crate) fn lsra(&mut self) {
+        self.set_flag(flags::CARRY, (self.a & 0x01) != 0);
+        self.a >>= 1;
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// LSR - Logical Shift Right (Memory)
+    pub(crate) fn lsr(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        self.set_flag(flags::CARRY, (value & 0x01) != 0);
+        let result = value >> 1;
+        self.write_byte(addr, result);
+        self.update_nz(result);
+    }
+    
+    /// LSR Zero Page
+    pub(crate) fn lsr_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.lsr(addr);
+        self.cycles += 5;
+    }
+    
+    /// LSR Zero Page,X
+    pub(crate) fn lsr_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.lsr(addr);
+        self.cycles += 6;
+    }
+    
+    /// LSR Absolute
+    pub(crate) fn lsr_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.lsr(addr);
+        self.cycles += 6;
+    }
+    
+    /// LSR Absolute,X
+    pub(crate) fn lsr_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.lsr(addr);
+        self.cycles += 7;
+    }
+    
+    /// ROL - Rotate Left (Accumulator)
+    pub(crate) fn rola(&mut self) {
+        let old_carry = if self.get_flag(flags::CARRY) { 1 } else { 0 };
+        self.set_flag(flags::CARRY, (self.a & 0x80) != 0);
+        self.a = (self.a << 1) | old_carry;
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// ROL - Rotate Left (Memory)
+    pub(crate) fn rol(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        let old_carry = if self.get_flag(flags::CARRY) { 1 } else { 0 };
+        self.set_flag(flags::CARRY, (value & 0x80) != 0);
+        let result = (value << 1) | old_carry;
+        self.write_byte(addr, result);
+        self.update_nz(result);
+    }
+    
+    /// ROL Zero Page
+    pub(crate) fn rol_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.rol(addr);
+        self.cycles += 5;
+    }
+    
+    /// ROL Zero Page,X
+    pub(crate) fn rol_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.rol(addr);
+        self.cycles += 6;
+    }
+    
+    /// ROL Absolute
+    pub(crate) fn rol_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.rol(addr);
+        self.cycles += 6;
+    }
+    
+    /// ROL Absolute,X
+    pub(crate) fn rol_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.rol(addr);
+        self.cycles += 7;
+    }
+    
+    /// ROR - Rotate Right (Accumulator)
+    pub(crate) fn rora(&mut self) {
+        let old_carry = if self.get_flag(flags::CARRY) { 0x80 } else { 0 };
+        self.set_flag(flags::CARRY, (self.a & 0x01) != 0);
+        self.a = (self.a >> 1) | old_carry;
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// ROR - Rotate Right (Memory)
+    pub(crate) fn ror(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        let old_carry = if self.get_flag(flags::CARRY) { 0x80 } else { 0 };
+        self.set_flag(flags::CARRY, (value & 0x01) != 0);
+        let result = (value >> 1) | old_carry;
+        self.write_byte(addr, result);
+        self.update_nz(result);
+    }
+    
+    /// ROR Zero Page
+    pub(crate) fn ror_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.ror(addr);
+        self.cycles += 5;
+    }
+    
+    /// ROR Zero Page,X
+    pub(crate) fn ror_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.ror(addr);
+        self.cycles += 6;
+    }
+    
+    /// ROR Absolute
+    pub(crate) fn ror_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.ror(addr);
+        self.cycles += 6;
+    }
+    
+    /// ROR Absolute,X
+    pub(crate) fn ror_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.ror(addr);
+        self.cycles += 7;
     }
     
     // ========== Helper Methods ==========

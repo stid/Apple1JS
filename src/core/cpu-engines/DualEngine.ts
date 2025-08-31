@@ -403,7 +403,7 @@ export class DualEngine implements ICPUEngine {
         
         if (enabled) {
             loggingService.info('DualEngine', 
-                `Auto-switch enabled with ${threshold * 100}% performance threshold`);
+                `Auto-switch enabled with ${this.performanceThreshold * 100}% performance threshold`);
         }
     }
     

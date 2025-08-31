@@ -431,19 +431,18 @@ describe('CPU Engine Parity Tests', () => {
             const dualEngine = new DualEngine(bus, 'JS');
             await dualEngine.initialize();
             
-            let switchEvent: { from?: string; to?: string; reason?: string } | null = null;
-            const unsubscribe = dualEngine.onEngineSwitch(event => {
-                switchEvent = event as { from?: string; to?: string; reason?: string };
+            let switchEvent: unknown = null;
+            const unsubscribe = dualEngine.onEngineSwitch((event) => {
+                switchEvent = event;
             });
             
             await dualEngine.switchEngine('WASM');
             
             expect(switchEvent).toBeTruthy();
-            if (switchEvent) {
-                expect(switchEvent.from).toBe('JS');
-                expect(switchEvent.to).toBe('WASM');
-                expect(switchEvent.reason).toBe('user');
-            }
+            expect(switchEvent).not.toBeNull();
+            expect((switchEvent as { from: string }).from).toBe('JS');
+            expect((switchEvent as { to: string }).to).toBe('WASM');
+            expect((switchEvent as { reason: string }).reason).toBe('user');
             
             unsubscribe();
             dualEngine.cleanup();

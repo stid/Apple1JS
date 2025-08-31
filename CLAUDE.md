@@ -32,7 +32,7 @@ git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, ch
 yarn test:ci
 
 # 4. Check current version
-cat src/version.ts  # Current: 4.35.1
+cat src/version.ts  # Current: 4.37.0
 
 # 5. Build WASM engine (when it exists)
 cd wasm-cpu && wasm-pack build --target web --out-dir ../src/wasm
@@ -387,29 +387,21 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 
 ### Current Focus: WASM CPU Implementation 🚀
 
-#### ✅ Completed WASM Tasks
-- CPU engine abstraction interface (`ICPUEngine`)
-- JS engine wrapper (`JSEngine`)
-- Rust/WASM CPU core structure
-- Basic CPU state & registers in Rust
-- WASM module building pipeline
-- Generated JS bindings
-- **WasmEngine wrapper** (`src/core/cpu-engines/WasmEngine.ts`) ✅
-- **DualEngine coordinator** for hot-swapping ✅
-- **Engine parity tests** ✅
-- **wasm-loader helper** with error handling ✅
+#### ✅ Major Milestone Completed!
+- **150+ documented 6502 opcodes implemented** in Rust/WASM
+- All major addressing modes (izx, izy, zpx, zpy, abx, aby)
+- Complete instruction set: Load/Store, Arithmetic, Logical, Shift/Rotate, Compare, Branch
+- BIT instruction with proper flag handling
+- WASM module successfully building (387KB dev, target <100KB release)
+- Dual-engine architecture ready for integration
 
-#### 🔄 In Progress
-- **Port 6502 instructions to Rust** - Currently have ~50 instructions (LDA, STA, ADC, etc.)
-- **Fix minor TypeScript compilation warnings**
-
-#### 📋 Next WASM Tasks
-1. **Complete remaining 6502 instructions** (~200 opcodes remaining)
-2. **Add engine switcher UI component**
+#### 📋 Next Priority Tasks
+1. **Integrate WASM engine with Worker** via `WorkerState`
+2. **Add engine switcher UI component** for runtime switching
 3. **Create performance comparison dashboard**
-4. **Integrate with Worker** via `WorkerState`
-5. **Create performance benchmark suite**
-6. **Optimize WASM binary size** (target <100KB)
+4. **Implement performance benchmark suite**
+5. **Optimize WASM binary size** for production release
+6. **Add undocumented opcodes** (lower priority - for full compatibility)
 
 #### 🎯 Using the Dual-Engine System
 
