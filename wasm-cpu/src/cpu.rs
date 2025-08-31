@@ -204,6 +204,11 @@ impl CPU6502 {
     #[wasm_bindgen(setter)]
     pub fn set_status(&mut self, value: u8) { self.status = value; }
     
+    /// Get CPU status as byte (internal)
+    pub(crate) fn get_status(&self) -> u8 {
+        self.status | flags::UNUSED // Bit 5 is always 1
+    }
+    
     // ============ Memory Access ============
     
     /// Read a byte from memory
@@ -328,6 +333,31 @@ impl CPU6502 {
     pub(crate) fn update_nz(&mut self, value: u8) {
         self.set_flag(flags::ZERO, value == 0);
         self.set_flag(flags::NEGATIVE, (value & 0x80) != 0);
+    }
+    
+    /// Push a byte onto the stack
+    pub(crate) fn push_byte(&mut self, value: u8) {
+        self.write_byte(0x0100 | (self.s as u16), value);
+        self.s = self.s.wrapping_sub(1);
+    }
+    
+    /// Pop a byte from the stack
+    pub(crate) fn pop_byte(&mut self) -> u8 {
+        self.s = self.s.wrapping_add(1);
+        self.read_byte(0x0100 | (self.s as u16))
+    }
+    
+    /// Push a word onto the stack (high byte first)
+    pub(crate) fn push_word(&mut self, value: u16) {
+        self.push_byte((value >> 8) as u8);
+        self.push_byte(value as u8);
+    }
+    
+    /// Pop a word from the stack (low byte first)
+    pub(crate) fn pop_word(&mut self) -> u16 {
+        let low = self.pop_byte() as u16;
+        let high = self.pop_byte() as u16;
+        (high << 8) | low
     }
     
     /// Handle IRQ interrupt
