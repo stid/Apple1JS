@@ -1,0 +1,44 @@
+[package]
+name = "apple1-cpu-wasm"
+version = "0.1.0"
+edition = "2021"
+authors = ["Apple1JS Contributors"]
+description = "High-performance WASM 6502 CPU emulator for Apple1JS"
+license = "MIT"
+repository = "https://github.com/stid/Apple1JS"
+
+[package.metadata.wasm-pack]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "console",
+    "Performance",
+]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+criterion = "0.5"
+
+[profile.release]
+# Optimize for speed
+opt-level = 3
+# Enable Link Time Optimization
+lto = true
+# Use one codegen unit for better optimization
+codegen-units = 1
+# Strip debug symbols for smaller size
+strip = true
+
+[profile.bench]
+inherits = "release"

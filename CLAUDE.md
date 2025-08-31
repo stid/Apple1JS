@@ -1,7 +1,21 @@
-# CLAUDE.md - AI Assistant Guide
+# CLAUDE.md - Dual-Engine CPU Migration Guide
 
-> This guide helps AI assistants quickly understand the project and make effective contributions.
+> **Current Focus**: Building a runtime-switchable CPU core with TypeScript and Rust/WASM implementations
 > **Key principle**: This is a personal hobby project for learning - keep it fun and exploratory!
+
+## 🎯 WASM Migration Focus
+
+### Current Priority: Dual-Engine System
+We're building a **hot-swappable CPU engine system** that allows runtime switching between:
+- **JS Engine**: Original TypeScript implementation (better debugging)
+- **WASM Engine**: High-performance Rust implementation (5-10x faster)
+
+### Critical Development Rules
+1. **ALWAYS use Context7 MCP server** for WASM/Rust documentation
+2. **Maintain feature parity** between both engines
+3. **Test both engines** for every change
+4. **Document performance differences**
+5. **Keep JS engine as fallback**
 
 ## 🚀 Quick Start Checklist
 
@@ -20,8 +34,58 @@ yarn test:ci
 # 4. Check current version
 cat src/version.ts  # Current: 4.35.1
 
-# 5. ALWAYS use TodoWrite tool for multi-step tasks!
+# 5. Build WASM engine (when it exists)
+cd wasm-cpu && wasm-pack build --target web --out-dir ../src/wasm
+
+# 6. ALWAYS use TodoWrite tool for multi-step tasks!
 ```
+
+## 🔄 Engine Development Commands
+
+```bash
+# Build WASM module (from project root)
+cd wasm-cpu && wasm-pack build --dev --target web --out-dir ../src/wasm
+
+# Build optimized WASM (when ready)
+cd wasm-cpu && cargo build --target wasm32-unknown-unknown --release
+
+# Quick rebuild during development
+cd wasm-cpu && cargo check
+
+# Test specific engines (TODO: implement these scripts)
+yarn test:js-engine
+yarn test:wasm-engine
+yarn test:engine-parity  # Verify both produce same results
+
+# Benchmark comparison (TODO: implement)
+yarn benchmark:compare  # Run performance tests
+
+# Run with specific engine (TODO: implement env var support)
+APPLE1_ENGINE=wasm yarn dev
+APPLE1_ENGINE=js yarn dev
+
+# Check WASM toolchain
+rustc --version  # Should be 1.70+ (we have 1.89.0)
+wasm-pack --version  # Should be 0.12+ (we have 0.13.1)
+cargo --version  # Should be recent (we have 1.89.0)
+```
+
+## 🔧 WASM Troubleshooting
+
+Common issues and fixes:
+- **wasm-opt fails**: Add `wasm-opt = false` to `[package.metadata.wasm-pack]` in Cargo.toml
+- **Build from wrong directory**: Always `cd wasm-cpu` first
+- **Missing target**: Run `rustup target add wasm32-unknown-unknown`
+- **Type errors in generated code**: Rebuild with `--dev` flag for cleaner output
+
+## 📊 Performance Tracking
+
+Track these metrics when developing:
+- **Instructions/second (IPS)** - Target: 1M+ for WASM
+- **Engine switch time** - Target: <10ms
+- **Memory usage** - WASM should use ~50% less
+- **State transfer accuracy** - Must be 100%
+- **WASM binary size** - Currently ~329KB (dev), target <100KB (release)
 
 ## 🎯 Essential Context
 
@@ -29,15 +93,18 @@ cat src/version.ts  # Current: 4.35.1
 
 - Browser-based Apple 1 emulator (TypeScript/React)
 - Cycle-accurate 6502 CPU emulation
+- **Dual-engine architecture** (JS + WASM)
 - Worker-based architecture for performance
 - Comprehensive debugging tools
+- **Runtime engine switching** capability
 
 ### Project Philosophy
 
 - Personal hobby project - no deadlines or sprints
-- For learning and exploration
+- For learning and exploration (especially Rust/WASM!)
 - Informal tone preferred
 - "Ideas to explore" not "requirements"
+- Performance matters but compatibility is critical
 
 ## 📍 Navigation Shortcuts
 
@@ -318,10 +385,45 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 - CPU6502 Module Split (6 focused modules)
 - Base Classes for Common Patterns (useWorkerState hooks)
 
-### Current Focus Areas:
-1. **Stabilization** - Fix type workarounds, race conditions
-2. **Architecture** - Split large modules, create reusable patterns
-3. **Features** - Memory search, conditional breakpoints, watch expressions
+### Current Focus: WASM CPU Implementation 🚀
+
+#### ✅ Completed WASM Tasks
+- CPU engine abstraction interface (`ICPUEngine`)
+- JS engine wrapper (`JSEngine`) 
+- Rust/WASM CPU core structure
+- Basic CPU state & registers in Rust
+- WASM module building pipeline
+- Generated JS bindings
+
+#### 🔄 In Progress
+- **Port 6502 instructions to Rust** - Currently have NOP, LDA, STA
+- **Create TypeScript WASM wrapper** - `WasmEngine` class implementation
+
+#### 📋 Next WASM Tasks
+1. **Create WasmEngine wrapper** (`src/core/cpu-engines/WasmEngine.ts`)
+2. **Implement DualEngine coordinator** for hot-swapping
+3. **Port remaining 6502 instructions** (256 opcodes total)
+4. **Add engine switcher UI component**
+5. **Create performance comparison dashboard**
+6. **Integrate with Worker** via `WorkerState`
+7. **Write engine parity tests**
+8. **Benchmark both implementations**
+
+#### 📁 WASM Project Structure
+```
+wasm-cpu/               # Rust source (build from here)
+├── Cargo.toml         
+└── src/
+    ├── lib.rs         # Entry point
+    ├── cpu.rs         # CPU implementation  
+    ├── instructions.rs # 6502 instructions
+    └── opcodes.rs     # Opcode dispatch
+
+src/wasm/              # Generated output
+├── apple1_cpu_wasm.js # JS bindings
+├── apple1_cpu_wasm.d.ts # TypeScript defs
+└── *.wasm            # WASM binary
+```
 
 For detailed task breakdowns, timelines, and execution strategy, refer to the consolidated roadmap.
 

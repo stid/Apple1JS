@@ -1,0 +1,357 @@
+/*!
+ * 6502 CPU Core Implementation
+ */
+
+use wasm_bindgen::prelude::*;
+use crate::{CPUState, Metrics, console_log};
+
+/// Status register flags
+pub mod flags {
+    pub const CARRY: u8 = 0x01;      // C
+    pub const ZERO: u8 = 0x02;       // Z
+    pub const INTERRUPT: u8 = 0x04;  // I
+    pub const DECIMAL: u8 = 0x08;    // D
+    pub const BREAK: u8 = 0x10;      // B
+    pub const UNUSED: u8 = 0x20;     // Always 1
+    pub const OVERFLOW: u8 = 0x40;   // V
+    pub const NEGATIVE: u8 = 0x80;   // N
+}
+
+/// 6502 CPU implementation
+#[wasm_bindgen]
+pub struct CPU6502 {
+    // Registers
+    pub(crate) pc: u16,  // Program Counter
+    pub(crate) a: u8,    // Accumulator
+    pub(crate) x: u8,    // X Index Register
+    pub(crate) y: u8,    // Y Index Register
+    pub(crate) s: u8,    // Stack Pointer
+    pub(crate) status: u8, // Status Register (NV-BDIZC)
+    
+    // Memory (64KB)
+    pub(crate) memory: Box<[u8; 65536]>,
+    
+    // Interrupt state
+    pub(crate) irq: bool,
+    pub(crate) nmi: bool,
+    pub(crate) nmi_pending: bool,
+    
+    // Performance tracking
+    pub(crate) cycles: u64,
+    pub(crate) instructions: u64,
+    
+    // Timing
+    last_step_start: f64,
+}
+
+#[wasm_bindgen]
+impl CPU6502 {
+    /// Create a new CPU instance
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        console_log!("Creating new WASM CPU6502 instance");
+        
+        CPU6502 {
+            pc: 0xFFFC,  // Reset vector
+            a: 0,
+            x: 0,
+            y: 0,
+            s: 0xFF,
+            status: flags::UNUSED | flags::INTERRUPT, // Start with interrupts disabled
+            memory: Box::new([0; 65536]),
+            irq: false,
+            nmi: false,
+            nmi_pending: false,
+            cycles: 0,
+            instructions: 0,
+            last_step_start: 0.0,
+        }
+    }
+    
+    /// Reset the CPU
+    pub fn reset(&mut self) {
+        // Read reset vector from 0xFFFC-0xFFFD
+        let low = self.memory[0xFFFC] as u16;
+        let high = self.memory[0xFFFD] as u16;
+        self.pc = (high << 8) | low;
+        
+        self.a = 0;
+        self.x = 0;
+        self.y = 0;
+        self.s = 0xFF;
+        self.status = flags::UNUSED | flags::INTERRUPT;
+        self.irq = false;
+        self.nmi = false;
+        self.cycles = 0;
+        self.instructions = 0;
+        
+        console_log!("CPU reset, PC = 0x{:04X}", self.pc);
+    }
+    
+    /// Execute a single instruction
+    pub fn step(&mut self) -> u32 {
+        #[cfg(feature = "performance")]
+        let start = crate::now();
+        
+        let start_cycles = self.cycles;
+        
+        // Check for interrupts
+        if self.nmi_pending {
+            self.handle_nmi();
+            self.nmi_pending = false;
+        } else if self.irq && !self.get_flag(flags::INTERRUPT) {
+            self.handle_irq();
+        }
+        
+        // Fetch opcode
+        let opcode = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        
+        // Execute instruction
+        self.execute_instruction(opcode);
+        
+        self.instructions += 1;
+        
+        #[cfg(feature = "performance")]
+        {
+            self.last_step_start = crate::now() - start;
+        }
+        
+        (self.cycles - start_cycles) as u32
+    }
+    
+    /// Execute multiple cycles
+    pub fn step_cycles(&mut self, target_cycles: u32) -> u32 {
+        let start_cycles = self.cycles;
+        let target = start_cycles + target_cycles as u64;
+        
+        while self.cycles < target {
+            self.step();
+        }
+        
+        (self.cycles - start_cycles) as u32
+    }
+    
+    // ============ State Management ============
+    
+    /// Save CPU state
+    pub fn save_state(&self) -> JsValue {
+        let state = CPUState {
+            pc: self.pc,
+            a: self.a,
+            x: self.x,
+            y: self.y,
+            s: self.s,
+            status: self.status,
+            cycles: self.cycles,
+            irq: self.irq,
+            nmi: self.nmi,
+        };
+        
+        serde_wasm_bindgen::to_value(&state).unwrap()
+    }
+    
+    /// Load CPU state
+    pub fn load_state(&mut self, state: &JsValue) {
+        let state: CPUState = serde_wasm_bindgen::from_value(state.clone()).unwrap();
+        
+        self.pc = state.pc;
+        self.a = state.a;
+        self.x = state.x;
+        self.y = state.y;
+        self.s = state.s;
+        self.status = state.status;
+        self.cycles = state.cycles;
+        self.irq = state.irq;
+        self.nmi = state.nmi;
+    }
+    
+    // ============ Register Access ============
+    
+    #[wasm_bindgen(getter)]
+    pub fn pc(&self) -> u16 { self.pc }
+    
+    #[wasm_bindgen(setter)]
+    pub fn set_pc(&mut self, value: u16) { self.pc = value; }
+    
+    #[wasm_bindgen(getter)]
+    pub fn a(&self) -> u8 { self.a }
+    
+    #[wasm_bindgen(setter)]
+    pub fn set_a(&mut self, value: u8) { self.a = value; }
+    
+    #[wasm_bindgen(getter)]
+    pub fn x(&self) -> u8 { self.x }
+    
+    #[wasm_bindgen(setter)]
+    pub fn set_x(&mut self, value: u8) { self.x = value; }
+    
+    #[wasm_bindgen(getter)]
+    pub fn y(&self) -> u8 { self.y }
+    
+    #[wasm_bindgen(setter)]
+    pub fn set_y(&mut self, value: u8) { self.y = value; }
+    
+    #[wasm_bindgen(getter)]
+    pub fn s(&self) -> u8 { self.s }
+    
+    #[wasm_bindgen(setter)]
+    pub fn set_s(&mut self, value: u8) { self.s = value; }
+    
+    #[wasm_bindgen(getter)]
+    pub fn status(&self) -> u8 { self.status }
+    
+    #[wasm_bindgen(setter)]
+    pub fn set_status(&mut self, value: u8) { self.status = value; }
+    
+    // ============ Memory Access ============
+    
+    /// Read a byte from memory
+    pub fn read_memory(&self, address: u16) -> u8 {
+        self.memory[address as usize]
+    }
+    
+    /// Write a byte to memory
+    pub fn write_memory(&mut self, address: u16, value: u8) {
+        self.memory[address as usize] = value;
+    }
+    
+    /// Read a range of memory
+    pub fn read_memory_range(&self, start: u16, length: u16) -> Vec<u8> {
+        let start = start as usize;
+        let end = (start + length as usize).min(65536);
+        self.memory[start..end].to_vec()
+    }
+    
+    /// Write a range of memory
+    pub fn write_memory_range(&mut self, start: u16, data: &[u8]) {
+        let start = start as usize;
+        let len = data.len().min(65536 - start);
+        self.memory[start..start + len].copy_from_slice(&data[..len]);
+    }
+    
+    /// Get a pointer to the memory array (for SharedArrayBuffer)
+    pub fn memory_ptr(&self) -> *const u8 {
+        self.memory.as_ptr()
+    }
+    
+    // ============ Performance Metrics ============
+    
+    /// Get performance metrics
+    pub fn get_metrics(&self) -> JsValue {
+        let metrics = Metrics {
+            cycles: self.cycles,
+            instructions: self.instructions,
+            average_ips: if self.cycles > 0 {
+                (self.instructions as f64 / self.cycles as f64) * 1_000_000.0
+            } else {
+                0.0
+            },
+            last_step_duration: self.last_step_start,
+        };
+        
+        serde_wasm_bindgen::to_value(&metrics).unwrap()
+    }
+    
+    /// Reset metrics
+    pub fn reset_metrics(&mut self) {
+        self.cycles = 0;
+        self.instructions = 0;
+    }
+    
+    // ============ Interrupt Handling ============
+    
+    /// Trigger IRQ
+    pub fn trigger_irq(&mut self) {
+        self.irq = true;
+    }
+    
+    /// Clear IRQ
+    pub fn clear_irq(&mut self) {
+        self.irq = false;
+    }
+    
+    /// Trigger NMI
+    pub fn trigger_nmi(&mut self) {
+        self.nmi_pending = true;
+    }
+}
+
+// Internal implementation
+impl CPU6502 {
+    /// Read a byte from memory (internal)
+    pub(crate) fn read_byte(&mut self, address: u16) -> u8 {
+        self.cycles += 1;
+        self.memory[address as usize]
+    }
+    
+    /// Write a byte to memory (internal)
+    pub(crate) fn write_byte(&mut self, address: u16, value: u8) {
+        self.cycles += 1;
+        self.memory[address as usize] = value;
+    }
+    
+    /// Read a word from memory (little-endian)
+    pub(crate) fn read_word(&mut self, address: u16) -> u16 {
+        let low = self.read_byte(address) as u16;
+        let high = self.read_byte(address.wrapping_add(1)) as u16;
+        (high << 8) | low
+    }
+    
+    /// Push byte to stack
+    pub(crate) fn push(&mut self, value: u8) {
+        self.write_byte(0x0100 | self.s as u16, value);
+        self.s = self.s.wrapping_sub(1);
+    }
+    
+    /// Pop byte from stack
+    pub(crate) fn pop(&mut self) -> u8 {
+        self.s = self.s.wrapping_add(1);
+        self.read_byte(0x0100 | self.s as u16)
+    }
+    
+    /// Set a status flag
+    pub(crate) fn set_flag(&mut self, flag: u8, value: bool) {
+        if value {
+            self.status |= flag;
+        } else {
+            self.status &= !flag;
+        }
+    }
+    
+    /// Get a status flag
+    pub(crate) fn get_flag(&self, flag: u8) -> bool {
+        (self.status & flag) != 0
+    }
+    
+    /// Update Zero and Negative flags
+    pub(crate) fn update_nz(&mut self, value: u8) {
+        self.set_flag(flags::ZERO, value == 0);
+        self.set_flag(flags::NEGATIVE, (value & 0x80) != 0);
+    }
+    
+    /// Handle IRQ interrupt
+    fn handle_irq(&mut self) {
+        self.push((self.pc >> 8) as u8);
+        self.push(self.pc as u8);
+        self.push(self.status | flags::UNUSED);
+        self.set_flag(flags::INTERRUPT, true);
+        self.pc = self.read_word(0xFFFE);
+        self.cycles += 7;
+    }
+    
+    /// Handle NMI interrupt
+    fn handle_nmi(&mut self) {
+        self.push((self.pc >> 8) as u8);
+        self.push(self.pc as u8);
+        self.push(self.status | flags::UNUSED);
+        self.set_flag(flags::INTERRUPT, true);
+        self.pc = self.read_word(0xFFFA);
+        self.cycles += 7;
+    }
+    
+    /// Execute an instruction
+    pub(crate) fn execute_instruction(&mut self, opcode: u8) {
+        self.dispatch_opcode(opcode);
+    }
+}
