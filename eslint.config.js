@@ -10,6 +10,9 @@ import prettier from 'eslint-config-prettier';
 export default [
     js.configs.recommended,
     {
+        ignores: ['src/wasm/**/*.js', 'src/wasm/**/*.d.ts'],
+    },
+    {
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
             parser: tsParser,
@@ -33,6 +36,7 @@ export default [
                 URL: true,
                 TextEncoder: true,
                 TextDecoder: true,
+                WebAssembly: true,
                 process: true,
                 module: true,
                 require: true,

@@ -37,7 +37,7 @@ export class JSEngine implements ICPUEngine {
     
     constructor(private bus: Bus) {
         this.cpu = new CPU6502(bus);
-        this.metricsStartTime = performance.now();
+        this.metricsStartTime = Date.now();
         this.metrics = this.initializeMetrics();
     }
     
@@ -63,7 +63,7 @@ export class JSEngine implements ICPUEngine {
     // ============ Core Operations ============
     
     performSingleStep(): number {
-        const startTime = performance.now();
+        const startTime = Date.now();
         
         // Check for breakpoints
         if (this.breakpoints.has(this.cpu.PC)) {
@@ -74,17 +74,17 @@ export class JSEngine implements ICPUEngine {
         const cycles = this.cpu.performSingleStep();
         
         // Update metrics
-        const duration = performance.now() - startTime;
+        const duration = Date.now() - startTime;
         this.updateMetrics(cycles, duration);
         
         return cycles;
     }
     
     performBulkSteps(cycles: number): void {
-        const startTime = performance.now();
+        const startTime = Date.now();
         this.cpu.performBulkSteps(cycles);
         
-        const duration = performance.now() - startTime;
+        const duration = Date.now() - startTime;
         this.metrics.totalCycles += cycles;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
     }
@@ -92,7 +92,7 @@ export class JSEngine implements ICPUEngine {
     reset(): void {
         this.cpu.reset();
         this.metrics = this.initializeMetrics();
-        this.metricsStartTime = performance.now();
+        this.metricsStartTime = Date.now();
     }
     
     halt(): void {
@@ -199,7 +199,7 @@ export class JSEngine implements ICPUEngine {
     
     resetMetrics(): void {
         this.metrics = this.initializeMetrics();
-        this.metricsStartTime = performance.now();
+        this.metricsStartTime = Date.now();
     }
     
     setProfiling(enabled: boolean): void {
@@ -235,7 +235,7 @@ export class JSEngine implements ICPUEngine {
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
         
         // Calculate average IPS
-        const totalTime = performance.now() - this.metricsStartTime;
+        const totalTime = Date.now() - this.metricsStartTime;
         if (totalTime > 0) {
             this.metrics.averageIPS = (this.metrics.instructionsExecuted / totalTime) * 1000;
         }

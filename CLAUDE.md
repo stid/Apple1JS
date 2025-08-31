@@ -389,25 +389,49 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 
 #### ✅ Completed WASM Tasks
 - CPU engine abstraction interface (`ICPUEngine`)
-- JS engine wrapper (`JSEngine`) 
+- JS engine wrapper (`JSEngine`)
 - Rust/WASM CPU core structure
 - Basic CPU state & registers in Rust
 - WASM module building pipeline
 - Generated JS bindings
+- **WasmEngine wrapper** (`src/core/cpu-engines/WasmEngine.ts`) ✅
+- **DualEngine coordinator** for hot-swapping ✅
+- **Engine parity tests** ✅
+- **wasm-loader helper** with error handling ✅
 
 #### 🔄 In Progress
-- **Port 6502 instructions to Rust** - Currently have NOP, LDA, STA
-- **Create TypeScript WASM wrapper** - `WasmEngine` class implementation
+- **Port 6502 instructions to Rust** - Currently have ~50 instructions (LDA, STA, ADC, etc.)
+- **Fix minor TypeScript compilation warnings**
 
 #### 📋 Next WASM Tasks
-1. **Create WasmEngine wrapper** (`src/core/cpu-engines/WasmEngine.ts`)
-2. **Implement DualEngine coordinator** for hot-swapping
-3. **Port remaining 6502 instructions** (256 opcodes total)
-4. **Add engine switcher UI component**
-5. **Create performance comparison dashboard**
-6. **Integrate with Worker** via `WorkerState`
-7. **Write engine parity tests**
-8. **Benchmark both implementations**
+1. **Complete remaining 6502 instructions** (~200 opcodes remaining)
+2. **Add engine switcher UI component**
+3. **Create performance comparison dashboard**
+4. **Integrate with Worker** via `WorkerState`
+5. **Create performance benchmark suite**
+6. **Optimize WASM binary size** (target <100KB)
+
+#### 🎯 Using the Dual-Engine System
+
+```typescript
+// Create dual-engine CPU
+import { DualEngine } from './src/core/cpu-engines';
+
+const dualEngine = new DualEngine(bus, 'JS'); // Start with JS engine
+await dualEngine.initialize();
+
+// Switch to WASM for performance
+await dualEngine.switchEngine('WASM');
+
+// Get performance comparison
+const comparison = await dualEngine.compareEngines();
+console.log(`WASM is ${comparison.speedup}x faster!`);
+
+// Listen for engine switches
+dualEngine.onEngineSwitch(event => {
+    console.log(`Switched from ${event.from} to ${event.to}`);
+});
+```
 
 #### 📁 WASM Project Structure
 ```
@@ -418,6 +442,13 @@ wasm-cpu/               # Rust source (build from here)
     ├── cpu.rs         # CPU implementation  
     ├── instructions.rs # 6502 instructions
     └── opcodes.rs     # Opcode dispatch
+
+src/core/cpu-engines/  # TypeScript engine wrappers
+├── JSEngine.ts        # Wraps existing CPU6502
+├── WasmEngine.ts      # Wraps WASM CPU
+├── DualEngine.ts      # Orchestrates both engines
+├── wasm-loader.ts     # WASM initialization
+└── index.ts           # Public exports
 
 src/wasm/              # Generated output
 ├── apple1_cpu_wasm.js # JS bindings
