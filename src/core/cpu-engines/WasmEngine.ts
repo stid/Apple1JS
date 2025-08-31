@@ -146,7 +146,9 @@ export class WasmEngine implements ICPUEngine {
     
     performSingleStep(): number {
         if (!this.wasmCpu) {
-            throw new Error('WASM engine not initialized');
+            // Return 0 cycles if not initialized - the engine will be initialized asynchronously
+            loggingService.warn('WasmEngine', 'performSingleStep called before initialization complete');
+            return 0;
         }
         
         const startTime = Date.now();
@@ -177,7 +179,9 @@ export class WasmEngine implements ICPUEngine {
     
     performBulkSteps(cycles: number): void {
         if (!this.wasmCpu) {
-            throw new Error('WASM engine not initialized');
+            // Skip if not initialized - the engine will be initialized asynchronously
+            loggingService.warn('WasmEngine', 'performBulkSteps called before initialization complete');
+            return;
         }
         
         const startTime = Date.now();
@@ -192,7 +196,8 @@ export class WasmEngine implements ICPUEngine {
     
     reset(): void {
         if (!this.wasmCpu) {
-            throw new Error('WASM engine not initialized');
+            loggingService.warn('WasmEngine', 'reset called before initialization complete');
+            return;
         }
         
         this.wasmCpu.reset();
@@ -275,12 +280,26 @@ export class WasmEngine implements ICPUEngine {
         
         this.wasmCpu.status = status;
         
-        // Load the state into WASM
+        // Load the state into WASM - convert to expected format
         const wasmState = {
-            ...state,
-            status
+            pc: state.PC,
+            a: state.A,
+            x: state.X,
+            y: state.Y,
+            s: state.S,
+            status: status,
+            cycles: state.cycles || 0,
+            irq: state.irq || false,
+            nmi: state.nmi || false
         };
-        this.wasmCpu.load_state(wasmState);
+        
+        try {
+            this.wasmCpu.load_state(wasmState);
+        } catch (error) {
+            loggingService.error('WasmEngine', `Failed to load state into WASM: ${error}`);
+            // Set registers directly as fallback
+            // The registers were already set above, so just log the error
+        }
         
         // Sync memory after state load
         this.syncMemoryFromBus();

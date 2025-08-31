@@ -1,0 +1,352 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import type { WorkerManager } from '../services/WorkerManager';
+import type { EngineStatusData } from '../apple1/types/worker-messages';
+import { loggingService } from '../services/LoggingService';
+
+interface PerformanceMetricsProps {
+    workerManager: WorkerManager;
+    updateInterval?: number; // Update interval in ms (default: 1000)
+}
+
+interface MetricHistory {
+    timestamp: number;
+    jsIPS?: number | undefined;
+    wasmIPS?: number | undefined;
+    jsMemory?: number | undefined;
+    wasmMemory?: number | undefined;
+}
+
+const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ 
+    workerManager, 
+    updateInterval = 1000 
+}) => {
+    const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
+    const [history, setHistory] = useState<MetricHistory[]>([]);
+    const [maxIPS, setMaxIPS] = useState(0);
+    const [avgIPS, setAvgIPS] = useState({ js: 0, wasm: 0 });
+    const [showDetails, setShowDetails] = useState(false);
+    const historyLimit = 60; // Keep last 60 data points
+    const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    
+    // Fetch and update metrics
+    const updateMetrics = useCallback(async () => {
+        try {
+            const status = await workerManager.getEngineStatus();
+            setEngineStatus(status);
+            
+            // Add to history
+            const newPoint: MetricHistory = {
+                timestamp: Date.now(),
+                jsIPS: status.jsMetrics?.lastIPS,
+                wasmIPS: status.wasmMetrics?.lastIPS,
+                jsMemory: status.jsMetrics?.memoryUsage,
+                wasmMemory: status.wasmMetrics?.memoryUsage
+            };
+            
+            setHistory(prev => {
+                const updated = [...prev, newPoint];
+                // Keep only last N points
+                if (updated.length > historyLimit) {
+                    return updated.slice(-historyLimit);
+                }
+                return updated;
+            });
+            
+            // Update max IPS
+            const currentMaxIPS = Math.max(
+                newPoint.jsIPS || 0,
+                newPoint.wasmIPS || 0,
+                maxIPS
+            );
+            setMaxIPS(currentMaxIPS);
+            
+            // Calculate running averages
+            if (history.length > 0) {
+                const jsAvg = history
+                    .filter(h => h.jsIPS)
+                    .reduce((sum, h) => sum + (h.jsIPS || 0), 0) / history.length;
+                const wasmAvg = history
+                    .filter(h => h.wasmIPS)
+                    .reduce((sum, h) => sum + (h.wasmIPS || 0), 0) / history.length;
+                setAvgIPS({ js: jsAvg, wasm: wasmAvg });
+            }
+            
+        } catch (error) {
+            loggingService.error('PerformanceMetrics', `Failed to update metrics: ${error}`);
+        }
+    }, [workerManager, history, maxIPS]);
+    
+    // Set up periodic updates
+    useEffect(() => {
+        updateMetrics(); // Initial update
+        
+        updateIntervalRef.current = setInterval(updateMetrics, updateInterval);
+        
+        return () => {
+            if (updateIntervalRef.current) {
+                clearInterval(updateIntervalRef.current);
+            }
+        };
+    }, [updateMetrics, updateInterval]);
+    
+    // Format numbers for display
+    const formatIPS = (ips: number | undefined): string => {
+        if (!ips) return '0';
+        if (ips >= 1_000_000) return `${(ips / 1_000_000).toFixed(2)}M`;
+        if (ips >= 1_000) return `${(ips / 1_000).toFixed(1)}K`;
+        return ips.toFixed(0);
+    };
+    
+    const formatMemory = (bytes: number | undefined): string => {
+        if (!bytes) return '0 KB';
+        if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(2)} MB`;
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    };
+    
+    const formatPercent = (value: number, max: number): string => {
+        if (max === 0) return '0';
+        return ((value / max) * 100).toFixed(0);
+    };
+    
+    // Calculate speedup
+    const calculateSpeedup = (): number => {
+        const jsIPS = engineStatus?.jsMetrics?.lastIPS || 0;
+        const wasmIPS = engineStatus?.wasmMetrics?.lastIPS || 0;
+        if (jsIPS === 0) return 0;
+        return wasmIPS / jsIPS;
+    };
+    
+    // Render performance bar
+    const renderPerformanceBar = (
+        value: number | undefined, 
+        max: number, 
+        color: string
+    ): React.ReactElement => {
+        const percentage = value && max > 0 ? (value / max) * 100 : 0;
+        return (
+            <div className="w-full bg-surface-secondary rounded-sm h-2 overflow-hidden">
+                <div 
+                    className={`h-full transition-all duration-300 ${color}`}
+                    style={{ width: `${percentage}%` }}
+                />
+            </div>
+        );
+    };
+    
+    // Render mini sparkline chart
+    const renderSparkline = (
+        data: number[], 
+        color: string,
+        height: number = 30
+    ): React.ReactElement => {
+        if (data.length < 2) return <div style={{ height }} />;
+        
+        const max = Math.max(...data, 1);
+        const width = 150;
+        const points = data.map((val, i) => {
+            const x = (i / (data.length - 1)) * width;
+            const y = height - (val / max) * height;
+            return `${x},${y}`;
+        }).join(' ');
+        
+        return (
+            <svg width={width} height={height} className="block">
+                <polyline
+                    points={points}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="1.5"
+                    opacity="0.8"
+                />
+            </svg>
+        );
+    };
+    
+    if (!engineStatus) {
+        return null;
+    }
+    
+    const jsIPS = engineStatus.jsMetrics?.lastIPS || 0;
+    const wasmIPS = engineStatus.wasmMetrics?.lastIPS || 0;
+    const speedup = calculateSpeedup();
+    const currentEngine = engineStatus.currentEngine;
+    
+    return (
+        <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
+            <div className="flex items-center justify-between mb-sm">
+                <h3 className="text-sm font-medium text-text-accent">Performance Metrics</h3>
+                <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="text-xs text-text-secondary hover:text-text-primary"
+                >
+                    {showDetails ? 'Hide Details' : 'Show Details'}
+                </button>
+            </div>
+            
+            {/* Current Performance Summary */}
+            <div className="space-y-sm">
+                {/* Active Engine Performance */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-xs">
+                        <span className="text-xs text-text-secondary">Active Engine:</span>
+                        <span className={`text-xs font-medium px-sm py-xxs rounded ${
+                            currentEngine === 'WASM'
+                                ? 'bg-success/20 text-success'
+                                : 'bg-data-value/20 text-data-value'
+                        }`}>
+                            {currentEngine}
+                        </span>
+                    </div>
+                    <span className="text-xs font-mono text-text-primary">
+                        {formatIPS(currentEngine === 'WASM' ? wasmIPS : jsIPS)} IPS
+                    </span>
+                </div>
+                
+                {/* Performance Bars */}
+                {engineStatus.jsMetrics && (
+                    <div>
+                        <div className="flex justify-between items-center mb-xs">
+                            <span className="text-xs text-data-value">JS Engine</span>
+                            <span className="text-xs font-mono text-text-secondary">
+                                {formatIPS(jsIPS)} ({formatPercent(jsIPS, maxIPS)}%)
+                            </span>
+                        </div>
+                        {renderPerformanceBar(jsIPS, maxIPS, 'bg-data-value')}
+                    </div>
+                )}
+                
+                {engineStatus.wasmMetrics && (
+                    <div>
+                        <div className="flex justify-between items-center mb-xs">
+                            <span className="text-xs text-success">WASM Engine</span>
+                            <span className="text-xs font-mono text-text-secondary">
+                                {formatIPS(wasmIPS)} ({formatPercent(wasmIPS, maxIPS)}%)
+                            </span>
+                        </div>
+                        {renderPerformanceBar(wasmIPS, maxIPS, 'bg-success')}
+                    </div>
+                )}
+                
+                {/* Speedup Indicator */}
+                {engineStatus.wasmMetrics && speedup > 0 && (
+                    <div className="flex justify-between items-center pt-sm border-t border-border-subtle">
+                        <span className="text-xs font-medium text-text-secondary">WASM Speedup:</span>
+                        <span className={`text-xs font-mono font-medium ${
+                            speedup > 1 ? 'text-success' : 'text-warning'
+                        }`}>
+                            {speedup.toFixed(2)}x
+                        </span>
+                    </div>
+                )}
+            </div>
+            
+            {/* Detailed Metrics (collapsible) */}
+            {showDetails && (
+                <div className="mt-md pt-md border-t border-border-subtle space-y-md">
+                    {/* Performance History Sparklines */}
+                    {history.length > 1 && (
+                        <div>
+                            <h4 className="text-xs font-medium text-text-accent mb-sm">Performance History</h4>
+                            <div className="space-y-sm">
+                                {engineStatus.jsMetrics && (
+                                    <div>
+                                        <div className="text-xs text-data-value mb-xs">JS Engine</div>
+                                        {renderSparkline(
+                                            history.map(h => h.jsIPS || 0),
+                                            '#60a5fa'
+                                        )}
+                                    </div>
+                                )}
+                                {engineStatus.wasmMetrics && (
+                                    <div>
+                                        <div className="text-xs text-success mb-xs">WASM Engine</div>
+                                        {renderSparkline(
+                                            history.map(h => h.wasmIPS || 0),
+                                            '#34d399'
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Detailed Statistics */}
+                    <div>
+                        <h4 className="text-xs font-medium text-text-accent mb-sm">Statistics</h4>
+                        <div className="grid grid-cols-2 gap-sm text-xs">
+                            {/* Instructions Executed */}
+                            {engineStatus.jsMetrics && (
+                                <>
+                                    <span className="text-text-secondary">JS Instructions:</span>
+                                    <span className="font-mono text-text-primary">
+                                        {(engineStatus.jsMetrics.instructionsExecuted / 1_000_000).toFixed(2)}M
+                                    </span>
+                                </>
+                            )}
+                            {engineStatus.wasmMetrics && (
+                                <>
+                                    <span className="text-text-secondary">WASM Instructions:</span>
+                                    <span className="font-mono text-text-primary">
+                                        {(engineStatus.wasmMetrics.instructionsExecuted / 1_000_000).toFixed(2)}M
+                                    </span>
+                                </>
+                            )}
+                            
+                            {/* Average IPS */}
+                            <span className="text-text-secondary">Avg JS IPS:</span>
+                            <span className="font-mono text-text-primary">{formatIPS(avgIPS.js)}</span>
+                            
+                            {avgIPS.wasm > 0 && (
+                                <>
+                                    <span className="text-text-secondary">Avg WASM IPS:</span>
+                                    <span className="font-mono text-text-primary">{formatIPS(avgIPS.wasm)}</span>
+                                </>
+                            )}
+                            
+                            {/* Memory Usage */}
+                            {engineStatus.jsMetrics && (
+                                <>
+                                    <span className="text-text-secondary">JS Memory:</span>
+                                    <span className="font-mono text-text-primary">
+                                        {formatMemory(engineStatus.jsMetrics.memoryUsage)}
+                                    </span>
+                                </>
+                            )}
+                            {engineStatus.wasmMetrics && (
+                                <>
+                                    <span className="text-text-secondary">WASM Memory:</span>
+                                    <span className="font-mono text-text-primary">
+                                        {formatMemory(engineStatus.wasmMetrics.memoryUsage)}
+                                    </span>
+                                </>
+                            )}
+                            
+                            {/* Switch Statistics */}
+                            <span className="text-text-secondary">Engine Switches:</span>
+                            <span className="font-mono text-text-primary">{engineStatus.switchCount}</span>
+                            
+                            {engineStatus.lastSwitchTime > 0 && (
+                                <>
+                                    <span className="text-text-secondary">Last Switch:</span>
+                                    <span className="font-mono text-text-primary">
+                                        {engineStatus.lastSwitchTime.toFixed(1)}ms
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Peak Performance */}
+                    <div className="pt-sm border-t border-border-subtle">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-text-secondary">Peak IPS:</span>
+                            <span className="text-xs font-mono text-text-accent">{formatIPS(maxIPS)}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default PerformanceMetrics;

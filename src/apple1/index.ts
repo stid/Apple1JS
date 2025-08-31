@@ -313,7 +313,11 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
             reset: () => {
                 this.pia.reset();
                 this.displayLogic.reset();
-                this.cpu.reset();
+                if (this.cpuEngine) {
+                    this.cpuEngine.reset();
+                } else {
+                    this.cpu.reset();
+                }
             },
         });
 
@@ -332,10 +336,23 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         this.clock.name = 'System Clock';
         loggingService.info('Apple1', 'Apple 1 emulator initialized');
 
-        this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
+        // Subscribe the appropriate engine to the Clock
+        if (this.cpuEngine) {
+            // Use DualEngine when available - this ensures metrics are properly tracked
+            const engine = this.cpuEngine; // Capture reference to avoid TS error
+            this.clock.subscribe((steps: number) => engine.performBulkSteps(steps));
+            // Note: DualEngine initialization is deferred to startLoop() to ensure it completes before execution
+        } else {
+            // Use regular CPU when DualEngine is not enabled
+            this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
+        }
 
         // Initialize CPU by calling reset to set PC to reset vector
-        this.cpu.reset();
+        if (this.cpuEngine) {
+            this.cpuEngine.reset();
+        } else {
+            this.cpu.reset();
+        }
 
         // Debug output commented out to reduce startup logs
         // loggingService.info('Apple1', `System Clock: ${JSON.stringify(this.clock.toDebug())}`);
@@ -344,10 +361,24 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     }
 
     reset(): void {
-        this.cpu.reset();
+        if (this.cpuEngine) {
+            this.cpuEngine.reset();
+        } else {
+            this.cpu.reset();
+        }
     }
 
     async startLoop(): Promise<void> {
+        // Ensure the CPU engine is initialized before starting the clock
+        if (this.cpuEngine && this.cpuEngine.initialize) {
+            try {
+                await this.cpuEngine.initialize();
+                loggingService.info('Apple1', 'CPU engine initialized before starting clock');
+            } catch (error) {
+                loggingService.error('Apple1', `Failed to initialize CPU engine: ${error}`);
+            }
+        }
+        
         return this.clock.startLoop();
     }
 

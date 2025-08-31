@@ -1,6 +1,12 @@
 import type { EmulatorState } from './emulator-state';
 import type { VideoData } from './video';
-import type { FilteredDebugData, MemoryMapData, LogMessageData } from './worker-messages';
+import type { 
+    FilteredDebugData, 
+    MemoryMapData, 
+    LogMessageData,
+    EngineStatusData,
+    EngineComparisonData
+} from './worker-messages';
 
 /**
  * CPU Engine performance metrics
@@ -180,10 +186,23 @@ export interface IWorkerAPI {
     getEngineMetrics(): EngineMetrics | null;
     
     /**
+     * Get current engine status
+     * @returns Status data including metrics and configuration
+     */
+    getEngineStatus(): EngineStatusData;
+    
+    /**
      * Compare performance between available engines
      * @returns Comparison results with speedup and recommendations
      */
-    compareEngines(): Promise<EngineComparison>;
+    compareEngines(): Promise<EngineComparisonData>;
+    
+    /**
+     * Set auto-switch configuration
+     * @param enabled Whether to enable automatic engine switching
+     * @param threshold Optional performance threshold for switching
+     */
+    setAutoSwitch(enabled: boolean, threshold?: number): void;
     
     // ========== Input ==========
     

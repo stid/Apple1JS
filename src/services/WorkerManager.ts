@@ -3,7 +3,13 @@ import { WORKER_MESSAGES, WorkerMessage } from '../apple1/types/worker-messages'
 import type { IWorkerAPI } from '../apple1/types/worker-api';
 import type { EmulatorState } from '../apple1/types/emulator-state';
 import type { VideoData } from '../apple1/types/video';
-import type { LogMessageData, FilteredDebugData, MemoryMapData } from '../apple1/types/worker-messages';
+import type { 
+    LogMessageData, 
+    FilteredDebugData, 
+    MemoryMapData,
+    EngineStatusData,
+    EngineComparisonData
+} from '../apple1/types/worker-messages';
 // CONFIG no longer needed since Comlink is the only implementation
 
 /**
@@ -195,6 +201,36 @@ export class WorkerManager {
         if (this.comlinkAPI) {
             await this.comlinkAPI.keyDown(key);
         }
+    }
+
+    // ========== Engine Management ==========
+    
+    async switchEngine(engineType: 'JS' | 'WASM'): Promise<void> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.switchEngine(engineType);
+        }
+        throw new Error('Worker not initialized');
+    }
+    
+    async getEngineStatus(): Promise<EngineStatusData> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.getEngineStatus();
+        }
+        throw new Error('Worker not initialized');
+    }
+    
+    async compareEngines(): Promise<EngineComparisonData> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.compareEngines();
+        }
+        throw new Error('Worker not initialized');
+    }
+    
+    async setAutoSwitch(enabled: boolean, threshold?: number): Promise<void> {
+        if (this.comlinkAPI) {
+            return await this.comlinkAPI.setAutoSwitch(enabled, threshold);
+        }
+        throw new Error('Worker not initialized');
     }
 
     // ========== Event Subscriptions (Comlink only) ==========

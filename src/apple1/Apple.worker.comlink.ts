@@ -67,7 +67,9 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     getCurrentEngine = () => this.api.getCurrentEngine();
     switchEngine = (engineType: 'JS' | 'WASM') => this.api.switchEngine(engineType);
     getEngineMetrics = () => this.api.getEngineMetrics();
+    getEngineStatus = () => this.api.getEngineStatus();
     compareEngines = () => this.api.compareEngines();
+    setAutoSwitch = (enabled: boolean, threshold?: number) => this.api.setAutoSwitch(enabled, threshold);
     
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();

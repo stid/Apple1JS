@@ -34,6 +34,12 @@ export enum WORKER_MESSAGES {
     WRITE_MEMORY, // Write a value to a memory address
     GET_MEMORY_MAP, // Request memory map information
     MEMORY_MAP_DATA, // Response with memory map data
+    SWITCH_ENGINE, // Switch between JS and WASM engines
+    GET_ENGINE_STATUS, // Request current engine status
+    ENGINE_STATUS_DATA, // Response with engine status data
+    COMPARE_ENGINES, // Request engine performance comparison
+    ENGINE_COMPARISON_DATA, // Response with engine comparison data
+    SET_AUTO_SWITCH, // Enable/disable automatic engine switching
 }
 
 // Interface for DebugData: a dictionary of debugging information
@@ -124,6 +130,47 @@ export interface MemoryMapData {
     regions: MemoryRegion[];
 }
 
+// Interface for engine status
+export interface EngineStatusData {
+    currentEngine: 'JS' | 'WASM';
+    availableEngines: ('JS' | 'WASM')[];
+    switchCount: number;
+    lastSwitchTime: number;
+    autoSwitchEnabled: boolean;
+    jsMetrics?: EngineMetricsData;
+    wasmMetrics?: EngineMetricsData;
+}
+
+// Interface for engine metrics
+export interface EngineMetricsData {
+    instructionsExecuted: number;
+    averageIPS: number;
+    lastIPS: number;
+    cyclesExecuted: number;
+    memoryUsage: number;
+}
+
+// Interface for engine comparison
+export interface EngineComparisonData {
+    js: EngineMetricsData;
+    wasm: EngineMetricsData;
+    speedup: number;
+    memoryRatio: number;
+    recommendation: 'JS' | 'WASM';
+    reason: string;
+}
+
+// Interface for engine switch request
+export interface EngineSwitchRequest {
+    targetEngine: 'JS' | 'WASM';
+}
+
+// Interface for auto-switch configuration
+export interface AutoSwitchConfig {
+    enabled: boolean;
+    threshold?: number;
+}
+
 // Message for state save/load
 export type StateMessage = {
     type: WORKER_MESSAGES.SAVE_STATE | WORKER_MESSAGES.LOAD_STATE | WORKER_MESSAGES.STATE_DATA;
@@ -173,6 +220,8 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_ADDRESS, number>
     | BaseWorkerMessage<WORKER_MESSAGES.RUN_TO_CURSOR_TARGET, number | null>
     | BaseWorkerMessage<WORKER_MESSAGES.WRITE_MEMORY, MemoryWriteRequest>
+    | BaseWorkerMessage<WORKER_MESSAGES.SWITCH_ENGINE, EngineSwitchRequest>
+    | BaseWorkerMessage<WORKER_MESSAGES.SET_AUTO_SWITCH, AutoSwitchConfig>
     // Simple command messages (no data)
     | SimpleWorkerMessage<WORKER_MESSAGES.DEBUG_INFO>
     | SimpleWorkerMessage<WORKER_MESSAGES.SAVE_STATE>
@@ -183,6 +232,8 @@ export type WorkerMessage =
     | SimpleWorkerMessage<WORKER_MESSAGES.GET_BREAKPOINTS>
     | SimpleWorkerMessage<WORKER_MESSAGES.GET_EMULATION_STATUS>
     | SimpleWorkerMessage<WORKER_MESSAGES.GET_MEMORY_MAP>
+    | SimpleWorkerMessage<WORKER_MESSAGES.GET_ENGINE_STATUS>
+    | SimpleWorkerMessage<WORKER_MESSAGES.COMPARE_ENGINES>
     // Response messages (Worker to UI)
     | BaseWorkerMessage<WORKER_MESSAGES.STATE_DATA, EmulatorState>
     | BaseWorkerMessage<WORKER_MESSAGES.UPDATE_VIDEO_BUFFER, VideoData>
@@ -193,7 +244,9 @@ export type WorkerMessage =
     | BaseWorkerMessage<WORKER_MESSAGES.BREAKPOINT_HIT, number>
     | BaseWorkerMessage<WORKER_MESSAGES.EMULATION_STATUS, { paused: boolean }>
     | BaseWorkerMessage<WORKER_MESSAGES.CLOCK_DATA, ClockData>
-    | BaseWorkerMessage<WORKER_MESSAGES.MEMORY_MAP_DATA, MemoryMapData>;
+    | BaseWorkerMessage<WORKER_MESSAGES.MEMORY_MAP_DATA, MemoryMapData>
+    | BaseWorkerMessage<WORKER_MESSAGES.ENGINE_STATUS_DATA, EngineStatusData>
+    | BaseWorkerMessage<WORKER_MESSAGES.ENGINE_COMPARISON_DATA, EngineComparisonData>;
 
 /**
  * Type guard to check if a message is a valid WorkerMessage

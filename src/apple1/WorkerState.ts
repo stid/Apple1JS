@@ -4,6 +4,8 @@ import WebCRTVideo from './WebCRTVideo';
 import type { IWorkerState } from './types/worker-api';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
+import type { DualEngine } from '../core/cpu-engines';
+import type { EngineStatusData, EngineComparisonData, EngineMetricsData } from './types/worker-messages';
 
 /**
  * WorkerState encapsulates all the state that was previously at module level.
@@ -154,10 +156,10 @@ export class WorkerState implements IWorkerState {
     /**
      * Start the emulation loop
      */
-    public startEmulation(): void {
-        this.apple1.startLoop();
+    public async startEmulation(): Promise<void> {
+        // The Apple1.startLoop() method now handles engine initialization
+        await this.apple1.startLoop();
         this.isPaused = false;
-        
     }
     
     /**
@@ -168,5 +170,111 @@ export class WorkerState implements IWorkerState {
             clearInterval(this.debugUpdateInterval);
             this.debugUpdateInterval = null;
         }
+    }
+    
+    /**
+     * Get the dual-engine CPU if available
+     */
+    public getDualEngine(): DualEngine | null {
+        return this.apple1.cpuEngine as DualEngine || null;
+    }
+    
+    /**
+     * Switch between JS and WASM engines
+     */
+    public async switchEngine(targetEngine: 'JS' | 'WASM'): Promise<void> {
+        const dualEngine = this.getDualEngine();
+        if (!dualEngine) {
+            throw new Error('Dual-engine CPU not available');
+        }
+        
+        await dualEngine.switchEngine(targetEngine);
+        loggingService.info('WorkerState', `Switched to ${targetEngine} engine`);
+    }
+    
+    /**
+     * Get current engine status
+     */
+    public getEngineStatus(): EngineStatusData {
+        const dualEngine = this.getDualEngine();
+        if (!dualEngine) {
+            // Return default status for non-dual-engine setups
+            return {
+                currentEngine: 'JS',
+                availableEngines: ['JS'],
+                switchCount: 0,
+                lastSwitchTime: 0,
+                autoSwitchEnabled: false
+            };
+        }
+        
+        const stats = dualEngine.getSwitchStats();
+        const jsMetrics = this.convertEngineMetrics(dualEngine['jsEngine']?.getMetrics());
+        const wasmEngine = dualEngine['wasmEngine'];
+        const wasmMetrics = wasmEngine && 'getMetrics' in wasmEngine ? 
+            this.convertEngineMetrics(wasmEngine.getMetrics()) : undefined;
+        
+        const result: EngineStatusData = {
+            currentEngine: stats.currentEngine,
+            availableEngines: stats.availableEngines,
+            switchCount: stats.switchCount,
+            lastSwitchTime: stats.lastSwitchTime,
+            autoSwitchEnabled: stats.autoSwitchEnabled
+        };
+        
+        if (jsMetrics) {
+            result.jsMetrics = jsMetrics;
+        }
+        
+        if (wasmMetrics) {
+            result.wasmMetrics = wasmMetrics;
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Compare engine performance
+     */
+    public async compareEngines(): Promise<EngineComparisonData> {
+        const dualEngine = this.getDualEngine();
+        if (!dualEngine) {
+            throw new Error('Dual-engine CPU not available');
+        }
+        
+        const comparison = await dualEngine.compareEngines();
+        
+        return {
+            js: this.convertEngineMetrics(comparison.js),
+            wasm: this.convertEngineMetrics(comparison.wasm),
+            speedup: comparison.speedup,
+            memoryRatio: comparison.memoryRatio,
+            recommendation: comparison.recommendation,
+            reason: comparison.reason
+        };
+    }
+    
+    /**
+     * Set auto-switch configuration
+     */
+    public setAutoSwitch(enabled: boolean, threshold?: number): void {
+        const dualEngine = this.getDualEngine();
+        if (dualEngine) {
+            dualEngine.setAutoSwitch(enabled, threshold);
+        }
+    }
+    
+    /**
+     * Convert internal engine metrics to API format
+     */
+    private convertEngineMetrics(metrics: unknown): EngineMetricsData {
+        const metricsObj = metrics as Record<string, unknown> | undefined;
+        return {
+            instructionsExecuted: (metricsObj?.instructionsExecuted as number) || 0,
+            averageIPS: (metricsObj?.averageIPS as number) || 0,
+            lastIPS: (metricsObj?.lastIPS as number) || 0,
+            cyclesExecuted: (metricsObj?.cyclesExecuted as number) || 0,
+            memoryUsage: (metricsObj?.memoryUsage as number) || 0
+        };
     }
 }

@@ -3,6 +3,8 @@ import DisassemblerPaginated from './DisassemblerPaginated';
 import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import ExecutionControls from './ExecutionControls';
+import EngineSwitcher from './EngineSwitcher';
+import PerformanceMetrics from './PerformanceMetrics';
 import { IInspectableComponent } from '../core/types';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { useWorkerData } from '../contexts/WorkerDataContext';
@@ -115,6 +117,9 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                         <div className="space-y-md">
                             {/* Execution Controls */}
                             <ExecutionControls workerManager={workerManager} />
+                            
+                            {/* Engine Switcher */}
+                            <EngineSwitcher workerManager={workerManager} />
                             
                             {/* CPU State */}
                             <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
@@ -241,14 +246,20 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({ workerManager, initialN
                             </div>
                         </div>
 
-                        {/* Stack View */}
-                        <div className="bg-surface-primary rounded-lg p-md border border-border-primary flex flex-col" style={{ minHeight: '400px' }}>
-                            <h3 className="text-sm font-medium text-text-accent mb-sm flex-none">Stack</h3>
-                            <div className="flex-1" style={{ minHeight: 0 }}>
-                                <StackViewer
-                                    workerManager={workerManager}
-                                    stackPointer={getNumericDebugValue(debugInfo.cpu?.REG_S, 0xFF)}
-                                />
+                        {/* Right Column */}
+                        <div className="space-y-md">
+                            {/* Performance Metrics */}
+                            <PerformanceMetrics workerManager={workerManager} />
+                            
+                            {/* Stack View */}
+                            <div className="bg-surface-primary rounded-lg p-md border border-border-primary flex flex-col" style={{ minHeight: '400px' }}>
+                                <h3 className="text-sm font-medium text-text-accent mb-sm flex-none">Stack</h3>
+                                <div className="flex-1" style={{ minHeight: 0 }}>
+                                    <StackViewer
+                                        workerManager={workerManager}
+                                        stackPointer={getNumericDebugValue(debugInfo.cpu?.REG_S, 0xFF)}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -6,11 +6,14 @@
 ## 🎯 WASM Migration Focus
 
 ### Current Priority: Dual-Engine System
+
 We're building a **hot-swappable CPU engine system** that allows runtime switching between:
+
 - **JS Engine**: Original TypeScript implementation (better debugging)
 - **WASM Engine**: High-performance Rust implementation (5-10x faster)
 
 ### Critical Development Rules
+
 1. **ALWAYS use Context7 MCP server** for WASM/Rust documentation
 2. **Maintain feature parity** between both engines
 3. **Test both engines** for every change
@@ -73,6 +76,7 @@ cargo --version  # Should be recent (we have 1.89.0)
 ## 🔧 WASM Troubleshooting
 
 Common issues and fixes:
+
 - **wasm-opt fails**: Add `wasm-opt = false` to `[package.metadata.wasm-pack]` in Cargo.toml
 - **Build from wrong directory**: Always `cd wasm-cpu` first
 - **Missing target**: Run `rustup target add wasm32-unknown-unknown`
@@ -81,6 +85,7 @@ Common issues and fixes:
 ## 📊 Performance Tracking
 
 Track these metrics when developing:
+
 - **Instructions/second (IPS)** - Target: 1M+ for WASM
 - **Engine switch time** - Target: <10ms
 - **Memory usage** - WASM should use ~50% less
@@ -384,6 +389,9 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 - Formatter Migration (97 instances)
 - CPU6502 Module Split (6 focused modules)
 - Base Classes for Common Patterns (useWorkerState hooks)
+- **Dual-Engine CPU System** with runtime switching (Aug 31, 2024)
+- **Performance Metrics Dashboard** with real-time monitoring
+- **WASM Engine Integration** with proper initialization
 
 ### Current Focus: WASM CPU Implementation 🚀
 
@@ -395,13 +403,18 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 - WASM module successfully building (387KB dev, target <100KB release)
 - Dual-engine architecture ready for integration
 
+#### ✅ Recently Completed (Aug 31, 2024)
+- **Fixed 0 IPS metrics issue** - Clock now properly subscribes to DualEngine
+- **Resolved WASM initialization errors** - Proper initialization sequencing
+- **Engine switcher UI component** - Complete with real-time switching
+- **Performance metrics dashboard** - Shows IPS, memory, and speedup
+
 #### 📋 Next Priority Tasks
-1. **Integrate WASM engine with Worker** via `WorkerState`
-2. **Add engine switcher UI component** for runtime switching
-3. **Create performance comparison dashboard**
-4. **Implement performance benchmark suite**
-5. **Optimize WASM binary size** for production release
-6. **Add undocumented opcodes** (lower priority - for full compatibility)
+1. **Implement performance benchmark suite** for systematic testing
+2. **Optimize WASM binary size** for production release (target <100KB)
+3. **Add undocumented opcodes** (lower priority - for full compatibility)
+4. **Create automated engine parity tests**
+5. **Add engine-specific debugging tools**
 
 #### 🎯 Using the Dual-Engine System
 
@@ -426,7 +439,8 @@ dualEngine.onEngineSwitch(event => {
 ```
 
 #### 📁 WASM Project Structure
-```
+
+```text
 wasm-cpu/               # Rust source (build from here)
 ├── Cargo.toml         
 └── src/
@@ -467,6 +481,7 @@ For detailed task breakdowns, timelines, and execution strategy, refer to the co
    - Iterate 2-3 times for polish
 
 3. **Example request format**:
+
    ```text
    "Here's a screenshot of the current memory viewer.
    I want to add highlighting for changed values.
