@@ -12,8 +12,9 @@ import type {
     EngineMetrics 
 } from '../cpu-interface/ICPUEngine';
 import type { CPU6502State } from '../cpu6502/types';
+import type { WasmCPU } from './wasm-loader';
 import type Bus from '../Bus';
-import { initializeWasmModule, WasmCPU, isWasmSupported } from './wasm-loader';
+import { initializeWasmModule, getWasmCPUClass, isWasmSupported } from './wasm-loader';
 import { loggingService } from '../../services/LoggingService';
 
 /**
@@ -92,8 +93,14 @@ export class WasmEngine implements ICPUEngine {
             // Initialize the WASM module
             await initializeWasmModule();
             
+            // Get the WasmCPU class
+            const WasmCPUClass = getWasmCPUClass();
+            if (!WasmCPUClass) {
+                throw new Error('WasmCPU class not available after initialization');
+            }
+            
             // Create the WASM CPU instance
-            this.wasmCpu = new WasmCPU();
+            this.wasmCpu = new WasmCPUClass();
             
             // Initialize CPU state
             this.wasmCpu.reset();

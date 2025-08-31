@@ -39,9 +39,11 @@ export class WorkerState implements IWorkerState {
         this.keyboard = new WebWorkerKeyboard();
         
         // Create Apple1 instance with video and keyboard
+        // Enable DualEngine for runtime CPU switching
         this.apple1 = new Apple1({ 
             video: this.video, 
-            keyboard: this.keyboard 
+            keyboard: this.keyboard,
+            useDualEngine: true  // Enable dual-engine CPU
         });
         
         // Initialize state

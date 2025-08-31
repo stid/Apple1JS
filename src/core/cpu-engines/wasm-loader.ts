@@ -5,8 +5,17 @@
  * with proper error handling and fallback support.
  */
 
-import init, { CPU6502 as WasmCPU, InitOutput } from '../../wasm/apple1_cpu_wasm';
 import { loggingService } from '../../services/LoggingService';
+
+// Dynamic import types - will use actual module if available, stub types otherwise
+type WasmModule = typeof import('../../wasm/apple1_cpu_wasm');
+type InitOutput = import('../../wasm/apple1_cpu_wasm').InitOutput;
+type WasmCPU = import('../../wasm/apple1_cpu_wasm').CPU6502;
+
+// Module references - loaded dynamically
+let wasmModule: WasmModule | null = null;
+let initFunction: WasmModule['default'] | null = null;
+let WasmCPUClass: typeof import('../../wasm/apple1_cpu_wasm').CPU6502 | null = null;
 
 /**
  * WASM module initialization state
@@ -23,6 +32,23 @@ const moduleState: WasmModuleState = {
     isInitialized: false,
     isInitializing: false
 };
+
+/**
+ * Attempt to load the WASM module dynamically
+ */
+async function loadWasmModule(): Promise<boolean> {
+    try {
+        // Try to dynamically import the actual WASM module
+        wasmModule = await import('../../wasm/apple1_cpu_wasm');
+        initFunction = wasmModule.default;
+        WasmCPUClass = wasmModule.CPU6502;
+        return true;
+    } catch {
+        loggingService.warn('WasmLoader', 
+            'WASM module not available - this is expected if WASM has not been built yet');
+        return false;
+    }
+}
 
 /**
  * Initialize the WASM module
@@ -50,10 +76,17 @@ export async function initializeWasmModule(): Promise<InitOutput> {
     moduleState.isInitializing = true;
     
     try {
+        // First, try to load the WASM module
+        const moduleLoaded = await loadWasmModule();
+        
+        if (!moduleLoaded || !initFunction || !WasmCPUClass) {
+            throw new Error('WASM module not available - please build the WASM module first');
+        }
+        
         loggingService.info('WasmLoader', 'Initializing WASM CPU module...');
         
         // Initialize the WASM module - init will handle loading the WASM file
-        const module = await init();
+        const module = await initFunction();
         
         // Store the module
         moduleState.module = module;
@@ -64,7 +97,7 @@ export async function initializeWasmModule(): Promise<InitOutput> {
         
         // Verify the module works by creating a test instance
         try {
-            const testCpu = new WasmCPU();
+            const testCpu = new WasmCPUClass();
             testCpu.free(); // Clean up test instance
             loggingService.info('WasmLoader', 'WASM CPU verification successful');
         } catch (error) {
@@ -163,6 +196,12 @@ export function resetWasmModule(): void {
     delete moduleState.module;
 }
 
-// Export the WasmCPU type for use in other modules
-export { WasmCPU };
-export type { InitOutput };
+/**
+ * Get the WasmCPU class after module is loaded
+ */
+export function getWasmCPUClass(): typeof import('../../wasm/apple1_cpu_wasm').CPU6502 | null {
+    return WasmCPUClass;
+}
+
+// Export types for use in other modules
+export type { WasmCPU, InitOutput };

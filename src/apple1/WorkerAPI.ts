@@ -8,6 +8,7 @@ import type {
     LogMessageData,
     ClockData
 } from './types/worker-messages';
+import type { EngineMetrics, EngineComparison } from './types/worker-api';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
 
@@ -371,6 +372,91 @@ export class WorkerAPI implements IWorkerAPI {
     
     setDebuggerActive(active: boolean): void {
         this.workerState.updateDebuggerState(active);
+    }
+    
+    // ========== CPU Engine Management ==========
+    
+    /**
+     * Get available CPU engines
+     */
+    getAvailableEngines(): string[] {
+        // Check if DualEngine is available
+        if (this.workerState.apple1.cpuEngine) {
+            const dualEngine = this.workerState.apple1.cpuEngine;
+            if ('getAvailableEngines' in dualEngine && typeof dualEngine.getAvailableEngines === 'function') {
+                return dualEngine.getAvailableEngines();
+            }
+        }
+        return ['JS']; // Default to JS engine only
+    }
+    
+    /**
+     * Get current CPU engine type
+     */
+    getCurrentEngine(): string {
+        if (this.workerState.apple1.cpuEngine) {
+            return this.workerState.apple1.cpuEngine.engineType;
+        }
+        return 'JS'; // Default JS engine
+    }
+    
+    /**
+     * Switch to a different CPU engine
+     */
+    async switchEngine(engineType: 'JS' | 'WASM'): Promise<void> {
+        if (!this.workerState.apple1.cpuEngine) {
+            throw new Error('DualEngine not available - cannot switch engines');
+        }
+        
+        const dualEngine = this.workerState.apple1.cpuEngine;
+        if (!('switchEngine' in dualEngine) || typeof dualEngine.switchEngine !== 'function') {
+            throw new Error('Engine switching not supported');
+        }
+        
+        // Pause emulation during switch
+        const wasRunning = !this.workerState.isPaused;
+        if (wasRunning) {
+            this.pauseEmulation();
+        }
+        
+        try {
+            await dualEngine.switchEngine(engineType, 'user');
+            loggingService.info('WorkerAPI', `Switched to ${engineType} engine`);
+        } finally {
+            // Resume if it was running
+            if (wasRunning) {
+                this.resumeEmulation();
+            }
+        }
+    }
+    
+    /**
+     * Get engine performance metrics
+     */
+    getEngineMetrics(): EngineMetrics | null {
+        if (this.workerState.apple1.cpuEngine) {
+            const engine = this.workerState.apple1.cpuEngine;
+            if ('getMetrics' in engine && typeof engine.getMetrics === 'function') {
+                return engine.getMetrics() as EngineMetrics;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Compare engine performance
+     */
+    async compareEngines(): Promise<EngineComparison> {
+        if (!this.workerState.apple1.cpuEngine) {
+            throw new Error('DualEngine not available');
+        }
+        
+        const dualEngine = this.workerState.apple1.cpuEngine;
+        if ('compareEngines' in dualEngine && typeof dualEngine.compareEngines === 'function') {
+            return await dualEngine.compareEngines() as EngineComparison;
+        }
+        
+        throw new Error('Engine comparison not supported');
     }
     
     // ========== Input ==========

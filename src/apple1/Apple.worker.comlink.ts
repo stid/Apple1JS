@@ -61,6 +61,14 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     setCpuProfiling = (enabled: boolean) => this.api.setCpuProfiling(enabled);
     setCycleAccurateMode = (enabled: boolean) => this.api.setCycleAccurateMode(enabled);
     setDebuggerActive = (active: boolean) => this.api.setDebuggerActive(active);
+    
+    // CPU Engine Management methods
+    getAvailableEngines = () => this.api.getAvailableEngines();
+    getCurrentEngine = () => this.api.getCurrentEngine();
+    switchEngine = (engineType: 'JS' | 'WASM') => this.api.switchEngine(engineType);
+    getEngineMetrics = () => this.api.getEngineMetrics();
+    compareEngines = () => this.api.compareEngines();
+    
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
 

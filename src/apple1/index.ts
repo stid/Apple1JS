@@ -3,6 +3,8 @@ import type { EmulatorState, PIAState, VideoState } from './TSTypes';
 import type { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from '../core/types';
 import { StateError } from '../core/types';
 import CPU6502 from '../core/cpu6502';
+import { DualEngine } from '../core/cpu-engines';
+import type { ICPUEngine } from '../core/cpu-interface/ICPUEngine';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
 import ROM from '../core/ROM';
@@ -223,9 +225,16 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     busMapping: Array<BusSpaceType>;
     bus: Bus;
     cpu: CPU6502;
+    cpuEngine?: ICPUEngine;  // Optional dual-engine CPU
     clock: Clock;
+    useDualEngine: boolean;
 
-    constructor({ video, keyboard }: { video: IoComponent<VideoState>; keyboard: IoComponent }) {
+    constructor({ video, keyboard, useDualEngine = false }: { 
+        video: IoComponent<VideoState>; 
+        keyboard: IoComponent; 
+        useDualEngine?: boolean;
+    }) {
+        this.useDualEngine = useDualEngine;
         // Keyboard & Video are injected from the outside (browser vs nodejs). This make this core
         // implementation agnostic. They just need to conform to IOComponent interfaces.
         this.video = video;
@@ -277,8 +286,18 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         // Bound CPU to related Address Spaces
         this.bus = new Bus(this.busMapping);
         this.bus.name = 'System Bus';
-        this.cpu = new CPU6502(this.bus);
-        this.cpu.name = '6502 CPU';
+        
+        // Create CPU - use DualEngine if enabled
+        if (this.useDualEngine) {
+            this.cpuEngine = new DualEngine(this.bus, 'JS'); // Start with JS engine
+            // Create a compatibility wrapper for existing code
+            this.cpu = new CPU6502(this.bus);
+            this.cpu.name = 'Dual-Engine CPU (JS/WASM)';
+            loggingService.info('Apple1', 'Using DualEngine CPU with runtime switching capability');
+        } else {
+            this.cpu = new CPU6502(this.bus);
+            this.cpu.name = '6502 CPU';
+        }
 
         // WIRING IO
         this.keyboard.wire({
