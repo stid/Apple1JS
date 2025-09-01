@@ -35,7 +35,7 @@ git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, ch
 yarn test:ci
 
 # 4. Check current version
-cat src/version.ts  # Current: 4.37.0
+cat src/version.ts  # Current: 4.39.0
 
 # 5. Build WASM engine (when it exists)
 cd wasm-cpu && wasm-pack build --target web --out-dir ../src/wasm
@@ -412,11 +412,27 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 - **WASM Release Build Optimization** - Fixed performance regression (was 0.2x slower, now 5-10x faster)
 - **Binary Size Optimization** - Reduced from 357KB (dev) to 90KB (release)
 
+#### ✅ Recently Completed (Dec 3, 2024)
+- **Ported RAM to WASM** - Direct memory access without JS boundary crossing
+- **Ported ROM to WASM** - WOZ Monitor ROM now in WASM linear memory
+- **Ported Bus to WASM** - Address decoding happens in WASM
+- **Created Enhanced CPU** - Uses internal WASM memory system
+- **Built TypeScript wrapper** - WasmEnhancedEngine ready for integration
+
+#### 🎯 Current Architecture Status
+**Dual Memory System** - We now have parallel memory implementations:
+- **JavaScript Side**: Original RAM.ts, ROM.ts, Bus.ts (used by JSEngine and existing components)
+- **WASM Side**: New ram.rs, rom.rs, bus.rs (used only by WasmEnhancedEngine)
+- **Issue**: These are isolated - changes in one don't reflect in the other!
+
 #### 📋 Next Priority Tasks
-1. **Implement performance benchmark suite** for systematic testing
-2. **Add undocumented opcodes** (lower priority - for full compatibility)
-3. **Create automated engine parity tests**
-4. **Add engine-specific debugging tools**
+1. **Unify memory system** - Make WASM memory the single source of truth
+   - Option A: Modify JS RAM/ROM/Bus to use WASM as backend
+   - Option B: Use SharedArrayBuffer for true shared memory
+   - Option C: Implement auto-sync between systems
+2. **Test integration** - Ensure enhanced engine works with existing emulator
+3. **Implement performance benchmarks** - Measure actual improvement (expect 5-10x)
+4. **Port PIA6820 to WASM** (lower priority - I/O happens less frequently)
 
 #### 🎯 Using the Dual-Engine System
 
@@ -448,12 +464,18 @@ wasm-cpu/               # Rust source (build from here)
 └── src/
     ├── lib.rs         # Entry point
     ├── cpu.rs         # CPU implementation  
+    ├── cpu_enhanced.rs # Enhanced CPU with internal memory
+    ├── ram.rs         # WASM RAM implementation (NEW!)
+    ├── rom.rs         # WASM ROM implementation (NEW!)
+    ├── bus.rs         # WASM Bus implementation (NEW!)
+    ├── memory_bridge.rs # Bridge to JS memory (fallback)
     ├── instructions.rs # 6502 instructions
     └── opcodes.rs     # Opcode dispatch
 
 src/core/cpu-engines/  # TypeScript engine wrappers
 ├── JSEngine.ts        # Wraps existing CPU6502
-├── WasmEngine.ts      # Wraps WASM CPU
+├── WasmEngine.ts      # Wraps WASM CPU (uses JS memory)
+├── WasmEnhancedEngine.ts # Wraps WASM CPU with WASM memory (NEW!)
 ├── DualEngine.ts      # Orchestrates both engines
 ├── wasm-loader.ts     # WASM initialization
 └── index.ts           # Public exports

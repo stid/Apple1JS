@@ -10,12 +10,23 @@ use serde::{Deserialize, Serialize};
 
 // Module declarations
 mod cpu;
+mod cpu_enhanced;
 mod memory;
+mod memory_bridge;
 mod instructions;
 mod opcodes;
+mod ram;
+mod rom;
+mod bus;
 
 // Re-exports
 pub use cpu::CPU6502;
+pub use cpu_enhanced::CPU6502Enhanced;
+pub use ram::RAM;
+pub use rom::ROM;
+pub use bus::Bus;
+// Temporarily comment out rayon until needed
+// pub use wasm_bindgen_rayon::init_thread_pool;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
 // This is smaller but slower than the default allocator.
