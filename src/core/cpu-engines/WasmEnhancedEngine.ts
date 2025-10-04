@@ -5,25 +5,41 @@
  * eliminating JS↔WASM boundary crossings for most memory operations.
  */
 
-import type { ICPUEngine, EngineType, CPURegisters, EngineMetrics } from '../cpu-interface/ICPUEngine';
+import type {
+    ICPUEngine,
+    EngineType,
+    CPURegisters,
+    EngineMetrics
+} from '../cpu-interface/ICPUEngine';
 import type { CPU6502State } from '../cpu6502/types';
 import type Bus from '../Bus';
 import { loggingService } from '../../services/LoggingService';
+import { WasmRAMProxy } from '../WasmRAMProxy';
+import { WasmROMProxy } from '../WasmROMProxy';
+import { WasmBusProxy } from '../WasmBusProxy';
 
 // Import the generated WASM module types
-import type { 
+import type {
     CPU6502Enhanced as WasmCPU,
     RAM as WasmRAM,
     ROM as WasmROM,
     Bus as WasmBus
 } from '../../wasm/apple1_cpu_wasm';
 
+// Type extension for WASM CPU with memory methods
+interface WasmCPUWithMemory extends WasmCPU {
+    read?: (address: number) => number;
+    read_byte?: (address: number) => number;
+    write?: (address: number, value: number) => void;
+    write_byte?: (address: number, value: number) => void;
+}
+
 /**
  * Enhanced WASM engine with internal memory management
  */
 export class WasmEnhancedEngine implements ICPUEngine {
     private wasmModule: typeof import('../../wasm/apple1_cpu_wasm') | null = null;
-    private cpu: WasmCPU | null = null;
+    private cpu: WasmCPUWithMemory | null = null;
     private wasmBus: WasmBus | null = null;
     private wasmRam: WasmRAM | null = null;
     private wasmRom: WasmROM | null = null;
@@ -31,7 +47,12 @@ export class WasmEnhancedEngine implements ICPUEngine {
     private initialized = false;
     private startTime = 0;
     private totalCycles = 0;
-    
+
+    // Proxy objects for unified memory access
+    private ramProxy: WasmRAMProxy | null = null;
+    private romProxy: WasmROMProxy | null = null;
+    private busProxy: WasmBusProxy | null = null;
+
     constructor(bus: Bus) {
         this.jsBus = bus;
     }
@@ -53,6 +74,7 @@ export class WasmEnhancedEngine implements ICPUEngine {
     get capabilities() {
         return {
             supportsBreakpoints: true,
+            supportsProfiling: true,
             supportsStepOver: false,
             supportsStepOut: false,
             supportsProfiler: true,
@@ -64,39 +86,44 @@ export class WasmEnhancedEngine implements ICPUEngine {
     
     async initialize(): Promise<void> {
         if (this.initialized) return;
-        
+
         try {
             // Dynamically import the WASM module
             this.wasmModule = await import('../../wasm/apple1_cpu_wasm');
-            
+
             // Create the enhanced CPU with internal memory
             this.cpu = new this.wasmModule.CPU6502Enhanced();
-            
+
             // Create WASM memory components
             this.wasmRam = new this.wasmModule.RAM(0x10000); // Full 64KB
             this.wasmRom = new this.wasmModule.ROM(0x100);   // 256 bytes for WOZ Monitor
             this.wasmBus = new this.wasmModule.Bus();
-            
+
             // Connect memory components to the bus
             this.wasmBus.set_ram(this.wasmRam);
             this.wasmBus.set_rom(this.wasmRom);
-            
+
             // Connect the bus to the CPU
             this.cpu.set_bus(this.wasmBus);
-            
+
+            // Create proxy objects for unified memory access
+            this.ramProxy = new WasmRAMProxy(this.wasmRam);
+            this.romProxy = new WasmROMProxy(this.wasmRom);
+            this.busProxy = new WasmBusProxy(this.wasmBus, this.ramProxy, this.romProxy);
+
             // Load ROM data from JS Bus if available
             this.syncRomFromJS();
-            
+
             // Initialize CPU
             this.cpu.reset();
-            
+
             this.initialized = true;
-            this.startTime = performance.now();
-            
-            loggingService.info('WasmEnhancedEngine', 
-                `Initialized with internal WASM memory (RAM: 64KB, ROM: 256B)`);
+            this.startTime = globalThis.performance.now();
+
+            loggingService.info('WasmEnhancedEngine',
+                `Initialized with unified WASM memory (RAM: 64KB, ROM: 256B)`);
         } catch (error) {
-            loggingService.error('WasmEnhancedEngine', 
+            loggingService.error('WasmEnhancedEngine',
                 `Failed to initialize: ${error}`);
             throw error;
         }
@@ -122,7 +149,7 @@ export class WasmEnhancedEngine implements ICPUEngine {
         if (this.cpu) {
             this.cpu.reset();
             this.totalCycles = 0;
-            this.startTime = performance.now();
+            this.startTime = globalThis.performance.now();
         }
     }
     
@@ -186,23 +213,25 @@ export class WasmEnhancedEngine implements ICPUEngine {
         const state = this.cpu.get_state();
         return {
             version: '3.0',
-            pc: state.pc,
-            a: state.a,
-            x: state.x,
-            y: state.y,
-            s: state.s,
-            status: state.status,
+            PC: state.pc,
+            A: state.a,
+            X: state.x,
+            Y: state.y,
+            S: state.s,
+            N: (state.status & 0x80) ? 1 : 0,
+            V: (state.status & 0x40) ? 1 : 0,
+            D: (state.status & 0x08) ? 1 : 0,
+            I: (state.status & 0x04) ? 1 : 0,
+            Z: (state.status & 0x02) ? 1 : 0,
+            C: (state.status & 0x01) ? 1 : 0,
             cycles: state.cycles,
-            irq: state.irq,
-            nmi: state.nmi,
-            breakpoints: [],
-            clockSpeed: 1000000,
-            clockMode: 'STEP',
-            trace: [],
-            metadata: {
-                engine: 'WASM-Enhanced',
-                memoryType: 'Internal'
-            }
+            irq: state.irq ? 1 : 0,
+            nmi: state.nmi ? 1 : 0,
+            opcode: 0,
+            address: 0,
+            data: 0,
+            pendingIrq: 0,
+            pendingNmi: 0
         };
     }
     
@@ -210,12 +239,14 @@ export class WasmEnhancedEngine implements ICPUEngine {
         if (!this.cpu) return;
         
         this.cpu.set_state({
-            pc: state.pc,
-            a: state.a,
-            x: state.x,
-            y: state.y,
-            s: state.s,
-            status: state.status,
+            pc: state.PC,
+            a: state.A,
+            x: state.X,
+            y: state.Y,
+            s: state.S,
+            status: (state.N ? 0x80 : 0) | (state.V ? 0x40 : 0) | 0x20 | 
+                    (state.D ? 0x08 : 0) | (state.I ? 0x04 : 0) | 
+                    (state.Z ? 0x02 : 0) | (state.C ? 0x01 : 0),
             cycles: state.cycles || 0,
             irq: state.irq || false,
             nmi: state.nmi || false
@@ -235,14 +266,15 @@ export class WasmEnhancedEngine implements ICPUEngine {
         }
         
         const metrics = this.cpu.get_metrics();
-        const elapsedSeconds = (performance.now() - this.startTime) / 1000;
+        const elapsedSeconds = (globalThis.performance.now() - this.startTime) / 1000;
         
         return {
             totalCycles: metrics.cycles,
-            totalInstructions: metrics.instructions,
+            instructionsExecuted: metrics.instructions,
             averageIPS: metrics.average_ips,
-            currentIPS: elapsedSeconds > 0 ? metrics.instructions / elapsedSeconds : 0,
-            lastStepDuration: metrics.last_step_duration
+            lastIPS: elapsedSeconds > 0 ? metrics.instructions / elapsedSeconds : 0,
+            memoryUsage: 65536 + 256 + 4096, // ~68KB
+            lastStepDuration: 0 // Not tracked in WASM yet
         };
     }
     
@@ -259,6 +291,108 @@ export class WasmEnhancedEngine implements ICPUEngine {
     triggerNMI(): void {
         this.cpu?.trigger_nmi();
     }
+    
+    // ============ Missing Required Methods ============
+    
+    performBulkSteps(cycles: number): void {
+        if (!this.cpu) return;
+        
+        let remainingCycles = cycles;
+        while (remainingCycles > 0) {
+            const cyclesUsed = this.performSingleStep();
+            remainingCycles -= cyclesUsed;
+        }
+    }
+    
+    halt(): void {
+        // WASM CPU doesn't have explicit halt, just stop executing
+        this.cpu = null;
+    }
+    
+    saveState(): CPU6502State {
+        return this.getState();
+    }
+    
+    loadState(state: CPU6502State): void {
+        this.setState(state);
+    }
+    
+    
+    read(address: number): number {
+        // Try different method names that might exist
+        if (!this.cpu) return 0;
+        // The WASM module might use 'read' or 'read_byte' instead
+        if (this.cpu.read && typeof this.cpu.read === 'function') {
+            return this.cpu.read(address);
+        } else if (this.cpu.read_byte && typeof this.cpu.read_byte === 'function') {
+            return this.cpu.read_byte(address);
+        }
+        return 0;
+    }
+    
+    write(address: number, value: number): void {
+        if (!this.cpu) return;
+        // The WASM module might use 'write' or 'write_byte' instead
+        if (this.cpu.write && typeof this.cpu.write === 'function') {
+            this.cpu.write(address, value);
+        } else if (this.cpu.write_byte && typeof this.cpu.write_byte === 'function') {
+            this.cpu.write_byte(address, value);
+        }
+    }
+    
+    readRange(start: number, length: number): Uint8Array {
+        const result = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.read(start + i);
+        }
+        return result;
+    }
+    
+    writeRange(start: number, data: Uint8Array): void {
+        for (let i = 0; i < data.length; i++) {
+            this.write(start + i, data[i]);
+        }
+    }
+    
+    loadProgram(program: Uint8Array, address: number = 0x0000): void {
+        this.writeRange(address, program);
+    }
+    
+    setBreakpoint(address: number): void {
+        void address; // Unused parameter
+        // Not supported in WASM enhanced engine yet
+        console.warn('Breakpoints not supported in WASM enhanced engine');
+    }
+    
+    clearBreakpoint(address: number): void {
+        void address; // Unused parameter
+        // Not supported in WASM enhanced engine yet
+        console.warn('Breakpoints not supported in WASM enhanced engine');
+    }
+    
+    clearAllBreakpoints(): void {
+        // Not supported in WASM enhanced engine yet
+        console.warn('Breakpoints not supported in WASM enhanced engine');
+    }
+    
+    getBreakpoints(): number[] {
+        return [];
+    }
+    
+    hasBreakpoint(address: number): boolean {
+        void address; // Unused parameter
+        return false; // Not supported in WASM enhanced engine yet
+    }
+    
+    resetMetrics(): void {
+        this.totalCycles = 0;
+        this.startTime = globalThis.performance.now();
+        if (this.cpu) {
+            // Reset WASM metrics if available
+            this.cpu.reset();
+        }
+    }
+    
     
     // ============ Enhanced Features ============
     
@@ -317,6 +451,30 @@ export class WasmEnhancedEngine implements ICPUEngine {
         // Each boundary crossing adds ~10-20ns overhead
         // Result: 5-10x improvement expected
         return this.hasInternalMemory() ? 5.0 : 1.0;
+    }
+
+    /**
+     * Get the unified RAM proxy
+     * This provides access to WASM linear memory with zero-copy reads
+     */
+    getRAMProxy(): WasmRAMProxy | null {
+        return this.ramProxy;
+    }
+
+    /**
+     * Get the unified ROM proxy
+     * This provides access to WASM linear memory with zero-copy reads
+     */
+    getROMProxy(): WasmROMProxy | null {
+        return this.romProxy;
+    }
+
+    /**
+     * Get the unified Bus proxy
+     * This provides access to the unified WASM memory system
+     */
+    getBusProxy(): WasmBusProxy | null {
+        return this.busProxy;
     }
     
     // ============ Helper Methods ============

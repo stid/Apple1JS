@@ -161,10 +161,66 @@ impl Bus {
         }
         info
     }
+
+    /// Get RAM memory pointer for JavaScript access
+    /// Returns 0 if RAM is not set
+    pub fn get_ram_ptr(&self) -> usize {
+        self.ram.as_ref().map_or(0, |ram| ram.get_memory_ptr() as usize)
+    }
+
+    /// Get RAM memory length
+    pub fn get_ram_len(&self) -> usize {
+        self.ram.as_ref().map_or(0, |ram| ram.get_memory_len())
+    }
+
+    /// Get ROM memory pointer for JavaScript access
+    /// Returns 0 if ROM is not set
+    pub fn get_rom_ptr(&self) -> usize {
+        self.rom.as_ref().map_or(0, |rom| rom.get_memory_ptr() as usize)
+    }
+
+    /// Get ROM memory length
+    pub fn get_rom_len(&self) -> usize {
+        self.rom.as_ref().map_or(0, |rom| rom.get_memory_len())
+    }
+
+    /// Check if RAM is initialized
+    pub fn has_ram(&self) -> bool {
+        self.ram.is_some()
+    }
+
+    /// Check if ROM is initialized
+    pub fn has_rom(&self) -> bool {
+        self.rom.is_some()
+    }
 }
 
 // Internal implementation
 impl Bus {
+    /// Get reference to RAM for internal Rust use
+    /// Returns None if RAM is not set
+    pub(crate) fn get_ram(&self) -> Option<&RAM> {
+        self.ram.as_ref()
+    }
+
+    /// Get mutable reference to RAM for internal Rust use
+    /// Returns None if RAM is not set
+    pub(crate) fn get_ram_mut(&mut self) -> Option<&mut RAM> {
+        self.ram.as_mut()
+    }
+
+    /// Get reference to ROM for internal Rust use
+    /// Returns None if ROM is not set
+    pub(crate) fn get_rom(&self) -> Option<&ROM> {
+        self.rom.as_ref()
+    }
+
+    /// Get mutable reference to ROM for internal Rust use
+    /// Returns None if ROM is not set
+    pub(crate) fn get_rom_mut(&mut self) -> Option<&mut ROM> {
+        self.rom.as_mut()
+    }
+
     /// Set up default Apple 1 memory mappings
     fn setup_default_mappings(&mut self) {
         // RAM at 0x0000-0x0FFF (4KB)

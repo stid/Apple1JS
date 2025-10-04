@@ -74,11 +74,33 @@ impl RAM {
     pub fn get_data(&self) -> Vec<u8> {
         self.data.clone()
     }
-    
+
     /// Set RAM contents from external data (for loading state)
     pub fn set_data(&mut self, data: Vec<u8>) {
         if data.len() == self.size {
             self.data = data;
+        }
+    }
+
+    /// Get pointer to RAM data for direct JavaScript access
+    /// This enables zero-copy memory sharing with JavaScript
+    pub fn get_memory_ptr(&self) -> *const u8 {
+        self.data.as_ptr()
+    }
+
+    /// Get length of RAM for bounds checking in JavaScript
+    pub fn get_memory_len(&self) -> usize {
+        self.size
+    }
+
+    /// Get a slice of RAM data for bulk operations
+    /// JavaScript can use this to create a Uint8Array view
+    pub fn get_memory_slice(&self, start: usize, length: usize) -> Vec<u8> {
+        let end = (start + length).min(self.size);
+        if start < self.size {
+            self.data[start..end].to_vec()
+        } else {
+            Vec::new()
         }
     }
 }

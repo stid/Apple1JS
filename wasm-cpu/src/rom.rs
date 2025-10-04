@@ -87,11 +87,33 @@ impl ROM {
     pub fn get_data(&self) -> Vec<u8> {
         self.data.clone()
     }
-    
+
     /// Reset ROM to uninitialized state (all 0xFF)
     pub fn reset(&mut self) {
         self.data.fill(0xFF);
         self.initialized = false;
+    }
+
+    /// Get pointer to ROM data for direct JavaScript access
+    /// This enables zero-copy memory sharing with JavaScript
+    pub fn get_memory_ptr(&self) -> *const u8 {
+        self.data.as_ptr()
+    }
+
+    /// Get length of ROM for bounds checking in JavaScript
+    pub fn get_memory_len(&self) -> usize {
+        self.size
+    }
+
+    /// Get a slice of ROM data for bulk operations
+    /// JavaScript can use this to create a Uint8Array view
+    pub fn get_memory_slice(&self, start: usize, length: usize) -> Vec<u8> {
+        let end = (start + length).min(self.size);
+        if start < self.size {
+            self.data[start..end].to_vec()
+        } else {
+            Vec::new()
+        }
     }
 }
 

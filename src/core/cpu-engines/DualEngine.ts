@@ -177,31 +177,29 @@ export class DualEngine implements ICPUEngine {
     }
     
     // ============ Memory Operations ============
-    
+
     read(address: number): number {
         return this.activeEngine.read(address);
     }
-    
+
     write(address: number, value: number): void {
-        // Write to both engines to keep memory in sync
-        this.jsEngine.write(address, value);
-        this.wasmEngine?.write(address, value);
+        // With unified memory, only write to active engine
+        // Both engines share the same memory!
+        this.activeEngine.write(address, value);
     }
-    
+
     readRange(start: number, length: number): Uint8Array {
         return this.activeEngine.readRange(start, length);
     }
-    
+
     writeRange(start: number, data: Uint8Array): void {
-        // Write to both engines
-        this.jsEngine.writeRange(start, data);
-        this.wasmEngine?.writeRange(start, data);
+        // With unified memory, only write to active engine
+        this.activeEngine.writeRange(start, data);
     }
-    
+
     loadProgram(program: Uint8Array, address?: number): void {
-        // Load into both engines
-        this.jsEngine.loadProgram(program, address);
-        this.wasmEngine?.loadProgram(program, address);
+        // With unified memory, only load to active engine
+        this.activeEngine.loadProgram(program, address);
     }
     
     // ============ Debugging Support ============
@@ -504,5 +502,42 @@ export class DualEngine implements ICPUEngine {
         // This is a workaround for breakpoint support
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.jsEngine as any).cpu;
+    }
+
+    // ============ Unified Memory Access ============
+
+    /**
+     * Get access to unified memory proxies (when using WASM engine)
+     * Returns null if WASM engine is not available or not enhanced
+     */
+    getUnifiedMemory(): {
+        ram: typeof import('../WasmRAMProxy').WasmRAMProxy | null;
+        rom: typeof import('../WasmROMProxy').WasmROMProxy | null;
+        bus: typeof import('../WasmBusProxy').WasmBusProxy | null;
+    } | null {
+        // Check if WASM engine has the enhanced methods
+        if (this.wasmEngine) {
+            const engine = this.wasmEngine as unknown as {
+                getBusProxy?: () => typeof import('../WasmBusProxy').WasmBusProxy | null;
+                getRAMProxy?: () => typeof import('../WasmRAMProxy').WasmRAMProxy | null;
+                getROMProxy?: () => typeof import('../WasmROMProxy').WasmROMProxy | null;
+            };
+
+            if (typeof engine.getBusProxy === 'function') {
+                return {
+                    ram: engine.getRAMProxy?.() || null,
+                    rom: engine.getROMProxy?.() || null,
+                    bus: engine.getBusProxy?.() || null
+                };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if the current system is using unified WASM memory
+     */
+    isUsingUnifiedMemory(): boolean {
+        return this.getUnifiedMemory() !== null;
     }
 }
