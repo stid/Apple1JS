@@ -288,30 +288,41 @@ export class WasmEngine implements ICPUEngine {
             throw new Error('WASM engine not initialized');
         }
 
-        // Get state from WASM System
+        // Get state from WASM System and immediately destructure
+        // This ensures the temporary object is released before we return
         const wasmState = this.wasmSystem.get_cpu_state();
+        const pc = wasmState.pc;
+        const a = wasmState.a;
+        const x = wasmState.x;
+        const y = wasmState.y;
+        const s = wasmState.s;
+        const status = wasmState.status;
+        const irq = wasmState.irq;
+        const nmi = wasmState.nmi;
+        const cycles = wasmState.cycles || this.metrics.totalCycles;
 
+        // Return new object (wasmState reference is now released)
         return {
-            version: '3.0', // Match the JS engine version
-            PC: wasmState.pc,
-            A: wasmState.a,
-            X: wasmState.x,
-            Y: wasmState.y,
-            S: wasmState.s,
-            N: (wasmState.status >> 7) & 1,
-            V: (wasmState.status >> 6) & 1,
-            D: (wasmState.status >> 3) & 1,
-            I: (wasmState.status >> 2) & 1,
-            Z: (wasmState.status >> 1) & 1,
-            C: wasmState.status & 1,
-            irq: wasmState.irq ? 1 : 0,
-            nmi: wasmState.nmi ? 1 : 0,
-            cycles: wasmState.cycles || this.metrics.totalCycles,
-            opcode: 0, // Not exposed by WasmSystem
-            address: 0, // Not exposed by WasmSystem
-            data: 0, // Not exposed by WasmSystem
-            pendingIrq: 0, // Not exposed by WasmSystem
-            pendingNmi: 0 // Not exposed by WasmSystem
+            version: '3.0',
+            PC: pc,
+            A: a,
+            X: x,
+            Y: y,
+            S: s,
+            N: (status >> 7) & 1,
+            V: (status >> 6) & 1,
+            D: (status >> 3) & 1,
+            I: (status >> 2) & 1,
+            Z: (status >> 1) & 1,
+            C: status & 1,
+            irq: irq ? 1 : 0,
+            nmi: nmi ? 1 : 0,
+            cycles: cycles,
+            opcode: 0,
+            address: 0,
+            data: 0,
+            pendingIrq: 0,
+            pendingNmi: 0
         };
     }
     
@@ -347,21 +358,28 @@ export class WasmEngine implements ICPUEngine {
             throw new Error('WASM engine not initialized');
         }
 
+        // Get state and immediately destructure to release WASM borrow
         const state = this.wasmSystem.get_cpu_state();
+        const pc = state.pc;
+        const a = state.a;
+        const x = state.x;
+        const y = state.y;
+        const s = state.s;
+        const status = state.status;
 
         return {
-            PC: state.pc,
-            A: state.a,
-            X: state.x,
-            Y: state.y,
-            S: state.s,
-            N: (state.status >> 7) & 1,
-            V: (state.status >> 6) & 1,
-            B: 0, // B flag is not stored
-            D: (state.status >> 3) & 1,
-            I: (state.status >> 2) & 1,
-            Z: (state.status >> 1) & 1,
-            C: state.status & 1
+            PC: pc,
+            A: a,
+            X: x,
+            Y: y,
+            S: s,
+            N: (status >> 7) & 1,
+            V: (status >> 6) & 1,
+            B: 0,
+            D: (status >> 3) & 1,
+            I: (status >> 2) & 1,
+            Z: (status >> 1) & 1,
+            C: status & 1
         };
     }
     
@@ -381,9 +399,15 @@ export class WasmEngine implements ICPUEngine {
             registers.D !== undefined || registers.I !== undefined ||
             registers.Z !== undefined || registers.C !== undefined) {
 
-            const state = this.wasmSystem.get_cpu_state();
-            let status = state.status;
+            // Get current status and immediately extract it to release WASM borrow
+            let status: number;
+            {
+                const state = this.wasmSystem.get_cpu_state();
+                status = state.status;
+                // state goes out of scope here, releasing the borrow
+            }
 
+            // Now modify status with the new flag values
             if (registers.N !== undefined) {
                 status = (status & 0x7F) | ((registers.N & 1) << 7);
             }
@@ -403,6 +427,7 @@ export class WasmEngine implements ICPUEngine {
                 status = (status & 0xFE) | (registers.C & 1);
             }
 
+            // Set the modified status (state borrow has been released)
             this.wasmSystem.set_status(status);
         }
     }
