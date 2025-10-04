@@ -47,10 +47,13 @@ extern "C" {
     #[wasm_bindgen(js_namespace = performance)]
     fn now() -> f64;
     
-    // Memory bridge functions - these call back to JavaScript Bus
+    // Memory bridge functions for I/O operations
+    // These are only called for I/O regions (0xD010-0xD013 PIA)
+    // RAM and ROM are handled internally in WASM for performance
+    // The bridge must be installed before WASM initialization via installMemoryBridge()
     #[wasm_bindgen(js_namespace = wasmMemoryBridge)]
     fn readByte(address: u16) -> u8;
-    
+
     #[wasm_bindgen(js_namespace = wasmMemoryBridge)]
     fn writeByte(address: u16, value: u8);
 }

@@ -18,6 +18,7 @@ import type { CPU6502State } from '../cpu6502/types';
 import type { WasmSystem } from './wasm-loader';
 import type Bus from '../Bus';
 import { initializeWasmModule, getWasmSystemClass, isWasmSupported } from './wasm-loader';
+import { installMemoryBridge, setBusForWasm } from './wasm-memory-bridge';
 import { loggingService } from '../../services/LoggingService';
 import ROM from '../ROM';
 
@@ -60,7 +61,7 @@ export class WasmEngine implements ICPUEngine {
             throw new Error('WebAssembly is not supported in this environment');
         }
 
-        loggingService.info('WasmEngine', 'WasmSystem engine initialized - no memory bridge needed');
+        loggingService.info('WasmEngine', 'WasmSystem engine initialized - memory bridge for I/O ready');
     }
     
     get isReady(): boolean {
@@ -137,6 +138,11 @@ export class WasmEngine implements ICPUEngine {
 
         try {
             loggingService.info('WasmEngine', 'Starting WASM System initialization...');
+
+            // Install memory bridge for I/O operations (PIA, keyboard, display)
+            installMemoryBridge();
+            setBusForWasm(this.bus);
+            loggingService.info('WasmEngine', 'Memory bridge installed for I/O operations');
 
             // Initialize the WASM module
             await initializeWasmModule();
