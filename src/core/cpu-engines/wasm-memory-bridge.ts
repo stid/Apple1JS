@@ -27,9 +27,17 @@ export const wasmMemoryBridge = {
             loggingService.error('WasmMemoryBridge', 'No Bus instance set');
             return 0;
         }
-        return currentBus.read(address);
+        const value = currentBus.read(address);
+
+        // Debug I/O reads (PIA region only) - commented out to avoid console flooding
+        // if (address >= 0xD010 && address <= 0xD013) {
+        //     loggingService.info('WasmMemoryBridge',
+        //         `I/O Read: $${address.toString(16).toUpperCase()} = $${value.toString(16).padStart(2, '0')}`);
+        // }
+
+        return value;
     },
-    
+
     /**
      * Write a byte to the Bus
      * Called by WASM for every memory write
@@ -39,6 +47,13 @@ export const wasmMemoryBridge = {
             loggingService.error('WasmMemoryBridge', 'No Bus instance set');
             return;
         }
+
+        // Debug I/O writes (PIA region only)
+        if (address >= 0xD010 && address <= 0xD013) {
+            loggingService.info('WasmMemoryBridge',
+                `I/O Write: $${address.toString(16).toUpperCase()} = $${value.toString(16).padStart(2, '0')}`);
+        }
+
         currentBus.write(address, value);
     }
 };

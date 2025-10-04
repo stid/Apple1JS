@@ -69,7 +69,7 @@ impl Bus {
     /// Read a byte from the bus
     pub fn read(&self, address: u16) -> u8 {
         let region = self.region_cache[address as usize];
-        
+
         match region {
             MemoryRegion::RAM => {
                 if let Some(ref ram) = self.ram {
@@ -87,6 +87,8 @@ impl Bus {
             }
             MemoryRegion::IO => {
                 // Delegate to JavaScript for I/O devices
+                #[cfg(feature = "debug")]
+                crate::console_log!("WASM Bus: I/O Read at ${:04X}", address);
                 crate::bus_read(address)
             }
             MemoryRegion::Unmapped => {
