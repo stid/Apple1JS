@@ -6,6 +6,7 @@
 
 export { JSEngine } from './JSEngine';
 export { WasmEngine } from './WasmEngine';
+export { WasmSystemEngine } from './WasmSystemEngine';
 export { DualEngine } from './DualEngine';
 export { 
     initializeWasmModule, 

@@ -1,11 +1,9 @@
 /**
- * WASM CPU Engine
+ * WASM System Engine
  *
- * High-performance WebAssembly implementation of the 6502 CPU
- * that conforms to the ICPUEngine interface.
- *
- * Uses WasmSystem which contains CPU, Bus, RAM, and ROM all in WASM
- * for maximum performance (5-10x faster than JS engine).
+ * High-performance WebAssembly implementation with self-contained
+ * CPU, Bus, RAM, and ROM all in WASM. This eliminates JavaScript
+ * boundary crossings for memory access, providing 5-10x performance improvement.
  */
 
 import type {
@@ -19,14 +17,14 @@ import type { WasmSystem } from './wasm-loader';
 import type Bus from '../Bus';
 import { initializeWasmModule, getWasmSystemClass, isWasmSupported } from './wasm-loader';
 import { loggingService } from '../../services/LoggingService';
-import ROM from '../ROM';
 
 /**
- * WASM implementation of the CPU engine
+ * WASM System implementation of the CPU engine
+ * Uses self-contained WasmSystem (CPU + Bus + RAM + ROM in WASM)
  */
-export class WasmEngine implements ICPUEngine {
+export class WasmSystemEngine implements ICPUEngine {
     readonly engineType: EngineType = 'WASM';
-    readonly engineVersion = '2.0.0';  // Updated to 2.0 for WasmSystem
+    readonly engineVersion = '1.0.0';
 
     readonly capabilities = {
         supportsBreakpoints: true,
@@ -36,7 +34,7 @@ export class WasmEngine implements ICPUEngine {
     };
 
     private wasmSystem: WasmSystem | null = null;
-    private bus: Bus;  // Keep for I/O synchronization
+    private bus: Bus; // JavaScript Bus for I/O compatibility
     private breakpoints = new Set<number>();
     private metrics: EngineMetrics;
     private metricsStartTime: number;
@@ -45,7 +43,6 @@ export class WasmEngine implements ICPUEngine {
     private lastSecondStartTime: number;
     private initPromise: Promise<void> | null = null;
     private _isReady = false;
-
 
     constructor(bus: Bus) {
         this.bus = bus;
@@ -60,13 +57,13 @@ export class WasmEngine implements ICPUEngine {
             throw new Error('WebAssembly is not supported in this environment');
         }
 
-        loggingService.info('WasmEngine', 'WasmSystem engine initialized - no memory bridge needed');
+        loggingService.info('WasmSystemEngine', 'Initialized with self-contained WASM system');
     }
-    
+
     get isReady(): boolean {
         return this._isReady;
     }
-    
+
     private initializeMetrics(): EngineMetrics {
         return {
             totalCycles: 0,
@@ -75,68 +72,30 @@ export class WasmEngine implements ICPUEngine {
             memoryUsage: 0,
             lastStepDuration: 0,
             initializationTime: 0,
-            efficiency: 500 // WasmSystem is 5x more efficient (no boundary crossings)
+            efficiency: 200 // WASM System is typically 2x more efficient than JS
         };
     }
-    
+
     // ============ Initialization ============
-    
+
     async initialize(): Promise<void> {
         if (this._isReady) {
             return;
         }
-        
+
         if (this.initPromise) {
             return this.initPromise;
         }
-        
+
         this.initPromise = this.performInitialization();
         return this.initPromise;
-    }
-    
-    /**
-     * Extract ROM data from the JavaScript Bus
-     */
-    private extractROMDataFromBus(): Uint8Array {
-        // Find ROM component in bus mapping
-        // Bus structure: busMapping contains { addr: [start, end], component, name }
-        const busData = this.bus.getInspectable();
-
-        // Look for ROM component in children
-        const romChild = busData.children?.find(child => child.id === 'ROM' || child.type === 'ROM');
-
-        if (!romChild?.component) {
-            loggingService.warn('WasmEngine', 'ROM component not found in bus - using empty ROM');
-            return new Uint8Array(256); // Default 256 byte ROM
-        }
-
-        // Access the ROM component
-        // We need to access the actual ROM instance from the bus
-        // The bus is constructed with busMapping which includes the ROM component
-        const busInternal = this.bus as unknown as { busMapping: Array<{ name: string; component: unknown }> };
-        const romMapping = busInternal.busMapping?.find(m => m.name === 'ROM');
-
-        if (!romMapping) {
-            loggingService.warn('WasmEngine', 'ROM mapping not found - using empty ROM');
-            return new Uint8Array(256);
-        }
-
-        const rom = romMapping.component as ROM;
-        if (typeof rom.getData !== 'function') {
-            loggingService.warn('WasmEngine', 'ROM.getData() not available - using empty ROM');
-            return new Uint8Array(256);
-        }
-
-        const romData = rom.getData();
-        loggingService.info('WasmEngine', `Extracted ${romData.length} bytes of ROM data from Bus`);
-        return romData;
     }
 
     private async performInitialization(): Promise<void> {
         const startTime = Date.now();
 
         try {
-            loggingService.info('WasmEngine', 'Starting WASM System initialization...');
+            loggingService.info('WasmSystemEngine', 'Starting WASM system initialization...');
 
             // Initialize the WASM module
             await initializeWasmModule();
@@ -147,15 +106,16 @@ export class WasmEngine implements ICPUEngine {
                 throw new Error('WasmSystem class not available after initialization');
             }
 
-            // Create the WASM System instance
+            // Create the WasmSystem instance
             this.wasmSystem = new WasmSystemClass();
-            loggingService.info('WasmEngine', 'WasmSystem instance created');
+            loggingService.info('WasmSystemEngine', 'WASM System instance created');
 
-            // Extract ROM data from Bus
+            // Extract ROM data from JavaScript Bus
             const romData = this.extractROMDataFromBus();
+            loggingService.info('WasmSystemEngine', `Extracted ${romData.length} bytes of ROM data`);
 
-            // Initialize with RAM and ROM
-            const ramSize = 65536; // 64KB total system RAM
+            // Initialize WasmSystem with RAM size and ROM data
+            const ramSize = 65536; // 64KB total address space
             this.wasmSystem.initialize(ramSize, romData);
 
             // Verify initialization
@@ -163,41 +123,93 @@ export class WasmEngine implements ICPUEngine {
                 throw new Error('WasmSystem initialization failed');
             }
 
+            loggingService.info('WasmSystemEngine', 'WasmSystem initialized and verified');
+
+            // Reset the system to set up PC from reset vector
+            this.wasmSystem.reset();
+
             this._isReady = true;
             this.metrics.initializationTime = Date.now() - startTime;
 
-            loggingService.info('WasmEngine', `WASM System initialized in ${this.metrics.initializationTime.toFixed(2)}ms`);
+            loggingService.info('WasmSystemEngine',
+                `WASM system initialized in ${this.metrics.initializationTime.toFixed(2)}ms`);
         } catch (error) {
-            loggingService.error('WasmEngine', `Failed to initialize WASM engine: ${error}`);
-            throw new Error(`WASM engine initialization failed: ${error}`);
+            loggingService.error('WasmSystemEngine', `Failed to initialize: ${error}`);
+            throw new Error(`WASM system initialization failed: ${error}`);
         }
     }
-    
+
+    /**
+     * Extract ROM data from JavaScript Bus
+     * Finds the ROM component and extracts its data
+     */
+    private extractROMDataFromBus(): Uint8Array {
+        try {
+            // Access the bus mapping to find ROM
+            // We need to use type assertion since busMapping is private
+            const busWithMapping = this.bus as unknown as { busMapping: Array<{
+                addr: [number, number];
+                component: { getData?: () => Uint8Array };
+                name: string;
+            }> };
+
+            // Find the ROM component in the bus mapping
+            const romMapping = busWithMapping.busMapping.find(
+                mapping => mapping.name === 'ROM'
+            );
+
+            if (!romMapping) {
+                throw new Error('ROM component not found in bus mapping');
+            }
+
+            // Get ROM data using the getData() method
+            const romComponent = romMapping.component;
+            if (!romComponent.getData) {
+                throw new Error('ROM component does not have getData() method');
+            }
+
+            const romData = romComponent.getData();
+
+            if (!romData || romData.length === 0) {
+                throw new Error('ROM data is empty');
+            }
+
+            loggingService.info('WasmSystemEngine',
+                `Extracted ROM from ${romMapping.addr[0].toString(16)}-${romMapping.addr[1].toString(16)}`);
+
+            return romData;
+        } catch (error) {
+            loggingService.error('WasmSystemEngine', `Failed to extract ROM data: ${error}`);
+            throw error;
+        }
+    }
+
     async ensureReady(): Promise<void> {
         if (!this._isReady) {
             await this.initialize();
         }
     }
-    
+
     // ============ Core Operations ============
 
     performSingleStep(): number {
-        if (!this.wasmSystem?.is_initialized()) {
-            loggingService.warn('WasmEngine', 'performSingleStep called before initialization complete');
+        if (!this.wasmSystem || !this.wasmSystem.is_initialized()) {
+            loggingService.warn('WasmSystemEngine', 'performSingleStep called before initialization complete');
             return 0;
         }
 
         const startTime = Date.now();
 
         // Check for breakpoints
-        const cpuState = this.wasmSystem.get_cpu_state();
-        const pc = cpuState.pc;
+        const state = this.wasmSystem.get_cpu_state();
+        const pc = state.pc;
+
         if (this.breakpoints.has(pc)) {
-            // Breakpoint handling is done through execution hook
-            // Don't log here as it can flood console
+            // Breakpoint hit - could be handled by execution hook
+            // Don't log here to avoid console flooding
         }
 
-        // Execute one instruction in WASM (no boundary crossings!)
+        // Execute one instruction in WASM
         const cycles = this.wasmSystem.step();
 
         // CRITICAL: If WASM returns 0 cycles, it means execution failed
@@ -205,13 +217,13 @@ export class WasmEngine implements ICPUEngine {
 
         if (cycles === 0) {
             const newState = this.wasmSystem.get_cpu_state();
-            loggingService.error('WasmEngine',
+            loggingService.error('WasmSystemEngine',
                 `WASM returned 0 cycles at PC=${pc.toString(16)}, newPC=${newState.pc.toString(16)}`);
         }
 
         // Sync critical I/O writes back to JavaScript Bus
-        // This is needed for PIA, display, and keyboard I/O
-        this.syncWasmToJsBus();
+        // This ensures display and keyboard I/O work correctly
+        this.syncIOToJavaScriptBus();
 
         // Update metrics
         const duration = Date.now() - startTime;
@@ -219,106 +231,124 @@ export class WasmEngine implements ICPUEngine {
 
         return actualCycles;
     }
-    
+
+    performBulkSteps(cycles: number): void {
+        if (!this.wasmSystem || !this.wasmSystem.is_initialized()) {
+            loggingService.warn('WasmSystemEngine', 'performBulkSteps called before initialization complete');
+            return;
+        }
+
+        // Use WASM's bulk execution for maximum performance
+        // This avoids JavaScript boundary crossings
+        const totalCycles = this.wasmSystem.run_cycles(cycles);
+
+        // Sync I/O after bulk execution
+        this.syncIOToJavaScriptBus();
+
+        // Update metrics
+        // Approximate instruction count (average 2-4 cycles per instruction)
+        const approximateInstructions = Math.floor(totalCycles / 3);
+        this.metrics.totalCycles += totalCycles;
+        this.metrics.instructionsExecuted += approximateInstructions;
+        this.lastSecondInstructions += approximateInstructions;
+    }
+
     /**
-     * Sync WASM memory to JavaScript Bus for I/O operations
-     * Only syncs critical I/O regions to maintain compatibility with PIA, display, keyboard
+     * Sync I/O memory locations from WASM to JavaScript Bus
+     * This ensures display and keyboard I/O devices work correctly
+     *
+     * PIA is at 0xD010-0xD013, we need to sync these addresses
      */
-    private syncWasmToJsBus(): void {
+    private syncIOToJavaScriptBus(): void {
         if (!this.wasmSystem) return;
 
-        // Sync PIA region (0xD010-0xD013)
-        // This is critical for keyboard and display I/O
+        // PIA addresses: 0xD010-0xD013
         const PIA_START = 0xD010;
         const PIA_END = 0xD013;
 
+        // Read from WASM and write to JavaScript Bus
         for (let addr = PIA_START; addr <= PIA_END; addr++) {
             const value = this.wasmSystem.read_memory(addr);
             this.bus.write(addr, value);
         }
     }
 
-    performBulkSteps(cycles: number): void {
-        if (!this.wasmSystem?.is_initialized()) {
-            loggingService.warn('WasmEngine', 'performBulkSteps called before initialization complete');
-            return;
-        }
-
-        // WasmSystem can run cycles efficiently without boundary crossings
-        const executedCycles = this.wasmSystem.run_cycles(cycles);
-
-        // Sync I/O after bulk execution
-        this.syncWasmToJsBus();
-
-        // Update metrics
-        this.updateMetrics(executedCycles, 0);
-    }
-    
     reset(): void {
         if (!this.wasmSystem) {
-            loggingService.warn('WasmEngine', 'reset called before initialization complete');
+            loggingService.warn('WasmSystemEngine', 'reset called before initialization complete');
             return;
         }
 
-        // Reset the WASM System
+        // Reset the WASM system
         this.wasmSystem.reset();
 
+        // Reset metrics
         this.metrics = this.initializeMetrics();
         this.metricsStartTime = Date.now();
         this.lastMetricsUpdate = Date.now();
         this.lastSecondInstructions = 0;
         this.lastSecondStartTime = Date.now();
+
+        loggingService.info('WasmSystemEngine', 'System reset complete');
     }
 
     halt(): void {
         if (!this.wasmSystem) {
-            throw new Error('WASM engine not initialized');
+            throw new Error('WASM system not initialized');
         }
 
         // Set interrupt flag to halt execution
-        const state = this.wasmSystem.get_cpu_state();
-        const status = state.status | 0x04; // Set I flag
-        this.wasmSystem.set_status(status);
+        this.wasmSystem.trigger_irq();
     }
-    
+
     // ============ State Management ============
 
     saveState(): CPU6502State {
         if (!this.wasmSystem) {
-            throw new Error('WASM engine not initialized');
+            throw new Error('WASM system not initialized');
         }
 
         // Get state from WASM System
         const wasmState = this.wasmSystem.get_cpu_state();
 
+        // Convert WASM state to CPU6502State format
+        const status = wasmState.status;
+
         return {
-            version: '3.0', // Match the JS engine version
+            version: '3.0',
             PC: wasmState.pc,
             A: wasmState.a,
             X: wasmState.x,
             Y: wasmState.y,
             S: wasmState.s,
-            N: (wasmState.status >> 7) & 1,
-            V: (wasmState.status >> 6) & 1,
-            D: (wasmState.status >> 3) & 1,
-            I: (wasmState.status >> 2) & 1,
-            Z: (wasmState.status >> 1) & 1,
-            C: wasmState.status & 1,
-            irq: wasmState.irq ? 1 : 0,
-            nmi: wasmState.nmi ? 1 : 0,
-            cycles: wasmState.cycles || this.metrics.totalCycles,
-            opcode: 0, // Not exposed by WasmSystem
-            address: 0, // Not exposed by WasmSystem
-            data: 0, // Not exposed by WasmSystem
-            pendingIrq: 0, // Not exposed by WasmSystem
-            pendingNmi: 0 // Not exposed by WasmSystem
+            N: (status >> 7) & 1,
+            V: (status >> 6) & 1,
+            D: (status >> 3) & 1,
+            I: (status >> 2) & 1,
+            Z: (status >> 1) & 1,
+            C: status & 1,
+            irq: 0,
+            nmi: 0,
+            cycles: this.metrics.totalCycles,
+            opcode: 0,
+            address: 0,
+            data: 0,
+            pendingIrq: 0,
+            pendingNmi: 0
         };
     }
-    
+
     loadState(state: CPU6502State): void {
         if (!this.wasmSystem) {
-            throw new Error('WASM engine not initialized');
+            throw new Error('WASM system not initialized');
         }
+
+        // Set registers using WasmSystem setters
+        this.wasmSystem.set_pc(state.PC);
+        this.wasmSystem.set_a(state.A);
+        this.wasmSystem.set_x(state.X);
+        this.wasmSystem.set_y(state.Y);
+        this.wasmSystem.set_s(state.S);
 
         // Combine status flags into status register
         let status = 0;
@@ -331,23 +361,18 @@ export class WasmEngine implements ICPUEngine {
         status |= (state.Z & 1) << 1;
         status |= (state.C & 1);
 
-        // Set registers using WasmSystem setters
-        this.wasmSystem.set_pc(state.PC);
-        this.wasmSystem.set_a(state.A);
-        this.wasmSystem.set_x(state.X);
-        this.wasmSystem.set_y(state.Y);
-        this.wasmSystem.set_s(state.S);
         this.wasmSystem.set_status(status);
 
-        loggingService.info('WasmEngine', 'State loaded into WasmSystem');
+        loggingService.info('WasmSystemEngine', 'State loaded successfully');
     }
-    
+
     getRegisters(): CPURegisters {
         if (!this.wasmSystem) {
-            throw new Error('WASM engine not initialized');
+            throw new Error('WASM system not initialized');
         }
 
         const state = this.wasmSystem.get_cpu_state();
+        const status = state.status;
 
         return {
             PC: state.pc,
@@ -355,19 +380,19 @@ export class WasmEngine implements ICPUEngine {
             X: state.x,
             Y: state.y,
             S: state.s,
-            N: (state.status >> 7) & 1,
-            V: (state.status >> 6) & 1,
+            N: (status >> 7) & 1,
+            V: (status >> 6) & 1,
             B: 0, // B flag is not stored
-            D: (state.status >> 3) & 1,
-            I: (state.status >> 2) & 1,
-            Z: (state.status >> 1) & 1,
-            C: state.status & 1
+            D: (status >> 3) & 1,
+            I: (status >> 2) & 1,
+            Z: (status >> 1) & 1,
+            C: status & 1
         };
     }
-    
+
     setRegisters(registers: Partial<CPURegisters>): void {
         if (!this.wasmSystem) {
-            throw new Error('WASM engine not initialized');
+            throw new Error('WASM system not initialized');
         }
 
         if (registers.PC !== undefined) this.wasmSystem.set_pc(registers.PC);
@@ -381,8 +406,8 @@ export class WasmEngine implements ICPUEngine {
             registers.D !== undefined || registers.I !== undefined ||
             registers.Z !== undefined || registers.C !== undefined) {
 
-            const state = this.wasmSystem.get_cpu_state();
-            let status = state.status;
+            const currentState = this.wasmSystem.get_cpu_state();
+            let status = currentState.status;
 
             if (registers.N !== undefined) {
                 status = (status & 0x7F) | ((registers.N & 1) << 7);
@@ -406,37 +431,34 @@ export class WasmEngine implements ICPUEngine {
             this.wasmSystem.set_status(status);
         }
     }
-    
+
     // ============ Memory Operations ============
 
     read(address: number): number {
         if (!this.wasmSystem) {
-            return this.bus.read(address);
+            return 0;
         }
-        // Read from WASM memory
+
+        // Read from WASM's internal memory
         return this.wasmSystem.read_memory(address);
     }
 
     write(address: number, value: number): void {
         if (!this.wasmSystem) {
-            this.bus.write(address, value);
             return;
         }
 
-        // Write to WASM
+        // Write to WASM System's internal memory
         this.wasmSystem.write_memory(address, value);
 
-        // Also write to JS Bus for I/O compatibility (PIA, display, etc.)
+        // IMPORTANT: Also write to JavaScript Bus for I/O compatibility
+        // This ensures display and keyboard work correctly
         this.bus.write(address, value);
     }
-    
+
     readRange(start: number, length: number): Uint8Array {
         if (!this.wasmSystem) {
-            const data = new Uint8Array(length);
-            for (let i = 0; i < length; i++) {
-                data[i] = this.bus.read(start + i);
-            }
-            return data;
+            return new Uint8Array(length);
         }
 
         // Read from WASM memory
@@ -449,60 +471,68 @@ export class WasmEngine implements ICPUEngine {
 
     writeRange(start: number, data: Uint8Array): void {
         if (!this.wasmSystem) {
-            for (let i = 0; i < data.length; i++) {
-                this.bus.write(start + i, data[i]);
-            }
             return;
         }
 
-        // Write to both WASM and JS Bus
+        // Write to WASM and JavaScript Bus
         for (let i = 0; i < data.length; i++) {
-            this.wasmSystem.write_memory(start + i, data[i]);
-            this.bus.write(start + i, data[i]);
+            const addr = start + i;
+            this.wasmSystem.write_memory(addr, data[i]);
+            this.bus.write(addr, data[i]);
         }
     }
 
     loadProgram(program: Uint8Array, address = 0x0000): void {
-        // Load program into both WASM and JS Bus
-        this.writeRange(address, program);
+        if (!this.wasmSystem) {
+            return;
+        }
+
+        // Load into WASM and JavaScript Bus
+        for (let i = 0; i < program.length; i++) {
+            const addr = address + i;
+            this.wasmSystem.write_memory(addr, program[i]);
+            this.bus.write(addr, program[i]);
+        }
+
+        loggingService.info('WasmSystemEngine',
+            `Loaded ${program.length} bytes at 0x${address.toString(16)}`);
     }
-    
+
     // ============ Debugging Support ============
-    
+
     setBreakpoint(address: number): void {
         this.breakpoints.add(address);
     }
-    
+
     clearBreakpoint(address: number): void {
         this.breakpoints.delete(address);
     }
-    
+
     clearAllBreakpoints(): void {
         this.breakpoints.clear();
     }
-    
+
     getBreakpoints(): number[] {
         return Array.from(this.breakpoints);
     }
-    
+
     hasBreakpoint(address: number): boolean {
         return this.breakpoints.has(address);
     }
-    
+
     // ============ Performance & Metrics ============
 
     getMetrics(): EngineMetrics {
         if (this.wasmSystem) {
-            // Get metrics from WasmSystem if available
+            // Get metrics from WASM if available
             const wasmMetrics = this.wasmSystem.get_metrics();
             if (wasmMetrics) {
-                this.metrics.totalCycles = wasmMetrics.cycles || this.metrics.totalCycles;
-                this.metrics.instructionsExecuted = wasmMetrics.instructions || this.metrics.instructionsExecuted;
-                this.metrics.averageIPS = wasmMetrics.average_ips || this.metrics.averageIPS;
+                this.metrics.totalCycles = wasmMetrics.total_cycles || this.metrics.totalCycles;
+                this.metrics.instructionsExecuted = wasmMetrics.instructions_executed || this.metrics.instructionsExecuted;
             }
         }
 
-        // Force update IPS calculation when metrics are requested
+        // Update IPS calculation
         const now = Date.now();
         const totalTime = now - this.metricsStartTime;
         if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
@@ -513,13 +543,11 @@ export class WasmEngine implements ICPUEngine {
         const timeSinceSecondStart = now - this.lastSecondStartTime;
         let lastIPS = 0;
         if (timeSinceSecondStart > 0) {
-            // Calculate IPS based on instructions in the current second window
             lastIPS = Math.floor((this.lastSecondInstructions / timeSinceSecondStart) * 1000);
         }
 
         return {
             ...this.metrics,
-            // Add lastIPS as a computed field
             lastIPS: lastIPS || this.metrics.averageIPS
         } as EngineMetrics;
     }
@@ -531,52 +559,47 @@ export class WasmEngine implements ICPUEngine {
         this.lastSecondInstructions = 0;
         this.lastSecondStartTime = Date.now();
     }
-    
-    getMemoryUsage(): number {
-        if (!this.wasmSystem) {
-            return 0;
-        }
 
-        // WasmSystem memory usage:
-        // RAM size + ROM size + overhead
-        const ramSize = this.wasmSystem.get_ram_size();
-        return ramSize + 256 + 4096 + (this.breakpoints.size * 8);
+    getMemoryUsage(): number {
+        // WASM System memory usage estimate
+        // 64KB RAM + 256B ROM + CPU state + overhead
+        return 65536 + 256 + 4096 + (this.breakpoints.size * 8);
     }
-    
+
     // ============ Private Methods ============
-    
+
     private updateMetrics(cycles: number, duration: number): void {
         this.metrics.totalCycles += cycles;
         this.metrics.instructionsExecuted++;
         this.lastSecondInstructions++;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
-        
+
         // Update IPS calculation periodically
         const now = Date.now();
         const timeSinceLastUpdate = now - this.lastMetricsUpdate;
-        
+
         if (timeSinceLastUpdate >= 100) {
             const totalTime = now - this.metricsStartTime;
             if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
                 this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
             }
-            
-            // Reset last second counter every second for instantaneous IPS
+
+            // Reset last second counter every second
             const timeSinceSecondStart = now - this.lastSecondStartTime;
             if (timeSinceSecondStart >= 1000) {
                 this.lastSecondInstructions = 0;
                 this.lastSecondStartTime = now;
             }
-            
+
             this.lastMetricsUpdate = now;
         }
-        
+
         // Update memory usage periodically
         if (this.metrics.instructionsExecuted % 1000 === 0) {
             this.metrics.memoryUsage = this.getMemoryUsage();
         }
     }
-    
+
     // ============ Engine-Specific Features ============
 
     getDebugInfo(): unknown {
@@ -590,7 +613,6 @@ export class WasmEngine implements ICPUEngine {
 
         return {
             status: 'Ready',
-            engineVersion: this.engineVersion,
             registers: this.getRegisters(),
             breakpoints: Array.from(this.breakpoints),
             metrics: this.metrics,
