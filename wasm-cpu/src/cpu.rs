@@ -86,13 +86,13 @@ impl CPU6502 {
         console_log!("CPU reset, PC = 0x{:04X}", self.pc);
     }
     
-    /// Execute a single instruction
+    /// Execute a single instruction (using JavaScript Bus bridge)
     pub fn step(&mut self) -> u32 {
         #[cfg(feature = "performance")]
         let start = crate::now();
-        
+
         let start_cycles = self.cycles;
-        
+
         // Check for interrupts
         if self.nmi_pending {
             self.handle_nmi();
@@ -100,21 +100,53 @@ impl CPU6502 {
         } else if self.irq && !self.get_flag(flags::INTERRUPT) {
             self.handle_irq();
         }
-        
+
         // Fetch opcode
         let opcode = self.read_byte(self.pc);
         self.pc = self.pc.wrapping_add(1);
-        
+
         // Execute instruction
         self.execute_instruction(opcode);
-        
+
         self.instructions += 1;
-        
+
         #[cfg(feature = "performance")]
         {
             self.last_step_start = crate::now() - start;
         }
-        
+
+        (self.cycles - start_cycles) as u32
+    }
+
+    /// Execute a single instruction with internal Bus (for WasmSystem)
+    pub(crate) fn step_with_bus(&mut self, bus: &mut crate::Bus) -> u32 {
+        #[cfg(feature = "performance")]
+        let start = crate::now();
+
+        let start_cycles = self.cycles;
+
+        // Check for interrupts
+        if self.nmi_pending {
+            self.handle_nmi_with_bus(bus);
+            self.nmi_pending = false;
+        } else if self.irq && !self.get_flag(flags::INTERRUPT) {
+            self.handle_irq_with_bus(bus);
+        }
+
+        // Fetch opcode
+        let opcode = self.read_byte_from_bus(bus, self.pc);
+        self.pc = self.pc.wrapping_add(1);
+
+        // Execute instruction with bus
+        self.execute_instruction_with_bus(opcode, bus);
+
+        self.instructions += 1;
+
+        #[cfg(feature = "performance")]
+        {
+            self.last_step_start = crate::now() - start;
+        }
+
         (self.cycles - start_cycles) as u32
     }
     
@@ -165,48 +197,77 @@ impl CPU6502 {
     }
     
     // ============ Register Access ============
-    
+
     #[wasm_bindgen(getter)]
     pub fn pc(&self) -> u16 { self.pc }
-    
+
     #[wasm_bindgen(setter)]
     pub fn set_pc(&mut self, value: u16) { self.pc = value; }
-    
+
     #[wasm_bindgen(getter)]
     pub fn a(&self) -> u8 { self.a }
-    
+
     #[wasm_bindgen(setter)]
     pub fn set_a(&mut self, value: u8) { self.a = value; }
-    
+
     #[wasm_bindgen(getter)]
     pub fn x(&self) -> u8 { self.x }
-    
+
     #[wasm_bindgen(setter)]
     pub fn set_x(&mut self, value: u8) { self.x = value; }
-    
+
     #[wasm_bindgen(getter)]
     pub fn y(&self) -> u8 { self.y }
-    
+
     #[wasm_bindgen(setter)]
     pub fn set_y(&mut self, value: u8) { self.y = value; }
-    
+
     #[wasm_bindgen(getter)]
     pub fn s(&self) -> u8 { self.s }
-    
+
     #[wasm_bindgen(setter)]
     pub fn set_s(&mut self, value: u8) { self.s = value; }
-    
+
     #[wasm_bindgen(getter)]
     pub fn status(&self) -> u8 { self.status }
-    
+
     #[wasm_bindgen(setter)]
     pub fn set_status(&mut self, value: u8) { self.status = value; }
-    
+
     /// Get CPU status as byte (internal)
     pub(crate) fn get_status(&self) -> u8 {
         self.status | flags::UNUSED // Bit 5 is always 1
     }
-    
+
+    // ============ Internal Getters for WasmSystem ============
+
+    /// Get program counter (internal)
+    pub(crate) fn get_pc(&self) -> u16 { self.pc }
+
+    /// Get accumulator (internal)
+    pub(crate) fn get_a(&self) -> u8 { self.a }
+
+    /// Get X register (internal)
+    pub(crate) fn get_x(&self) -> u8 { self.x }
+
+    /// Get Y register (internal)
+    pub(crate) fn get_y(&self) -> u8 { self.y }
+
+    /// Get stack pointer (internal)
+    pub(crate) fn get_s(&self) -> u8 { self.s }
+
+    /// Get cycle count (internal)
+    pub(crate) fn get_cycles(&self) -> u64 { self.cycles }
+
+    /// Get instruction count (internal)
+    pub(crate) fn get_instructions(&self) -> u64 { self.instructions }
+
+    /// Get IRQ state (internal)
+    pub(crate) fn get_irq(&self) -> bool { self.irq }
+
+    /// Get NMI pending state (internal)
+    pub(crate) fn get_nmi_pending(&self) -> bool { self.nmi_pending }
+
     // ============ Memory Access ============
     
     /// Read a byte from memory via JavaScript Bus
@@ -288,12 +349,24 @@ impl CPU6502 {
         // Use JavaScript Bus.read() as single source of truth
         crate::bus_read(address)
     }
-    
+
     /// Write a byte to memory (internal) via JavaScript Bus
     pub(crate) fn write_byte(&mut self, address: u16, value: u8) {
         self.cycles += 1;
         // Use JavaScript Bus.write() as single source of truth
         crate::bus_write(address, value);
+    }
+
+    /// Read a byte from memory using internal Bus (for WasmSystem)
+    pub(crate) fn read_byte_from_bus(&mut self, bus: &crate::Bus, address: u16) -> u8 {
+        self.cycles += 1;
+        bus.read(address)
+    }
+
+    /// Write a byte to memory using internal Bus (for WasmSystem)
+    pub(crate) fn write_byte_to_bus(&mut self, bus: &mut crate::Bus, address: u16, value: u8) {
+        self.cycles += 1;
+        bus.write(address, value);
     }
     
     /// Read a word from memory (little-endian)
@@ -377,7 +450,7 @@ impl CPU6502 {
         self.pc = self.read_word(0xFFFE);
         self.cycles += 7;
     }
-    
+
     /// Handle NMI interrupt
     fn handle_nmi(&mut self) {
         self.push((self.pc >> 8) as u8);
@@ -387,10 +460,57 @@ impl CPU6502 {
         self.pc = self.read_word(0xFFFA);
         self.cycles += 7;
     }
+
+    /// Handle IRQ interrupt with internal Bus
+    fn handle_irq_with_bus(&mut self, bus: &mut crate::Bus) {
+        self.push_byte_to_bus(bus, (self.pc >> 8) as u8);
+        self.push_byte_to_bus(bus, self.pc as u8);
+        self.push_byte_to_bus(bus, self.status | flags::UNUSED);
+        self.set_flag(flags::INTERRUPT, true);
+        self.pc = self.read_word_from_bus(bus, 0xFFFE);
+        self.cycles += 7;
+    }
+
+    /// Handle NMI interrupt with internal Bus
+    fn handle_nmi_with_bus(&mut self, bus: &mut crate::Bus) {
+        self.push_byte_to_bus(bus, (self.pc >> 8) as u8);
+        self.push_byte_to_bus(bus, self.pc as u8);
+        self.push_byte_to_bus(bus, self.status | flags::UNUSED);
+        self.set_flag(flags::INTERRUPT, true);
+        self.pc = self.read_word_from_bus(bus, 0xFFFA);
+        self.cycles += 7;
+    }
+
+    /// Read a word from memory using internal Bus
+    pub(crate) fn read_word_from_bus(&mut self, bus: &crate::Bus, address: u16) -> u16 {
+        let low = self.read_byte_from_bus(bus, address) as u16;
+        let high = self.read_byte_from_bus(bus, address.wrapping_add(1)) as u16;
+        (high << 8) | low
+    }
+
+    /// Push byte to stack using internal Bus
+    pub(crate) fn push_byte_to_bus(&mut self, bus: &mut crate::Bus, value: u8) {
+        self.write_byte_to_bus(bus, 0x0100 | (self.s as u16), value);
+        self.s = self.s.wrapping_sub(1);
+    }
+
+    /// Pop byte from stack using internal Bus
+    #[allow(dead_code)]
+    pub(crate) fn pop_byte_from_bus(&mut self, bus: &crate::Bus) -> u8 {
+        self.s = self.s.wrapping_add(1);
+        self.read_byte_from_bus(bus, 0x0100 | (self.s as u16))
+    }
     
     /// Execute an instruction
     pub(crate) fn execute_instruction(&mut self, opcode: u8) {
         self.dispatch_opcode(opcode);
+    }
+
+    /// Execute an instruction with internal Bus (for WasmSystem)
+    /// This implementation uses the internal Bus to eliminate WASM→JS boundary crossings
+    pub(crate) fn execute_instruction_with_bus(&mut self, opcode: u8, bus: &mut crate::Bus) {
+        // Use Bus-aware dispatch table for maximum performance
+        self.dispatch_opcode_with_bus(bus, opcode);
     }
     
     // ========== Addressing Mode Helpers ==========

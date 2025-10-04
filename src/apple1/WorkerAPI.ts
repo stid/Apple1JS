@@ -442,13 +442,8 @@ export class WorkerAPI implements IWorkerAPI {
         return await this.workerState.compareEngines();
     }
     
-    /**
-     * Set auto-switch configuration
-     */
-    setAutoSwitch(enabled: boolean, threshold?: number): void {
-        this.workerState.setAutoSwitch(enabled, threshold);
-    }
-    
+    // Auto-switch feature has been removed for simplicity
+
     // ========== Input ==========
     
     keyDown(key: string): void {

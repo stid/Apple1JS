@@ -131,14 +131,14 @@ export interface MemoryMapData {
 }
 
 // Interface for engine status
+// Note: Only the currently active engine's metrics will be populated
 export interface EngineStatusData {
     currentEngine: 'JS' | 'WASM';
     availableEngines: ('JS' | 'WASM')[];
     switchCount: number;
     lastSwitchTime: number;
-    autoSwitchEnabled: boolean;
-    jsMetrics?: EngineMetricsData;
-    wasmMetrics?: EngineMetricsData;
+    jsMetrics?: EngineMetricsData;  // Populated only when currentEngine === 'JS'
+    wasmMetrics?: EngineMetricsData; // Populated only when currentEngine === 'WASM'
 }
 
 // Interface for engine metrics

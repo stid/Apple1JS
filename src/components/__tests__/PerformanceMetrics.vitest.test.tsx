@@ -24,7 +24,6 @@ describe('PerformanceMetrics', () => {
             availableEngines: ['JS', 'WASM'],
             switchCount: 5,
             lastSwitchTime: 12.5,
-            autoSwitchEnabled: false,
             jsMetrics: {
                 instructionsExecuted: 1000000,
                 averageIPS: 500000,
@@ -82,48 +81,50 @@ describe('PerformanceMetrics', () => {
             });
         });
         
-        it('should show JS engine metrics when available', async () => {
+        it('should show current performance for active engine', async () => {
             render(
-                <PerformanceMetrics 
-                    workerManager={mockWorkerManager as WorkerManager} 
+                <PerformanceMetrics
+                    workerManager={mockWorkerManager as WorkerManager}
                     updateInterval={999999}
                 />
             );
-            
+
             await waitFor(() => {
-                expect(screen.getByText('JS Engine')).toBeInTheDocument();
-                // Should show formatted IPS (450K)
+                expect(screen.getByText('Current Performance')).toBeInTheDocument();
+                // Should show formatted IPS (450K) for the active JS engine
                 expect(screen.getByText(/450.*K.*IPS/)).toBeInTheDocument();
             });
         });
         
-        it('should show WASM engine metrics when available', async () => {
+        it('should show WASM engine performance when WASM is active', async () => {
+            // Update mock to have WASM as active engine
+            mockEngineStatus = {
+                currentEngine: 'WASM',
+                availableEngines: ['JS', 'WASM'],
+                switchCount: 5,
+                lastSwitchTime: 12.5,
+                wasmMetrics: {
+                    instructionsExecuted: 2000000,
+                    averageIPS: 2500000,
+                    lastIPS: 2300000,
+                    cyclesExecuted: 4000000,
+                    memoryUsage: 1024 * 256 // 256KB
+                }
+            };
+            mockWorkerManager.getEngineStatus = vi.fn().mockResolvedValue(mockEngineStatus);
+
             render(
-                <PerformanceMetrics 
-                    workerManager={mockWorkerManager as WorkerManager} 
+                <PerformanceMetrics
+                    workerManager={mockWorkerManager as WorkerManager}
                     updateInterval={999999}
                 />
             );
-            
+
             await waitFor(() => {
-                expect(screen.getByText('WASM Engine')).toBeInTheDocument();
-                // Should show formatted IPS (2.30M)
-                expect(screen.getByText(/2\.30M/)).toBeInTheDocument();
-            });
-        });
-        
-        it('should calculate and display speedup', async () => {
-            render(
-                <PerformanceMetrics 
-                    workerManager={mockWorkerManager as WorkerManager} 
-                    updateInterval={999999}
-                />
-            );
-            
-            await waitFor(() => {
-                expect(screen.getByText('WASM Speedup:')).toBeInTheDocument();
-                // Speedup should be ~5.11x (2300000 / 450000)
-                expect(screen.getByText(/5\.11x/)).toBeInTheDocument();
+                expect(screen.getByText('Current Performance')).toBeInTheDocument();
+                // Should show formatted IPS (2.30M) for active WASM engine (appears twice in UI)
+                const ipsElements = screen.getAllByText(/2\.30M/);
+                expect(ipsElements.length).toBeGreaterThan(0);
             });
         });
         
@@ -183,24 +184,27 @@ describe('PerformanceMetrics', () => {
     describe('Number Formatting', () => {
         it('should format large IPS values correctly', async () => {
             mockEngineStatus.jsMetrics!.lastIPS = 5500000; // 5.5M
-            mockEngineStatus.wasmMetrics!.lastIPS = 12300000; // 12.3M
-            
+            // Remove wasmMetrics since we only show active engine (JS)
+            delete mockEngineStatus.wasmMetrics;
+
             render(
-                <PerformanceMetrics 
-                    workerManager={mockWorkerManager as WorkerManager} 
+                <PerformanceMetrics
+                    workerManager={mockWorkerManager as WorkerManager}
                     updateInterval={999999}
                 />
             );
-            
+
             await waitFor(() => {
-                expect(screen.getByText(/5\.50M.*IPS/)).toBeInTheDocument();
-                expect(screen.getByText(/12\.30M/)).toBeInTheDocument();
+                // Should show formatted IPS for active JS engine
+                const ipsElements = screen.getAllByText(/5\.50M/);
+                expect(ipsElements.length).toBeGreaterThan(0);
             });
         });
-        
+
         it('should format small IPS values correctly', async () => {
             mockEngineStatus.jsMetrics!.lastIPS = 500; // 500
-            mockEngineStatus.wasmMetrics!.lastIPS = 1500; // 1.5K
+            // Remove wasmMetrics since we only show active engine (JS)
+            delete mockEngineStatus.wasmMetrics;
             
             render(
                 <PerformanceMetrics 
@@ -210,28 +214,30 @@ describe('PerformanceMetrics', () => {
             );
             
             await waitFor(() => {
-                expect(screen.getByText(/500.*IPS/)).toBeInTheDocument();
-                expect(screen.getByText(/1\.5K/)).toBeInTheDocument();
+                // Should show formatted IPS for active JS engine (500 is displayed as "500")
+                const ipsElements = screen.getAllByText(/500/);
+                expect(ipsElements.length).toBeGreaterThan(0);
             });
         });
     });
     
     describe('Engine-specific Displays', () => {
-        it('should only show JS metrics when WASM is not available', async () => {
+        it('should only show active engine metrics when WASM is not available', async () => {
             delete mockEngineStatus.wasmMetrics;
             mockEngineStatus.availableEngines = ['JS'];
-            
+
             render(
-                <PerformanceMetrics 
-                    workerManager={mockWorkerManager as WorkerManager} 
+                <PerformanceMetrics
+                    workerManager={mockWorkerManager as WorkerManager}
                     updateInterval={999999}
                 />
             );
-            
+
             await waitFor(() => {
-                expect(screen.getByText('JS Engine')).toBeInTheDocument();
-                expect(screen.queryByText('WASM Engine')).not.toBeInTheDocument();
-                expect(screen.queryByText('WASM Speedup:')).not.toBeInTheDocument();
+                expect(screen.getByText('Current Performance')).toBeInTheDocument();
+                expect(screen.getByText('JS')).toBeInTheDocument();
+                // No WASM-specific content should be shown
+                expect(screen.queryByText('WASM')).not.toBeInTheDocument();
             });
         });
         

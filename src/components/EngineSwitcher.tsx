@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { WorkerManager } from '../services/WorkerManager';
-import type { EngineStatusData, EngineComparisonData } from '../apple1/types/worker-messages';
+import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 
 interface EngineSwitcherProps {
@@ -9,10 +9,7 @@ interface EngineSwitcherProps {
 
 const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
     const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
-    const [comparison, setComparison] = useState<EngineComparisonData | null>(null);
     const [isSwitching, setIsSwitching] = useState(false);
-    const [showMetrics, setShowMetrics] = useState(false);
-    const [autoSwitchEnabled, setAutoSwitchEnabled] = useState(false);
     
     // Fetch engine status on mount and periodically
     useEffect(() => {
@@ -20,22 +17,21 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
             try {
                 const status = await workerManager.getEngineStatus();
                 setEngineStatus(status);
-                setAutoSwitchEnabled(status.autoSwitchEnabled);
             } catch (error) {
                 loggingService.error('EngineSwitcher', `Failed to get engine status: ${error}`);
             }
         };
-        
+
         fetchStatus();
         const interval = setInterval(fetchStatus, 2000); // Update every 2 seconds
-        
+
         return () => clearInterval(interval);
     }, [workerManager]);
     
     // Handle engine switching
     const handleEngineSwitch = useCallback(async (targetEngine: 'JS' | 'WASM') => {
         if (isSwitching || !engineStatus) return;
-        
+
         setIsSwitching(true);
         try {
             await workerManager.switchEngine(targetEngine);
@@ -49,29 +45,6 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
             setIsSwitching(false);
         }
     }, [workerManager, engineStatus, isSwitching]);
-    
-    // Compare engines
-    const handleCompareEngines = useCallback(async () => {
-        try {
-            const comparisonData = await workerManager.compareEngines();
-            setComparison(comparisonData);
-            setShowMetrics(true);
-        } catch (error) {
-            loggingService.error('EngineSwitcher', `Failed to compare engines: ${error}`);
-        }
-    }, [workerManager]);
-    
-    // Toggle auto-switch
-    const handleAutoSwitchToggle = useCallback(async () => {
-        const newState = !autoSwitchEnabled;
-        try {
-            await workerManager.setAutoSwitch(newState);
-            setAutoSwitchEnabled(newState);
-            loggingService.info('EngineSwitcher', `Auto-switch ${newState ? 'enabled' : 'disabled'}`);
-        } catch (error) {
-            loggingService.error('EngineSwitcher', `Failed to toggle auto-switch: ${error}`);
-        }
-    }, [workerManager, autoSwitchEnabled]);
     
     if (!engineStatus) {
         return null; // Don't render until we have status
@@ -112,7 +85,7 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
                 >
                     JS Engine
                 </button>
-                
+
                 <button
                     onClick={() => handleEngineSwitch('WASM')}
                     disabled={isSwitching || !isJSActive || !isWASMAvailable}
@@ -127,37 +100,6 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
                 >
                     WASM Engine
                 </button>
-                
-                <button
-                    onClick={handleCompareEngines}
-                    disabled={!isWASMAvailable}
-                    className={`px-md py-xs text-xs font-medium rounded transition-all ${
-                        isWASMAvailable
-                            ? 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary border border-border-primary'
-                            : 'bg-surface-secondary text-text-disabled cursor-not-allowed border border-border-subtle'
-                    }`}
-                    title="Compare engine performance"
-                >
-                    Compare
-                </button>
-            </div>
-            
-            {/* Auto-switch Toggle */}
-            <div className="flex items-center gap-sm mb-sm">
-                <input
-                    type="checkbox"
-                    id="auto-switch"
-                    checked={autoSwitchEnabled}
-                    onChange={handleAutoSwitchToggle}
-                    disabled={!isWASMAvailable}
-                    className="text-text-accent"
-                />
-                <label 
-                    htmlFor="auto-switch" 
-                    className={`text-xs ${isWASMAvailable ? 'text-text-secondary' : 'text-text-disabled'}`}
-                >
-                    Auto-switch based on performance
-                </label>
             </div>
             
             {/* Engine Statistics */}
@@ -173,68 +115,6 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
                     </div>
                 )}
             </div>
-            
-            {/* Performance Metrics Modal/Popover */}
-            {showMetrics && comparison && (
-                <div className="mt-md p-sm bg-surface-secondary rounded border border-border-subtle">
-                    <div className="flex justify-between items-center mb-sm">
-                        <h4 className="text-xs font-medium text-text-accent">Performance Comparison</h4>
-                        <button
-                            onClick={() => setShowMetrics(false)}
-                            className="text-xs text-text-secondary hover:text-text-primary"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                    
-                    <div className="space-y-sm text-xs">
-                        {/* JS Engine Metrics */}
-                        <div>
-                            <div className="font-medium text-data-value mb-xs">JavaScript Engine</div>
-                            <div className="grid grid-cols-2 gap-xs text-text-secondary">
-                                <span>IPS:</span>
-                                <span className="font-mono">{(comparison.js.averageIPS / 1000).toFixed(1)}K</span>
-                                <span>Memory:</span>
-                                <span className="font-mono">{(comparison.js.memoryUsage / 1024).toFixed(1)}KB</span>
-                            </div>
-                        </div>
-                        
-                        {/* WASM Engine Metrics */}
-                        <div>
-                            <div className="font-medium text-success mb-xs">WASM Engine</div>
-                            <div className="grid grid-cols-2 gap-xs text-text-secondary">
-                                <span>IPS:</span>
-                                <span className="font-mono">{(comparison.wasm.averageIPS / 1000).toFixed(1)}K</span>
-                                <span>Memory:</span>
-                                <span className="font-mono">{(comparison.wasm.memoryUsage / 1024).toFixed(1)}KB</span>
-                            </div>
-                        </div>
-                        
-                        {/* Comparison Summary */}
-                        <div className="pt-sm border-t border-border-subtle">
-                            <div className="flex justify-between mb-xs">
-                                <span className="font-medium">Speedup:</span>
-                                <span className={`font-mono ${comparison.speedup > 1 ? 'text-success' : 'text-warning'}`}>
-                                    {comparison.speedup.toFixed(1)}x
-                                </span>
-                            </div>
-                            <div className="flex justify-between mb-xs">
-                                <span className="font-medium">Memory Ratio:</span>
-                                <span className={`font-mono ${comparison.memoryRatio < 1 ? 'text-success' : 'text-warning'}`}>
-                                    {(comparison.memoryRatio * 100).toFixed(0)}%
-                                </span>
-                            </div>
-                            <div className="mt-sm p-xs bg-surface-primary rounded">
-                                <span className="font-medium">Recommendation: </span>
-                                <span className={comparison.recommendation === 'WASM' ? 'text-success' : 'text-data-value'}>
-                                    {comparison.recommendation}
-                                </span>
-                                <div className="text-text-secondary mt-xs">{comparison.reason}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

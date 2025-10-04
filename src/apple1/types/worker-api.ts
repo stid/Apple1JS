@@ -196,13 +196,8 @@ export interface IWorkerAPI {
      */
     compareEngines(): Promise<EngineComparisonData>;
     
-    /**
-     * Set auto-switch configuration
-     * @param enabled Whether to enable automatic engine switching
-     * @param threshold Optional performance threshold for switching
-     */
-    setAutoSwitch(enabled: boolean, threshold?: number): void;
-    
+    // Auto-switch feature has been removed for simplicity
+
     // ========== Input ==========
     
     /**

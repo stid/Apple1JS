@@ -283,27 +283,7 @@ describe('DualEngine', () => {
         });
     });
     
-    describe('Auto-Switch', () => {
-        beforeEach(async () => {
-            dualEngine = new DualEngine(bus);
-            await dualEngine.initialize();
-        });
-        
-        it('should enable auto-switch', () => {
-            dualEngine.setAutoSwitch(true, 0.5);
-            
-            const stats = dualEngine.getSwitchStats();
-            expect(stats.autoSwitchEnabled).toBe(true);
-        });
-        
-        it('should disable auto-switch', () => {
-            dualEngine.setAutoSwitch(true);
-            dualEngine.setAutoSwitch(false);
-            
-            const stats = dualEngine.getSwitchStats();
-            expect(stats.autoSwitchEnabled).toBe(false);
-        });
-    });
+    // Auto-switch feature has been removed for simplicity
     
     describe('State Management', () => {
         beforeEach(async () => {

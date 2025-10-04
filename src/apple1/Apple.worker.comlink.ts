@@ -68,8 +68,8 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     getEngineMetrics = () => this.api.getEngineMetrics();
     getEngineStatus = () => this.api.getEngineStatus();
     compareEngines = () => this.api.compareEngines();
-    setAutoSwitch = (enabled: boolean, threshold?: number) => this.api.setAutoSwitch(enabled, threshold);
-    
+    // Auto-switch feature has been removed for simplicity
+
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
 

@@ -184,32 +184,31 @@ export class WorkerState implements IWorkerState {
                 currentEngine: 'JS',
                 availableEngines: ['JS'],
                 switchCount: 0,
-                lastSwitchTime: 0,
-                autoSwitchEnabled: false
+                lastSwitchTime: 0
             };
         }
-        
+
         const stats = dualEngine.getSwitchStats();
         const engineMetrics = dualEngine.getEngineMetrics();
         const jsMetrics = engineMetrics.js ? this.convertEngineMetrics(engineMetrics.js) : undefined;
         const wasmMetrics = engineMetrics.wasm ? this.convertEngineMetrics(engineMetrics.wasm) : undefined;
-        
+
         const result: EngineStatusData = {
             currentEngine: stats.currentEngine,
             availableEngines: stats.availableEngines,
             switchCount: stats.switchCount,
-            lastSwitchTime: stats.lastSwitchTime,
-            autoSwitchEnabled: stats.autoSwitchEnabled
+            lastSwitchTime: stats.lastSwitchTime
         };
-        
+
+        // Only populate metrics for the currently active engine
         if (jsMetrics) {
             result.jsMetrics = jsMetrics;
         }
-        
+
         if (wasmMetrics) {
             result.wasmMetrics = wasmMetrics;
         }
-        
+
         return result;
     }
     
@@ -234,15 +233,7 @@ export class WorkerState implements IWorkerState {
         };
     }
     
-    /**
-     * Set auto-switch configuration
-     */
-    public setAutoSwitch(enabled: boolean, threshold?: number): void {
-        const dualEngine = this.getDualEngine();
-        if (dualEngine) {
-            dualEngine.setAutoSwitch(enabled, threshold);
-        }
-    }
+    // Auto-switch feature has been removed for simplicity
     
     /**
      * Convert internal engine metrics to API format

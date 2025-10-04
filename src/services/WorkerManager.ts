@@ -225,12 +225,7 @@ export class WorkerManager {
         throw new Error('Worker not initialized');
     }
     
-    async setAutoSwitch(enabled: boolean, threshold?: number): Promise<void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.setAutoSwitch(enabled, threshold);
-        }
-        throw new Error('Worker not initialized');
-    }
+    // Auto-switch feature has been removed for simplicity
 
     // ========== Event Subscriptions (Comlink only) ==========
 

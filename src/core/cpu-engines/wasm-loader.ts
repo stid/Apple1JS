@@ -11,11 +11,13 @@ import { loggingService } from '../../services/LoggingService';
 type WasmModule = typeof import('../../wasm/apple1_cpu_wasm');
 type InitOutput = import('../../wasm/apple1_cpu_wasm').InitOutput;
 type WasmCPU = import('../../wasm/apple1_cpu_wasm').CPU6502;
+type WasmSystem = import('../../wasm/apple1_cpu_wasm').WasmSystem;
 
 // Module references - loaded dynamically
 let wasmModule: WasmModule | null = null;
 let initFunction: WasmModule['default'] | null = null;
 let WasmCPUClass: typeof import('../../wasm/apple1_cpu_wasm').CPU6502 | null = null;
+let WasmSystemClass: typeof import('../../wasm/apple1_cpu_wasm').WasmSystem | null = null;
 
 /**
  * WASM module initialization state
@@ -42,9 +44,10 @@ async function loadWasmModule(): Promise<boolean> {
         wasmModule = await import('../../wasm/apple1_cpu_wasm');
         initFunction = wasmModule.default;
         WasmCPUClass = wasmModule.CPU6502;
+        WasmSystemClass = wasmModule.WasmSystem;
         return true;
     } catch {
-        loggingService.warn('WasmLoader', 
+        loggingService.warn('WasmLoader',
             'WASM module not available - this is expected if WASM has not been built yet');
         return false;
     }
@@ -95,14 +98,21 @@ export async function initializeWasmModule(): Promise<InitOutput> {
         
         loggingService.info('WasmLoader', 'WASM CPU module initialized successfully');
         
-        // Verify the module works by creating a test instance
+        // Verify the module works by creating test instances
         try {
             const testCpu = new WasmCPUClass();
             testCpu.free(); // Clean up test instance
             loggingService.info('WasmLoader', 'WASM CPU verification successful');
+
+            // Verify WasmSystem if available
+            if (WasmSystemClass) {
+                const testSystem = new WasmSystemClass();
+                testSystem.free(); // Clean up test instance
+                loggingService.info('WasmLoader', 'WASM System verification successful');
+            }
         } catch (error) {
-            loggingService.error('WasmLoader', `WASM CPU verification failed: ${error}`);
-            throw new Error('WASM CPU module verification failed');
+            loggingService.error('WasmLoader', `WASM module verification failed: ${error}`);
+            throw new Error('WASM module verification failed');
         }
         
         return module;
@@ -203,5 +213,12 @@ export function getWasmCPUClass(): typeof import('../../wasm/apple1_cpu_wasm').C
     return WasmCPUClass;
 }
 
+/**
+ * Get the WasmSystem class after module is loaded
+ */
+export function getWasmSystemClass(): typeof import('../../wasm/apple1_cpu_wasm').WasmSystem | null {
+    return WasmSystemClass;
+}
+
 // Export types for use in other modules
-export type { WasmCPU, InitOutput };
+export type { WasmCPU, WasmSystem, InitOutput };

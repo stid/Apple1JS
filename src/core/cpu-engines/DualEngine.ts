@@ -49,10 +49,6 @@ export class DualEngine implements ICPUEngine {
     private switchCount = 0;
     private lastSwitchTime = 0;
     
-    // Auto-switch configuration
-    private autoSwitchEnabled = false;
-    private performanceThreshold = 0.5; // Switch if one engine is 50% faster
-    
     constructor(bus: Bus, initialEngine: EngineType = 'JS') {
         // Always create JS engine as fallback
         this.jsEngine = new JSEngine(bus);
@@ -246,13 +242,21 @@ export class DualEngine implements ICPUEngine {
     }
     
     /**
-     * Get metrics from individual engines for performance monitoring
+     * Get metrics from the currently active engine only
+     * Returns metrics for both engine types, but only the active one is populated
      */
     getEngineMetrics(): { js: EngineMetrics | null; wasm: EngineMetrics | null } {
-        return {
-            js: this.jsEngine.getMetrics(),
-            wasm: this.wasmEngine?.getMetrics() || null
-        };
+        if (this.activeEngineType === 'JS') {
+            return {
+                js: this.jsEngine.getMetrics(),
+                wasm: null
+            };
+        } else {
+            return {
+                js: null,
+                wasm: this.wasmEngine?.getMetrics() || null
+            };
+        }
     }
     
     resetMetrics(): void {
@@ -416,19 +420,6 @@ export class DualEngine implements ICPUEngine {
     }
     
     /**
-     * Enable/disable automatic engine switching based on performance
-     */
-    setAutoSwitch(enabled: boolean, threshold = 0.5): void {
-        this.autoSwitchEnabled = enabled;
-        this.performanceThreshold = threshold;
-        
-        if (enabled) {
-            loggingService.info('DualEngine', 
-                `Auto-switch enabled with ${this.performanceThreshold * 100}% performance threshold`);
-        }
-    }
-    
-    /**
      * Get engine switch statistics
      */
     getSwitchStats(): {
@@ -436,14 +427,12 @@ export class DualEngine implements ICPUEngine {
         availableEngines: EngineType[];
         switchCount: number;
         lastSwitchTime: number;
-        autoSwitchEnabled: boolean;
     } {
         return {
             currentEngine: this.activeEngineType,
             availableEngines: this.getAvailableEngines(),
             switchCount: this.switchCount,
-            lastSwitchTime: this.lastSwitchTime,
-            autoSwitchEnabled: this.autoSwitchEnabled
+            lastSwitchTime: this.lastSwitchTime
         };
     }
     

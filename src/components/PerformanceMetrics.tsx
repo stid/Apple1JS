@@ -10,20 +10,19 @@ interface PerformanceMetricsProps {
 
 interface MetricHistory {
     timestamp: number;
-    jsIPS?: number | undefined;
-    wasmIPS?: number | undefined;
-    jsMemory?: number | undefined;
-    wasmMemory?: number | undefined;
+    ips?: number | undefined;
+    memory?: number | undefined;
+    engine?: 'JS' | 'WASM';
 }
 
-const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ 
-    workerManager, 
-    updateInterval = 1000 
+const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
+    workerManager,
+    updateInterval = 1000
 }) => {
     const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
     const [history, setHistory] = useState<MetricHistory[]>([]);
     const [maxIPS, setMaxIPS] = useState(0);
-    const [avgIPS, setAvgIPS] = useState({ js: 0, wasm: 0 });
+    const [avgIPS, setAvgIPS] = useState(0);
     const [showDetails, setShowDetails] = useState(false);
     const historyLimit = 60; // Keep last 60 data points
     const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -33,16 +32,20 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         try {
             const status = await workerManager.getEngineStatus();
             setEngineStatus(status);
-            
+
+            // Get metrics from active engine only
+            const activeMetrics = status.currentEngine === 'WASM' ? status.wasmMetrics : status.jsMetrics;
+            const currentIPS = activeMetrics?.lastIPS || 0;
+            const currentMemory = activeMetrics?.memoryUsage || 0;
+
             // Add to history
             const newPoint: MetricHistory = {
                 timestamp: Date.now(),
-                jsIPS: status.jsMetrics?.lastIPS,
-                wasmIPS: status.wasmMetrics?.lastIPS,
-                jsMemory: status.jsMetrics?.memoryUsage,
-                wasmMemory: status.wasmMetrics?.memoryUsage
+                ips: currentIPS,
+                memory: currentMemory,
+                engine: status.currentEngine
             };
-            
+
             setHistory(prev => {
                 const updated = [...prev, newPoint];
                 // Keep only last N points
@@ -51,16 +54,10 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
                 }
                 return updated;
             });
-            
+
             // Update max IPS using functional setState to avoid stale closure
-            setMaxIPS(prevMax => Math.max(
-                newPoint.jsIPS || 0,
-                newPoint.wasmIPS || 0,
-                prevMax
-            ));
-            
-            // We'll calculate averages after history is updated
-            
+            setMaxIPS(prevMax => Math.max(currentIPS, prevMax));
+
         } catch (error) {
             loggingService.error('PerformanceMetrics', `Failed to update metrics: ${error}`);
         }
@@ -69,13 +66,11 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
     // Calculate averages when history changes
     useEffect(() => {
         if (history.length > 0) {
-            const jsAvg = history
-                .filter(h => h.jsIPS)
-                .reduce((sum, h) => sum + (h.jsIPS || 0), 0) / history.filter(h => h.jsIPS).length || 0;
-            const wasmAvg = history
-                .filter(h => h.wasmIPS)
-                .reduce((sum, h) => sum + (h.wasmIPS || 0), 0) / history.filter(h => h.wasmIPS).length || 0;
-            setAvgIPS({ js: jsAvg, wasm: wasmAvg });
+            const validPoints = history.filter(h => h.ips && h.ips > 0);
+            if (validPoints.length > 0) {
+                const avg = validPoints.reduce((sum, h) => sum + (h.ips || 0), 0) / validPoints.length;
+                setAvgIPS(avg);
+            }
         }
     }, [history]);
     
@@ -109,14 +104,6 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
     const formatPercent = (value: number, max: number): string => {
         if (max === 0) return '0';
         return ((value / max) * 100).toFixed(0);
-    };
-    
-    // Calculate speedup
-    const calculateSpeedup = (): number => {
-        const jsIPS = engineStatus?.jsMetrics?.lastIPS || 0;
-        const wasmIPS = engineStatus?.wasmMetrics?.lastIPS || 0;
-        if (jsIPS === 0) return 0;
-        return wasmIPS / jsIPS;
     };
     
     // Render performance bar
@@ -168,11 +155,11 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
     if (!engineStatus) {
         return null;
     }
-    
-    const jsIPS = engineStatus.jsMetrics?.lastIPS || 0;
-    const wasmIPS = engineStatus.wasmMetrics?.lastIPS || 0;
-    const speedup = calculateSpeedup();
+
     const currentEngine = engineStatus.currentEngine;
+    const activeMetrics = currentEngine === 'WASM' ? engineStatus.wasmMetrics : engineStatus.jsMetrics;
+    const currentIPS = activeMetrics?.lastIPS || 0;
+    const currentMemory = activeMetrics?.memoryUsage || 0;
     
     return (
         <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
@@ -201,46 +188,26 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
                         </span>
                     </div>
                     <span className="text-xs font-mono text-text-primary">
-                        {formatIPS(currentEngine === 'WASM' ? wasmIPS : jsIPS)} IPS
+                        {formatIPS(currentIPS)} IPS
                     </span>
                 </div>
-                
-                {/* Performance Bars */}
-                {engineStatus.jsMetrics && (
-                    <div>
-                        <div className="flex justify-between items-center mb-xs">
-                            <span className="text-xs text-data-value">JS Engine</span>
-                            <span className="text-xs font-mono text-text-secondary">
-                                {formatIPS(jsIPS)} ({formatPercent(jsIPS, maxIPS)}%)
-                            </span>
-                        </div>
-                        {renderPerformanceBar(jsIPS, maxIPS, 'bg-data-value')}
-                    </div>
-                )}
-                
-                {engineStatus.wasmMetrics && (
-                    <div>
-                        <div className="flex justify-between items-center mb-xs">
-                            <span className="text-xs text-success">WASM Engine</span>
-                            <span className="text-xs font-mono text-text-secondary">
-                                {formatIPS(wasmIPS)} ({formatPercent(wasmIPS, maxIPS)}%)
-                            </span>
-                        </div>
-                        {renderPerformanceBar(wasmIPS, maxIPS, 'bg-success')}
-                    </div>
-                )}
-                
-                {/* Speedup Indicator */}
-                {engineStatus.wasmMetrics && speedup > 0 && (
-                    <div className="flex justify-between items-center pt-sm border-t border-border-subtle">
-                        <span className="text-xs font-medium text-text-secondary">WASM Speedup:</span>
-                        <span className={`text-xs font-mono font-medium ${
-                            speedup > 1 ? 'text-success' : 'text-warning'
-                        }`}>
-                            {speedup.toFixed(2)}x
+
+                {/* Performance Bar */}
+                <div>
+                    <div className="flex justify-between items-center mb-xs">
+                        <span className={`text-xs ${currentEngine === 'WASM' ? 'text-success' : 'text-data-value'}`}>
+                            Current Performance
+                        </span>
+                        <span className="text-xs font-mono text-text-secondary">
+                            {formatIPS(currentIPS)} ({formatPercent(currentIPS, maxIPS)}%)
                         </span>
                     </div>
-                )}
+                    {renderPerformanceBar(
+                        currentIPS,
+                        maxIPS,
+                        currentEngine === 'WASM' ? 'bg-success' : 'bg-data-value'
+                    )}
+                </div>
             </div>
             
             {/* Detailed Metrics (collapsible) */}
@@ -250,24 +217,13 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
                     {history.length > 1 && (
                         <div>
                             <h4 className="text-xs font-medium text-text-accent mb-sm">Performance History</h4>
-                            <div className="space-y-sm">
-                                {engineStatus.jsMetrics && (
-                                    <div>
-                                        <div className="text-xs text-data-value mb-xs">JS Engine</div>
-                                        {renderSparkline(
-                                            history.map(h => h.jsIPS || 0),
-                                            '#60a5fa'
-                                        )}
-                                    </div>
-                                )}
-                                {engineStatus.wasmMetrics && (
-                                    <div>
-                                        <div className="text-xs text-success mb-xs">WASM Engine</div>
-                                        {renderSparkline(
-                                            history.map(h => h.wasmIPS || 0),
-                                            '#34d399'
-                                        )}
-                                    </div>
+                            <div>
+                                <div className={`text-xs mb-xs ${currentEngine === 'WASM' ? 'text-success' : 'text-data-value'}`}>
+                                    {currentEngine} Engine
+                                </div>
+                                {renderSparkline(
+                                    history.map(h => h.ips || 0),
+                                    currentEngine === 'WASM' ? '#34d399' : '#60a5fa'
                                 )}
                             </div>
                         </div>
@@ -278,56 +234,29 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
                         <h4 className="text-xs font-medium text-text-accent mb-sm">Statistics</h4>
                         <div className="grid grid-cols-2 gap-sm text-xs">
                             {/* Instructions Executed */}
-                            {engineStatus.jsMetrics && (
-                                <>
-                                    <span className="text-text-secondary">JS Instructions:</span>
-                                    <span className="font-mono text-text-primary">
-                                        {(engineStatus.jsMetrics.instructionsExecuted / 1_000_000).toFixed(2)}M
-                                    </span>
-                                </>
-                            )}
-                            {engineStatus.wasmMetrics && (
-                                <>
-                                    <span className="text-text-secondary">WASM Instructions:</span>
-                                    <span className="font-mono text-text-primary">
-                                        {(engineStatus.wasmMetrics.instructionsExecuted / 1_000_000).toFixed(2)}M
-                                    </span>
-                                </>
-                            )}
-                            
+                            <span className="text-text-secondary">Instructions:</span>
+                            <span className="font-mono text-text-primary">
+                                {((activeMetrics?.instructionsExecuted || 0) / 1_000_000).toFixed(2)}M
+                            </span>
+
                             {/* Average IPS */}
-                            <span className="text-text-secondary">Avg JS IPS:</span>
-                            <span className="font-mono text-text-primary">{formatIPS(avgIPS.js)}</span>
-                            
-                            {avgIPS.wasm > 0 && (
-                                <>
-                                    <span className="text-text-secondary">Avg WASM IPS:</span>
-                                    <span className="font-mono text-text-primary">{formatIPS(avgIPS.wasm)}</span>
-                                </>
-                            )}
-                            
+                            <span className="text-text-secondary">Average IPS:</span>
+                            <span className="font-mono text-text-primary">{formatIPS(avgIPS)}</span>
+
+                            {/* Current IPS */}
+                            <span className="text-text-secondary">Current IPS:</span>
+                            <span className="font-mono text-text-primary">{formatIPS(currentIPS)}</span>
+
                             {/* Memory Usage */}
-                            {engineStatus.jsMetrics && (
-                                <>
-                                    <span className="text-text-secondary">JS Memory:</span>
-                                    <span className="font-mono text-text-primary">
-                                        {formatMemory(engineStatus.jsMetrics.memoryUsage)}
-                                    </span>
-                                </>
-                            )}
-                            {engineStatus.wasmMetrics && (
-                                <>
-                                    <span className="text-text-secondary">WASM Memory:</span>
-                                    <span className="font-mono text-text-primary">
-                                        {formatMemory(engineStatus.wasmMetrics.memoryUsage)}
-                                    </span>
-                                </>
-                            )}
-                            
+                            <span className="text-text-secondary">Memory:</span>
+                            <span className="font-mono text-text-primary">
+                                {formatMemory(currentMemory)}
+                            </span>
+
                             {/* Switch Statistics */}
                             <span className="text-text-secondary">Engine Switches:</span>
                             <span className="font-mono text-text-primary">{engineStatus.switchCount}</span>
-                            
+
                             {engineStatus.lastSwitchTime > 0 && (
                                 <>
                                     <span className="text-text-secondary">Last Switch:</span>

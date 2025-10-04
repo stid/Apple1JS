@@ -11,16 +11,21 @@ use serde::{Deserialize, Serialize};
 // Module declarations
 mod cpu;
 mod instructions;
+mod instructions_with_bus;  // Helper methods for Bus-aware instructions
+mod instructions_bus_impl;   // Full Bus-aware instruction implementations
 mod opcodes;
+mod opcodes_with_bus;       // Bus-aware opcode dispatch
 mod ram;
 mod rom;
 mod bus;
+mod system;
 
 // Re-exports
 pub use cpu::CPU6502;
 pub use ram::RAM;
 pub use rom::ROM;
 pub use bus::Bus;
+pub use system::WasmSystem;
 // Temporarily comment out rayon until needed
 // pub use wasm_bindgen_rayon::init_thread_pool;
 
