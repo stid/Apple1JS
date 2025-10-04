@@ -215,33 +215,14 @@ export class WasmEngine implements ICPUEngine {
                 `WASM returned 0 cycles at PC=${pc.toString(16)}, newPC=${newState.pc.toString(16)}`);
         }
 
-        // Sync critical I/O writes back to JavaScript Bus
-        // This is needed for PIA, display, and keyboard I/O
-        this.syncWasmToJsBus();
+        // Note: I/O synchronization happens automatically via memory bridge
+        // during instruction execution - no explicit sync needed
 
         // Update metrics
         const duration = Date.now() - startTime;
         this.updateMetrics(actualCycles, duration);
 
         return actualCycles;
-    }
-    
-    /**
-     * Sync WASM memory to JavaScript Bus for I/O operations
-     * Only syncs critical I/O regions to maintain compatibility with PIA, display, keyboard
-     */
-    private syncWasmToJsBus(): void {
-        if (!this.wasmSystem) return;
-
-        // Sync PIA region (0xD010-0xD013)
-        // This is critical for keyboard and display I/O
-        const PIA_START = 0xD010;
-        const PIA_END = 0xD013;
-
-        for (let addr = PIA_START; addr <= PIA_END; addr++) {
-            const value = this.wasmSystem.read_memory(addr);
-            this.bus.write(addr, value);
-        }
     }
 
     performBulkSteps(cycles: number): void {
@@ -253,8 +234,7 @@ export class WasmEngine implements ICPUEngine {
         // WasmSystem can run cycles efficiently without boundary crossings
         const executedCycles = this.wasmSystem.run_cycles(cycles);
 
-        // Sync I/O after bulk execution
-        this.syncWasmToJsBus();
+        // Note: I/O happens automatically via memory bridge - no sync needed
 
         // Update metrics
         this.updateMetrics(executedCycles, 0);
