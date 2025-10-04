@@ -186,6 +186,139 @@ pub mod opcodes {
     pub const CLV: u8 = 0xB8;
     pub const CLD: u8 = 0xD8;
     pub const SED: u8 = 0xF8;
+    
+    // ===== Illegal/Undocumented Opcodes =====
+    // These are not part of the official 6502 specification
+    // but are implemented for compatibility
+    
+    // KIL/JAM - Halt CPU
+    pub const KIL_02: u8 = 0x02;
+    pub const KIL_12: u8 = 0x12;
+    pub const KIL_22: u8 = 0x22;
+    pub const KIL_32: u8 = 0x32;
+    pub const KIL_42: u8 = 0x42;
+    pub const KIL_52: u8 = 0x52;
+    pub const KIL_62: u8 = 0x62;
+    pub const KIL_72: u8 = 0x72;
+    pub const KIL_92: u8 = 0x92;
+    pub const KIL_B2: u8 = 0xB2;
+    pub const KIL_D2: u8 = 0xD2;
+    pub const KIL_F2: u8 = 0xF2;
+    
+    // SLO - Shift Left then OR
+    pub const SLO_IZX: u8 = 0x03;
+    pub const SLO_ZP: u8 = 0x07;
+    pub const SLO_ABS: u8 = 0x0F;
+    pub const SLO_IZY: u8 = 0x13;
+    pub const SLO_ZPX: u8 = 0x17;
+    pub const SLO_ABY: u8 = 0x1B;
+    pub const SLO_ABX: u8 = 0x1F;
+    
+    // RLA - Rotate Left then AND
+    pub const RLA_IZX: u8 = 0x23;
+    pub const RLA_ZP: u8 = 0x27;
+    pub const RLA_ABS: u8 = 0x2F;
+    pub const RLA_IZY: u8 = 0x33;
+    pub const RLA_ZPX: u8 = 0x37;
+    pub const RLA_ABY: u8 = 0x3B;
+    pub const RLA_ABX: u8 = 0x3F;
+    
+    // SRE - Shift Right then EOR
+    pub const SRE_IZX: u8 = 0x43;
+    pub const SRE_ZP: u8 = 0x47;
+    pub const SRE_ABS: u8 = 0x4F;
+    pub const SRE_IZY: u8 = 0x53;
+    pub const SRE_ZPX: u8 = 0x57;
+    pub const SRE_ABY: u8 = 0x5B;
+    pub const SRE_ABX: u8 = 0x5F;
+    
+    // RRA - Rotate Right then ADC
+    pub const RRA_IZX: u8 = 0x63;
+    pub const RRA_ZP: u8 = 0x67;
+    pub const RRA_ABS: u8 = 0x6F;
+    pub const RRA_IZY: u8 = 0x73;
+    pub const RRA_ZPX: u8 = 0x77;
+    pub const RRA_ABY: u8 = 0x7B;
+    pub const RRA_ABX: u8 = 0x7F;
+    
+    // SAX - Store A AND X
+    pub const SAX_IZX: u8 = 0x83;
+    pub const SAX_ZP: u8 = 0x87;
+    pub const SAX_ABS: u8 = 0x8F;
+    pub const SAX_ZPY: u8 = 0x97;
+    
+    // LAX - Load A and X
+    pub const LAX_IZX: u8 = 0xA3;
+    pub const LAX_ZP: u8 = 0xA7;
+    pub const LAX_IMM: u8 = 0xAB;
+    pub const LAX_ABS: u8 = 0xAF;
+    pub const LAX_IZY: u8 = 0xB3;
+    pub const LAX_ZPY: u8 = 0xB7;
+    pub const LAX_ABY: u8 = 0xBF;
+    
+    // DCP - Decrement then Compare
+    pub const DCP_IZX: u8 = 0xC3;
+    pub const DCP_ZP: u8 = 0xC7;
+    pub const DCP_ABS: u8 = 0xCF;
+    pub const DCP_IZY: u8 = 0xD3;
+    pub const DCP_ZPX: u8 = 0xD7;
+    pub const DCP_ABY: u8 = 0xDB;
+    pub const DCP_ABX: u8 = 0xDF;
+    
+    // ISC - Increment then SBC
+    pub const ISC_IZX: u8 = 0xE3;
+    pub const ISC_ZP: u8 = 0xE7;
+    pub const ISC_ABS: u8 = 0xEF;
+    pub const ISC_IZY: u8 = 0xF3;
+    pub const ISC_ZPX: u8 = 0xF7;
+    pub const ISC_ABY: u8 = 0xFB;
+    pub const ISC_ABX: u8 = 0xFF;
+    
+    // Special illegal opcodes
+    pub const ANC_0B: u8 = 0x0B;
+    pub const ANC_2B: u8 = 0x2B;
+    pub const ALR: u8 = 0x4B;
+    pub const ARR: u8 = 0x6B;
+    pub const XAA: u8 = 0x8B;
+    pub const AXS: u8 = 0xCB;
+    pub const SBC_EB: u8 = 0xEB;  // Duplicate SBC
+    
+    // Unstable opcodes
+    pub const AHX_IZY: u8 = 0x93;
+    pub const AHX_ABY: u8 = 0x9F;
+    pub const TAS: u8 = 0x9B;
+    pub const SHY: u8 = 0x9C;
+    pub const SHX: u8 = 0x9E;
+    pub const LAS: u8 = 0xBB;
+    
+    // NOP variants (illegal)
+    pub const NOP_04: u8 = 0x04;
+    pub const NOP_0C: u8 = 0x0C;
+    pub const NOP_14: u8 = 0x14;
+    pub const NOP_1A: u8 = 0x1A;
+    pub const NOP_1C: u8 = 0x1C;
+    pub const NOP_34: u8 = 0x34;
+    pub const NOP_3A: u8 = 0x3A;
+    pub const NOP_3C: u8 = 0x3C;
+    pub const NOP_44: u8 = 0x44;
+    pub const NOP_54: u8 = 0x54;
+    pub const NOP_5A: u8 = 0x5A;
+    pub const NOP_5C: u8 = 0x5C;
+    pub const NOP_64: u8 = 0x64;
+    pub const NOP_74: u8 = 0x74;
+    pub const NOP_7A: u8 = 0x7A;
+    pub const NOP_7C: u8 = 0x7C;
+    pub const NOP_80: u8 = 0x80;
+    pub const NOP_82: u8 = 0x82;
+    pub const NOP_89: u8 = 0x89;
+    pub const NOP_C2: u8 = 0xC2;
+    pub const NOP_D4: u8 = 0xD4;
+    pub const NOP_DA: u8 = 0xDA;
+    pub const NOP_DC: u8 = 0xDC;
+    pub const NOP_E2: u8 = 0xE2;
+    pub const NOP_F4: u8 = 0xF4;
+    pub const NOP_FA: u8 = 0xFA;
+    pub const NOP_FC: u8 = 0xFC;
 }
 
 impl CPU6502 {
@@ -370,6 +503,122 @@ impl CPU6502 {
             opcodes::CLV => self.clv(),
             opcodes::CLD => self.cld(),
             opcodes::SED => self.sed(),
+            
+            // ===== Illegal/Undocumented Opcodes =====
+            
+            // KIL/JAM
+            opcodes::KIL_02 | opcodes::KIL_12 | opcodes::KIL_22 | opcodes::KIL_32 |
+            opcodes::KIL_42 | opcodes::KIL_52 | opcodes::KIL_62 | opcodes::KIL_72 |
+            opcodes::KIL_92 | opcodes::KIL_B2 | opcodes::KIL_D2 | opcodes::KIL_F2 => self.kil(),
+            
+            // SLO
+            opcodes::SLO_IZX => self.slo_izx(),
+            opcodes::SLO_ZP => self.slo_zp(),
+            opcodes::SLO_ABS => self.slo_abs(),
+            opcodes::SLO_IZY => self.slo_izy(),
+            opcodes::SLO_ZPX => self.slo_zpx(),
+            opcodes::SLO_ABY => self.slo_absy(),
+            opcodes::SLO_ABX => self.slo_absx(),
+            
+            // RLA
+            opcodes::RLA_IZX => self.rla_izx(),
+            opcodes::RLA_ZP => self.rla_zp(),
+            opcodes::RLA_ABS => self.rla_abs(),
+            opcodes::RLA_IZY => self.rla_izy(),
+            opcodes::RLA_ZPX => self.rla_zpx(),
+            opcodes::RLA_ABY => self.rla_absy(),
+            opcodes::RLA_ABX => self.rla_absx(),
+            
+            // SRE
+            opcodes::SRE_IZX => self.sre_izx(),
+            opcodes::SRE_ZP => self.sre_zp(),
+            opcodes::SRE_ABS => self.sre_abs(),
+            opcodes::SRE_IZY => self.sre_izy(),
+            opcodes::SRE_ZPX => self.sre_zpx(),
+            opcodes::SRE_ABY => self.sre_absy(),
+            opcodes::SRE_ABX => self.sre_absx(),
+            
+            // RRA
+            opcodes::RRA_IZX => self.rra_izx(),
+            opcodes::RRA_ZP => self.rra_zp(),
+            opcodes::RRA_ABS => self.rra_abs(),
+            opcodes::RRA_IZY => self.rra_izy(),
+            opcodes::RRA_ZPX => self.rra_zpx(),
+            opcodes::RRA_ABY => self.rra_absy(),
+            opcodes::RRA_ABX => self.rra_absx(),
+            
+            // SAX
+            opcodes::SAX_IZX => self.sax_izx(),
+            opcodes::SAX_ZP => self.sax_zp(),
+            opcodes::SAX_ABS => self.sax_abs(),
+            opcodes::SAX_ZPY => self.sax_zpy(),
+            
+            // LAX
+            opcodes::LAX_IZX => self.lax_izx(),
+            opcodes::LAX_ZP => self.lax_zp(),
+            opcodes::LAX_IMM => {
+                // LAX immediate is unstable, just do LDA + TAX
+                let value = self.read_byte(self.pc);
+                self.pc = self.pc.wrapping_add(1);
+                self.a = value;
+                self.x = value;
+                self.update_nz(value);
+                self.cycles += 2;
+            },
+            opcodes::LAX_ABS => self.lax_abs(),
+            opcodes::LAX_IZY => self.lax_izy(),
+            opcodes::LAX_ZPY => self.lax_zpy(),
+            opcodes::LAX_ABY => self.lax_aby(),
+            
+            // DCP
+            opcodes::DCP_IZX => self.dcp_izx(),
+            opcodes::DCP_ZP => self.dcp_zp(),
+            opcodes::DCP_ABS => self.dcp_abs(),
+            opcodes::DCP_IZY => self.dcp_izy(),
+            opcodes::DCP_ZPX => self.dcp_zpx(),
+            opcodes::DCP_ABY => self.dcp_absy(),
+            opcodes::DCP_ABX => self.dcp_absx(),
+            
+            // ISC
+            opcodes::ISC_IZX => self.isc_izx(),
+            opcodes::ISC_ZP => self.isc_zp(),
+            opcodes::ISC_ABS => self.isc_abs(),
+            opcodes::ISC_IZY => self.isc_izy(),
+            opcodes::ISC_ZPX => self.isc_zpx(),
+            opcodes::ISC_ABY => self.isc_absy(),
+            opcodes::ISC_ABX => self.isc_absx(),
+            
+            // Special illegal opcodes
+            opcodes::ANC_0B | opcodes::ANC_2B => self.anc(),
+            opcodes::ALR => self.alr(),
+            opcodes::ARR => self.arr(),
+            opcodes::XAA => self.xaa(),
+            opcodes::AXS => self.axs(),
+            opcodes::SBC_EB => self.sbc_imm(),  // Duplicate SBC immediate
+            
+            // Unstable opcodes
+            opcodes::AHX_IZY => self.ahx_izy(),
+            opcodes::AHX_ABY => self.ahx_aby(),
+            opcodes::TAS => self.tas(),
+            opcodes::SHY => self.shy(),
+            opcodes::SHX => self.shx(),
+            opcodes::LAS => self.las(),
+            
+            // NOP variants
+            opcodes::NOP_04 | opcodes::NOP_44 | opcodes::NOP_64 => self.nop_zp(),
+            opcodes::NOP_0C => self.nop_abs(),
+            opcodes::NOP_14 | opcodes::NOP_34 | opcodes::NOP_54 | 
+            opcodes::NOP_74 | opcodes::NOP_D4 | opcodes::NOP_F4 => self.nop_zpx(),
+            opcodes::NOP_1A | opcodes::NOP_3A | opcodes::NOP_5A | 
+            opcodes::NOP_7A | opcodes::NOP_DA | opcodes::NOP_FA => self.nop_implied(),
+            opcodes::NOP_1C | opcodes::NOP_3C | opcodes::NOP_5C | 
+            opcodes::NOP_7C | opcodes::NOP_DC | opcodes::NOP_FC => self.nop_abx(),
+            opcodes::NOP_80 | opcodes::NOP_82 | opcodes::NOP_89 | 
+            opcodes::NOP_C2 | opcodes::NOP_E2 => {
+                // NOP immediate - just skip byte
+                self.pc = self.pc.wrapping_add(1);
+                self.cycles += 2;
+            },
             
             _ => {
                 // Unknown opcode - for now just treat as NOP

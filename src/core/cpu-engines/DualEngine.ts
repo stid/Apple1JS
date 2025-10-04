@@ -504,40 +504,4 @@ export class DualEngine implements ICPUEngine {
         return (this.jsEngine as any).cpu;
     }
 
-    // ============ Unified Memory Access ============
-
-    /**
-     * Get access to unified memory proxies (when using WASM engine)
-     * Returns null if WASM engine is not available or not enhanced
-     */
-    getUnifiedMemory(): {
-        ram: typeof import('../WasmRAMProxy').WasmRAMProxy | null;
-        rom: typeof import('../WasmROMProxy').WasmROMProxy | null;
-        bus: typeof import('../WasmBusProxy').WasmBusProxy | null;
-    } | null {
-        // Check if WASM engine has the enhanced methods
-        if (this.wasmEngine) {
-            const engine = this.wasmEngine as unknown as {
-                getBusProxy?: () => typeof import('../WasmBusProxy').WasmBusProxy | null;
-                getRAMProxy?: () => typeof import('../WasmRAMProxy').WasmRAMProxy | null;
-                getROMProxy?: () => typeof import('../WasmROMProxy').WasmROMProxy | null;
-            };
-
-            if (typeof engine.getBusProxy === 'function') {
-                return {
-                    ram: engine.getRAMProxy?.() || null,
-                    rom: engine.getROMProxy?.() || null,
-                    bus: engine.getBusProxy?.() || null
-                };
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Check if the current system is using unified WASM memory
-     */
-    isUsingUnifiedMemory(): boolean {
-        return this.getUnifiedMemory() !== null;
-    }
 }

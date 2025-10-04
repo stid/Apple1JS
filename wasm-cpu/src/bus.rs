@@ -8,7 +8,6 @@
 use wasm_bindgen::prelude::*;
 use crate::ram::RAM;
 use crate::rom::ROM;
-use crate::memory_bridge::BusMemory;
 
 /// Memory region types
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -89,7 +88,7 @@ impl Bus {
             }
             MemoryRegion::IO => {
                 // Delegate to JavaScript for I/O devices
-                BusMemory::read(address)
+                crate::bus_read(address)
             }
             MemoryRegion::Unmapped => {
                 0xFF // Unmapped regions read as 0xFF
@@ -113,7 +112,7 @@ impl Bus {
             }
             MemoryRegion::IO => {
                 // Delegate to JavaScript for I/O devices
-                BusMemory::write(address, value);
+                crate::bus_write(address, value);
             }
             MemoryRegion::Unmapped => {
                 // Unmapped writes are ignored
@@ -274,7 +273,7 @@ impl Bus {
             MemoryRegion::ROM => {
                 self.rom.as_ref().map_or(0xFF, |rom| rom.read(address - 0xFF00))
             }
-            MemoryRegion::IO => BusMemory::read(address),
+            MemoryRegion::IO => crate::bus_read(address),
             MemoryRegion::Unmapped => 0xFF,
         }
     }
@@ -292,7 +291,7 @@ impl Bus {
                 // ROM writes ignored
             }
             MemoryRegion::IO => {
-                BusMemory::write(address, value);
+                crate::bus_write(address, value);
             }
             MemoryRegion::Unmapped => {
                 // Unmapped writes ignored

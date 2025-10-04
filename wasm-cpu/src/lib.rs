@@ -10,9 +10,6 @@ use serde::{Deserialize, Serialize};
 
 // Module declarations
 mod cpu;
-mod cpu_enhanced;
-mod memory;
-mod memory_bridge;
 mod instructions;
 mod opcodes;
 mod ram;
@@ -21,7 +18,6 @@ mod bus;
 
 // Re-exports
 pub use cpu::CPU6502;
-pub use cpu_enhanced::CPU6502Enhanced;
 pub use ram::RAM;
 pub use rom::ROM;
 pub use bus::Bus;

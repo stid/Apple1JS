@@ -671,62 +671,26 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     // ============ Unified Memory Access ============
 
     /**
-     * Get access to unified WASM memory when using DualEngine with WASM
-     * Returns null if not using DualEngine or WASM engine not initialized
-     *
-     * @returns Object containing RAM, ROM, and Bus proxies for unified memory access
-     */
-    getUnifiedMemory(): ReturnType<DualEngine['getUnifiedMemory']> | null {
-        if (this.cpuEngine) {
-            const engine = this.cpuEngine as unknown as DualEngine;
-            if (typeof engine.getUnifiedMemory === 'function') {
-                return engine.getUnifiedMemory();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Check if the system is currently using unified WASM memory
-     */
-    isUsingUnifiedMemory(): boolean {
-        return this.getUnifiedMemory() !== null;
-    }
-
-    /**
-     * Get the appropriate RAM for current engine
-     * Returns unified WASM RAM when available, otherwise JS RAM
+     * Get the current RAM (always returns JavaScript RAM)
+     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
      */
     getCurrentRAM(): RAM {
-        const unified = this.getUnifiedMemory();
-        if (unified?.ram) {
-            return unified.ram as unknown as RAM;
-        }
-        // Return primary RAM bank (could also aggregate both banks)
         return this.ramBank1;
     }
 
     /**
-     * Get the appropriate ROM for current engine
-     * Returns unified WASM ROM when available, otherwise JS ROM
+     * Get the current ROM (always returns JavaScript ROM)
+     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
      */
     getCurrentROM(): ROM {
-        const unified = this.getUnifiedMemory();
-        if (unified?.rom) {
-            return unified.rom as unknown as ROM;
-        }
         return this.rom;
     }
 
     /**
-     * Get the appropriate Bus for current engine
-     * Returns unified WASM Bus when available, otherwise JS Bus
+     * Get the current Bus (always returns JavaScript Bus)
+     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
      */
     getCurrentBus(): Bus {
-        const unified = this.getUnifiedMemory();
-        if (unified?.bus) {
-            return unified.bus as unknown as Bus;
-        }
         return this.bus;
     }
 }

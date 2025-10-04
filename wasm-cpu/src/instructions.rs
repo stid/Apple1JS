@@ -1503,4 +1503,707 @@ impl CPU6502 {
         self.a = result as u8;
         self.update_nz(self.a);
     }
+    
+    // ========== Illegal/Undocumented Instructions ==========
+    // These instructions are not part of the official 6502 specification
+    // but are implemented for compatibility with programs that use them
+    
+    /// LAX - Load A and X (illegal opcode)
+    /// Loads value into both A and X registers
+    pub(crate) fn lax(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        self.a = value;
+        self.x = value;
+        self.update_nz(value);
+    }
+    
+    /// LAX Zero Page
+    pub(crate) fn lax_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.lax(addr);
+        self.cycles += 3;
+    }
+    
+    /// LAX Zero Page,Y
+    pub(crate) fn lax_zpy(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.y) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.lax(addr);
+        self.cycles += 4;
+    }
+    
+    /// LAX Absolute
+    pub(crate) fn lax_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.lax(addr);
+        self.cycles += 4;
+    }
+    
+    /// LAX Absolute,Y
+    pub(crate) fn lax_aby(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.lax(addr);
+        self.cycles += if (base & 0xFF00) != (addr & 0xFF00) { 5 } else { 4 };
+    }
+    
+    /// LAX Indexed Indirect (zp,X)
+    pub(crate) fn lax_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.lax(addr);
+        self.cycles += 6;
+    }
+    
+    /// LAX Indirect Indexed (zp),Y
+    pub(crate) fn lax_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.lax(addr);
+        self.cycles += if (base & 0xFF00) != (addr & 0xFF00) { 6 } else { 5 };
+    }
+    
+    /// SAX - Store A AND X (illegal opcode)
+    /// Stores A & X to memory
+    pub(crate) fn sax(&mut self, addr: u16) {
+        let value = self.a & self.x;
+        self.write_byte(addr, value);
+    }
+    
+    /// SAX Zero Page
+    pub(crate) fn sax_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.sax(addr);
+        self.cycles += 3;
+    }
+    
+    /// SAX Zero Page,Y
+    pub(crate) fn sax_zpy(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.y) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.sax(addr);
+        self.cycles += 4;
+    }
+    
+    /// SAX Absolute
+    pub(crate) fn sax_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.sax(addr);
+        self.cycles += 4;
+    }
+    
+    /// SAX Indexed Indirect (zp,X)
+    pub(crate) fn sax_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.sax(addr);
+        self.cycles += 6;
+    }
+    
+    /// SLO - Shift Left then OR (illegal opcode)
+    /// ASL + ORA combined
+    pub(crate) fn slo(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        let result = value << 1;
+        self.set_flag(flags::CARRY, (value & 0x80) != 0);
+        self.write_byte(addr, result);
+        self.a |= result;
+        self.update_nz(self.a);
+    }
+    
+    /// SLO Zero Page
+    pub(crate) fn slo_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.slo(addr);
+        self.cycles += 5;
+    }
+    
+    /// SLO Zero Page,X
+    pub(crate) fn slo_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.slo(addr);
+        self.cycles += 6;
+    }
+    
+    /// SLO Absolute
+    pub(crate) fn slo_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.slo(addr);
+        self.cycles += 6;
+    }
+    
+    /// SLO Absolute,X
+    pub(crate) fn slo_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.slo(addr);
+        self.cycles += 7;
+    }
+    
+    /// SLO Absolute,Y  
+    pub(crate) fn slo_absy(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.slo(addr);
+        self.cycles += 7;
+    }
+    
+    /// SLO Indexed Indirect (zp,X)
+    pub(crate) fn slo_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.slo(addr);
+        self.cycles += 8;
+    }
+    
+    /// SLO Indirect Indexed (zp),Y
+    pub(crate) fn slo_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.slo(addr);
+        self.cycles += 8;
+    }
+    
+    /// SRE - Shift Right then EOR (illegal opcode)
+    /// LSR + EOR combined
+    pub(crate) fn sre(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        self.set_flag(flags::CARRY, (value & 0x01) != 0);
+        let result = value >> 1;
+        self.write_byte(addr, result);
+        self.a ^= result;
+        self.update_nz(self.a);
+    }
+    
+    /// SRE Zero Page
+    pub(crate) fn sre_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.sre(addr);
+        self.cycles += 5;
+    }
+    
+    /// SRE Zero Page,X
+    pub(crate) fn sre_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.sre(addr);
+        self.cycles += 6;
+    }
+    
+    /// SRE Absolute
+    pub(crate) fn sre_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.sre(addr);
+        self.cycles += 6;
+    }
+    
+    /// SRE Absolute,X
+    pub(crate) fn sre_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.sre(addr);
+        self.cycles += 7;
+    }
+    
+    /// SRE Absolute,Y
+    pub(crate) fn sre_absy(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.sre(addr);
+        self.cycles += 7;
+    }
+    
+    /// SRE Indexed Indirect (zp,X)
+    pub(crate) fn sre_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.sre(addr);
+        self.cycles += 8;
+    }
+    
+    /// SRE Indirect Indexed (zp),Y
+    pub(crate) fn sre_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.sre(addr);
+        self.cycles += 8;
+    }
+    
+    /// RLA - Rotate Left then AND (illegal opcode)
+    /// ROL + AND combined
+    pub(crate) fn rla(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        let old_carry = if self.get_flag(flags::CARRY) { 1 } else { 0 };
+        self.set_flag(flags::CARRY, (value & 0x80) != 0);
+        let result = (value << 1) | old_carry;
+        self.write_byte(addr, result);
+        self.a &= result;
+        self.update_nz(self.a);
+    }
+    
+    /// RLA Zero Page
+    pub(crate) fn rla_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.rla(addr);
+        self.cycles += 5;
+    }
+    
+    /// RLA Zero Page,X
+    pub(crate) fn rla_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.rla(addr);
+        self.cycles += 6;
+    }
+    
+    /// RLA Absolute
+    pub(crate) fn rla_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.rla(addr);
+        self.cycles += 6;
+    }
+    
+    /// RLA Absolute,X
+    pub(crate) fn rla_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.rla(addr);
+        self.cycles += 7;
+    }
+    
+    /// RLA Absolute,Y
+    pub(crate) fn rla_absy(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.rla(addr);
+        self.cycles += 7;
+    }
+    
+    /// RLA Indexed Indirect (zp,X)
+    pub(crate) fn rla_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.rla(addr);
+        self.cycles += 8;
+    }
+    
+    /// RLA Indirect Indexed (zp),Y
+    pub(crate) fn rla_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.rla(addr);
+        self.cycles += 8;
+    }
+    
+    /// RRA - Rotate Right then ADC (illegal opcode)
+    /// ROR + ADC combined
+    pub(crate) fn rra(&mut self, addr: u16) {
+        let value = self.read_byte(addr);
+        let old_carry = if self.get_flag(flags::CARRY) { 0x80 } else { 0 };
+        self.set_flag(flags::CARRY, (value & 0x01) != 0);
+        let result = (value >> 1) | old_carry;
+        self.write_byte(addr, result);
+        self.adc(result);
+    }
+    
+    /// RRA Zero Page
+    pub(crate) fn rra_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.rra(addr);
+        self.cycles += 5;
+    }
+    
+    /// RRA Zero Page,X
+    pub(crate) fn rra_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.rra(addr);
+        self.cycles += 6;
+    }
+    
+    /// RRA Absolute
+    pub(crate) fn rra_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.rra(addr);
+        self.cycles += 6;
+    }
+    
+    /// RRA Absolute,X
+    pub(crate) fn rra_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.rra(addr);
+        self.cycles += 7;
+    }
+    
+    /// RRA Absolute,Y
+    pub(crate) fn rra_absy(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.rra(addr);
+        self.cycles += 7;
+    }
+    
+    /// RRA Indexed Indirect (zp,X)
+    pub(crate) fn rra_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.rra(addr);
+        self.cycles += 8;
+    }
+    
+    /// RRA Indirect Indexed (zp),Y
+    pub(crate) fn rra_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.rra(addr);
+        self.cycles += 8;
+    }
+    
+    /// DCP - Decrement then Compare (illegal opcode)
+    /// DEC + CMP combined
+    pub(crate) fn dcp(&mut self, addr: u16) {
+        let value = self.read_byte(addr).wrapping_sub(1);
+        self.write_byte(addr, value);
+        self.compare(self.a, value);
+    }
+    
+    /// DCP Zero Page
+    pub(crate) fn dcp_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.dcp(addr);
+        self.cycles += 5;
+    }
+    
+    /// DCP Zero Page,X
+    pub(crate) fn dcp_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.dcp(addr);
+        self.cycles += 6;
+    }
+    
+    /// DCP Absolute
+    pub(crate) fn dcp_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.dcp(addr);
+        self.cycles += 6;
+    }
+    
+    /// DCP Absolute,X
+    pub(crate) fn dcp_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.dcp(addr);
+        self.cycles += 7;
+    }
+    
+    /// DCP Absolute,Y
+    pub(crate) fn dcp_absy(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.dcp(addr);
+        self.cycles += 7;
+    }
+    
+    /// DCP Indexed Indirect (zp,X)
+    pub(crate) fn dcp_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.dcp(addr);
+        self.cycles += 8;
+    }
+    
+    /// DCP Indirect Indexed (zp),Y
+    pub(crate) fn dcp_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.dcp(addr);
+        self.cycles += 8;
+    }
+    
+    /// ISC - Increment then SBC (illegal opcode)
+    /// INC + SBC combined
+    pub(crate) fn isc(&mut self, addr: u16) {
+        let value = self.read_byte(addr).wrapping_add(1);
+        self.write_byte(addr, value);
+        self.sbc(value);
+    }
+    
+    /// ISC Zero Page
+    pub(crate) fn isc_zp(&mut self) {
+        let addr = self.read_byte(self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.isc(addr);
+        self.cycles += 5;
+    }
+    
+    /// ISC Zero Page,X
+    pub(crate) fn isc_zpx(&mut self) {
+        let addr = self.read_byte(self.pc).wrapping_add(self.x) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        self.isc(addr);
+        self.cycles += 6;
+    }
+    
+    /// ISC Absolute
+    pub(crate) fn isc_abs(&mut self) {
+        let addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.isc(addr);
+        self.cycles += 6;
+    }
+    
+    /// ISC Absolute,X
+    pub(crate) fn isc_absx(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.isc(addr);
+        self.cycles += 7;
+    }
+    
+    /// ISC Absolute,Y
+    pub(crate) fn isc_absy(&mut self) {
+        let addr = self.read_word(self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.isc(addr);
+        self.cycles += 7;
+    }
+    
+    /// ISC Indexed Indirect (zp,X)
+    pub(crate) fn isc_izx(&mut self) {
+        let base = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let ptr = base.wrapping_add(self.x);
+        let addr = self.read_word_zp(ptr);
+        self.isc(addr);
+        self.cycles += 8;
+    }
+    
+    /// ISC Indirect Indexed (zp),Y
+    pub(crate) fn isc_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.isc(addr);
+        self.cycles += 8;
+    }
+    
+    /// ANC - AND with Carry (illegal opcode)
+    /// AND immediate, copy N to C
+    pub(crate) fn anc(&mut self) {
+        let value = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        self.a &= value;
+        self.update_nz(self.a);
+        self.set_flag(flags::CARRY, self.get_flag(flags::NEGATIVE));
+        self.cycles += 2;
+    }
+    
+    /// ALR - AND then LSR (illegal opcode)
+    /// AND immediate + LSR
+    pub(crate) fn alr(&mut self) {
+        let value = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        self.a &= value;
+        self.set_flag(flags::CARRY, (self.a & 0x01) != 0);
+        self.a >>= 1;
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// ARR - AND then ROR (illegal opcode)
+    /// Complex BCD-aware operation
+    pub(crate) fn arr(&mut self) {
+        let value = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        self.a &= value;
+        self.a = (self.a >> 1) | (if self.get_flag(flags::CARRY) { 0x80 } else { 0 });
+        self.set_flag(flags::CARRY, (self.a & 0x40) != 0);
+        self.set_flag(flags::OVERFLOW, ((self.a & 0x40) ^ ((self.a & 0x20) << 1)) != 0);
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// AXS/SBX - A AND X minus immediate (illegal opcode)
+    /// X = (A & X) - immediate
+    pub(crate) fn axs(&mut self) {
+        let value = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let result = (self.a & self.x).wrapping_sub(value);
+        self.x = result;
+        self.set_flag(flags::CARRY, (self.a & self.x) >= value);
+        self.update_nz(self.x);
+        self.cycles += 2;
+    }
+    
+    /// AHX - Store A & X & (H+1) (illegal opcode)
+    /// Unstable on real hardware
+    pub(crate) fn ahx(&mut self, addr: u16) {
+        let high_byte = ((addr >> 8) as u8).wrapping_add(1);
+        let value = self.a & self.x & high_byte;
+        self.write_byte(addr, value);
+    }
+    
+    /// AHX Absolute,Y
+    pub(crate) fn ahx_aby(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.ahx(addr);
+        self.cycles += 5;
+    }
+    
+    /// AHX Indirect Indexed (zp),Y
+    pub(crate) fn ahx_izy(&mut self) {
+        let ptr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        let base = self.read_word_zp(ptr);
+        let addr = base.wrapping_add(self.y as u16);
+        self.ahx(addr);
+        self.cycles += 6;
+    }
+    
+    /// SHY - Store Y & (H+1) (illegal opcode)
+    /// Unstable on real hardware
+    pub(crate) fn shy(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let high_byte = ((addr >> 8) as u8).wrapping_add(1);
+        let value = self.y & high_byte;
+        self.write_byte(addr, value);
+        self.cycles += 5;
+    }
+    
+    /// SHX - Store X & (H+1) (illegal opcode)
+    /// Unstable on real hardware
+    pub(crate) fn shx(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let high_byte = ((addr >> 8) as u8).wrapping_add(1);
+        let value = self.x & high_byte;
+        self.write_byte(addr, value);
+        self.cycles += 5;
+    }
+    
+    /// TAS - Transfer A&X to S, store A&X&(H+1) (illegal opcode)
+    /// Unstable on real hardware
+    pub(crate) fn tas(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.s = self.a & self.x;
+        let high_byte = ((addr >> 8) as u8).wrapping_add(1);
+        let value = self.a & self.x & high_byte;
+        self.write_byte(addr, value);
+        self.cycles += 5;
+    }
+    
+    /// LAS - Load A, X, S with memory & S (illegal opcode)
+    pub(crate) fn las(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        let value = self.read_byte(addr) & self.s;
+        self.a = value;
+        self.x = value;
+        self.s = value;
+        self.update_nz(value);
+        self.cycles += if (base & 0xFF00) != (addr & 0xFF00) { 5 } else { 4 };
+    }
+    
+    /// XAA - Transfer X to A, then AND with immediate (illegal opcode)
+    /// Highly unstable on real hardware - simplified implementation
+    pub(crate) fn xaa(&mut self) {
+        let value = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        self.a = self.x & value;
+        self.update_nz(self.a);
+        self.cycles += 2;
+    }
+    
+    /// KIL/JAM - Halt the CPU (illegal opcode)
+    /// Freezes execution at current PC
+    pub(crate) fn kil(&mut self) {
+        // In real hardware this would jam the CPU requiring a reset
+        // For emulation, we decrement PC to simulate the jam state
+        self.pc = self.pc.wrapping_sub(1);
+        self.cycles += 2;
+    }
+    
+    /// NOP variants for illegal opcodes
+    /// Various NOPs with different addressing modes
+    pub(crate) fn nop_zp(&mut self) {
+        let _addr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        self.cycles += 3;
+    }
+    
+    pub(crate) fn nop_zpx(&mut self) {
+        let _addr = self.read_byte(self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        self.cycles += 4;
+    }
+    
+    pub(crate) fn nop_abs(&mut self) {
+        let _addr = self.read_word(self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        self.cycles += 4;
+    }
+    
+    pub(crate) fn nop_abx(&mut self) {
+        let base = self.read_word(self.pc);
+        let addr = base.wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        self.cycles += if (base & 0xFF00) != (addr & 0xFF00) { 5 } else { 4 };
+    }
+    
+    pub(crate) fn nop_implied(&mut self) {
+        self.cycles += 2;
+    }
 }

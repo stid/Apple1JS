@@ -303,6 +303,13 @@ impl CPU6502 {
         (high << 8) | low
     }
     
+    /// Read a word from zero page memory (handles wrap-around within zero page)
+    pub(crate) fn read_word_zp(&mut self, address: u8) -> u16 {
+        let low = self.read_byte(address as u16) as u16;
+        let high = self.read_byte(address.wrapping_add(1) as u16) as u16;
+        (high << 8) | low
+    }
+    
     /// Push byte to stack
     pub(crate) fn push(&mut self, value: u8) {
         self.write_byte(0x0100 | self.s as u16, value);

@@ -9,8 +9,7 @@ repository = "https://github.com/stid/Apple1JS"
 
 [package.metadata.wasm-pack]
 # Disable wasm-opt due to compatibility issues with bulk memory operations
-[package.metadata.wasm-pack.wasm-opt]
-enabled = false
+wasm-opt = false
 
 [lib]
 crate-type = ["cdylib"]
