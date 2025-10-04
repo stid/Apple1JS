@@ -2,7 +2,6 @@ import * as Comlink from 'comlink';
 import { WorkerState } from './WorkerState';
 import { WorkerAPI } from './WorkerAPI';
 import type { VideoData } from './types/video';
-import type { LogMessageData } from './types/worker-messages';
 import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
 
@@ -112,19 +111,6 @@ class ComlinkWorkerAPI implements IWorkerAPI {
 
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
         const unsubscribe = this.api.onEmulationStatus(callback);
-        const id = ++this.subscriptionId;
-        this.subscriptions.set(id, unsubscribe);
-        return Comlink.proxy(() => {
-            const unsub = this.subscriptions.get(id);
-            if (unsub) {
-                unsub();
-                this.subscriptions.delete(id);
-            }
-        });
-    }
-
-    onLogMessage(callback: (data: LogMessageData) => void): () => void {
-        const unsubscribe = this.api.onLogMessage(callback);
         const id = ++this.subscriptionId;
         this.subscriptions.set(id, unsubscribe);
         return Comlink.proxy(() => {

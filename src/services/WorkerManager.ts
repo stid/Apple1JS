@@ -3,9 +3,8 @@ import { WORKER_MESSAGES, WorkerMessage } from '../apple1/types/worker-messages'
 import type { IWorkerAPI } from '../apple1/types/worker-api';
 import type { EmulatorState } from '../apple1/types/emulator-state';
 import type { VideoData } from '../apple1/types/video';
-import type { 
-    LogMessageData, 
-    FilteredDebugData, 
+import type {
+    FilteredDebugData,
     MemoryMapData,
     EngineStatusData,
     EngineComparisonData
@@ -264,14 +263,6 @@ export class WorkerManager {
         if (this.comlinkAPI) {
             const proxiedCallback = Comlink.proxy(callback);
             return await this.comlinkAPI.onEmulationStatus(proxiedCallback);
-        }
-        // Legacy mode removed
-    }
-
-    async onLogMessage(callback: (data: LogMessageData) => void): Promise<(() => void) | void> {
-        if (this.comlinkAPI) {
-            const proxiedCallback = Comlink.proxy(callback);
-            return await this.comlinkAPI.onLogMessage(proxiedCallback);
         }
         // Legacy mode removed
     }

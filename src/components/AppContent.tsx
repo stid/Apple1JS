@@ -4,11 +4,7 @@ import InspectorView from './InspectorView';
 import DebuggerLayout from './DebuggerLayout';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
-import { LogMessageData } from '../apple1/TSTypes';
 import Actions from './Actions';
-import AlertBadges from './AlertBadges';
-import AlertPanel from './AlertPanel';
-import { useLogging } from '../contexts/LoggingContext';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
 import { WorkerDataProvider } from '../contexts/WorkerDataContext';
@@ -39,9 +35,7 @@ const AppContentInner = ({
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
     const { isPaused, pause, resume } = useEmulation();
-    const [alertPanelOpen, setAlertPanelOpen] = useState<boolean>(false);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
-    const { addMessage } = useLogging();
     const { subscribeToNavigation } = useDebuggerNavigation();
     const { safeSetTimeout } = useUnmountSafe();
     
@@ -118,32 +112,6 @@ const AppContentInner = ({
         // Only focus on initial mount
         focusHiddenInput();
     }, [focusHiddenInput]);
-
-    // Handle log messages from worker via WorkerManager
-    useEffect(() => {
-        let unsubscribe: (() => void) | undefined;
-        
-        const setupLogMessages = async () => {
-            const result = await workerManager.onLogMessage((logData: LogMessageData) => {
-                addMessage({
-                    level: logData.level,
-                    source: logData.source,
-                    message: logData.message
-                });
-            });
-            if (result) {
-                unsubscribe = result;
-            }
-        };
-        
-        setupLogMessages();
-        
-        return () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-        };
-    }, [workerManager, addMessage]);
 
     // Sync debugger active state with worker
     useEffect(() => {
@@ -308,11 +276,6 @@ const AppContentInner = ({
                             Debugger
                         </button>
                     </div>
-                    <AlertBadges 
-                        onInfoClick={() => setAlertPanelOpen(true)}
-                        onWarnClick={() => setAlertPanelOpen(true)}
-                        onErrorClick={() => setAlertPanelOpen(true)}
-                    />
                 </div>
                 <div className="flex-1 overflow-hidden">
                     {rightTab === 'info' && (
@@ -365,10 +328,6 @@ const AppContentInner = ({
                 spellCheck={false}
                 value=""
                 onChange={() => {}}
-            />
-            <AlertPanel 
-                isOpen={alertPanelOpen}
-                onClose={() => setAlertPanelOpen(false)}
             />
         </div>
     );

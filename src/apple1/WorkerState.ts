@@ -33,7 +33,6 @@ export class WorkerState implements IWorkerState {
     // Callbacks for events
     private statusCallback?: (status: 'running' | 'paused') => void;
     private breakpointCallback?: (address: number) => void;
-    private logCallback?: (data: { level: 'info' | 'warn' | 'error'; source: string; message: string }) => void;
     
     constructor() {
         // Initialize video and keyboard
@@ -58,9 +57,7 @@ export class WorkerState implements IWorkerState {
         
         // Set up video subscription
         this.setupVideoSubscription();
-        
-        // Note: Logging handler will be set up after callbacks are configured
-        
+
         // Initialize breakpoint hook
         this.updateBreakpointHook();
     }
@@ -71,17 +68,6 @@ export class WorkerState implements IWorkerState {
     private setupVideoSubscription(): void {
         // Video updates are handled directly in WorkerAPI
         // This is kept for compatibility
-    }
-    
-    /**
-     * Set up logging service handler
-     */
-    private setupLoggingHandler(): void {
-        loggingService.addHandler((level, source, message) => {
-            if (this.logCallback) {
-                this.logCallback({ level, source, message });
-            }
-        });
     }
     
     /**
@@ -126,14 +112,9 @@ export class WorkerState implements IWorkerState {
     public setCallbacks(callbacks: {
         onStatus?: (status: 'running' | 'paused') => void;
         onBreakpoint?: (address: number) => void;
-        onLog?: (data: { level: 'info' | 'warn' | 'error'; source: string; message: string }) => void;
     }): void {
         if (callbacks.onStatus) this.statusCallback = callbacks.onStatus;
         if (callbacks.onBreakpoint) this.breakpointCallback = callbacks.onBreakpoint;
-        if (callbacks.onLog) this.logCallback = callbacks.onLog;
-        
-        // Now set up the logging handler after callbacks are configured
-        this.setupLoggingHandler();
     }
     
     /**

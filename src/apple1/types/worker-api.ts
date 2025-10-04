@@ -1,9 +1,8 @@
 import type { EmulatorState } from './emulator-state';
 import type { VideoData } from './video';
-import type { 
-    FilteredDebugData, 
-    MemoryMapData, 
-    LogMessageData,
+import type {
+    FilteredDebugData,
+    MemoryMapData,
     EngineStatusData,
     EngineComparisonData
 } from './worker-messages';
@@ -243,13 +242,6 @@ export interface IWorkerAPI {
      * @returns Unsubscribe function
      */
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void;
-    
-    /**
-     * Subscribe to log messages from the worker
-     * @param callback Function to call with log data
-     * @returns Unsubscribe function
-     */
-    onLogMessage(callback: (data: LogMessageData) => void): () => void;
     
     /**
      * Subscribe to clock data updates

@@ -2,10 +2,9 @@ import { WorkerState } from './WorkerState';
 import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
 import type { VideoData } from './types/video';
-import type { 
-    FilteredDebugData, 
-    MemoryMapData, 
-    LogMessageData,
+import type {
+    FilteredDebugData,
+    MemoryMapData,
     ClockData,
     EngineStatusData,
     EngineComparisonData
@@ -26,7 +25,6 @@ export class WorkerAPI implements IWorkerAPI {
     private videoCallbacks = new Set<(data: VideoData) => void>();
     private breakpointCallbacks = new Set<(address: number) => void>();
     private statusCallbacks = new Set<(status: 'running' | 'paused') => void>();
-    private logCallbacks = new Set<(data: LogMessageData) => void>();
     private clockCallbacks = new Set<(data: ClockData) => void>();
     private runToCursorCallbacks = new Set<(target: number | null) => void>();
     
@@ -38,9 +36,6 @@ export class WorkerAPI implements IWorkerAPI {
             },
             onBreakpoint: (address) => {
                 this.breakpointCallbacks.forEach(cb => cb(address));
-            },
-            onLog: (data) => {
-                this.logCallbacks.forEach(cb => cb(data));
             }
         });
         
@@ -496,14 +491,7 @@ export class WorkerAPI implements IWorkerAPI {
             this.statusCallbacks.delete(callback);
         };
     }
-    
-    onLogMessage(callback: (data: LogMessageData) => void): () => void {
-        this.logCallbacks.add(callback);
-        return () => {
-            this.logCallbacks.delete(callback);
-        };
-    }
-    
+
     onClockData(callback: (data: ClockData) => void): () => void {
         this.clockCallbacks.add(callback);
         return () => {
