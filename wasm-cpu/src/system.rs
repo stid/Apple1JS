@@ -75,9 +75,8 @@ impl WasmSystem {
             return;
         }
 
-        // Reset CPU - it will read reset vector from 0xFFFC-0xFFFD
-        // Currently uses JavaScript bus bridge
-        self.cpu.reset();
+        // Reset CPU using internal Bus (no JavaScript bridge!)
+        self.cpu.reset_with_bus(&self.bus);
         console_log!("System reset - PC set from reset vector");
     }
 

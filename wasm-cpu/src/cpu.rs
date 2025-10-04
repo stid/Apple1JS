@@ -66,13 +66,13 @@ impl CPU6502 {
         }
     }
     
-    /// Reset the CPU
+    /// Reset the CPU (uses JavaScript bridge)
     pub fn reset(&mut self) {
         // Read reset vector from 0xFFFC-0xFFFD via Bus
         let low = crate::bus_read(0xFFFC) as u16;
         let high = crate::bus_read(0xFFFD) as u16;
         self.pc = (high << 8) | low;
-        
+
         self.a = 0;
         self.x = 0;
         self.y = 0;
@@ -82,8 +82,28 @@ impl CPU6502 {
         self.nmi = false;
         self.cycles = 0;
         self.instructions = 0;
-        
+
         console_log!("CPU reset, PC = 0x{:04X}", self.pc);
+    }
+
+    /// Reset the CPU using internal Bus (for WasmSystem)
+    pub(crate) fn reset_with_bus(&mut self, bus: &crate::Bus) {
+        // Read reset vector from 0xFFFC-0xFFFD from internal Bus
+        let low = bus.read(0xFFFC) as u16;
+        let high = bus.read(0xFFFD) as u16;
+        self.pc = (high << 8) | low;
+
+        self.a = 0;
+        self.x = 0;
+        self.y = 0;
+        self.s = 0xFF;
+        self.status = flags::UNUSED | flags::INTERRUPT;
+        self.irq = false;
+        self.nmi = false;
+        self.cycles = 0;
+        self.instructions = 0;
+
+        console_log!("CPU reset (Bus-aware), PC = 0x{:04X}", self.pc);
     }
     
     /// Execute a single instruction (using JavaScript Bus bridge)
