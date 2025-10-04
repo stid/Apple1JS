@@ -31,7 +31,6 @@ impl ROM {
     }
     
     /// Read a byte from ROM
-    #[inline(always)]
     pub fn read(&self, address: u16) -> u8 {
         let addr = address as usize;
         if addr < self.size {
@@ -120,14 +119,16 @@ impl ROM {
 // Internal implementation for use within WASM
 impl ROM {
     /// Internal read without bounds checking for performance
+    #[allow(dead_code)]
     #[inline(always)]
     pub(crate) fn read_unchecked(&self, address: u16) -> u8 {
         unsafe {
             *self.data.get_unchecked(address as usize)
         }
     }
-    
+
     /// Load ROM data directly (for internal use)
+    #[allow(dead_code)]
     pub(crate) fn load_direct(&mut self, data: &[u8]) {
         let copy_len = data.len().min(self.size);
         self.data[..copy_len].copy_from_slice(&data[..copy_len]);

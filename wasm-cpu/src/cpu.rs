@@ -317,6 +317,7 @@ impl CPU6502 {
     }
     
     /// Pop byte from stack
+    #[allow(dead_code)]
     pub(crate) fn pop(&mut self) -> u8 {
         self.s = self.s.wrapping_add(1);
         self.read_byte(0x0100 | self.s as u16)
@@ -435,6 +436,7 @@ impl CPU6502 {
     }
     
     /// Get address for absolute,Y mode
+    #[allow(dead_code)]
     pub(crate) fn get_aby_addr(&mut self) -> u16 {
         let base_addr = self.read_word(self.pc);
         self.pc = self.pc.wrapping_add(2);

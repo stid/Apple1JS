@@ -28,7 +28,6 @@ impl RAM {
     }
     
     /// Read a byte from RAM
-    #[inline(always)]
     pub fn read(&self, address: u16) -> u8 {
         let addr = address as usize;
         if addr < self.size {
@@ -40,7 +39,6 @@ impl RAM {
     }
     
     /// Write a byte to RAM
-    #[inline(always)]
     pub fn write(&mut self, address: u16, value: u8) {
         let addr = address as usize;
         if addr < self.size {
@@ -108,14 +106,16 @@ impl RAM {
 // Internal implementation for use within WASM
 impl RAM {
     /// Internal read without bounds checking for performance
+    #[allow(dead_code)]
     #[inline(always)]
     pub(crate) fn read_unchecked(&self, address: u16) -> u8 {
         unsafe {
             *self.data.get_unchecked(address as usize)
         }
     }
-    
+
     /// Internal write without bounds checking for performance
+    #[allow(dead_code)]
     #[inline(always)]
     pub(crate) fn write_unchecked(&mut self, address: u16, value: u8) {
         unsafe {

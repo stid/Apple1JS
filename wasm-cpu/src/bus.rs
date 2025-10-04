@@ -67,7 +67,6 @@ impl Bus {
     }
     
     /// Read a byte from the bus
-    #[inline(always)]
     pub fn read(&self, address: u16) -> u8 {
         let region = self.region_cache[address as usize];
         
@@ -97,7 +96,6 @@ impl Bus {
     }
     
     /// Write a byte to the bus
-    #[inline(always)]
     pub fn write(&mut self, address: u16, value: u8) {
         let region = self.region_cache[address as usize];
         
@@ -198,24 +196,28 @@ impl Bus {
 impl Bus {
     /// Get reference to RAM for internal Rust use
     /// Returns None if RAM is not set
+    #[allow(dead_code)]
     pub(crate) fn get_ram(&self) -> Option<&RAM> {
         self.ram.as_ref()
     }
 
     /// Get mutable reference to RAM for internal Rust use
     /// Returns None if RAM is not set
+    #[allow(dead_code)]
     pub(crate) fn get_ram_mut(&mut self) -> Option<&mut RAM> {
         self.ram.as_mut()
     }
 
     /// Get reference to ROM for internal Rust use
     /// Returns None if ROM is not set
+    #[allow(dead_code)]
     pub(crate) fn get_rom(&self) -> Option<&ROM> {
         self.rom.as_ref()
     }
 
     /// Get mutable reference to ROM for internal Rust use
     /// Returns None if ROM is not set
+    #[allow(dead_code)]
     pub(crate) fn get_rom_mut(&mut self) -> Option<&mut ROM> {
         self.rom.as_mut()
     }
@@ -264,6 +266,7 @@ impl Bus {
     }
     
     /// Direct read for internal use (no bounds checking)
+    #[allow(dead_code)]
     #[inline(always)]
     pub(crate) fn read_direct(&self, address: u16) -> u8 {
         match self.region_cache[address as usize] {
@@ -277,8 +280,9 @@ impl Bus {
             MemoryRegion::Unmapped => 0xFF,
         }
     }
-    
+
     /// Direct write for internal use (no bounds checking)
+    #[allow(dead_code)]
     #[inline(always)]
     pub(crate) fn write_direct(&mut self, address: u16, value: u8) {
         match self.region_cache[address as usize] {

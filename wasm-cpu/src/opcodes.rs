@@ -618,12 +618,6 @@ impl CPU6502 {
                 // NOP immediate - just skip byte
                 self.pc = self.pc.wrapping_add(1);
                 self.cycles += 2;
-            },
-            
-            _ => {
-                // Unknown opcode - for now just treat as NOP
-                crate::console_log!("Unknown opcode: 0x{:02X}", opcode);
-                self.nop();
             }
         }
     }
