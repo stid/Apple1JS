@@ -17,6 +17,7 @@ import { installMemoryBridge, setBusForWasm } from './wasm-memory-bridge';
 import { loggingService } from '../../services/LoggingService';
 import { Formatters } from '../../utils/formatters';
 import ROM from '../ROM';
+import { RAM_BANK1_START, RAM_BANK1_END, RAM_BANK2_START, RAM_BANK2_END } from '../constants/memory';
 
 /**
  * WASM implementation of the CPU engine
@@ -195,6 +196,12 @@ export class WasmEngine implements ICPUEngine {
                 throw new Error('WasmSystem initialization failed');
             }
 
+            // initialize() only flashes the WOZ Monitor ROM. The WasmSystem keeps RAM
+            // in its own internal memory, so the JS Bus RAM banks (anniversary demo in
+            // bank 1, Integer BASIC in bank 2) must be mirrored in or $E000/$0280 read
+            // as zero under WASM. The JS Bus is the source of truth at handoff.
+            this.seedRamFromBus();
+
             this._isReady = true;
             this.metrics.initializationTime = Date.now() - startTime;
 
@@ -206,6 +213,32 @@ export class WasmEngine implements ICPUEngine {
             loggingService.error('WasmEngine', `Failed to initialize WASM engine: ${error}`);
             throw new Error(`WASM engine initialization failed: ${error}`);
         }
+    }
+
+    /**
+     * Mirror the JS Bus RAM banks into the WasmSystem's internal RAM.
+     *
+     * The WasmSystem owns its RAM for zero-boundary-crossing execution, so any
+     * program flashed into the JS RAM banks (anniversary demo in bank 1, Integer
+     * BASIC in bank 2) must be copied across once at init — otherwise those
+     * regions read as zero under the WASM engine. The JS Bus is authoritative at
+     * this handoff, so we read straight through it (I/O at $D010-$D013 and the
+     * WOZ ROM at $FF00 are outside both bank ranges and are left untouched).
+     */
+    private seedRamFromBus(): void {
+        if (!this.wasmSystem) return;
+        const banks: ReadonlyArray<readonly [number, number]> = [
+            [RAM_BANK1_START, RAM_BANK1_END],
+            [RAM_BANK2_START, RAM_BANK2_END],
+        ];
+        let seeded = 0;
+        for (const [start, end] of banks) {
+            for (let addr = start; addr <= end; addr++) {
+                this.wasmSystem.write_memory(addr, this.bus.read(addr) & 0xff);
+                seeded++;
+            }
+        }
+        loggingService.info('WasmEngine', `Seeded ${seeded} RAM bytes into WASM from JS Bus (banks 1 & 2)`);
     }
 
     async ensureReady(): Promise<void> {
