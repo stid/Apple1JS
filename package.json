@@ -8,7 +8,8 @@
     "author": "Stefano Furiosi <stid72@gmail.com>",
     "license": "MIT",
     "scripts": {
-        "dev": "run-s wasm:build:dev dev:vite",
+        "dev": "run-s wasm:build:release dev:vite",
+        "dev:debug-wasm": "run-s wasm:build:dev dev:vite",
         "dev:vite": "vite",
         "build": "run-s wasm:build:release tsc vite:build",
         "vite:build": "vite build",

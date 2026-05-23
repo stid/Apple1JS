@@ -7,9 +7,12 @@ description = "High-performance WASM 6502 CPU emulator for Apple1JS"
 license = "MIT"
 repository = "https://github.com/stid/Apple1JS"
 
-[package.metadata.wasm-pack]
-# Disable wasm-opt due to compatibility issues with bulk memory operations
-wasm-opt = false
+# wasm-pack runs wasm-opt after wasm-bindgen. The previous `[package.metadata.wasm-pack]`
+# key was the wrong shape for this wasm-pack version (silently ignored), so release builds
+# tried a bare `-O` and failed on the module's bulk-memory ops. Use the profile-scoped key
+# and explicitly enable bulk memory so wasm-opt succeeds.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-O3', '--enable-bulk-memory', '--enable-nontrapping-float-to-int']
 
 [lib]
 crate-type = ["cdylib"]

@@ -8,12 +8,7 @@
  * for maximum performance (5-10x faster than JS engine).
  */
 
-import type {
-    ICPUEngine,
-    EngineType,
-    CPURegisters,
-    EngineMetrics
-} from '../cpu-interface/ICPUEngine';
+import type { ICPUEngine, EngineType, CPURegisters, EngineMetrics } from '../cpu-interface/ICPUEngine';
 import type { CPU6502State } from '../cpu6502/types';
 import type { WasmSystem } from './wasm-loader';
 import type Bus from '../Bus';
@@ -27,17 +22,17 @@ import ROM from '../ROM';
  */
 export class WasmEngine implements ICPUEngine {
     readonly engineType: EngineType = 'WASM';
-    readonly engineVersion = '2.0.0';  // Updated to 2.0 for WasmSystem
+    readonly engineVersion = '2.0.0'; // Updated to 2.0 for WasmSystem
 
     readonly capabilities = {
         supportsBreakpoints: true,
         supportsProfiling: true,
         supportsStepBack: false,
-        maxSpeed: 10_000_000 // ~10MHz potential in WASM
+        maxSpeed: 10_000_000, // ~10MHz potential in WASM
     };
 
     private wasmSystem: WasmSystem | null = null;
-    private bus: Bus;  // Keep for I/O synchronization
+    private bus: Bus; // Keep for I/O synchronization
     private breakpoints = new Set<number>();
     private metrics: EngineMetrics;
     private metricsStartTime: number;
@@ -62,11 +57,11 @@ export class WasmEngine implements ICPUEngine {
 
         loggingService.info('WasmEngine', 'WasmSystem engine initialized - memory bridge for I/O ready');
     }
-    
+
     get isReady(): boolean {
         return this._isReady;
     }
-    
+
     private initializeMetrics(): EngineMetrics {
         return {
             totalCycles: 0,
@@ -75,25 +70,25 @@ export class WasmEngine implements ICPUEngine {
             memoryUsage: 0,
             lastStepDuration: 0,
             initializationTime: 0,
-            efficiency: 500 // WasmSystem is 5x more efficient (no boundary crossings)
+            efficiency: 500, // WasmSystem is 5x more efficient (no boundary crossings)
         };
     }
-    
+
     // ============ Initialization ============
-    
+
     async initialize(): Promise<void> {
         if (this._isReady) {
             return;
         }
-        
+
         if (this.initPromise) {
             return this.initPromise;
         }
-        
+
         this.initPromise = this.performInitialization();
         return this.initPromise;
     }
-    
+
     /**
      * Extract ROM data from the JavaScript Bus
      *
@@ -108,14 +103,14 @@ export class WasmEngine implements ICPUEngine {
         const busData = this.bus.getInspectable();
 
         // Look for ROM component in children
-        const romChild = busData.children?.find(child => child.id === 'ROM' || child.type === 'ROM');
+        const romChild = busData.children?.find((child) => child.id === 'ROM' || child.type === 'ROM');
 
         if (!romChild?.component) {
             loggingService.warn('WasmEngine', 'ROM component not found in bus - using empty ROM');
             // Return empty ROM with address header
             const emptyRom = new Uint8Array(258); // 2 header + 256 data
             emptyRom[0] = 0x00; // Low byte of $FF00
-            emptyRom[1] = 0xFF; // High byte of $FF00
+            emptyRom[1] = 0xff; // High byte of $FF00
             return emptyRom;
         }
 
@@ -123,13 +118,13 @@ export class WasmEngine implements ICPUEngine {
         // We need to access the actual ROM instance from the bus
         // The bus is constructed with busMapping which includes the ROM component
         const busInternal = this.bus as unknown as { busMapping: Array<{ name: string; component: unknown }> };
-        const romMapping = busInternal.busMapping?.find(m => m.name === 'ROM');
+        const romMapping = busInternal.busMapping?.find((m) => m.name === 'ROM');
 
         if (!romMapping) {
             loggingService.warn('WasmEngine', 'ROM mapping not found - using empty ROM');
             const emptyRom = new Uint8Array(258);
             emptyRom[0] = 0x00;
-            emptyRom[1] = 0xFF;
+            emptyRom[1] = 0xff;
             return emptyRom;
         }
 
@@ -138,7 +133,7 @@ export class WasmEngine implements ICPUEngine {
             loggingService.warn('WasmEngine', 'ROM.getData() not available - using empty ROM');
             const emptyRom = new Uint8Array(258);
             emptyRom[0] = 0x00;
-            emptyRom[1] = 0xFF;
+            emptyRom[1] = 0xff;
             return emptyRom;
         }
 
@@ -150,10 +145,13 @@ export class WasmEngine implements ICPUEngine {
         // Apple 1 ROM is at $FF00, so header is [0x00, 0xFF]
         const romDataWithHeader = new Uint8Array(2 + rawRomData.length);
         romDataWithHeader[0] = 0x00; // Low byte of $FF00
-        romDataWithHeader[1] = 0xFF; // High byte of $FF00
+        romDataWithHeader[1] = 0xff; // High byte of $FF00
         romDataWithHeader.set(rawRomData, 2);
 
-        loggingService.info('WasmEngine', `Extracted ${rawRomData.length} bytes of ROM data from Bus (with 2-byte header for WASM)`);
+        loggingService.info(
+            'WasmEngine',
+            `Extracted ${rawRomData.length} bytes of ROM data from Bus (with 2-byte header for WASM)`,
+        );
         return romDataWithHeader;
     }
 
@@ -196,19 +194,22 @@ export class WasmEngine implements ICPUEngine {
             this._isReady = true;
             this.metrics.initializationTime = Date.now() - startTime;
 
-            loggingService.info('WasmEngine', `WASM System initialized in ${this.metrics.initializationTime.toFixed(2)}ms`);
+            loggingService.info(
+                'WasmEngine',
+                `WASM System initialized in ${this.metrics.initializationTime.toFixed(2)}ms`,
+            );
         } catch (error) {
             loggingService.error('WasmEngine', `Failed to initialize WASM engine: ${error}`);
             throw new Error(`WASM engine initialization failed: ${error}`);
         }
     }
-    
+
     async ensureReady(): Promise<void> {
         if (!this._isReady) {
             await this.initialize();
         }
     }
-    
+
     // ============ Core Operations ============
 
     performSingleStep(): number {
@@ -225,7 +226,10 @@ export class WasmEngine implements ICPUEngine {
         // Check if a breakpoint was hit (WASM returns 0 cycles on breakpoint)
         const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
         if (breakpointAddr >= 0) {
-            loggingService.info('WasmEngine', `Breakpoint hit at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`);
+            loggingService.info(
+                'WasmEngine',
+                `Breakpoint hit at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`,
+            );
             // Don't clear the flag - let the caller handle it
             // This signals to DualEngine/WorkerState that execution should pause
             return 0; // Signal breakpoint hit
@@ -234,8 +238,10 @@ export class WasmEngine implements ICPUEngine {
         // CRITICAL: If WASM returns 0 cycles without breakpoint, something went wrong
         if (cycles === 0 && breakpointAddr < 0) {
             const cpuState = this.wasmSystem.get_cpu_state();
-            loggingService.error('WasmEngine',
-                `WASM returned 0 cycles at PC=${cpuState.pc.toString(16)} (no breakpoint)`);
+            loggingService.error(
+                'WasmEngine',
+                `WASM returned 0 cycles at PC=${cpuState.pc.toString(16)} (no breakpoint)`,
+            );
         }
 
         // Note: I/O synchronization happens automatically via memory bridge
@@ -260,17 +266,27 @@ export class WasmEngine implements ICPUEngine {
         // Check if a breakpoint was hit during bulk execution
         const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
         if (breakpointAddr >= 0) {
-            loggingService.info('WasmEngine', `Breakpoint hit during bulk execution at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`);
+            loggingService.info(
+                'WasmEngine',
+                `Breakpoint hit during bulk execution at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`,
+            );
         }
 
         // Note: I/O happens automatically via memory bridge - no sync needed
 
-        // Update metrics (only count actual cycles executed)
+        // Update metrics for the whole batch. NOTE: updateMetrics() increments
+        // the instruction counter by one and is only correct for single steps;
+        // a bulk batch runs many instructions, so account for them here the same
+        // way JSEngine does (estimate from cycles) to keep IPS comparable.
         if (executedCycles > 0) {
-            this.updateMetrics(executedCycles, 0);
+            const estimatedInstructions = Math.floor(executedCycles / 3);
+            this.metrics.totalCycles += executedCycles;
+            this.metrics.instructionsExecuted += estimatedInstructions;
+            this.lastSecondInstructions += estimatedInstructions;
+            this.updateIPSMetrics();
         }
     }
-    
+
     reset(): void {
         if (!this.wasmSystem) {
             loggingService.warn('WasmEngine', 'reset called before initialization complete');
@@ -297,7 +313,7 @@ export class WasmEngine implements ICPUEngine {
         const status = state.status | 0x04; // Set I flag
         this.wasmSystem.set_status(status);
     }
-    
+
     // ============ State Management ============
 
     saveState(): CPU6502State {
@@ -339,10 +355,10 @@ export class WasmEngine implements ICPUEngine {
             address: 0,
             data: 0,
             pendingIrq: 0,
-            pendingNmi: 0
+            pendingNmi: 0,
         };
     }
-    
+
     loadState(state: CPU6502State): void {
         if (!this.wasmSystem) {
             throw new Error('WASM engine not initialized');
@@ -357,7 +373,7 @@ export class WasmEngine implements ICPUEngine {
         status |= (state.D & 1) << 3;
         status |= (state.I & 1) << 2;
         status |= (state.Z & 1) << 1;
-        status |= (state.C & 1);
+        status |= state.C & 1;
 
         // Set registers using WasmSystem setters
         this.wasmSystem.set_pc(state.PC);
@@ -369,7 +385,7 @@ export class WasmEngine implements ICPUEngine {
 
         loggingService.info('WasmEngine', 'State loaded into WasmSystem');
     }
-    
+
     getRegisters(): CPURegisters {
         if (!this.wasmSystem) {
             throw new Error('WASM engine not initialized');
@@ -396,10 +412,10 @@ export class WasmEngine implements ICPUEngine {
             D: (status >> 3) & 1,
             I: (status >> 2) & 1,
             Z: (status >> 1) & 1,
-            C: status & 1
+            C: status & 1,
         };
     }
-    
+
     setRegisters(registers: Partial<CPURegisters>): void {
         if (!this.wasmSystem) {
             throw new Error('WASM engine not initialized');
@@ -412,10 +428,14 @@ export class WasmEngine implements ICPUEngine {
         if (registers.S !== undefined) this.wasmSystem.set_s(registers.S);
 
         // Update status flags if provided
-        if (registers.N !== undefined || registers.V !== undefined ||
-            registers.D !== undefined || registers.I !== undefined ||
-            registers.Z !== undefined || registers.C !== undefined) {
-
+        if (
+            registers.N !== undefined ||
+            registers.V !== undefined ||
+            registers.D !== undefined ||
+            registers.I !== undefined ||
+            registers.Z !== undefined ||
+            registers.C !== undefined
+        ) {
             // Get current status and immediately extract it to release WASM borrow
             let status: number;
             {
@@ -426,29 +446,29 @@ export class WasmEngine implements ICPUEngine {
 
             // Now modify status with the new flag values
             if (registers.N !== undefined) {
-                status = (status & 0x7F) | ((registers.N & 1) << 7);
+                status = (status & 0x7f) | ((registers.N & 1) << 7);
             }
             if (registers.V !== undefined) {
-                status = (status & 0xBF) | ((registers.V & 1) << 6);
+                status = (status & 0xbf) | ((registers.V & 1) << 6);
             }
             if (registers.D !== undefined) {
-                status = (status & 0xF7) | ((registers.D & 1) << 3);
+                status = (status & 0xf7) | ((registers.D & 1) << 3);
             }
             if (registers.I !== undefined) {
-                status = (status & 0xFB) | ((registers.I & 1) << 2);
+                status = (status & 0xfb) | ((registers.I & 1) << 2);
             }
             if (registers.Z !== undefined) {
-                status = (status & 0xFD) | ((registers.Z & 1) << 1);
+                status = (status & 0xfd) | ((registers.Z & 1) << 1);
             }
             if (registers.C !== undefined) {
-                status = (status & 0xFE) | (registers.C & 1);
+                status = (status & 0xfe) | (registers.C & 1);
             }
 
             // Set the modified status (state borrow has been released)
             this.wasmSystem.set_status(status);
         }
     }
-    
+
     // ============ Memory Operations ============
 
     read(address: number): number {
@@ -471,7 +491,7 @@ export class WasmEngine implements ICPUEngine {
         // Also write to JS Bus for I/O compatibility (PIA, display, etc.)
         this.bus.write(address, value);
     }
-    
+
     readRange(start: number, length: number): Uint8Array {
         if (!this.wasmSystem) {
             const data = new Uint8Array(length);
@@ -508,7 +528,7 @@ export class WasmEngine implements ICPUEngine {
         // Load program into both WASM and JS Bus
         this.writeRange(address, program);
     }
-    
+
     // ============ Debugging Support ============
 
     setBreakpoint(address: number): void {
@@ -562,7 +582,7 @@ export class WasmEngine implements ICPUEngine {
             this.wasmSystem.clear_breakpoint_hit();
         }
     }
-    
+
     // ============ Performance & Metrics ============
 
     getMetrics(): EngineMetrics {
@@ -572,7 +592,11 @@ export class WasmEngine implements ICPUEngine {
             if (wasmMetrics) {
                 this.metrics.totalCycles = wasmMetrics.cycles || this.metrics.totalCycles;
                 this.metrics.instructionsExecuted = wasmMetrics.instructions || this.metrics.instructionsExecuted;
-                this.metrics.averageIPS = wasmMetrics.average_ips || this.metrics.averageIPS;
+                // averageIPS is intentionally NOT taken from wasmMetrics: the Rust
+                // get_metrics() reports (instructions/cycles)*1e6 (an idealized
+                // instructions-per-1MHz figure), not wall-clock IPS. updateIPSMetrics()
+                // below computes a real wall-clock rate from instructionsExecuted,
+                // matching JSEngine so the two engines are comparable.
             }
         }
 
@@ -591,7 +615,7 @@ export class WasmEngine implements ICPUEngine {
         return {
             ...this.metrics,
             // Add lastIPS as a computed field
-            lastIPS: lastIPS || this.metrics.averageIPS
+            lastIPS: lastIPS || this.metrics.averageIPS,
         } as EngineMetrics;
     }
 
@@ -602,7 +626,7 @@ export class WasmEngine implements ICPUEngine {
         this.lastSecondInstructions = 0;
         this.lastSecondStartTime = Date.now();
     }
-    
+
     getMemoryUsage(): number {
         if (!this.wasmSystem) {
             return 0;
@@ -611,11 +635,11 @@ export class WasmEngine implements ICPUEngine {
         // WasmSystem memory usage:
         // RAM size + ROM size + overhead
         const ramSize = this.wasmSystem.get_ram_size();
-        return ramSize + 256 + 4096 + (this.breakpoints.size * 8);
+        return ramSize + 256 + 4096 + this.breakpoints.size * 8;
     }
-    
+
     // ============ Private Methods ============
-    
+
     private updateMetrics(cycles: number, duration: number): void {
         this.metrics.totalCycles += cycles;
         this.metrics.instructionsExecuted++;
@@ -660,7 +684,7 @@ export class WasmEngine implements ICPUEngine {
             }
         }
     }
-    
+
     // ============ Engine-Specific Features ============
 
     getDebugInfo(): unknown {
@@ -668,7 +692,7 @@ export class WasmEngine implements ICPUEngine {
             return {
                 status: 'Not initialized',
                 breakpoints: Array.from(this.breakpoints),
-                metrics: this.metrics
+                metrics: this.metrics,
             };
         }
 
@@ -679,7 +703,7 @@ export class WasmEngine implements ICPUEngine {
             breakpoints: Array.from(this.breakpoints),
             metrics: this.metrics,
             wasmMetrics: this.wasmSystem.get_metrics(),
-            memoryMap: this.wasmSystem.get_memory_map()
+            memoryMap: this.wasmSystem.get_memory_map(),
         };
     }
 
