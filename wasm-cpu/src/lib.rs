@@ -1,60 +1,54 @@
 /*!
  * Apple1 6502 CPU Emulator in Rust/WASM
- * 
+ *
  * High-performance implementation of the MOS 6502 processor
  * optimized for WebAssembly execution.
  */
 
-use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 // Module declarations
+mod bus;
 mod cpu;
 mod instructions;
-mod instructions_with_bus;  // Helper methods for Bus-aware instructions
-mod instructions_bus_impl;   // Full Bus-aware instruction implementations
+mod instructions_bus_impl; // Full Bus-aware instruction implementations
+mod instructions_with_bus; // Helper methods for Bus-aware instructions
 mod opcodes;
-mod opcodes_with_bus;       // Bus-aware opcode dispatch
+mod opcodes_with_bus; // Bus-aware opcode dispatch
 mod ram;
 mod rom;
-mod bus;
 mod system;
 
 // Re-exports
+pub use bus::Bus;
 pub use cpu::CPU6502;
 pub use ram::RAM;
 pub use rom::ROM;
-pub use bus::Bus;
 pub use system::WasmSystem;
 // Temporarily comment out rayon until needed
 // pub use wasm_bindgen_rayon::init_thread_pool;
-
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
-// This is smaller but slower than the default allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 // Console logging for debugging
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
-    
+
     #[wasm_bindgen(js_namespace = console)]
     fn error(s: &str);
-    
+
     #[wasm_bindgen(js_namespace = performance)]
     fn now() -> f64;
-    
+
     // Memory bridge functions for I/O operations
     // These are only called for I/O regions (0xD010-0xD013 PIA)
     // RAM and ROM are handled internally in WASM for performance
     // The bridge must be installed before WASM initialization via installMemoryBridge()
-    #[wasm_bindgen(js_namespace = wasmMemoryBridge)]
+    #[wasm_bindgen(js_namespace = ["globalThis", "wasmMemoryBridge"])]
     fn readByte(address: u16) -> u8;
 
-    #[wasm_bindgen(js_namespace = wasmMemoryBridge)]
+    #[wasm_bindgen(js_namespace = ["globalThis", "wasmMemoryBridge"])]
     fn writeByte(address: u16, value: u8);
 }
 
@@ -108,6 +102,6 @@ pub fn init() {
     // Set panic hook for better error messages in browser
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
-    
+
     console_log!("Apple1 WASM CPU initialized");
 }
