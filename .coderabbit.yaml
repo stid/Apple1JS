@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit configuration. Enables automatic line-by-line reviews (the dashboard
+# default left them off, so PRs only got a summary with status "Review skipped").
+language: en-US
+reviews:
+    auto_review:
+        enabled: true
+        base_branches:
+            - master
+    high_level_summary: true

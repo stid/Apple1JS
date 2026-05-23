@@ -1,0 +1,10 @@
+# Files copied into each new worktree created by `claude --worktree`.
+# These are gitignored, so a fresh worktree would otherwise start without the
+# maintainer's local permissions, wired hooks, and environment. Listing them
+# here makes parallel-agent sessions inherit the same local setup.
+#
+# Tracked config (.claude/settings.json, .mcp.json) already appears in every
+# worktree via the normal checkout — it does NOT need to be listed here.
+.claude/settings.local.json
+.claude/hooks/
+.env*
