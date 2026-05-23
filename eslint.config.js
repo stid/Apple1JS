@@ -1,4 +1,4 @@
-// ESLint Flat Config for React + TypeScript + Vite (ESLint 8.x compatible)
+// ESLint Flat Config for React + TypeScript + Vite (ESLint 9.x)
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
@@ -53,7 +53,15 @@ export default [
         rules: {
             ...tseslint.configs.recommended.rules,
             ...react.configs.recommended.rules,
-            ...reactHooks.configs.recommended.rules,
+            // react-hooks v7's `recommended` preset expands from 2 rules to 16,
+            // adding the experimental React Compiler rules (purity, refs,
+            // immutability, set-state-in-render, ...) mostly as errors. We pin to
+            // the two rules historically enforced (v5 recommended) to keep this
+            // dependency bump behavior-neutral; adopting the Compiler rules is a
+            // separate, deliberate change (they currently flag ~11 pre-existing
+            // patterns across contexts/ and hooks/worker/).
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': 'warn',
             'react/react-in-jsx-scope': 'off',
             ...prettier.rules,
         },
