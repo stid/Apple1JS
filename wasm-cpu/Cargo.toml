@@ -38,7 +38,7 @@ features = [
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
-criterion = "0.5"
+criterion = "0.8"
 
 [profile.release]
 # Optimize for speed
