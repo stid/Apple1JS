@@ -2,26 +2,30 @@ name: Tests CI
 
 on: [push, pull_request]
 
+# Least privilege: the only write this workflow needs is posting the `tests`
+# commit status (the curl steps below). Everything else is read-only.
+permissions:
+    contents: read
+    statuses: write
+
 jobs:
     test:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            
+
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
-            
+
             - name: Setup Rust
-              uses: actions-rs/toolchain@v1
+              uses: dtolnay/rust-toolchain@stable
               with:
-                  toolchain: stable
-                  override: true
-                  target: wasm32-unknown-unknown
-            
+                  targets: wasm32-unknown-unknown
+
             - name: Cache Rust dependencies
-              uses: actions/cache@v3
+              uses: actions/cache@v4
               with:
                   path: |
                       ~/.cargo/bin/
@@ -32,21 +36,21 @@ jobs:
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
                   restore-keys: |
                       ${{ runner.os }}-cargo-
-            
+
             - name: Install wasm-pack
               run: |
                   if ! command -v wasm-pack &> /dev/null; then
                       curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
                   fi
-            
+
             - name: Build WASM module
               run: |
                   cd wasm-cpu
                   wasm-pack build --dev --target web --out-dir ../src/wasm
-            
+
             - name: Install JS dependencies
               run: yarn install
-            
+
             - name: Run tests
               run: yarn test:ci
 

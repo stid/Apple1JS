@@ -1,0 +1,38 @@
+# Dependabot version updates (security updates are enabled separately in repo settings).
+# Grouped + capped to keep PR noise low for a solo hobby project.
+version: 2
+updates:
+    # JavaScript/TypeScript (yarn) at the repo root
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 5
+      groups:
+          npm-minor-patch:
+              update-types:
+                  - minor
+                  - patch
+
+    # Rust/WASM CPU engine
+    - package-ecosystem: cargo
+      directory: /wasm-cpu
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 5
+      groups:
+          cargo-minor-patch:
+              update-types:
+                  - minor
+                  - patch
+
+    # The GitHub Actions used in .github/workflows (keeps actions current)
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+      open-pull-requests-limit: 5
+      groups:
+          actions-all:
+              patterns:
+                  - '*'
