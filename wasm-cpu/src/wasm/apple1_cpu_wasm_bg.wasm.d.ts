@@ -1,0 +1,38 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const init: () => void;
+export const __wbg_cpu6502_free: (a: number, b: number) => void;
+export const cpu6502_new: () => number;
+export const cpu6502_reset: (a: number) => void;
+export const cpu6502_step: (a: number) => number;
+export const cpu6502_step_cycles: (a: number, b: number) => number;
+export const cpu6502_save_state: (a: number) => any;
+export const cpu6502_load_state: (a: number, b: any) => void;
+export const cpu6502_pc: (a: number) => number;
+export const cpu6502_set_pc: (a: number, b: number) => void;
+export const cpu6502_a: (a: number) => number;
+export const cpu6502_set_a: (a: number, b: number) => void;
+export const cpu6502_x: (a: number) => number;
+export const cpu6502_set_x: (a: number, b: number) => void;
+export const cpu6502_y: (a: number) => number;
+export const cpu6502_set_y: (a: number, b: number) => void;
+export const cpu6502_s: (a: number) => number;
+export const cpu6502_set_s: (a: number, b: number) => void;
+export const cpu6502_status: (a: number) => number;
+export const cpu6502_set_status: (a: number, b: number) => void;
+export const cpu6502_read_memory: (a: number, b: number) => number;
+export const cpu6502_write_memory: (a: number, b: number, c: number) => void;
+export const cpu6502_read_memory_range: (a: number, b: number, c: number) => [number, number];
+export const cpu6502_write_memory_range: (a: number, b: number, c: number, d: number) => void;
+export const cpu6502_memory_ptr: (a: number) => number;
+export const cpu6502_get_metrics: (a: number) => any;
+export const cpu6502_reset_metrics: (a: number) => void;
+export const cpu6502_trigger_irq: (a: number) => void;
+export const cpu6502_clear_irq: (a: number) => void;
+export const cpu6502_trigger_nmi: (a: number) => void;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_export_2: WebAssembly.Table;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __wbindgen_start: () => void;

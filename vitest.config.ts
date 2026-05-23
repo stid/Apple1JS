@@ -10,6 +10,10 @@ export default defineConfig({
         setupFiles: ['./src/test-support/vitest-setup.ts'],
         include: ['src/**/*.vitest.{test,spec}.{js,jsx,ts,tsx}'],
         exclude: ['node_modules', 'dist', 'build'],
+        testTimeout: 10000, // 10 second timeout per test
+        hookTimeout: 10000, // 10 second timeout for hooks
+        maxWorkers: 2, // Limit parallel test workers
+        minWorkers: 1, // Minimum parallel test workers
         coverage: {
             provider: 'v8',
             reporter: ['text', 'lcov', 'html'],

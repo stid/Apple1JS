@@ -1,6 +1,5 @@
 import Main from './components/Main';
 import { createRoot } from 'react-dom/client';
-import { LoggingProvider } from './contexts/LoggingContext';
 import { loggingService } from './services/LoggingService';
 import { workerManager } from './services/WorkerManager';
 
@@ -22,9 +21,7 @@ const renderApp = () => {
         }
         const root = createRoot(container);
         root.render(
-            <LoggingProvider>
-                <Main workerManager={workerManager} apple1Instance={apple1Instance} />
-            </LoggingProvider>
+            <Main workerManager={workerManager} apple1Instance={apple1Instance} />
         );
     } else {
         loggingService.error('App', 'App Container Not Found!');

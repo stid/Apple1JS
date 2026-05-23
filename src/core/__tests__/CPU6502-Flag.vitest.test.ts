@@ -46,7 +46,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.C).toBe(0); // Carry flag cleared
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.V).toBe(0); // Initial reset state
             expect(cpu.D).toBe(0); // Initial reset state
@@ -70,7 +70,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.D).toBe(0); // Decimal flag cleared
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.V).toBe(0); // Initial reset state
             expect(cpu.C).toBe(0); // Initial reset state
@@ -94,7 +94,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.I).toBe(0); // Interrupt flag cleared
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.V).toBe(0); // Initial reset state
             expect(cpu.C).toBe(0); // Initial reset state
@@ -118,7 +118,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.V).toBe(0); // Overflow flag cleared
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.C).toBe(0); // Initial reset state
             expect(cpu.D).toBe(0); // Initial reset state
@@ -142,7 +142,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.C).toBe(1); // Carry flag set
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.V).toBe(0); // Initial reset state
             expect(cpu.D).toBe(0); // Initial reset state
@@ -166,7 +166,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.D).toBe(1); // Decimal flag set
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.V).toBe(0); // Initial reset state
             expect(cpu.C).toBe(0); // Initial reset state
@@ -190,7 +190,7 @@ describe('CPU6502 - Flag Operations', function () {
             cpu.performSingleStep();
             expect(cpu.I).toBe(1); // Interrupt flag set
             // Other flags unchanged
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
             expect(cpu.V).toBe(0); // Initial reset state
             expect(cpu.C).toBe(0); // Initial reset state

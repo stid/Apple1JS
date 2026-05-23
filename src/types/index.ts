@@ -6,11 +6,7 @@
 export type { Config } from './config';
 
 // Logging types
-export type { 
-    LogLevel, 
-    LogMessage, 
-    LoggingContextType 
-} from './logging';
+export type { LogLevel } from './logging';
 
 // Re-export type utilities if needed
 export type {

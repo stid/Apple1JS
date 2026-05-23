@@ -2,7 +2,6 @@ import * as Comlink from 'comlink';
 import { WorkerState } from './WorkerState';
 import { WorkerAPI } from './WorkerAPI';
 import type { VideoData } from './types/video';
-import type { LogMessageData } from './types/worker-messages';
 import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
 
@@ -61,6 +60,16 @@ class ComlinkWorkerAPI implements IWorkerAPI {
     setCpuProfiling = (enabled: boolean) => this.api.setCpuProfiling(enabled);
     setCycleAccurateMode = (enabled: boolean) => this.api.setCycleAccurateMode(enabled);
     setDebuggerActive = (active: boolean) => this.api.setDebuggerActive(active);
+    
+    // CPU Engine Management methods
+    getAvailableEngines = () => this.api.getAvailableEngines();
+    getCurrentEngine = () => this.api.getCurrentEngine();
+    switchEngine = (engineType: 'JS' | 'WASM') => this.api.switchEngine(engineType);
+    getEngineMetrics = () => this.api.getEngineMetrics();
+    getEngineStatus = () => this.api.getEngineStatus();
+    compareEngines = () => this.api.compareEngines();
+    // Auto-switch feature has been removed for simplicity
+
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
 
@@ -102,19 +111,6 @@ class ComlinkWorkerAPI implements IWorkerAPI {
 
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
         const unsubscribe = this.api.onEmulationStatus(callback);
-        const id = ++this.subscriptionId;
-        this.subscriptions.set(id, unsubscribe);
-        return Comlink.proxy(() => {
-            const unsub = this.subscriptions.get(id);
-            if (unsub) {
-                unsub();
-                this.subscriptions.delete(id);
-            }
-        });
-    }
-
-    onLogMessage(callback: (data: LogMessageData) => void): () => void {
-        const unsubscribe = this.api.onLogMessage(callback);
         const id = ++this.subscriptionId;
         this.subscriptions.set(id, unsubscribe);
         return Comlink.proxy(() => {

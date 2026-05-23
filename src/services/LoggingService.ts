@@ -1,47 +1,27 @@
 import { LogLevel } from '../types/logging';
-import type { LogHandler } from './types';
 import { ErrorHandler } from '../core/errors';
-export type { LogHandler };
 
+/**
+ * Simple logging service that proxies to console
+ *
+ * This abstraction allows for:
+ * - Consistent log formatting across the application
+ * - Easy testing by mocking the service
+ * - Future extensibility (e.g., remote logging, filtering)
+ */
 class LoggingService {
-    private handlers: LogHandler[] = [];
-
-    addHandler(handler: LogHandler): void {
-        this.handlers.push(handler);
-    }
-
-    removeHandler(handler: LogHandler): void {
-        this.handlers = this.handlers.filter(h => h !== handler);
-    }
-
     log(level: LogLevel, source: string, message: string): void {
-        // Always log to console in development
-        // Using a simple approach that works in both browser and tests
-        const isDev = true; // For now, always log to console
-        
-        if (isDev) {
-            switch (level) {
-                case 'info':
-                    console.log(`[${source}] ${message}`);
-                    break;
-                case 'warn':
-                    console.warn(`[${source}] ${message}`);
-                    break;
-                case 'error':
-                    console.error(`[${source}] ${message}`);
-                    break;
-            }
+        switch (level) {
+            case 'info':
+                console.log(`[${source}] ${message}`);
+                break;
+            case 'warn':
+                console.warn(`[${source}] ${message}`);
+                break;
+            case 'error':
+                console.error(`[${source}] ${message}`);
+                break;
         }
-
-
-        // Forward to registered handlers (UI)
-        this.handlers.forEach(handler => {
-            try {
-                handler(level, source, message);
-            } catch (error) {
-                console.error('Error in logging handler:', error);
-            }
-        });
     }
 
     info(source: string, message: string): void {

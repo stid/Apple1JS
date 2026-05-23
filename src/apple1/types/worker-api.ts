@@ -1,6 +1,36 @@
 import type { EmulatorState } from './emulator-state';
 import type { VideoData } from './video';
-import type { FilteredDebugData, MemoryMapData, LogMessageData } from './worker-messages';
+import type {
+    FilteredDebugData,
+    MemoryMapData,
+    EngineStatusData,
+    EngineComparisonData
+} from './worker-messages';
+
+/**
+ * CPU Engine performance metrics
+ */
+export interface EngineMetrics {
+    totalCycles: number;
+    instructionsExecuted: number;
+    averageIPS: number;
+    memoryUsage: number;
+    lastStepDuration: number;
+    initializationTime: number;
+    efficiency: number;
+}
+
+/**
+ * Engine comparison results
+ */
+export interface EngineComparison {
+    js: EngineMetrics;
+    wasm: EngineMetrics;
+    speedup: number;
+    memoryRatio: number;
+    recommendation: 'JS' | 'WASM';
+    reason: string;
+}
 
 /**
  * Worker API Interface for Comlink migration
@@ -127,6 +157,47 @@ export interface IWorkerAPI {
      */
     setDebuggerActive(active: boolean): void;
     
+    // ========== CPU Engine Management ==========
+    
+    /**
+     * Get list of available CPU engines
+     * @returns Array of engine names (e.g., ['JS', 'WASM'])
+     */
+    getAvailableEngines(): string[];
+    
+    /**
+     * Get the currently active CPU engine
+     * @returns Current engine type ('JS' or 'WASM')
+     */
+    getCurrentEngine(): string;
+    
+    /**
+     * Switch to a different CPU engine
+     * @param engineType The engine to switch to ('JS' or 'WASM')
+     * @returns Promise that resolves when switch is complete
+     */
+    switchEngine(engineType: 'JS' | 'WASM'): Promise<void>;
+    
+    /**
+     * Get performance metrics for the current engine
+     * @returns Engine metrics object or null if not available
+     */
+    getEngineMetrics(): EngineMetrics | null;
+    
+    /**
+     * Get current engine status
+     * @returns Status data including metrics and configuration
+     */
+    getEngineStatus(): EngineStatusData;
+    
+    /**
+     * Compare performance between available engines
+     * @returns Comparison results with speedup and recommendations
+     */
+    compareEngines(): Promise<EngineComparisonData>;
+    
+    // Auto-switch feature has been removed for simplicity
+
     // ========== Input ==========
     
     /**
@@ -166,13 +237,6 @@ export interface IWorkerAPI {
      * @returns Unsubscribe function
      */
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void;
-    
-    /**
-     * Subscribe to log messages from the worker
-     * @param callback Function to call with log data
-     * @returns Unsubscribe function
-     */
-    onLogMessage(callback: (data: LogMessageData) => void): () => void;
     
     /**
      * Subscribe to clock data updates

@@ -4,6 +4,8 @@ import WebCRTVideo from './WebCRTVideo';
 import type { IWorkerState } from './types/worker-api';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
+import type { DualEngine } from '../core/cpu-engines';
+import type { EngineStatusData, EngineComparisonData, EngineMetricsData } from './types/worker-messages';
 
 /**
  * WorkerState encapsulates all the state that was previously at module level.
@@ -15,35 +17,36 @@ export class WorkerState implements IWorkerState {
     public readonly video: WebCRTVideo;
     public readonly keyboard: WebWorkerKeyboard;
     public readonly apple1: Apple1;
-    
+
     // Breakpoint management
     public readonly breakpoints: Set<number>;
     public runToCursorTarget: number | null;
-    
+
     // Emulation state
     public isPaused: boolean;
     public isStepping: boolean;
-    
+
     // Debugger state
     public debuggerActive: boolean;
     public debugUpdateInterval: number | null;
-    
+
     // Callbacks for events
     private statusCallback?: (status: 'running' | 'paused') => void;
     private breakpointCallback?: (address: number) => void;
-    private logCallback?: (data: { level: 'info' | 'warn' | 'error'; source: string; message: string }) => void;
-    
+
     constructor() {
         // Initialize video and keyboard
         this.video = new WebCRTVideo();
         this.keyboard = new WebWorkerKeyboard();
-        
+
         // Create Apple1 instance with video and keyboard
-        this.apple1 = new Apple1({ 
-            video: this.video, 
-            keyboard: this.keyboard 
+        // Enable DualEngine for runtime CPU switching
+        this.apple1 = new Apple1({
+            video: this.video,
+            keyboard: this.keyboard,
+            useDualEngine: true, // Enable dual-engine CPU
         });
-        
+
         // Initialize state
         this.breakpoints = new Set<number>();
         this.runToCursorTarget = null;
@@ -51,16 +54,14 @@ export class WorkerState implements IWorkerState {
         this.isStepping = false;
         this.debuggerActive = false;
         this.debugUpdateInterval = null;
-        
+
         // Set up video subscription
         this.setupVideoSubscription();
-        
-        // Note: Logging handler will be set up after callbacks are configured
-        
+
         // Initialize breakpoint hook
         this.updateBreakpointHook();
     }
-    
+
     /**
      * Set up video update subscription
      */
@@ -68,18 +69,7 @@ export class WorkerState implements IWorkerState {
         // Video updates are handled directly in WorkerAPI
         // This is kept for compatibility
     }
-    
-    /**
-     * Set up logging service handler
-     */
-    private setupLoggingHandler(): void {
-        loggingService.addHandler((level, source, message) => {
-            if (this.logCallback) {
-                this.logCallback({ level, source, message });
-            }
-        });
-    }
-    
+
     /**
      * Update the CPU execution hook for breakpoint checking
      */
@@ -94,7 +84,7 @@ export class WorkerState implements IWorkerState {
                 if (this.isStepping) {
                     return true;
                 }
-                
+
                 // Only check breakpoints when running (not already paused)
                 if (!this.isPaused && this.breakpoints.has(pc)) {
                     // Hit a breakpoint - pause execution
@@ -107,37 +97,31 @@ export class WorkerState implements IWorkerState {
                     if (this.breakpointCallback) {
                         this.breakpointCallback(pc);
                     }
-                    loggingService.log('info', 'Breakpoint', 
-                        `Hit breakpoint at ${Formatters.address(pc)}`);
+                    loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
                     return false; // Halt execution
                 }
                 return true; // Continue execution
             });
         }
     }
-    
+
     /**
      * Set callbacks for events
      */
     public setCallbacks(callbacks: {
         onStatus?: (status: 'running' | 'paused') => void;
         onBreakpoint?: (address: number) => void;
-        onLog?: (data: { level: 'info' | 'warn' | 'error'; source: string; message: string }) => void;
     }): void {
         if (callbacks.onStatus) this.statusCallback = callbacks.onStatus;
         if (callbacks.onBreakpoint) this.breakpointCallback = callbacks.onBreakpoint;
-        if (callbacks.onLog) this.logCallback = callbacks.onLog;
-        
-        // Now set up the logging handler after callbacks are configured
-        this.setupLoggingHandler();
     }
-    
+
     /**
      * Update debugger state and manage debug update interval
      */
     public updateDebuggerState(active: boolean): void {
         this.debuggerActive = active;
-        
+
         if (active && !this.debugUpdateInterval) {
             // Debug updates are now handled by polling from main thread
             // Keep interval for compatibility but don't send postMessage
@@ -148,16 +132,16 @@ export class WorkerState implements IWorkerState {
             this.debugUpdateInterval = null;
         }
     }
-    
+
     /**
      * Start the emulation loop
      */
-    public startEmulation(): void {
-        this.apple1.startLoop();
+    public async startEmulation(): Promise<void> {
+        // The Apple1.startLoop() method now handles engine initialization
+        await this.apple1.startLoop();
         this.isPaused = false;
-        
     }
-    
+
     /**
      * Clean up resources
      */
@@ -166,5 +150,104 @@ export class WorkerState implements IWorkerState {
             clearInterval(this.debugUpdateInterval);
             this.debugUpdateInterval = null;
         }
+    }
+
+    /**
+     * Get the dual-engine CPU if available
+     */
+    public getDualEngine(): DualEngine | null {
+        return (this.apple1.cpuEngine as DualEngine) || null;
+    }
+
+    /**
+     * Switch between JS and WASM engines
+     */
+    public async switchEngine(targetEngine: 'JS' | 'WASM'): Promise<void> {
+        const dualEngine = this.getDualEngine();
+        if (!dualEngine) {
+            throw new Error('Dual-engine CPU not available');
+        }
+
+        await dualEngine.switchEngine(targetEngine);
+        loggingService.info('WorkerState', `Switched to ${targetEngine} engine`);
+    }
+
+    /**
+     * Get current engine status
+     */
+    public getEngineStatus(): EngineStatusData {
+        const dualEngine = this.getDualEngine();
+        if (!dualEngine) {
+            // Return default status for non-dual-engine setups
+            return {
+                currentEngine: 'JS',
+                availableEngines: ['JS'],
+                switchCount: 0,
+                lastSwitchTime: 0,
+            };
+        }
+
+        const stats = dualEngine.getSwitchStats();
+        const engineMetrics = dualEngine.getEngineMetrics();
+        const jsMetrics = engineMetrics.js ? this.convertEngineMetrics(engineMetrics.js) : undefined;
+        const wasmMetrics = engineMetrics.wasm ? this.convertEngineMetrics(engineMetrics.wasm) : undefined;
+
+        const result: EngineStatusData = {
+            currentEngine: stats.currentEngine,
+            availableEngines: stats.availableEngines,
+            switchCount: stats.switchCount,
+            lastSwitchTime: stats.lastSwitchTime,
+        };
+
+        // Only populate metrics for the currently active engine
+        if (jsMetrics) {
+            result.jsMetrics = jsMetrics;
+        }
+
+        if (wasmMetrics) {
+            result.wasmMetrics = wasmMetrics;
+        }
+
+        return result;
+    }
+
+    /**
+     * Compare engine performance
+     */
+    public async compareEngines(): Promise<EngineComparisonData> {
+        const dualEngine = this.getDualEngine();
+        if (!dualEngine) {
+            throw new Error('Dual-engine CPU not available');
+        }
+
+        const comparison = await dualEngine.compareEngines();
+
+        return {
+            js: this.convertEngineMetrics(comparison.js),
+            wasm: this.convertEngineMetrics(comparison.wasm),
+            speedup: comparison.speedup,
+            memoryRatio: comparison.memoryRatio,
+            recommendation: comparison.recommendation,
+            reason: comparison.reason,
+        };
+    }
+
+    // Auto-switch feature has been removed for simplicity
+
+    /**
+     * Convert internal engine metrics to API format
+     */
+    private convertEngineMetrics(metrics: unknown): EngineMetricsData {
+        const metricsObj = metrics as Record<string, unknown> | undefined;
+        const avgIPS = (metricsObj?.averageIPS as number) || 0;
+        const lastIPS = (metricsObj?.lastIPS as number) || avgIPS; // Use lastIPS if available, fallback to average
+        return {
+            instructionsExecuted: (metricsObj?.instructionsExecuted as number) || 0,
+            averageIPS: avgIPS,
+            lastIPS: lastIPS,
+            cyclesExecuted: (metricsObj?.totalCycles as number) || 0,
+            memoryUsage: (metricsObj?.memoryUsage as number) || 0,
+            hostMillisPerSecond: (metricsObj?.hostMillisPerSecond as number) || 0,
+        };
     }
 }

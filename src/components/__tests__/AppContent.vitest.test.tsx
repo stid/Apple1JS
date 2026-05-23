@@ -32,23 +32,7 @@ vi.mock('../Actions', () => ({
     default: () => <div data-testid="actions">Actions</div>
 }));
 
-vi.mock('../AlertBadges', () => ({
-    __esModule: true,
-    default: () => <div data-testid="alert-badges">Alert Badges</div>
-}));
-
-vi.mock('../AlertPanel', () => ({
-    __esModule: true,
-    default: () => <div data-testid="alert-panel">Alert Panel</div>
-}));
-
 // Mock contexts
-vi.mock('../../contexts/LoggingContext', () => ({
-    useLogging: () => ({
-        addMessage: vi.fn()
-    })
-}));
-
 vi.mock('../../contexts/DebuggerNavigationContext', () => ({
     useDebuggerNavigation: () => ({
         subscribeToNavigation: vi.fn(() => () => {})

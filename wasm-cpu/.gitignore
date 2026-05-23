@@ -1,0 +1,13 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# WASM build output
+pkg/
+
+# Editor files
+*.swp
+.DS_Store
+
+# Backup files
+*.bak

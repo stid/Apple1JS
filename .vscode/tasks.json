@@ -1,4 +1,87 @@
 {
     "version": "2.0.0",
-    "tasks": []
+    "tasks": [
+        {
+            "label": "WASM Build (Dev)",
+            "type": "shell",
+            "command": "cd wasm-cpu && wasm-pack build --dev --target web --out-dir ../src/wasm",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$rustc"]
+        },
+        {
+            "label": "WASM Build (Release)",
+            "type": "shell",
+            "command": "cd wasm-cpu && wasm-pack build --release --target web --out-dir ../src/wasm",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$rustc"]
+        },
+        {
+            "label": "Test Watch Mode",
+            "type": "shell",
+            "command": "yarn test --watch",
+            "group": "test",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Full Quality Check",
+            "type": "shell",
+            "command": "yarn lint && yarn type-check && yarn test:ci",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$eslint-stylish", "$tsc"]
+        },
+        {
+            "label": "Dev Server",
+            "type": "shell",
+            "command": "yarn dev",
+            "group": "none",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Cargo Check (WASM)",
+            "type": "shell",
+            "command": "cd wasm-cpu && cargo check",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": ["$rustc"]
+        },
+        {
+            "label": "Lint Fix",
+            "type": "shell",
+            "command": "yarn lint --fix",
+            "group": "none",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": ["$eslint-stylish"]
+        }
+    ]
 }

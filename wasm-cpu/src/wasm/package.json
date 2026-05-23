@@ -1,0 +1,24 @@
+{
+  "name": "apple1-cpu-wasm",
+  "type": "module",
+  "collaborators": [
+    "Apple1JS Contributors"
+  ],
+  "description": "High-performance WASM 6502 CPU emulator for Apple1JS",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stid/Apple1JS"
+  },
+  "files": [
+    "apple1_cpu_wasm_bg.wasm",
+    "apple1_cpu_wasm.js",
+    "apple1_cpu_wasm.d.ts"
+  ],
+  "main": "apple1_cpu_wasm.js",
+  "types": "apple1_cpu_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

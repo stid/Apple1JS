@@ -278,6 +278,13 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
     burn(data: Array<number>): void {
         this.flash(data);
     }
+
+    /**
+     * Get ROM data for external use (e.g., WASM initialization)
+     */
+    getData(): Uint8Array {
+        return this.data;
+    }
 }
 
 export default ROM;

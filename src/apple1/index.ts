@@ -3,6 +3,8 @@ import type { EmulatorState, PIAState, VideoState } from './TSTypes';
 import type { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from '../core/types';
 import { StateError } from '../core/types';
 import CPU6502 from '../core/cpu6502';
+import { DualEngine } from '../core/cpu-engines';
+import type { ICPUEngine } from '../core/cpu-interface/ICPUEngine';
 import PIA6820 from '../core/PIA6820';
 import Clock from '../core/Clock';
 import ROM from '../core/ROM';
@@ -223,9 +225,16 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     busMapping: Array<BusSpaceType>;
     bus: Bus;
     cpu: CPU6502;
+    cpuEngine?: ICPUEngine;  // Optional dual-engine CPU
     clock: Clock;
+    useDualEngine: boolean;
 
-    constructor({ video, keyboard }: { video: IoComponent<VideoState>; keyboard: IoComponent }) {
+    constructor({ video, keyboard, useDualEngine = false }: { 
+        video: IoComponent<VideoState>; 
+        keyboard: IoComponent; 
+        useDualEngine?: boolean;
+    }) {
+        this.useDualEngine = useDualEngine;
         // Keyboard & Video are injected from the outside (browser vs nodejs). This make this core
         // implementation agnostic. They just need to conform to IOComponent interfaces.
         this.video = video;
@@ -277,8 +286,25 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         // Bound CPU to related Address Spaces
         this.bus = new Bus(this.busMapping);
         this.bus.name = 'System Bus';
-        this.cpu = new CPU6502(this.bus);
-        this.cpu.name = '6502 CPU';
+        
+        // Create CPU - use DualEngine if enabled
+        if (this.useDualEngine) {
+            this.cpuEngine = new DualEngine(this.bus, 'JS'); // Start with JS engine
+            // Get the internal CPU from the DualEngine for compatibility
+            // This allows WorkerState to set execution hooks for breakpoints
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.cpu = (this.cpuEngine as any).getInternalCPU();
+            
+            // DON'T override the CPU methods - this causes infinite recursion
+            // The Clock subscribes to cpuEngine directly, not cpu
+            // The cpu is only used for setExecutionHook for breakpoints
+            
+            this.cpu.name = 'Dual-Engine CPU (JS/WASM)';
+            loggingService.info('Apple1', 'Using DualEngine CPU with runtime switching capability');
+        } else {
+            this.cpu = new CPU6502(this.bus);
+            this.cpu.name = '6502 CPU';
+        }
 
         // WIRING IO
         this.keyboard.wire({
@@ -294,7 +320,11 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
             reset: () => {
                 this.pia.reset();
                 this.displayLogic.reset();
-                this.cpu.reset();
+                if (this.cpuEngine) {
+                    this.cpuEngine.reset();
+                } else {
+                    this.cpu.reset();
+                }
             },
         });
 
@@ -313,10 +343,23 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         this.clock.name = 'System Clock';
         loggingService.info('Apple1', 'Apple 1 emulator initialized');
 
-        this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
+        // Subscribe the appropriate engine to the Clock
+        if (this.cpuEngine) {
+            // Use DualEngine when available - this ensures metrics are properly tracked
+            const engine = this.cpuEngine; // Capture reference to avoid TS error
+            this.clock.subscribe((steps: number) => engine.performBulkSteps(steps));
+            // Note: DualEngine initialization is deferred to startLoop() to ensure it completes before execution
+        } else {
+            // Use regular CPU when DualEngine is not enabled
+            this.clock.subscribe((steps: number) => this.cpu.performBulkSteps(steps));
+        }
 
         // Initialize CPU by calling reset to set PC to reset vector
-        this.cpu.reset();
+        if (this.cpuEngine) {
+            this.cpuEngine.reset();
+        } else {
+            this.cpu.reset();
+        }
 
         // Debug output commented out to reduce startup logs
         // loggingService.info('Apple1', `System Clock: ${JSON.stringify(this.clock.toDebug())}`);
@@ -325,10 +368,24 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     }
 
     reset(): void {
-        this.cpu.reset();
+        if (this.cpuEngine) {
+            this.cpuEngine.reset();
+        } else {
+            this.cpu.reset();
+        }
     }
 
     async startLoop(): Promise<void> {
+        // Ensure the CPU engine is initialized before starting the clock
+        if (this.cpuEngine && this.cpuEngine.initialize) {
+            try {
+                await this.cpuEngine.initialize();
+                loggingService.info('Apple1', 'CPU engine initialized before starting clock');
+            } catch (error) {
+                loggingService.error('Apple1', `Failed to initialize CPU engine: ${error}`);
+            }
+        }
+        
         return this.clock.startLoop();
     }
 
@@ -609,6 +666,32 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
      */
     getSupportedVersions(): string[] {
         return ['1.0', '2.0'];
+    }
+
+    // ============ Unified Memory Access ============
+
+    /**
+     * Get the current RAM (always returns JavaScript RAM)
+     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
+     */
+    getCurrentRAM(): RAM {
+        return this.ramBank1;
+    }
+
+    /**
+     * Get the current ROM (always returns JavaScript ROM)
+     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
+     */
+    getCurrentROM(): ROM {
+        return this.rom;
+    }
+
+    /**
+     * Get the current Bus (always returns JavaScript Bus)
+     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
+     */
+    getCurrentBus(): Bus {
+        return this.bus;
     }
 }
 

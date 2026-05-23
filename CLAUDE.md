@@ -1,7 +1,24 @@
-# CLAUDE.md - AI Assistant Guide
+# CLAUDE.md - Dual-Engine CPU Migration Guide
 
-> This guide helps AI assistants quickly understand the project and make effective contributions.
+> **Current Focus**: Building a runtime-switchable CPU core with TypeScript and Rust/WASM implementations
 > **Key principle**: This is a personal hobby project for learning - keep it fun and exploratory!
+
+## 🎯 WASM Migration Focus
+
+### Current Priority: Dual-Engine System
+
+We're building a **hot-swappable CPU engine system** that allows runtime switching between:
+
+- **JS Engine**: Original TypeScript implementation (better debugging)
+- **WASM Engine**: High-performance Rust implementation (5-10x faster)
+
+### Critical Development Rules
+
+1. **ALWAYS use Context7 MCP server** for WASM/Rust documentation
+2. **Maintain feature parity** between both engines
+3. **Test both engines** for every change
+4. **Document performance differences**
+5. **Keep JS engine as fallback**
 
 ## 🚀 Quick Start Checklist
 
@@ -18,10 +35,58 @@ git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, ch
 yarn test:ci
 
 # 4. Check current version
-cat src/version.ts  # Current: 4.35.1
+cat src/version.ts  # Current: 4.42.0
 
-# 5. ALWAYS use TodoWrite tool for multi-step tasks!
+# 5. Build WASM engine (when it exists)
+cd wasm-cpu && wasm-pack build --target web --out-dir ../src/wasm
+
+# 6. ALWAYS use TodoWrite tool for multi-step tasks!
 ```
+
+## 🔄 Engine Development Commands
+
+```bash
+# Build WASM module (from project root)
+cd wasm-cpu && wasm-pack build --dev --target web --out-dir ../src/wasm
+
+# Build optimized WASM (when ready)
+cd wasm-cpu && cargo build --target wasm32-unknown-unknown --release
+
+# Quick rebuild during development
+cd wasm-cpu && cargo check
+
+# Run engine-parity tests to verify both engines work
+yarn test  # All tests include engine parity tests
+
+# Check WASM toolchain
+rustc --version  # Should be 1.70+ (we have 1.89.0)
+wasm-pack --version  # Should be 0.12+ (we have 0.13.1)
+cargo --version  # Should be recent (we have 1.89.0)
+```
+
+## 🔧 WASM Troubleshooting
+
+Common issues and fixes:
+
+- **wasm-opt fails**: Add `wasm-opt = false` to `[package.metadata.wasm-pack]` in Cargo.toml
+- **Build from wrong directory**: Always `cd wasm-cpu` first
+- **Missing target**: Run `rustup target add wasm32-unknown-unknown`
+- **Type errors in generated code**: Rebuild with `--dev` flag for cleaner output
+
+## 📊 Performance Tracking
+
+Track these metrics when developing (full detail: `docs/active/wasm-performance.md`):
+
+- **Raw throughput** - cycles/sec & instructions/sec, measured **headless** (`BENCH=1` benchmark).
+  WASM ≈ 14× JS. ⚠️ In-app IPS is **throttle-locked** by the `Clock` to ~1MHz (both engines
+  ~331K) — it does NOT show the WASM gain; never compare engines by in-app IPS.
+- **Host CPU / headroom** - in-app signal of the real difference: host ms per emulated second
+  (`hostMillisPerSecond`). WASM costs ~3–4× less at the same IPS.
+- **Engine switch time** - Target: <10ms
+- **Memory usage** - WASM should use ~50% less
+- **State transfer accuracy** - Must be 100%
+- **WASM binary size** - ~155KB release (**speed-first** `opt-level = 3` + `-O3` wasm-opt; the old
+  "<100KB / 90KB" target was an abandoned size-first strategy — don't restore it)
 
 ## 🎯 Essential Context
 
@@ -29,15 +94,18 @@ cat src/version.ts  # Current: 4.35.1
 
 - Browser-based Apple 1 emulator (TypeScript/React)
 - Cycle-accurate 6502 CPU emulation
+- **Dual-engine architecture** (JS + WASM)
 - Worker-based architecture for performance
 - Comprehensive debugging tools
+- **Runtime engine switching** capability
 
 ### Project Philosophy
 
 - Personal hobby project - no deadlines or sprints
-- For learning and exploration
+- For learning and exploration (especially Rust/WASM!)
 - Informal tone preferred
 - "Ideas to explore" not "requirements"
+- Performance matters but compatibility is critical
 
 ## 📍 Navigation Shortcuts
 
@@ -73,29 +141,29 @@ cat src/version.ts  # Current: 4.35.1
 
 1. **EXPLORE** - Read relevant files thoroughly
 
-   ```bash
-   # Use architecture.md as your map
-   # Search for similar patterns in codebase
-   # Check existing tests for context
-   ```
+    ```bash
+    # Use architecture.md as your map
+    # Search for similar patterns in codebase
+    # Check existing tests for context
+    ```
 
 2. **PLAN** - Create detailed implementation plan
-   - Use TodoWrite tool for tasks with 3+ steps
-   - Break complex features into manageable chunks
-   - Think through edge cases and test scenarios
+    - Use TodoWrite tool for tasks with 3+ steps
+    - Break complex features into manageable chunks
+    - Think through edge cases and test scenarios
 
 3. **CODE** - Implement with existing patterns
-   - Follow code style from neighboring files
-   - Write tests alongside implementation
-   - Use type safety (no `any` types!)
+    - Follow code style from neighboring files
+    - Write tests alongside implementation
+    - Use type safety (no `any` types!)
 
 4. **COMMIT** - Verify and document changes
 
-   ```bash
-   yarn run lint && yarn run type-check && yarn run test:ci
-   yarn run lint:md:fix  # For any markdown changes
-   git add -A && git commit -m "type: description"
-   ```
+    ```bash
+    yarn run lint && yarn run type-check && yarn run test:ci
+    yarn run lint:md:fix  # For any markdown changes
+    git add -A && git commit -m "type: description"
+    ```
 
 ## 🛠️ Common Tasks
 
@@ -139,29 +207,29 @@ src/
 
 1. **Write the test first**
 
-   ```typescript
-   // Example: Testing a new CPU instruction
-   it('should handle new instruction correctly', () => {
-     // Setup initial state
-     // Execute instruction
-     // Assert expected outcome
-   });
-   ```
+    ```typescript
+    // Example: Testing a new CPU instruction
+    it('should handle new instruction correctly', () => {
+        // Setup initial state
+        // Execute instruction
+        // Assert expected outcome
+    });
+    ```
 
 2. **Verify test fails**
 
-   ```bash
-   yarn test --watch  # Run in watch mode for quick iteration
-   ```
+    ```bash
+    yarn test --watch  # Run in watch mode for quick iteration
+    ```
 
 3. **Write minimal code to pass**
-   - Implement just enough to make test green
-   - Don't over-engineer on first pass
+    - Implement just enough to make test green
+    - Don't over-engineer on first pass
 
 4. **Refactor and iterate**
-   - Clean up implementation
-   - Add edge case tests
-   - Ensure all tests still pass
+    - Clean up implementation
+    - Add edge case tests
+    - Ensure all tests still pass
 
 ### Testing Commands
 
@@ -203,7 +271,7 @@ gh pr checks 123                  # Check CI/CD status
 gh pr comments 123               # View PR comments
 gh pr merge 123                  # Merge PR when ready
 
-# Issue Management  
+# Issue Management
 gh issue create --title "bug: description"
 gh issue view 456
 gh issue list --state open
@@ -283,7 +351,7 @@ alias a1-check="a1-lint && a1-test"
 ```typescript
 // Type-safe messaging
 sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
-```typescript
+```
 
 ### Component Inspection
 
@@ -302,14 +370,15 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 
 **See `docs/active/consolidated_roadmap.md` for the complete, prioritized roadmap.**
 
-### Quick Summary of Priorities:
+### Quick Summary of Priorities
 
 🛑 **Critical** - Test stability & core issues
-🔴 **High** - Core functionality & architecture  
+🔴 **High** - Core functionality & architecture
 🟡 **Medium** - Enhanced features
 🟢 **Low** - Refinements & polish
 
 ### Recently Completed ✅
+
 - Jest to Vitest Migration (626 tests)
 - Comlink Worker Migration (Phase 2)
 - Type System Organization
@@ -317,11 +386,121 @@ sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
 - Formatter Migration (97 instances)
 - CPU6502 Module Split (6 focused modules)
 - Base Classes for Common Patterns (useWorkerState hooks)
+- **Dual-Engine CPU System** with runtime switching (Aug 31, 2024)
+- **Performance Metrics Dashboard** with real-time monitoring
+- **WASM Engine Integration** with proper initialization
+- **WASM Performance Optimization** - Release build now 90KB (was 357KB), achieving target performance
 
-### Current Focus Areas:
-1. **Stabilization** - Fix type workarounds, race conditions
-2. **Architecture** - Split large modules, create reusable patterns
-3. **Features** - Memory search, conditional breakpoints, watch expressions
+### Current Focus: WASM CPU Implementation 🚀
+
+#### ✅ Major Milestone Completed
+
+- **150+ documented 6502 opcodes implemented** in Rust/WASM
+- All major addressing modes (izx, izy, zpx, zpy, abx, aby)
+- Complete instruction set: Load/Store, Arithmetic, Logical, Shift/Rotate, Compare, Branch
+- BIT instruction with proper flag handling
+- WASM module successfully building (387KB dev, target <100KB release)
+- Dual-engine architecture ready for integration
+
+#### ✅ Recently Completed (Aug 31, 2024)
+
+- **Fixed 0 IPS metrics issue** - Clock now properly subscribes to DualEngine
+- **Resolved WASM initialization errors** - Proper initialization sequencing
+- **Engine switcher UI component** - Complete with real-time switching
+- **Performance metrics dashboard** - Shows IPS, memory, and speedup
+- **WASM Release Build Optimization** - Fixed performance regression (was 0.2x slower, now 5-10x faster)
+- **Binary Size Optimization** - Reduced from 357KB (dev) to 90KB (release)
+
+#### ✅ Recently Completed (Oct 4, 2025)
+
+- **Project Cleanup** - Removed ~1,700 lines of experimental code
+  - Removed WasmEnhancedEngine (experimental internal memory approach)
+  - Removed WASM proxy files (RAM/ROM/Bus proxies)
+  - Removed Jest configuration (fully migrated to Vitest)
+  - Untracked 291MB of WASM build artifacts from git
+  - Cleaned up unused Rust modules (cpu_enhanced, memory_bridge, memory)
+
+#### ✅ Recently Completed (May 2026 — `feat/wasm-dual-engine-cpu`, v4.42.0)
+
+> Supersedes the earlier "90KB / <100KB / 5-10× IPS" notes above. Details: `docs/active/wasm-performance.md`.
+
+- **Real WASM speedup measured** - ~14× JS raw throughput, confirmed by a gated **headless**
+  benchmark (`BENCH=1 … wasm-benchmark.vitest.test.ts`). The old in-app "160 IPS" was a metrics
+  defect + a debug build shipped to `yarn dev`.
+- **Strategy switched to speed-first** - `opt-level = 3` + `-O3` wasm-opt (was size-first
+  `opt-level = "z"`). Release binary is now **~155KB** (the prior 90KB was the abandoned size build).
+  `yarn dev` ships `--release`; `yarn dev:debug-wasm` keeps the slow debug path.
+- **IPS-throttle clarified** - the `Clock` throttles both engines to ~1MHz, so in-app IPS is
+  identical by design. Added a **Host CPU / headroom** metric (`hostMillisPerSecond`) to surface
+  the real cost difference in the Performance Metrics panel.
+- **Debugger live under WASM** - CPU State / Stack / Memory / Disassembly now read from the
+  **active** engine via `ICPUEngine.toDebug()` + `readRange()` (were hardwired to the dormant JS
+  `CPU6502`/`Bus` and froze on switch).
+
+#### 🎯 Current Architecture Status
+
+**Working Dual-Engine System** - DualEngine coordinates JS and WASM engines:
+
+- **JSEngine**: Wraps existing CPU6502 (TypeScript implementation)
+- **WasmEngine**: Wraps WASM CPU using JavaScript memory bridge
+- **DualEngine**: Provides runtime switching with state preservation
+- **Memory**: Single source of truth in JavaScript (RAM.ts, ROM.ts, Bus.ts)
+
+#### 📋 Next Priority Tasks
+
+1. **Performance optimization** - Profile and optimize hot paths
+2. **Enhanced debugging** - Add WASM-specific debugging support
+3. **Documentation** - Update architecture docs with cleanup changes
+
+#### 🎯 Using the Dual-Engine System
+
+```typescript
+// Create dual-engine CPU
+import { DualEngine } from './src/core/cpu-engines';
+
+const dualEngine = new DualEngine(bus, 'JS'); // Start with JS engine
+await dualEngine.initialize();
+
+// Switch to WASM for performance
+await dualEngine.switchEngine('WASM');
+
+// Get performance comparison
+const comparison = await dualEngine.compareEngines();
+console.log(`WASM is ${comparison.speedup}x faster!`);
+
+// Listen for engine switches
+dualEngine.onEngineSwitch((event) => {
+    console.log(`Switched from ${event.from} to ${event.to}`);
+});
+```
+
+#### 📁 WASM Project Structure
+
+```text
+wasm-cpu/               # Rust source (build from here)
+├── Cargo.toml
+└── src/
+    ├── lib.rs         # Entry point & exports
+    ├── cpu.rs         # 6502 CPU implementation
+    ├── ram.rs         # WASM RAM module
+    ├── rom.rs         # WASM ROM module
+    ├── bus.rs         # WASM Bus module
+    ├── instructions.rs # 6502 instruction implementations
+    └── opcodes.rs     # Opcode dispatch table
+
+src/core/cpu-engines/  # TypeScript engine wrappers
+├── JSEngine.ts        # Wraps existing CPU6502
+├── WasmEngine.ts      # Wraps WASM CPU (uses JS memory)
+├── DualEngine.ts      # Coordinates both engines with runtime switching
+├── wasm-loader.ts     # WASM initialization & status
+├── wasm-memory-bridge.ts # JS memory bridge for WASM
+└── index.ts           # Public exports
+
+src/wasm/              # Generated WASM output (gitignored)
+├── apple1_cpu_wasm.js # JS bindings (generated by wasm-pack)
+├── apple1_cpu_wasm.d.ts # TypeScript definitions
+└── apple1_cpu_wasm_bg.wasm # WASM binary
+```
 
 For detailed task breakdowns, timelines, and execution strategy, refer to the consolidated roadmap.
 
@@ -332,21 +511,22 @@ For detailed task breakdowns, timelines, and execution strategy, refer to the co
 **IMPORTANT**: For UI changes, provide screenshots or mockups to iterate against!
 
 1. **Before starting UI work**, ask for:
-   - Screenshots of current state
-   - Visual mockups or sketches
-   - Specific success criteria
+    - Screenshots of current state
+    - Visual mockups or sketches
+    - Specific success criteria
 
 2. **During implementation**:
-   - Take screenshots of progress
-   - Compare against references
-   - Iterate 2-3 times for polish
+    - Take screenshots of progress
+    - Compare against references
+    - Iterate 2-3 times for polish
 
 3. **Example request format**:
-   ```text
-   "Here's a screenshot of the current memory viewer.
-   I want to add highlighting for changed values.
-   Success: Changed bytes show in yellow for 1 second."
-   ```
+
+    ```text
+    "Here's a screenshot of the current memory viewer.
+    I want to add highlighting for changed values.
+    Success: Changed bytes show in yellow for 1 second."
+    ```
 
 ## 🔗 Quick References
 
