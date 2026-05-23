@@ -121,11 +121,12 @@ describe('CPU6502 - Jump/Call Operations', function () {
             expect(cpu.PC).toBe(0x0010);
             
             // Should push return address - 1 onto stack
-            // JSR pushes high byte first, then low byte, so stack decrements by 2
-            // Stack goes from 0x00 to 0xFE (decrements by 2)
-            // So we need to read from 0x100 + 0xFE = 0x1FE and 0x100 + 0xFF = 0x1FF
-            const returnAddrLow = ramInstance.read(0x1FF);  // Low byte at final stack position
-            const returnAddrHigh = ramInstance.read(0x1FE); // High byte at previous stack position
+            // JSR pushes high byte first (at S), then low byte (at S-1), so stack decrements by 2
+            // With S starting at 0xFF:
+            //   - High byte pushed to 0x1FF, S becomes 0xFE
+            //   - Low byte pushed to 0x1FE, S becomes 0xFD
+            const returnAddrHigh = ramInstance.read(0x1FF); // High byte pushed first
+            const returnAddrLow = ramInstance.read(0x1FE);  // Low byte pushed second
             const pushedAddr = (returnAddrHigh << 8) | returnAddrLow;
             
             // Based on the actual CPU behavior, the pushed address is 0x0002

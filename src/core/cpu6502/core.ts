@@ -192,7 +192,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.A = 0;
         this.X = 0;
         this.Y = 0;
-        this.S = 0; // Registers
+        this.S = 0xFF; // Stack pointer starts at top of stack page
         this.N = 0;
         this.Z = 0;
         this.C = 0;
@@ -220,9 +220,9 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.A = 0;
         this.X = 0;
         this.Y = 0;
-        this.S = 0;
+        this.S = 0xFF; // Stack pointer starts at top of stack page
         this.N = 0;
-        this.Z = 1;
+        this.Z = 0; // Zero flag not set after reset
         this.C = 0;
         this.V = 0;
         this.I = 1; // Interrupts disabled after reset

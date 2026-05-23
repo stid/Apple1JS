@@ -179,9 +179,12 @@ export class DualEngine implements ICPUEngine {
     }
 
     write(address: number, value: number): void {
-        // With unified memory, only write to active engine
-        // Both engines share the same memory!
-        this.activeEngine.write(address, value);
+        // Write to BOTH engines to keep them synchronized
+        // Each engine has its own RAM, so we must write to both
+        this.jsEngine.write(address, value);
+        if (this.wasmEngine?.isReady) {
+            this.wasmEngine.write(address, value);
+        }
     }
 
     readRange(start: number, length: number): Uint8Array {
@@ -189,13 +192,19 @@ export class DualEngine implements ICPUEngine {
     }
 
     writeRange(start: number, data: Uint8Array): void {
-        // With unified memory, only write to active engine
-        this.activeEngine.writeRange(start, data);
+        // Write to both engines to keep them synchronized
+        this.jsEngine.writeRange(start, data);
+        if (this.wasmEngine?.isReady) {
+            this.wasmEngine.writeRange(start, data);
+        }
     }
 
     loadProgram(program: Uint8Array, address?: number): void {
-        // With unified memory, only load to active engine
-        this.activeEngine.loadProgram(program, address);
+        // Load into both engines to keep them synchronized
+        this.jsEngine.loadProgram(program, address);
+        if (this.wasmEngine?.isReady) {
+            this.wasmEngine.loadProgram(program, address);
+        }
     }
     
     // ============ Debugging Support ============
@@ -283,29 +292,35 @@ export class DualEngine implements ICPUEngine {
             loggingService.info('DualEngine', `Already using ${targetEngine} engine`);
             return;
         }
-        
+
         // Check if target engine is available
         if (targetEngine === 'WASM' && !this.wasmEngine) {
             throw new Error('WASM engine is not available');
         }
-        
+
         const startTime = Date.now();
         const fromEngine = this.activeEngineType;
         const fromMetrics = this.activeEngine.getMetrics();
-        
+
         loggingService.info('DualEngine', `Switching from ${fromEngine} to ${targetEngine} engine (reason: ${reason})`);
-        
+
         try {
-            // Save current state
+            // Save current CPU state (registers, flags, etc.)
             const currentState = this.activeEngine.saveState();
-            
+
             // Get target engine
             const newEngine = targetEngine === 'JS' ? this.jsEngine : this.wasmEngine!;
-            
+
             // Ensure target engine is ready
             await newEngine.ensureReady();
-            
-            // Load state into target engine
+
+            // Synchronize RAM contents from source to target engine
+            // Apple 1 has 4KB RAM at $0000-$0FFF
+            const ramData = this.activeEngine.readRange(0x0000, 0x1000);
+            newEngine.writeRange(0x0000, ramData);
+            loggingService.info('DualEngine', `Synchronized ${ramData.length} bytes of RAM to ${targetEngine} engine`);
+
+            // Load CPU state into target engine
             newEngine.loadState(currentState);
             
             // Switch active engine

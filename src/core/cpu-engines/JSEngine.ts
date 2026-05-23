@@ -88,9 +88,7 @@ export class JSEngine implements ICPUEngine {
     
     performBulkSteps(cycles: number): void {
         const startTime = Date.now();
-        
         this.cpu.performBulkSteps(cycles);
-        
         const duration = Date.now() - startTime;
         this.metrics.totalCycles += cycles;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds

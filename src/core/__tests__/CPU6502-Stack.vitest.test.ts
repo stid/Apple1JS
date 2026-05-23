@@ -244,13 +244,14 @@ describe('CPU6502 - Stack Operations', function () {
             cpu.S = 0xE0;
             cpu.N = 1;
             cpu.C = 1;
-            // After reset: I=1, Z=1, so we have N=1, V=0, D=0, I=1, Z=1, C=1
-            
+            // After reset: I=1, Z=0 (Z flag not set after reset)
+            // so we have N=1, V=0, D=0, I=1, Z=0, C=1
+
             cpu.performSingleStep();
-            
-            // Status register: NV11DIZC = 10110111 = 0xB7 (bits 4&5 always set during PHP)
-            // N=1, V=0, bits4&5=11, D=0, I=1, Z=1, C=1 = 10110111 = 0xB7
-            expect(ramInstance.read(0x01E0)).toBe(0xB7);
+
+            // Status register: NV11DIZC = 10110101 = 0xB5 (bits 4&5 always set during PHP)
+            // N=1, V=0, bits4&5=11, D=0, I=1, Z=0, C=1 = 10110101 = 0xB5
+            expect(ramInstance.read(0x01E0)).toBe(0xB5);
             expect(cpu.S).toBe(0xDF);
         });
     });

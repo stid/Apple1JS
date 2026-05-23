@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { DualEngine } from '../DualEngine';
 import { WasmEngine } from '../WasmEngine';
 import Bus from '../../Bus';
+import RAM from '../../RAM';
 import { loggingService } from '../../../services/LoggingService';
 
 // Mock the logging service
@@ -93,11 +94,17 @@ vi.mock('../wasm-loader', () => ({
 
 describe('DualEngine', () => {
     let bus: Bus;
+    let ram: RAM;
     let dualEngine: DualEngine;
-    
+
     beforeEach(() => {
-        // Create a simple bus for testing
-        bus = new Bus([]);
+        // Create a bus with RAM for testing
+        ram = new RAM(0xFFFF); // 64KB RAM
+        bus = new Bus([{
+            component: ram,
+            addr: [0x0000, 0xFFFF],
+            name: 'RAM'
+        }]);
         vi.clearAllMocks();
     });
     
@@ -111,7 +118,8 @@ describe('DualEngine', () => {
         it('should initialize with JS engine by default', () => {
             dualEngine = new DualEngine(bus);
             expect(dualEngine.engineType).toBe('JS');
-            expect(dualEngine.isReady).toBe(false);
+            // JSEngine is synchronously ready, so DualEngine starts ready
+            expect(dualEngine.isReady).toBe(true);
         });
         
         it('should initialize with specified engine', () => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { IInspectableComponent } from '../core/types/components';
 import { OPCODES } from '../constants/opcodes';
 import { MetricCard } from './MetricCard';
@@ -6,6 +6,7 @@ import { RegisterRow } from './RegisterRow';
 import { getDebugValueOrDefault } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from '../contexts/WorkerDataContext';
+import type { EngineStatusData } from '../apple1/types/worker-messages';
 
 import type { InspectableData } from '../core/types/components';
 
@@ -18,6 +19,28 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
     const { debugInfo } = useWorkerData();
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
     const [profilingPending, setProfilingPending] = useState<boolean>(false);
+    const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
+
+    // Fetch engine status periodically
+    const fetchEngineStatus = useCallback(async () => {
+        if (workerManager) {
+            try {
+                const status = await workerManager.getEngineStatus();
+                setEngineStatus(status);
+            } catch {
+                // Silently ignore - engine status is optional
+            }
+        }
+    }, [workerManager]);
+
+    useEffect(() => {
+        fetchEngineStatus();
+        const interval = setInterval(fetchEngineStatus, 2000);
+        return () => clearInterval(interval);
+    }, [fetchEngineStatus]);
+
+    // Determine if WASM engine is active (affects profiling availability)
+    const isWasmEngine = engineStatus?.currentEngine === 'WASM';
 
     // Helper function to translate hex opcode to human-readable mnemonic
     const getOpcodeMnemonic = (opcodeHex: string): string => {
@@ -324,6 +347,45 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
 
     return (
         <div className="flex flex-col h-full overflow-auto space-y-md">
+            {/* Engine Status Section */}
+            {engineStatus && (
+                <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+                    <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
+                        <span className="mr-2">⚡</span>
+                        CPU Engine Status
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
+                        <RegisterRow
+                            label="Active Engine"
+                            value={engineStatus.currentEngine}
+                            type="status"
+                        />
+                        <RegisterRow
+                            label="Available"
+                            value={engineStatus.availableEngines.join(', ')}
+                            type="status"
+                        />
+                        <RegisterRow
+                            label="Switch Count"
+                            value={String(engineStatus.switchCount)}
+                            type="value"
+                        />
+                        {engineStatus.lastSwitchTime > 0 && (
+                            <RegisterRow
+                                label="Last Switch"
+                                value={`${engineStatus.lastSwitchTime.toFixed(1)}ms`}
+                                type="status"
+                            />
+                        )}
+                    </div>
+                    {isWasmEngine && (
+                        <div className="mt-sm text-xs text-text-secondary bg-warning/10 rounded p-sm border border-warning/20">
+                            ⚠️ WASM engine active. Some debugging features (profiling, breakpoints) have limited support.
+                        </div>
+                    )}
+                </section>
+            )}
+
             {/* Performance Section */}
             <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
                 <div className="flex items-center justify-between mb-md">
@@ -333,20 +395,25 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     </h3>
                     <button
                         onClick={handleProfilingToggle}
-                        disabled={profilingPending || !workerManager}
+                        disabled={profilingPending || !workerManager || isWasmEngine}
+                        title={isWasmEngine ? 'Profiling not yet supported in WASM engine' : undefined}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            profilingPending 
+                            profilingPending
                                 ? 'bg-border-secondary text-text-disabled cursor-wait'
-                                : profilingEnabled
-                                    ? 'bg-success text-white hover:bg-success/80'
-                                    : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
+                                : isWasmEngine
+                                    ? 'bg-border-secondary text-text-disabled cursor-not-allowed'
+                                    : profilingEnabled
+                                        ? 'bg-success text-white hover:bg-success/80'
+                                        : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
                         } ${!workerManager ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                        {profilingPending 
-                            ? 'Updating...' 
-                            : profilingEnabled 
-                                ? 'Disable Profiling' 
-                                : 'Enable Profiling'}
+                        {profilingPending
+                            ? 'Updating...'
+                            : isWasmEngine
+                                ? 'WASM (No Profiling)'
+                                : profilingEnabled
+                                    ? 'Disable Profiling'
+                                    : 'Enable Profiling'}
                     </button>
                 </div>
                 

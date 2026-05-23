@@ -47,7 +47,6 @@ export class WasmEngine implements ICPUEngine {
     private initPromise: Promise<void> | null = null;
     private _isReady = false;
 
-
     constructor(bus: Bus) {
         this.bus = bus;
         this.metricsStartTime = Date.now();
@@ -97,6 +96,11 @@ export class WasmEngine implements ICPUEngine {
     
     /**
      * Extract ROM data from the JavaScript Bus
+     *
+     * IMPORTANT: The WASM ROM.flash() expects data in format:
+     * [low_addr, high_addr, ...rom_bytes]
+     *
+     * For Apple 1 ROM at $FF00, the header should be [0x00, 0xFF]
      */
     private extractROMDataFromBus(): Uint8Array {
         // Find ROM component in bus mapping
@@ -108,7 +112,11 @@ export class WasmEngine implements ICPUEngine {
 
         if (!romChild?.component) {
             loggingService.warn('WasmEngine', 'ROM component not found in bus - using empty ROM');
-            return new Uint8Array(256); // Default 256 byte ROM
+            // Return empty ROM with address header
+            const emptyRom = new Uint8Array(258); // 2 header + 256 data
+            emptyRom[0] = 0x00; // Low byte of $FF00
+            emptyRom[1] = 0xFF; // High byte of $FF00
+            return emptyRom;
         }
 
         // Access the ROM component
@@ -119,18 +127,34 @@ export class WasmEngine implements ICPUEngine {
 
         if (!romMapping) {
             loggingService.warn('WasmEngine', 'ROM mapping not found - using empty ROM');
-            return new Uint8Array(256);
+            const emptyRom = new Uint8Array(258);
+            emptyRom[0] = 0x00;
+            emptyRom[1] = 0xFF;
+            return emptyRom;
         }
 
         const rom = romMapping.component as ROM;
         if (typeof rom.getData !== 'function') {
             loggingService.warn('WasmEngine', 'ROM.getData() not available - using empty ROM');
-            return new Uint8Array(256);
+            const emptyRom = new Uint8Array(258);
+            emptyRom[0] = 0x00;
+            emptyRom[1] = 0xFF;
+            return emptyRom;
         }
 
-        const romData = rom.getData();
-        loggingService.info('WasmEngine', `Extracted ${romData.length} bytes of ROM data from Bus`);
-        return romData;
+        // Get the raw ROM data (without header)
+        const rawRomData = rom.getData();
+
+        // Create new array with 2-byte address header prepended
+        // WASM ROM.flash() expects: [low_addr, high_addr, ...data]
+        // Apple 1 ROM is at $FF00, so header is [0x00, 0xFF]
+        const romDataWithHeader = new Uint8Array(2 + rawRomData.length);
+        romDataWithHeader[0] = 0x00; // Low byte of $FF00
+        romDataWithHeader[1] = 0xFF; // High byte of $FF00
+        romDataWithHeader.set(rawRomData, 2);
+
+        loggingService.info('WasmEngine', `Extracted ${rawRomData.length} bytes of ROM data from Bus (with 2-byte header for WASM)`);
+        return romDataWithHeader;
     }
 
     private async performInitialization(): Promise<void> {
@@ -195,24 +219,23 @@ export class WasmEngine implements ICPUEngine {
 
         const startTime = Date.now();
 
-        // Check for breakpoints
-        const cpuState = this.wasmSystem.get_cpu_state();
-        const pc = cpuState.pc;
-        if (this.breakpoints.has(pc)) {
-            // Breakpoint handling is done through execution hook
-            // Don't log here as it can flood console
-        }
-
-        // Execute one instruction in WASM (no boundary crossings!)
+        // Execute one instruction in WASM (breakpoint checking happens in Rust!)
         const cycles = this.wasmSystem.step();
 
-        // CRITICAL: If WASM returns 0 cycles, it means execution failed
-        const actualCycles = cycles || 2; // Default to 2 cycles if 0
+        // Check if a breakpoint was hit (WASM returns 0 cycles on breakpoint)
+        const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
+        if (breakpointAddr >= 0) {
+            loggingService.info('WasmEngine', `Breakpoint hit at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`);
+            // Don't clear the flag - let the caller handle it
+            // This signals to DualEngine/WorkerState that execution should pause
+            return 0; // Signal breakpoint hit
+        }
 
-        if (cycles === 0) {
-            const newState = this.wasmSystem.get_cpu_state();
+        // CRITICAL: If WASM returns 0 cycles without breakpoint, something went wrong
+        if (cycles === 0 && breakpointAddr < 0) {
+            const cpuState = this.wasmSystem.get_cpu_state();
             loggingService.error('WasmEngine',
-                `WASM returned 0 cycles at PC=${pc.toString(16)}, newPC=${newState.pc.toString(16)}`);
+                `WASM returned 0 cycles at PC=${cpuState.pc.toString(16)} (no breakpoint)`);
         }
 
         // Note: I/O synchronization happens automatically via memory bridge
@@ -220,24 +243,32 @@ export class WasmEngine implements ICPUEngine {
 
         // Update metrics
         const duration = Date.now() - startTime;
-        this.updateMetrics(actualCycles, duration);
+        this.updateMetrics(cycles, duration);
 
-        return actualCycles;
+        return cycles;
     }
 
     performBulkSteps(cycles: number): void {
         if (!this.wasmSystem?.is_initialized()) {
-            loggingService.warn('WasmEngine', 'performBulkSteps called before initialization complete');
             return;
         }
 
         // WasmSystem can run cycles efficiently without boundary crossings
+        // Note: run_cycles will stop early if a breakpoint is hit (returns 0 from step)
         const executedCycles = this.wasmSystem.run_cycles(cycles);
+
+        // Check if a breakpoint was hit during bulk execution
+        const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
+        if (breakpointAddr >= 0) {
+            loggingService.info('WasmEngine', `Breakpoint hit during bulk execution at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`);
+        }
 
         // Note: I/O happens automatically via memory bridge - no sync needed
 
-        // Update metrics
-        this.updateMetrics(executedCycles, 0);
+        // Update metrics (only count actual cycles executed)
+        if (executedCycles > 0) {
+            this.updateMetrics(executedCycles, 0);
+        }
     }
     
     reset(): void {
@@ -479,25 +510,57 @@ export class WasmEngine implements ICPUEngine {
     }
     
     // ============ Debugging Support ============
-    
+
     setBreakpoint(address: number): void {
         this.breakpoints.add(address);
+        // Sync to WASM for native breakpoint checking
+        if (this.wasmSystem) {
+            this.wasmSystem.set_breakpoint(address);
+        }
     }
-    
+
     clearBreakpoint(address: number): void {
         this.breakpoints.delete(address);
+        // Sync to WASM
+        if (this.wasmSystem) {
+            this.wasmSystem.clear_breakpoint(address);
+        }
     }
-    
+
     clearAllBreakpoints(): void {
         this.breakpoints.clear();
+        // Sync to WASM
+        if (this.wasmSystem) {
+            this.wasmSystem.clear_all_breakpoints();
+        }
     }
-    
+
     getBreakpoints(): number[] {
         return Array.from(this.breakpoints);
     }
-    
+
     hasBreakpoint(address: number): boolean {
         return this.breakpoints.has(address);
+    }
+
+    /**
+     * Check if a breakpoint was hit during the last step
+     * Returns the address of the breakpoint, or -1 if none
+     */
+    getBreakpointHit(): number {
+        if (!this.wasmSystem) {
+            return -1;
+        }
+        return this.wasmSystem.get_breakpoint_hit();
+    }
+
+    /**
+     * Clear the breakpoint hit flag after handling it
+     */
+    clearBreakpointHit(): void {
+        if (this.wasmSystem) {
+            this.wasmSystem.clear_breakpoint_hit();
+        }
     }
     
     // ============ Performance & Metrics ============
@@ -513,14 +576,11 @@ export class WasmEngine implements ICPUEngine {
             }
         }
 
-        // Force update IPS calculation when metrics are requested
-        const now = Date.now();
-        const totalTime = now - this.metricsStartTime;
-        if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
-            this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
-        }
+        // Force update IPS calculation when metrics are requested (consistent with JSEngine)
+        this.updateIPSMetrics();
 
         // Calculate instantaneous IPS (last second)
+        const now = Date.now();
         const timeSinceSecondStart = now - this.lastSecondStartTime;
         let lastIPS = 0;
         if (timeSinceSecondStart > 0) {
@@ -561,30 +621,43 @@ export class WasmEngine implements ICPUEngine {
         this.metrics.instructionsExecuted++;
         this.lastSecondInstructions++;
         this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
-        
-        // Update IPS calculation periodically
+
+        // Update IPS calculation (same algorithm as JSEngine for consistency)
+        this.updateIPSMetrics();
+
+        // Update memory usage periodically
+        if (this.metrics.instructionsExecuted % 1000 === 0) {
+            this.metrics.memoryUsage = this.getMemoryUsage();
+        }
+    }
+
+    /**
+     * Update IPS metrics with consistent algorithm (matches JSEngine)
+     * Uses 100ms minimum update interval and 1-second rolling window for lastIPS
+     */
+    private updateIPSMetrics(): void {
         const now = Date.now();
         const timeSinceLastUpdate = now - this.lastMetricsUpdate;
-        
-        if (timeSinceLastUpdate >= 100) {
+
+        // Update IPS every 100ms minimum OR when explicitly requested (timeSinceLastUpdate === 0)
+        if (timeSinceLastUpdate >= 100 || timeSinceLastUpdate === 0) {
+            // Calculate average IPS over entire runtime
             const totalTime = now - this.metricsStartTime;
             if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
                 this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
             }
-            
+
             // Reset last second counter every second for instantaneous IPS
             const timeSinceSecondStart = now - this.lastSecondStartTime;
             if (timeSinceSecondStart >= 1000) {
                 this.lastSecondInstructions = 0;
                 this.lastSecondStartTime = now;
             }
-            
-            this.lastMetricsUpdate = now;
-        }
-        
-        // Update memory usage periodically
-        if (this.metrics.instructionsExecuted % 1000 === 0) {
-            this.metrics.memoryUsage = this.getMemoryUsage();
+
+            // Only update lastMetricsUpdate if time has actually passed
+            if (timeSinceLastUpdate > 0) {
+                this.lastMetricsUpdate = now;
+            }
         }
     }
     

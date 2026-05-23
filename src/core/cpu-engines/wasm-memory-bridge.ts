@@ -1,9 +1,9 @@
 /**
  * WASM Memory Bridge
- * 
+ *
  * Provides memory access functions for WASM CPU to use JavaScript Bus
  * as the single source of truth for all memory operations.
- * 
+ *
  * This eliminates the dual-memory problem by having WASM call back
  * to JavaScript for every memory access.
  */
@@ -27,15 +27,7 @@ export const wasmMemoryBridge = {
             loggingService.error('WasmMemoryBridge', 'No Bus instance set');
             return 0;
         }
-        const value = currentBus.read(address);
-
-        // Debug I/O reads (PIA region only) - commented out to avoid console flooding
-        // if (address >= 0xD010 && address <= 0xD013) {
-        //     loggingService.info('WasmMemoryBridge',
-        //         `I/O Read: $${address.toString(16).toUpperCase()} = $${value.toString(16).padStart(2, '0')}`);
-        // }
-
-        return value;
+        return currentBus.read(address);
     },
 
     /**
@@ -48,14 +40,8 @@ export const wasmMemoryBridge = {
             return;
         }
 
-        // Debug I/O writes (PIA region only)
-        if (address >= 0xD010 && address <= 0xD013) {
-            loggingService.info('WasmMemoryBridge',
-                `I/O Write: $${address.toString(16).toUpperCase()} = $${value.toString(16).padStart(2, '0')}`);
-        }
-
         currentBus.write(address, value);
-    }
+    },
 };
 
 /**
@@ -66,19 +52,35 @@ export function setBusForWasm(bus: Bus): void {
     loggingService.info('WasmMemoryBridge', 'Bus instance set for WASM memory access');
 }
 
+/** Global scope augmented with the bridge property WASM looks up by bare identifier. */
+type GlobalWithBridge = { wasmMemoryBridge?: typeof wasmMemoryBridge };
+
+/**
+ * Resolve the global object across main-thread and Web Worker contexts.
+ */
+function getGlobalScope(): GlobalWithBridge {
+    if (typeof globalThis !== 'undefined') return globalThis as unknown as GlobalWithBridge;
+    if (typeof self !== 'undefined') return self as unknown as GlobalWithBridge;
+    if (typeof window !== 'undefined') return window as unknown as GlobalWithBridge;
+    return {};
+}
+
 /**
  * Install the memory bridge on the global object for WASM to access
+ *
+ * IMPORTANT: The wasm-bindgen generated code references `wasmMemoryBridge` as a
+ * bare identifier (not via globalThis). In ES modules within Web Workers, we need
+ * to ensure it's accessible both ways.
  */
 export function installMemoryBridge(): void {
-    // Check if we're in a Worker context or main thread
-    const globalObj = typeof globalThis !== 'undefined' ? globalThis : 
-                     // eslint-disable-next-line no-undef
-                     typeof self !== 'undefined' ? self : 
-                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                     typeof window !== 'undefined' ? window : {} as any;
-    
-    // Make the bridge available globally for WASM to call
+    const globalObj = getGlobalScope();
     globalObj.wasmMemoryBridge = wasmMemoryBridge;
+
+    // Also set on self for Worker compatibility (some bundlers may not resolve globalThis properly)
+    if (typeof self !== 'undefined' && (self as unknown) !== globalObj) {
+        (self as unknown as GlobalWithBridge).wasmMemoryBridge = wasmMemoryBridge;
+    }
+
     loggingService.info('WasmMemoryBridge', 'Memory bridge installed on global object');
 }
 
@@ -86,11 +88,5 @@ export function installMemoryBridge(): void {
  * Check if memory bridge is properly installed
  */
 export function isMemoryBridgeReady(): boolean {
-    const globalObj = typeof globalThis !== 'undefined' ? globalThis : 
-                     // eslint-disable-next-line no-undef
-                     typeof self !== 'undefined' ? self : 
-                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                     typeof window !== 'undefined' ? window : {} as any;
-    
-    return currentBus !== null && globalObj.wasmMemoryBridge === wasmMemoryBridge;
+    return currentBus !== null && getGlobalScope().wasmMemoryBridge === wasmMemoryBridge;
 }

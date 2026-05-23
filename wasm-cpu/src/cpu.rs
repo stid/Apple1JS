@@ -3,6 +3,7 @@
  */
 
 use wasm_bindgen::prelude::*;
+use std::collections::HashSet;
 use crate::{CPUState, Metrics, console_log};
 
 /// Status register flags
@@ -27,20 +28,28 @@ pub struct CPU6502 {
     pub(crate) y: u8,    // Y Index Register
     pub(crate) s: u8,    // Stack Pointer
     pub(crate) status: u8, // Status Register (NV-BDIZC)
-    
+
     // No internal memory - all memory access goes through JavaScript Bus
-    
+
     // Interrupt state
     pub(crate) irq: bool,
     pub(crate) nmi: bool,
     pub(crate) nmi_pending: bool,
-    
+
     // Performance tracking
     pub(crate) cycles: u64,
     pub(crate) instructions: u64,
-    
+
     // Timing
     last_step_start: f64,
+
+    // Breakpoint support
+    breakpoints: HashSet<u16>,
+    breakpoint_hit: Option<u16>,
+
+    // Profiling support
+    profiling_enabled: bool,
+    opcode_counts: [u64; 256],
 }
 
 #[wasm_bindgen]
@@ -63,6 +72,10 @@ impl CPU6502 {
             cycles: 0,
             instructions: 0,
             last_step_start: 0.0,
+            breakpoints: HashSet::new(),
+            breakpoint_hit: None,
+            profiling_enabled: false,
+            opcode_counts: [0; 256],
         }
     }
     
@@ -139,7 +152,14 @@ impl CPU6502 {
     }
 
     /// Execute a single instruction with internal Bus (for WasmSystem)
+    /// Returns 0 if a breakpoint was hit, otherwise returns cycles used
     pub(crate) fn step_with_bus(&mut self, bus: &mut crate::Bus) -> u32 {
+        // Check for breakpoint BEFORE executing
+        if !self.breakpoints.is_empty() && self.breakpoints.contains(&self.pc) {
+            self.breakpoint_hit = Some(self.pc);
+            return 0; // Signal breakpoint hit - no cycles consumed
+        }
+
         #[cfg(feature = "performance")]
         let start = crate::now();
 
@@ -156,6 +176,11 @@ impl CPU6502 {
         // Fetch opcode
         let opcode = self.read_byte_from_bus(bus, self.pc);
         self.pc = self.pc.wrapping_add(1);
+
+        // Track opcode execution if profiling is enabled
+        if self.profiling_enabled {
+            self.opcode_counts[opcode as usize] += 1;
+        }
 
         // Execute instruction with bus
         self.execute_instruction_with_bus(opcode, bus);
@@ -358,6 +383,102 @@ impl CPU6502 {
     /// Trigger NMI
     pub fn trigger_nmi(&mut self) {
         self.nmi_pending = true;
+    }
+
+    // ============ Breakpoint Support ============
+
+    /// Add a breakpoint at the specified address
+    pub fn set_breakpoint(&mut self, addr: u16) {
+        self.breakpoints.insert(addr);
+    }
+
+    /// Remove a breakpoint at the specified address
+    pub fn clear_breakpoint(&mut self, addr: u16) {
+        self.breakpoints.remove(&addr);
+    }
+
+    /// Clear all breakpoints
+    pub fn clear_all_breakpoints(&mut self) {
+        self.breakpoints.clear();
+        self.breakpoint_hit = None;
+    }
+
+    /// Check if a breakpoint was hit (returns the address or -1 if none)
+    pub fn get_breakpoint_hit(&self) -> i32 {
+        match self.breakpoint_hit {
+            Some(addr) => addr as i32,
+            None => -1,
+        }
+    }
+
+    /// Clear the breakpoint hit flag
+    pub fn clear_breakpoint_hit(&mut self) {
+        self.breakpoint_hit = None;
+    }
+
+    /// Check if an address has a breakpoint
+    pub fn has_breakpoint(&self, addr: u16) -> bool {
+        self.breakpoints.contains(&addr)
+    }
+
+    /// Get the number of breakpoints
+    pub fn breakpoint_count(&self) -> usize {
+        self.breakpoints.len()
+    }
+
+    // ============ Profiling Support ============
+
+    /// Enable or disable profiling
+    pub fn enable_profiling(&mut self, enabled: bool) {
+        self.profiling_enabled = enabled;
+        if enabled {
+            // Reset counts when profiling is enabled
+            self.opcode_counts = [0; 256];
+        }
+    }
+
+    /// Check if profiling is enabled
+    pub fn is_profiling_enabled(&self) -> bool {
+        self.profiling_enabled
+    }
+
+    /// Get opcode execution count for a specific opcode
+    pub fn get_opcode_count(&self, opcode: u8) -> u64 {
+        self.opcode_counts[opcode as usize]
+    }
+
+    /// Get total instruction count from profiling
+    pub fn get_profiled_instruction_count(&self) -> u64 {
+        self.opcode_counts.iter().sum()
+    }
+
+    /// Reset all profiling data
+    pub fn reset_profiling(&mut self) {
+        self.opcode_counts = [0; 256];
+    }
+
+    /// Get top N most executed opcodes as JSON-compatible data
+    /// Returns pairs of (opcode, count) sorted by count descending
+    pub fn get_top_opcodes(&self, count: usize) -> Vec<u8> {
+        // Create pairs of (opcode, count) for non-zero counts
+        let mut pairs: Vec<(u8, u64)> = self.opcode_counts
+            .iter()
+            .enumerate()
+            .filter(|(_, &c)| c > 0)
+            .map(|(op, &c)| (op as u8, c))
+            .collect();
+
+        // Sort by count descending
+        pairs.sort_by(|a, b| b.1.cmp(&a.1));
+
+        // Take top N and flatten to bytes: [op1, count1_low, count1_high, ...]
+        // Using 9 bytes per entry: 1 for opcode + 8 for u64 count
+        let mut result = Vec::with_capacity(count * 9);
+        for (op, cnt) in pairs.into_iter().take(count) {
+            result.push(op);
+            result.extend_from_slice(&cnt.to_le_bytes());
+        }
+        result
     }
 }
 

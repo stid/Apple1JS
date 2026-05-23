@@ -250,7 +250,7 @@ describe('CPU6502 - Transfer Operations', function () {
             expect(cpu.X).toBe(0x42); // X unchanged
             expect(cpu.S).toBe(0x42); // S now equals X
             // TXS does not affect flags
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
         });
 
@@ -263,7 +263,7 @@ describe('CPU6502 - Transfer Operations', function () {
             expect(cpu.X).toBe(0x00); // X unchanged
             expect(cpu.S).toBe(0x00); // S now equals X
             // TXS does not affect flags
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
         });
 
@@ -276,7 +276,7 @@ describe('CPU6502 - Transfer Operations', function () {
             expect(cpu.X).toBe(0x80); // X unchanged
             expect(cpu.S).toBe(0x80); // S now equals X
             // TXS does not affect flags
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
         });
 
@@ -289,7 +289,7 @@ describe('CPU6502 - Transfer Operations', function () {
             expect(cpu.X).toBe(0xFF); // X unchanged
             expect(cpu.S).toBe(0xFF); // S now equals X
             // TXS does not affect flags
-            expect(cpu.Z).toBe(1); // Initial reset state
+            expect(cpu.Z).toBe(0); // Z flag not set after reset
             expect(cpu.N).toBe(0); // Initial reset state
         });
     });

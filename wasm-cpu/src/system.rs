@@ -218,6 +218,76 @@ impl WasmSystem {
     pub fn trigger_nmi(&mut self) {
         self.cpu.trigger_nmi();
     }
+
+    // ============ Breakpoint Support ============
+
+    /// Add a breakpoint at the specified address
+    pub fn set_breakpoint(&mut self, addr: u16) {
+        self.cpu.set_breakpoint(addr);
+    }
+
+    /// Remove a breakpoint at the specified address
+    pub fn clear_breakpoint(&mut self, addr: u16) {
+        self.cpu.clear_breakpoint(addr);
+    }
+
+    /// Clear all breakpoints
+    pub fn clear_all_breakpoints(&mut self) {
+        self.cpu.clear_all_breakpoints();
+    }
+
+    /// Check if a breakpoint was hit (returns the address or -1 if none)
+    pub fn get_breakpoint_hit(&self) -> i32 {
+        self.cpu.get_breakpoint_hit()
+    }
+
+    /// Clear the breakpoint hit flag
+    pub fn clear_breakpoint_hit(&mut self) {
+        self.cpu.clear_breakpoint_hit();
+    }
+
+    /// Check if an address has a breakpoint
+    pub fn has_breakpoint(&self, addr: u16) -> bool {
+        self.cpu.has_breakpoint(addr)
+    }
+
+    /// Get the number of breakpoints
+    pub fn breakpoint_count(&self) -> usize {
+        self.cpu.breakpoint_count()
+    }
+
+    // ============ Profiling Support ============
+
+    /// Enable or disable profiling
+    pub fn enable_profiling(&mut self, enabled: bool) {
+        self.cpu.enable_profiling(enabled);
+    }
+
+    /// Check if profiling is enabled
+    pub fn is_profiling_enabled(&self) -> bool {
+        self.cpu.is_profiling_enabled()
+    }
+
+    /// Get opcode execution count for a specific opcode
+    pub fn get_opcode_count(&self, opcode: u8) -> u64 {
+        self.cpu.get_opcode_count(opcode)
+    }
+
+    /// Get total instruction count from profiling
+    pub fn get_profiled_instruction_count(&self) -> u64 {
+        self.cpu.get_profiled_instruction_count()
+    }
+
+    /// Reset all profiling data
+    pub fn reset_profiling(&mut self) {
+        self.cpu.reset_profiling();
+    }
+
+    /// Get top N most executed opcodes
+    /// Returns raw bytes: [op1, count1_bytes(8), op2, count2_bytes(8), ...]
+    pub fn get_top_opcodes(&self, count: usize) -> Vec<u8> {
+        self.cpu.get_top_opcodes(count)
+    }
 }
 
 // Internal implementation
