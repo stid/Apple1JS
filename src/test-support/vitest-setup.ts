@@ -3,12 +3,15 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-}));
+// Mock ResizeObserver. Vitest 4 requires a constructor mock's implementation to be
+// a `function`/`class` (not an arrow fn) since components call `new ResizeObserver()`.
+global.ResizeObserver = vi.fn().mockImplementation(function () {
+    return {
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+    };
+});
 
 // Mock requestAnimationFrame
 global.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
@@ -57,6 +60,6 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     clip: vi.fn(),
     canvas: {
         width: 800,
-        height: 600
-    }
+        height: 600,
+    },
 })) as any;
