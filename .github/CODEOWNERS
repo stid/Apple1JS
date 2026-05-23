@@ -1,0 +1,11 @@
+# Code owners — branch protection requires code-owner review, so a PR that touches
+# any path below cannot merge without @stid's explicit approval. Deliberately NOT a
+# global `*` owner: ordinary src/ PRs still need the normal 1 review, but the
+# security-sensitive paths get the extra line-by-line gate described in SECURITY.md.
+
+# Claude Code tooling — can execute code on a maintainer's machine (see SECURITY.md)
+/.claude/        @stid
+
+# CI/CD, automation, and repo policy
+/.github/        @stid
+/SECURITY.md     @stid
