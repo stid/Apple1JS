@@ -12,8 +12,7 @@ export default defineConfig({
         exclude: ['node_modules', 'dist', 'build'],
         testTimeout: 10000, // 10 second timeout per test
         hookTimeout: 10000, // 10 second timeout for hooks
-        maxWorkers: 2, // Limit parallel test workers
-        minWorkers: 1, // Minimum parallel test workers
+        maxWorkers: 2, // Limit parallel test workers (minWorkers removed in Vitest 4)
         coverage: {
             provider: 'v8',
             reporter: ['text', 'lcov', 'html'],
