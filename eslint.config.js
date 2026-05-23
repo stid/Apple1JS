@@ -24,6 +24,7 @@ export default [
             },
             globals: {
                 window: true,
+                self: true,
                 document: true,
                 console: true,
                 setTimeout: true,
@@ -72,6 +73,12 @@ export default [
         ],
         plugins: {
             jest,
+        },
+        settings: {
+            // jest is not installed (project uses Vitest); eslint-plugin-jest's
+            // rules apply to the identical describe/it/expect API, but its version
+            // auto-detection needs an explicit version to avoid a load error.
+            jest: { version: 29 },
         },
         rules: {
             ...jest.configs.recommended.rules,
