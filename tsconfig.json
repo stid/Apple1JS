@@ -20,7 +20,6 @@
         "sourceRoot": "/",
         "strict": true,
         "target": "esnext",
-        "baseUrl": ".",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "exactOptionalPropertyTypes": true,
@@ -28,7 +27,7 @@
         "resolveJsonModule": true,
         "types": ["node", "vitest/globals"],
         "paths": {
-            "@/*": ["src/*"]
+            "@/*": ["./src/*"]
         }
     },
     "include": ["src"]
