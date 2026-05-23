@@ -28,3 +28,5 @@ wasm-cpu/target/
 # (reference copies live in .claude/hooks.example/). The maintainer's settings.local.json
 # wires .claude/hooks/*.sh by path, so this dir must stay untracked.
 .claude/hooks/
+# Claude Code — native parallel worktrees live here (claude --worktree <name>)
+.claude/worktrees/

@@ -1,186 +1,74 @@
-# CLAUDE.md - Dual-Engine CPU Migration Guide
+# CLAUDE.md — Dual-Engine CPU Guide
 
-> **Current Focus**: Building a runtime-switchable CPU core with TypeScript and Rust/WASM implementations
-> **Key principle**: This is a personal hobby project for learning - keep it fun and exploratory!
+> **Focus**: A runtime-switchable 6502 core with TypeScript and Rust/WASM engines.
+> **Principle**: Personal hobby project for learning — keep it fun and exploratory.
 
-## 🎯 WASM Migration Focus
+## Critical Development Rules
 
-### Current Priority: Dual-Engine System
+1. **NEVER commit to master** — always use a feature branch (`feat/`, `fix/`,
+   `refactor/`, `docs/`, `test/`, `chore/`).
+2. **ALWAYS use Context7 MCP** for WASM/Rust documentation (pinned in `.mcp.json`).
+3. **Maintain feature parity** between JS and WASM engines; test both for every change.
+4. **Keep the JS engine as fallback**; document performance differences.
+5. **No `any` types** (strict mode), **no `console.log`** (use LoggingService),
+   **no hardcoded colors** (design tokens — except the CRT display).
+6. **Bump `src/version.ts`** before every PR (current: 4.42.0).
 
-We're building a **hot-swappable CPU engine system** that allows runtime switching between:
-
-- **JS Engine**: Original TypeScript implementation (better debugging)
-- **WASM Engine**: High-performance Rust implementation (5-10x faster)
-
-### Critical Development Rules
-
-1. **ALWAYS use Context7 MCP server** for WASM/Rust documentation
-2. **Maintain feature parity** between both engines
-3. **Test both engines** for every change
-4. **Document performance differences**
-5. **Keep JS engine as fallback**
-
-## 🚀 Quick Start Checklist
-
-**CRITICAL: Think hard about the task before starting!** This checklist ensures quality:
+## Quick Start Checklist
 
 ```bash
-# 1. Check branch (NEVER work on master!)
-git branch --show-current
-
-# 2. If on master, create feature branch
-git checkout -b <type>/<description>  # feat/, fix/, refactor/, docs/, test/, chore/
-
-# 3. Run tests to verify starting state
-yarn test:ci
-
-# 4. Check current version
-cat src/version.ts  # Current: 4.42.0
-
-# 5. Build WASM engine (when it exists)
-cd wasm-cpu && wasm-pack build --target web --out-dir ../src/wasm
-
-# 6. ALWAYS use TodoWrite tool for multi-step tasks!
+git branch --show-current                         # 1. NEVER work on master
+git checkout -b <type>/<description>              # 2. branch if needed
+yarn test:ci                                      # 3. verify starting state
+cat src/version.ts                                # 4. check version (4.42.7)
+yarn wasm:build:release                           # 5. build WASM (release = speed-first)
+# 6. Use the task tools for any multi-step work.
 ```
 
-## 🔄 Engine Development Commands
+## Engine Development Commands
 
 ```bash
-# Build WASM module (from project root)
-cd wasm-cpu && wasm-pack build --dev --target web --out-dir ../src/wasm
-
-# Build optimized WASM (when ready)
-cd wasm-cpu && cargo build --target wasm32-unknown-unknown --release
-
-# Quick rebuild during development
-cd wasm-cpu && cargo check
-
-# Run engine-parity tests to verify both engines work
-yarn test  # All tests include engine parity tests
-
-# Check WASM toolchain
-rustc --version  # Should be 1.70+ (we have 1.89.0)
-wasm-pack --version  # Should be 0.12+ (we have 0.13.1)
-cargo --version  # Should be recent (we have 1.89.0)
+yarn wasm:build:release   # speed-first release build (~155KB) — what yarn dev ships
+yarn wasm:build:dev       # debug build, ~10x slower — Rust debugging only
+yarn wasm:check           # cd wasm-cpu && cargo check (quick rebuild)
+yarn wasm:test            # cd wasm-cpu && cargo test
+yarn test                 # all tests, including engine-parity tests
 ```
 
-## 🔧 WASM Troubleshooting
+Toolchain: rustc 1.70+ (have 1.89.0), wasm-pack 0.12+ (have 0.13.1).
+Local `wasm-pack` builds need the rustup toolchain bin on PATH (Homebrew rustc
+shadows it).
 
-Common issues and fixes:
+## WASM Troubleshooting
 
-- **wasm-opt fails**: Add `wasm-opt = false` to `[package.metadata.wasm-pack]` in Cargo.toml
-- **Build from wrong directory**: Always `cd wasm-cpu` first
-- **Missing target**: Run `rustup target add wasm32-unknown-unknown`
-- **Type errors in generated code**: Rebuild with `--dev` flag for cleaner output
+- **wasm-opt fails**: the metadata key must be profile-scoped —
+  `[package.metadata.wasm-pack.profile.release]` — and enable
+  `--enable-bulk-memory --enable-nontrapping-float-to-int`.
+- **Build from wrong directory**: always `cd wasm-cpu` first (or use the `yarn`
+  scripts above).
+- **Missing target**: `rustup target add wasm32-unknown-unknown`.
 
-## 📊 Performance Tracking
+## Performance Tracking
 
-Track these metrics when developing (full detail: `docs/active/wasm-performance.md`):
+Full detail: `docs/active/wasm-performance.md`. Key facts:
 
-- **Raw throughput** - cycles/sec & instructions/sec, measured **headless** (`BENCH=1` benchmark).
-  WASM ≈ 14× JS. ⚠️ In-app IPS is **throttle-locked** by the `Clock` to ~1MHz (both engines
-  ~331K) — it does NOT show the WASM gain; never compare engines by in-app IPS.
-- **Host CPU / headroom** - in-app signal of the real difference: host ms per emulated second
-  (`hostMillisPerSecond`). WASM costs ~3–4× less at the same IPS.
-- **Engine switch time** - Target: <10ms
-- **Memory usage** - WASM should use ~50% less
-- **State transfer accuracy** - Must be 100%
-- **WASM binary size** - ~155KB release (**speed-first** `opt-level = 3` + `-O3` wasm-opt; the old
-  "<100KB / 90KB" target was an abandoned size-first strategy — don't restore it)
+- **Raw throughput** (cycles/sec & IPS) is measured **headless** (`BENCH=1`
+  benchmark). WASM ≈ 14× JS.
+- ⚠️ **In-app IPS is throttle-locked** by the `Clock` to ~1MHz (both engines
+  ~331K) — it does NOT show the WASM gain. Never compare engines by in-app IPS.
+- **Host CPU / headroom** (`hostMillisPerSecond`) is the in-app signal of the
+  real difference: WASM costs ~3–4× less at the same IPS.
+- **WASM binary**: ~155KB release (**speed-first** `opt-level = 3` + `-O3`
+  wasm-opt). The old "<100KB / 90KB" target was an abandoned size-first strategy
+  — don't restore it without approval.
 
-## 🎯 Essential Context
+## Essential Context
 
-### What is Apple1JS?
+**What is Apple1JS?** Browser-based, cycle-accurate Apple 1 emulator
+(TypeScript/React) with a **dual-engine** (JS + WASM) 6502 core, worker-based
+architecture, runtime engine switching, and comprehensive debugging tools.
 
-- Browser-based Apple 1 emulator (TypeScript/React)
-- Cycle-accurate 6502 CPU emulation
-- **Dual-engine architecture** (JS + WASM)
-- Worker-based architecture for performance
-- Comprehensive debugging tools
-- **Runtime engine switching** capability
-
-### Project Philosophy
-
-- Personal hobby project - no deadlines or sprints
-- For learning and exploration (especially Rust/WASM!)
-- Informal tone preferred
-- "Ideas to explore" not "requirements"
-- Performance matters but compatibility is critical
-
-## 📍 Navigation Shortcuts
-
-### Need to understand the system?
-
-→ `docs/active/architecture.md`
-
-### Looking for a specific component?
-
-→ Check module structure in architecture.md
-
-### Want to see what's in progress?
-
-→ `docs/active/consolidated_roadmap.md`
-
-### Looking for UX ideas and improvements?
-
-→ `docs/active/user_experience_analysis.md`
-
-### Need type definitions?
-
-→ `src/core/types/` or `src/apple1/types/`
-
-### Testing guidelines?
-
-→ `docs/active/cpu_test_guidelines.md`
-
-## 🔄 Recommended Workflow
-
-### Explore → Plan → Code → Commit
-
-**ALWAYS follow this workflow for best results:**
-
-1. **EXPLORE** - Read relevant files thoroughly
-
-    ```bash
-    # Use architecture.md as your map
-    # Search for similar patterns in codebase
-    # Check existing tests for context
-    ```
-
-2. **PLAN** - Create detailed implementation plan
-    - Use TodoWrite tool for tasks with 3+ steps
-    - Break complex features into manageable chunks
-    - Think through edge cases and test scenarios
-
-3. **CODE** - Implement with existing patterns
-    - Follow code style from neighboring files
-    - Write tests alongside implementation
-    - Use type safety (no `any` types!)
-
-4. **COMMIT** - Verify and document changes
-
-    ```bash
-    yarn run lint && yarn run type-check && yarn run test:ci
-    yarn run lint:md:fix  # For any markdown changes
-    git add -A && git commit -m "type: description"
-    ```
-
-## 🛠️ Common Tasks
-
-### Adding a Feature
-
-1. Find related code using architecture.md as guide
-2. Check if pattern exists (likely in similar components)
-3. Write tests first if modifying core emulation
-4. Use existing formatters/utilities
-
-### Debugging Worker Issues
-
-- Messages defined in `src/apple1/types/worker-messages.ts`
-- Use `sendWorkerMessage()` for type safety
-- Check browser DevTools for Worker messages
-
-### Finding Where Something Lives
+**Where things live:**
 
 ```text
 src/
@@ -192,389 +80,100 @@ src/
 └── hooks/       # Reusable React patterns
 ```
 
-## 🧪 Testing Strategy
+Dual-engine internals, the migration history, and the WASM directory map live in
+`docs/active/wasm-migration-history.md`.
 
-**CRITICAL: ALL TESTS MUST PASS BEFORE COMMITTING!**
+## Recommended Workflow: Explore → Plan → Code → Commit
 
-- Never break the test suite - if tests fail after your changes, fix them
-- Always run `yarn test:ci` before committing any changes
-- If adding new features, add corresponding tests
-- If changing component behavior, update tests to match
+1. **EXPLORE** — read relevant files; use `docs/active/architecture.md` as the map.
+2. **PLAN** — use the task tools for 3+ step work; think through edge cases/tests.
+3. **CODE** — follow neighboring patterns; write tests alongside; type-safe.
+4. **COMMIT** — run checks (below), then conventional commit.
 
-### Test-Driven Development (TDD) Approach
+### Running parallel agents
 
-**For core emulation changes, ALWAYS use TDD:**
+For multiple agents working different features at once, use git worktrees:
+`claude --worktree <name>`. See `docs/active/parallel-agents.md` for the full
+workflow, config inheritance, and cleanup.
 
-1. **Write the test first**
+## Testing Strategy
 
-    ```typescript
-    // Example: Testing a new CPU instruction
-    it('should handle new instruction correctly', () => {
-        // Setup initial state
-        // Execute instruction
-        // Assert expected outcome
-    });
-    ```
+**ALL TESTS MUST PASS BEFORE COMMITTING.** Never break the suite; add tests for
+new features; update tests when behavior changes.
 
-2. **Verify test fails**
-
-    ```bash
-    yarn test --watch  # Run in watch mode for quick iteration
-    ```
-
-3. **Write minimal code to pass**
-    - Implement just enough to make test green
-    - Don't over-engineer on first pass
-
-4. **Refactor and iterate**
-    - Clean up implementation
-    - Add edge case tests
-    - Ensure all tests still pass
-
-### Testing Commands
+**For core emulation changes, use TDD:** write the failing test first
+(`yarn test:watch`), write minimal code to pass, then refactor.
 
 ```bash
-yarn test          # Run all tests
-yarn test:watch    # Watch mode for TDD
-yarn test:ci       # Full CI test suite
-yarn test:coverage # Check test coverage
+yarn test          # run all tests
+yarn test:watch    # watch mode for TDD
+yarn test:ci       # full CI suite
+yarn test:coverage # coverage
 ```
 
-## 💻 Development Environment
+Test guidelines: `docs/active/cpu_test_guidelines.md`.
 
-### Essential Tools
+## Before ANY Commit
 
 ```bash
-# GitHub CLI for PR management and complex GitHub operations
-brew install gh  # macOS
-# or: sudo apt install gh  # Linux
-
-# Authenticate once
-gh auth login
-
-# Visual debugging
-# Use browser DevTools for:
-# - Worker message inspection
-# - Performance profiling
-# - React component debugging
+yarn run lint && yarn run type-check && yarn run test:ci
+yarn run lint:md:fix    # after editing/creating any markdown
+# bump src/version.ts (patch/minor/major)
+git add -A && git commit -m "type: description"   # feat:, fix:, docs:, ...
+git push
 ```
 
-### GitHub CLI Operations
+## Key Patterns to Follow
 
-**The `gh` command is available for complex GitHub operations:**
+- **State management**: components implement `IVersionedStatefulComponent` with
+  version + migration support.
+- **Formatting**: use the `Formatters` utility (e.g. `Formatters.hexWord(addr)`)
+  — never manual `toString(16)`.
+- **Worker communication**: type-safe via
+  `sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address)`. Messages
+  defined in `src/apple1/types/worker-messages.ts`.
+- **Component inspection**: implement `IInspectableComponent`; return structured
+  data from `getInspectable()` for debugger visibility.
+
+## UI Work
+
+For UI changes, iterate against visuals: ask for current-state screenshots /
+mockups and concrete success criteria up front, then screenshot progress and
+iterate 2–3 times.
+
+## GitHub CLI
+
+`gh` is available for PRs, issues, CI status, and CodeQL findings, e.g.:
 
 ```bash
-# Pull Request Management
-gh pr create --title "feat: description" --body "detailed description"
-gh pr view 123                    # View PR details
-gh pr checks 123                  # Check CI/CD status
-gh pr comments 123               # View PR comments
-gh pr merge 123                  # Merge PR when ready
-
-# Issue Management
-gh issue create --title "bug: description"
-gh issue view 456
-gh issue list --state open
-
-# Repository Operations
-gh repo view                     # Repository info
-gh api repos/owner/repo/pulls    # Direct API access
-gh release create v1.0.0         # Create releases
-
-# Security & Code Scanning
-gh api repos/owner/repo/code-scanning/alerts  # CodeQL findings
-gh api repos/owner/repo/security-advisories   # Security advisories
+gh pr create --title "feat: description" --body "..."
+gh pr checks <n>
+gh api repos/owner/repo/code-scanning/alerts   # security findings
 ```
 
-**Use Cases for AI Assistants:**
-
-- Creating and managing pull requests programmatically
-- Checking CI/CD pipeline status and failures
-- Fetching CodeQL security findings for remediation
-- Managing issues and project workflow
-- Accessing GitHub API for complex repository operations
-
-### Helpful Aliases
-
-```bash
-# Add to your shell config:
-alias a1-lint="yarn run lint && yarn run type-check"
-alias a1-test="yarn test:ci"
-alias a1-check="a1-lint && a1-test"
-```
-
-## ✅ Before ANY Commit
-
-1. **Run quality checks**:
-
-    ```bash
-    yarn run lint && yarn run type-check && yarn run test:ci
-    ```
-
-2. **Fix markdown documentation**:
-
-    ```bash
-    yarn run lint:md:fix  # Auto-fix markdown issues
-    ```
-
-3. **Update version** (MANDATORY before PR):
-
-    ```bash
-    # Edit src/version.ts
-    # Patch: 4.33.33 → 4.33.34 (bug fixes)
-    # Minor: 4.33.33 → 4.34.0 (new features)
-    # Major: 4.33.33 → 5.0.0 (breaking changes)
-    ```
-
-4. **Commit with conventional format**:
-
-    ```bash
-    git add -A
-    git commit -m "type: description"  # feat:, fix:, docs:, etc.
-    ```
-
-## 🔑 Key Patterns to Follow
-
-### State Management
-
-- Components implement `IVersionedStatefulComponent`
-- Always include version and migration support
-- See existing components for patterns
-
-### Formatting
-
-- Use `Formatters` utility (no manual toString(16))
-- Consistent hex formatting: `Formatters.hexWord(addr)`
-
-### Worker Communication
-
-```typescript
-// Type-safe messaging
-sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address);
-```
-
-### Component Inspection
-
-- Implement `IInspectableComponent` for debugger visibility
-- Return structured data from `getInspectable()`
-
-## 🚫 Common Pitfalls
-
-1. **NEVER commit to master** - Always use feature branches (THIS IS CRITICAL!)
-2. **Don't use console.log** - Use LoggingService
-3. **Avoid any types** - TypeScript strict mode is enabled
-4. **Don't hardcode colors** - Use design tokens (except CRT display)
-5. **Remember version bump** - Required for every PR
-
-## 📊 Project Roadmap
-
-**See `docs/active/consolidated_roadmap.md` for the complete, prioritized roadmap.**
-
-### Quick Summary of Priorities
-
-🛑 **Critical** - Test stability & core issues
-🔴 **High** - Core functionality & architecture
-🟡 **Medium** - Enhanced features
-🟢 **Low** - Refinements & polish
-
-### Recently Completed ✅
-
-- Jest to Vitest Migration (626 tests)
-- Comlink Worker Migration (Phase 2)
-- Type System Organization
-- State Management Interfaces
-- Formatter Migration (97 instances)
-- CPU6502 Module Split (6 focused modules)
-- Base Classes for Common Patterns (useWorkerState hooks)
-- **Dual-Engine CPU System** with runtime switching (Aug 31, 2024)
-- **Performance Metrics Dashboard** with real-time monitoring
-- **WASM Engine Integration** with proper initialization
-- **WASM Performance Optimization** - Release build now 90KB (was 357KB), achieving target performance
-
-### Current Focus: WASM CPU Implementation 🚀
-
-#### ✅ Major Milestone Completed
-
-- **150+ documented 6502 opcodes implemented** in Rust/WASM
-- All major addressing modes (izx, izy, zpx, zpy, abx, aby)
-- Complete instruction set: Load/Store, Arithmetic, Logical, Shift/Rotate, Compare, Branch
-- BIT instruction with proper flag handling
-- WASM module successfully building (387KB dev, target <100KB release)
-- Dual-engine architecture ready for integration
-
-#### ✅ Recently Completed (Aug 31, 2024)
-
-- **Fixed 0 IPS metrics issue** - Clock now properly subscribes to DualEngine
-- **Resolved WASM initialization errors** - Proper initialization sequencing
-- **Engine switcher UI component** - Complete with real-time switching
-- **Performance metrics dashboard** - Shows IPS, memory, and speedup
-- **WASM Release Build Optimization** - Fixed performance regression (was 0.2x slower, now 5-10x faster)
-- **Binary Size Optimization** - Reduced from 357KB (dev) to 90KB (release)
-
-#### ✅ Recently Completed (Oct 4, 2025)
-
-- **Project Cleanup** - Removed ~1,700 lines of experimental code
-  - Removed WasmEnhancedEngine (experimental internal memory approach)
-  - Removed WASM proxy files (RAM/ROM/Bus proxies)
-  - Removed Jest configuration (fully migrated to Vitest)
-  - Untracked 291MB of WASM build artifacts from git
-  - Cleaned up unused Rust modules (cpu_enhanced, memory_bridge, memory)
-
-#### ✅ Recently Completed (May 2026 — `feat/wasm-dual-engine-cpu`, v4.42.0)
-
-> Supersedes the earlier "90KB / <100KB / 5-10× IPS" notes above. Details: `docs/active/wasm-performance.md`.
-
-- **Real WASM speedup measured** - ~14× JS raw throughput, confirmed by a gated **headless**
-  benchmark (`BENCH=1 … wasm-benchmark.vitest.test.ts`). The old in-app "160 IPS" was a metrics
-  defect + a debug build shipped to `yarn dev`.
-- **Strategy switched to speed-first** - `opt-level = 3` + `-O3` wasm-opt (was size-first
-  `opt-level = "z"`). Release binary is now **~155KB** (the prior 90KB was the abandoned size build).
-  `yarn dev` ships `--release`; `yarn dev:debug-wasm` keeps the slow debug path.
-- **IPS-throttle clarified** - the `Clock` throttles both engines to ~1MHz, so in-app IPS is
-  identical by design. Added a **Host CPU / headroom** metric (`hostMillisPerSecond`) to surface
-  the real cost difference in the Performance Metrics panel.
-- **Debugger live under WASM** - CPU State / Stack / Memory / Disassembly now read from the
-  **active** engine via `ICPUEngine.toDebug()` + `readRange()` (were hardwired to the dormant JS
-  `CPU6502`/`Bus` and froze on switch).
-
-#### 🎯 Current Architecture Status
-
-**Working Dual-Engine System** - DualEngine coordinates JS and WASM engines:
-
-- **JSEngine**: Wraps existing CPU6502 (TypeScript implementation)
-- **WasmEngine**: Wraps WASM CPU using JavaScript memory bridge
-- **DualEngine**: Provides runtime switching with state preservation
-- **Memory**: Single source of truth in JavaScript (RAM.ts, ROM.ts, Bus.ts)
-
-#### 📋 Next Priority Tasks
-
-1. **Performance optimization** - Profile and optimize hot paths
-2. **Enhanced debugging** - Add WASM-specific debugging support
-3. **Documentation** - Update architecture docs with cleanup changes
-
-#### 🎯 Using the Dual-Engine System
-
-```typescript
-// Create dual-engine CPU
-import { DualEngine } from './src/core/cpu-engines';
-
-const dualEngine = new DualEngine(bus, 'JS'); // Start with JS engine
-await dualEngine.initialize();
-
-// Switch to WASM for performance
-await dualEngine.switchEngine('WASM');
-
-// Get performance comparison
-const comparison = await dualEngine.compareEngines();
-console.log(`WASM is ${comparison.speedup}x faster!`);
-
-// Listen for engine switches
-dualEngine.onEngineSwitch((event) => {
-    console.log(`Switched from ${event.from} to ${event.to}`);
-});
-```
-
-#### 📁 WASM Project Structure
-
-```text
-wasm-cpu/               # Rust source (build from here)
-├── Cargo.toml
-└── src/
-    ├── lib.rs         # Entry point & exports
-    ├── cpu.rs         # 6502 CPU implementation
-    ├── ram.rs         # WASM RAM module
-    ├── rom.rs         # WASM ROM module
-    ├── bus.rs         # WASM Bus module
-    ├── instructions.rs # 6502 instruction implementations
-    └── opcodes.rs     # Opcode dispatch table
-
-src/core/cpu-engines/  # TypeScript engine wrappers
-├── JSEngine.ts        # Wraps existing CPU6502
-├── WasmEngine.ts      # Wraps WASM CPU (uses JS memory)
-├── DualEngine.ts      # Coordinates both engines with runtime switching
-├── wasm-loader.ts     # WASM initialization & status
-├── wasm-memory-bridge.ts # JS memory bridge for WASM
-└── index.ts           # Public exports
-
-src/wasm/              # Generated WASM output (gitignored)
-├── apple1_cpu_wasm.js # JS bindings (generated by wasm-pack)
-├── apple1_cpu_wasm.d.ts # TypeScript definitions
-└── apple1_cpu_wasm_bg.wasm # WASM binary
-```
-
-For detailed task breakdowns, timelines, and execution strategy, refer to the consolidated roadmap.
-
-## 🎨 Visual References
-
-### When Working on UI Components
-
-**IMPORTANT**: For UI changes, provide screenshots or mockups to iterate against!
-
-1. **Before starting UI work**, ask for:
-    - Screenshots of current state
-    - Visual mockups or sketches
-    - Specific success criteria
-
-2. **During implementation**:
-    - Take screenshots of progress
-    - Compare against references
-    - Iterate 2-3 times for polish
-
-3. **Example request format**:
-
-    ```text
-    "Here's a screenshot of the current memory viewer.
-    I want to add highlighting for changed values.
-    Success: Changed bytes show in yellow for 1 second."
-    ```
-
-## 🔗 Quick References
-
-### Documentation
-
-- **Documentation Hub**: `docs/README.md`
-- **Architecture**: `docs/active/architecture.md`
-- **Roadmap & Priorities**: `docs/active/consolidated_roadmap.md`
-- **Standardization Progress**: `docs/active/standardization-progress.md`
-- **Test Guidelines**: `docs/active/cpu_test_guidelines.md`
-
-### External Resources
-
-- [6502 Opcodes](http://www.6502.org/tutorials/6502opcodes.html)
-- [Apple-1 Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
-
----
-
-💡 **Remember**: This is a learning project. If something seems interesting to explore, let's do it! Keep suggestions informal and frame them as opportunities to learn rather than requirements.
-
-## 🚨 Success Criteria
-
-### How to Know You're Done
-
-**ALWAYS verify these before considering a task complete:**
+## Success Criteria
 
 1. ✅ All tests pass (`yarn test:ci`)
 2. ✅ No lint errors (`yarn lint`)
 3. ✅ No type errors (`yarn type-check`)
 4. ✅ Version bumped in `src/version.ts`
 5. ✅ Feature works as described
-6. ✅ No console.log statements left
-7. ✅ Documentation updated if needed
+6. ✅ No `console.log` left
+7. ✅ Docs updated if needed
 
-### Using Verification
+## Quick References
 
-For complex changes, consider the following approaches:
+- **Documentation Hub**: `docs/README.md`
+- **Architecture**: `docs/active/architecture.md`
+- **Roadmap & Priorities**: `docs/active/consolidated_roadmap.md`
+- **WASM Performance**: `docs/active/wasm-performance.md`
+- **Migration History**: `docs/active/wasm-migration-history.md`
+- **Parallel Agents**: `docs/active/parallel-agents.md`
+- **Test Guidelines**: `docs/active/cpu_test_guidelines.md`
+- [6502 Opcodes](http://www.6502.org/tutorials/6502opcodes.html) ·
+  [Apple-1 Manual](https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a)
 
-- Running the app and manually testing
-- Taking screenshots of working features
-- Writing integration tests for new workflows
+---
 
-## 📝 Markdown Documentation Rule
-
-**IMPORTANT**: After creating or editing any markdown files, always run:
-
-```bash
-yarn run lint:md:fix
-```
-
-This automatically fixes most formatting issues and ensures consistent documentation.
+💡 This is a learning project. If something seems interesting to explore, let's do
+it — frame ideas as opportunities, not requirements.

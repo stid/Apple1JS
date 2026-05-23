@@ -3,6 +3,7 @@ name: wasm-engine-verifier
 description: Verifies WASM and JS CPU engine parity for Apple1JS dual-engine system. Use when implementing new instructions, debugging engine differences, or validating state synchronization.
 model: sonnet
 color: orange
+isolation: worktree
 ---
 
 # WASM Engine Verifier Agent
