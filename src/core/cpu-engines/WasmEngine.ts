@@ -15,6 +15,7 @@ import type Bus from '../Bus';
 import { initializeWasmModule, getWasmSystemClass, isWasmSupported } from './wasm-loader';
 import { installMemoryBridge, setBusForWasm } from './wasm-memory-bridge';
 import { loggingService } from '../../services/LoggingService';
+import { Formatters } from '../../utils/formatters';
 import ROM from '../ROM';
 
 /**
@@ -41,6 +42,9 @@ export class WasmEngine implements ICPUEngine {
     private lastSecondStartTime: number;
     private initPromise: Promise<void> | null = null;
     private _isReady = false;
+    // Cumulative host wall-clock ms spent executing since the last reset.
+    // Divided by emulated seconds in getMetrics() to expose real engine cost.
+    private hostExecMs = 0;
 
     constructor(bus: Bus) {
         this.bus = bus;
@@ -261,7 +265,10 @@ export class WasmEngine implements ICPUEngine {
 
         // WasmSystem can run cycles efficiently without boundary crossings
         // Note: run_cycles will stop early if a breakpoint is hit (returns 0 from step)
+        // Time the call with performance.now() (sub-ms) for the host-utilization metric.
+        const startTime = performance.now();
         const executedCycles = this.wasmSystem.run_cycles(cycles);
+        this.hostExecMs += performance.now() - startTime;
 
         // Check if a breakpoint was hit during bulk execution
         const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
@@ -301,6 +308,7 @@ export class WasmEngine implements ICPUEngine {
         this.lastMetricsUpdate = Date.now();
         this.lastSecondInstructions = 0;
         this.lastSecondStartTime = Date.now();
+        this.hostExecMs = 0;
     }
 
     halt(): void {
@@ -616,7 +624,19 @@ export class WasmEngine implements ICPUEngine {
             ...this.metrics,
             // Add lastIPS as a computed field
             lastIPS: lastIPS || this.metrics.averageIPS,
+            // Host wall-clock ms per emulated second (1MHz => totalCycles/1e6 s)
+            hostMillisPerSecond: this.computeHostMillisPerSecond(),
         } as EngineMetrics;
+    }
+
+    /**
+     * Host wall-clock milliseconds spent executing per second of emulated
+     * 6502 time. Mirrors JSEngine so the two engines are directly comparable;
+     * this is where WASM's real advantage shows (far fewer host ms per second).
+     */
+    private computeHostMillisPerSecond(): number {
+        const emulatedSeconds = this.metrics.totalCycles / 1_000_000;
+        return emulatedSeconds > 0 ? this.hostExecMs / emulatedSeconds : 0;
     }
 
     resetMetrics(): void {
@@ -625,6 +645,7 @@ export class WasmEngine implements ICPUEngine {
         this.lastMetricsUpdate = Date.now();
         this.lastSecondInstructions = 0;
         this.lastSecondStartTime = Date.now();
+        this.hostExecMs = 0;
     }
 
     getMemoryUsage(): number {
@@ -704,6 +725,63 @@ export class WasmEngine implements ICPUEngine {
             metrics: this.metrics,
             wasmMetrics: this.wasmSystem.get_metrics(),
             memoryMap: this.wasmSystem.get_memory_map(),
+        };
+    }
+
+    /**
+     * Flat debug snapshot in the shape the debugger UI consumes, built from
+     * the live WASM CPU state. Mirrors CPU6502.toDebug()/JSEngine.toDebug()
+     * so the debugger reflects the WASM engine when it is active instead of
+     * a frozen JS CPU.
+     */
+    toDebug(): { [key: string]: string | number | boolean | object } {
+        if (!this.wasmSystem) {
+            return {};
+        }
+
+        const state = this.wasmSystem.get_cpu_state();
+        const pc = state.pc;
+        const a = state.a;
+        const x = state.x;
+        const y = state.y;
+        const s = state.s;
+        const status = state.status;
+        const cycles = state.cycles ?? this.metrics.totalCycles;
+        const irq = state.irq;
+        const nmi = state.nmi;
+
+        // The WASM core does not retain a last-executed opcode; at the
+        // throttled/paused rate the byte under PC is the most useful
+        // "current opcode" to show in the debugger.
+        const opcode = this.wasmSystem.read_memory(pc);
+
+        return {
+            REG_PC: Formatters.hexWord(pc),
+            REG_A: Formatters.hexByte(a),
+            REG_X: Formatters.hexByte(x),
+            REG_Y: Formatters.hexByte(y),
+            REG_S: Formatters.hexByte(s),
+            FLAG_N: Formatters.flag((status >> 7) & 1),
+            FLAG_V: Formatters.flag((status >> 6) & 1),
+            FLAG_D: Formatters.flag((status >> 3) & 1),
+            FLAG_I: Formatters.flag((status >> 2) & 1),
+            FLAG_Z: Formatters.flag((status >> 1) & 1),
+            FLAG_C: Formatters.flag(status & 1),
+            HW_ADDR: Formatters.hexWord(0),
+            HW_DATA: Formatters.hexByte(0),
+            HW_OPCODE: Formatters.hexByte(opcode),
+            HW_CYCLES: Formatters.decimal(cycles),
+            IRQ_LINE: irq ? 'ACTIVE' : 'INACTIVE',
+            NMI_LINE: nmi ? 'ACTIVE' : 'INACTIVE',
+            IRQ_PENDING: 'NO',
+            NMI_PENDING: 'NO',
+            PERF_ENABLED: 'NO',
+            // Raw numeric values (parity with CPU6502.toDebug)
+            PC: pc,
+            A: a,
+            X: x,
+            Y: y,
+            S: s,
         };
     }
 

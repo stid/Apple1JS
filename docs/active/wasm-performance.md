@@ -21,6 +21,30 @@ both show ~331 K IPS at ~100%. WASM's advantage is **headroom** — lower CPU/ba
 and the ability to run far faster if the clock target is raised. It is not visible as a higher
 in-app IPS at native speed.
 
+### Making the headroom visible: the Host CPU metric
+
+Because throttled IPS is identical, the debugger's Performance Metrics panel also reports a
+**Host CPU** figure: the host wall-clock milliseconds each engine spends executing per emulated
+second, shown as a load percentage and an "Nx headroom" multiplier (how much faster than 1 MHz the
+engine could run unthrottled). Each engine accumulates `performance.now()` time around its
+`performBulkSteps` call and divides by emulated seconds (`totalCycles / 1e6`) in `getMetrics()`
+(`hostMillisPerSecond`). On an Apple M-series machine a typical idle WozMon loop reads roughly:
+
+| Engine | Host CPU | Headroom |
+| ------ | -------: | -------: |
+| JS     |   ~1.2 % |    ~85 × |
+| WASM   |  ~0.33 % |   ~300 × |
+
+Same IPS, but WASM costs ~3–4 × less host CPU — the real, always-on signal of the gain.
+
+### Debugger parity under WASM
+
+The debugger's CPU State, Execution, Stack, Memory and Disassembly panels source from the _active_
+engine. `WorkerAPI.getDebugInfo()` calls the active engine's `toDebug()` (added to `ICPUEngine`,
+implemented by `JSEngine`, `WasmEngine`, and delegated by `DualEngine`) and `readMemoryRange()`
+reads through the active engine's `readRange()`. Previously these were hardwired to the JS
+`CPU6502`/`Bus`, which is dormant while WASM runs, so the panels froze on switch to WASM.
+
 ## Root causes that were fixed
 
 1. **Metric undercount (the "160 IPS").** `WasmEngine.performBulkSteps` called `updateMetrics`,

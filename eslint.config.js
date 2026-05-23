@@ -38,6 +38,7 @@ export default [
                 TextEncoder: true,
                 TextDecoder: true,
                 WebAssembly: true,
+                performance: true,
                 process: true,
                 module: true,
                 require: true,

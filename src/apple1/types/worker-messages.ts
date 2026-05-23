@@ -53,7 +53,7 @@ export interface CPUDebugData {
     _PERF_DATA?: CPUPerfData;
 }
 
-// Component debug data structure  
+// Component debug data structure
 export interface ComponentDebugData {
     [key: string]: string | number | object;
 }
@@ -137,7 +137,7 @@ export interface EngineStatusData {
     availableEngines: ('JS' | 'WASM')[];
     switchCount: number;
     lastSwitchTime: number;
-    jsMetrics?: EngineMetricsData;  // Populated only when currentEngine === 'JS'
+    jsMetrics?: EngineMetricsData; // Populated only when currentEngine === 'JS'
     wasmMetrics?: EngineMetricsData; // Populated only when currentEngine === 'WASM'
 }
 
@@ -148,6 +148,12 @@ export interface EngineMetricsData {
     lastIPS: number;
     cyclesExecuted: number;
     memoryUsage: number;
+    /**
+     * Host wall-clock ms spent executing per emulated second (1MHz target).
+     * Lower is faster; this is what exposes WASM's real advantage that the
+     * clock-throttled IPS hides. 0 until enough work has run to measure.
+     */
+    hostMillisPerSecond: number;
 }
 
 // Interface for engine comparison
@@ -252,17 +258,19 @@ export type WorkerMessage =
  * Type guard to check if a message is a valid WorkerMessage
  */
 export function isWorkerMessage(data: unknown): data is WorkerMessage {
-    return typeof data === 'object' && 
-           data !== null && 
-           'type' in data &&
-           typeof (data as {type: unknown}).type === 'number' &&
-           Object.values(WORKER_MESSAGES).includes((data as {type: unknown}).type as WORKER_MESSAGES);
+    return (
+        typeof data === 'object' &&
+        data !== null &&
+        'type' in data &&
+        typeof (data as { type: unknown }).type === 'number' &&
+        Object.values(WORKER_MESSAGES).includes((data as { type: unknown }).type as WORKER_MESSAGES)
+    );
 }
 
 /**
  * Extract the payload type for a given message type
  */
-export type ExtractPayload<T extends WORKER_MESSAGES> = 
+export type ExtractPayload<T extends WORKER_MESSAGES> =
     Extract<WorkerMessage, { type: T }> extends { data: infer D } ? D : never;
 
 /**
@@ -306,4 +314,12 @@ export function sendWorkerMessageWithRequest<T extends WORKER_MESSAGES>(
 }
 
 // Union type for message data types (kept for backward compatibility)
-export type MessageDataTypes = DebugData | VideoData | LogMessageData | MemoryRangeRequest | MemoryRangeData | ClockData | MemoryWriteRequest | MemoryMapData;
+export type MessageDataTypes =
+    | DebugData
+    | VideoData
+    | LogMessageData
+    | MemoryRangeRequest
+    | MemoryRangeData
+    | ClockData
+    | MemoryWriteRequest
+    | MemoryMapData;
