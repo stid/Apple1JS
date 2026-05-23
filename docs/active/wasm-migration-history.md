@@ -68,6 +68,7 @@
 
 ```typescript
 import { DualEngine } from './src/core/cpu-engines';
+import { loggingService } from './src/services';
 
 const dualEngine = new DualEngine(bus, 'JS'); // Start with JS engine
 await dualEngine.initialize();
@@ -77,11 +78,11 @@ await dualEngine.switchEngine('WASM');
 
 // Get performance comparison
 const comparison = await dualEngine.compareEngines();
-console.log(`WASM is ${comparison.speedup}x faster!`);
+loggingService.info('DualEngine', `WASM is ${comparison.speedup}x faster!`);
 
 // Listen for engine switches
 dualEngine.onEngineSwitch((event) => {
-    console.log(`Switched from ${event.from} to ${event.to}`);
+    loggingService.info('DualEngine', `Switched from ${event.from} to ${event.to}`);
 });
 ```
 

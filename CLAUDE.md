@@ -12,7 +12,8 @@
 4. **Keep the JS engine as fallback**; document performance differences.
 5. **No `any` types** (strict mode), **no `console.log`** (use LoggingService),
    **no hardcoded colors** (design tokens — except the CRT display).
-6. **Bump `src/version.ts`** before every PR (current: 4.42.0).
+6. **Bump `src/version.ts`** before every PR — it's the single source of truth
+   for the app version (patch/minor/major per branch prefix).
 
 ## Quick Start Checklist
 
