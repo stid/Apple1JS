@@ -32,7 +32,7 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
         if (typeof val === 'number') return val;
         if (typeof val === 'string') {
             // Handle formats like "$FF00" or "0xFF00"
-            const match = val.match(/^[$0x]*([0-9A-Fa-f]+)$/);
+            const match = val.match(/^(?:\$|0x)?([0-9A-Fa-f]+)$/i);
             if (match) {
                 return parseInt(match[1], 16);
             }
