@@ -191,6 +191,75 @@ interface IVersionedStatefulComponent<TState> {
 }
 ```
 
+### Where these contracts apply (and where they must NOT)
+
+`IInspectableComponent` and `IVersionedStatefulComponent` model the **emulated
+hardware tree** — they belong to the core/IO classes that own simulated state and
+appear in the debugger, NOT to the React presentation layer.
+
+**Rule of thumb — do NOT apply blanket:**
+
+- **Implement the contracts** when a class _is_ a piece of emulated hardware that:
+  - owns persisted/serializable state that must survive save/load and needs
+      versioned migration → `IVersionedStatefulComponent`, and/or
+  - exposes debug-inspectable state to the Inspector/architecture view →
+      `IInspectableComponent` (`getInspectable()`).
+- **Do NOT implement the contracts** on:
+  - React components in `src/components/**`. They render the UI and _consume_ the
+      inspectable tree (typically as an `apple1Instance: IInspectableComponent` prop);
+      they hold only ephemeral view state via hooks/contexts, which is not the
+      versioned-hardware state these contracts describe.
+  - Purely presentational / stateless helpers (e.g. `Actions`, `RegisterRow`,
+      `MetricCard`, the CRT render subtree).
+
+CodeRabbit's coding-guideline that flags missing contract implementations must be
+read with this scope: it is meaningful for new **core/IO hardware classes**, and a
+false positive for presentational React components.
+
+#### Current implementers (the only classes that should implement these)
+
+| Class      | File                        | `IInspectableComponent` | `IVersionedStatefulComponent` |
+| ---------- | --------------------------- | :---------------------: | :---------------------------: |
+| `Apple1`   | `src/apple1/index.ts`       |           ✅            |              ✅               |
+| `Bus`      | `src/core/Bus.ts`           |           ✅            |               —               |
+| `Clock`    | `src/core/Clock.ts`         |           ✅            |              ✅               |
+| `CPU6502`  | `src/core/cpu6502/core.ts`  |           ✅            |              ✅               |
+| `PIA6820`  | `src/core/PIA6820.ts`       |           ✅            |              ✅               |
+| `RAM`      | `src/core/RAM.ts`           |           ✅            |              ✅               |
+| `ROM`      | `src/core/ROM.ts`           |           ✅            |              ✅               |
+| `CRTVideo` | `src/apple1/WebCRTVideo.ts` |           ✅            |               —               |
+| `Keyboard` | `src/apple1/WebKeyboard.ts` |           ✅            |               —               |
+
+#### Component audit — `src/components/**` (none should implement the contracts)
+
+All entries below are React presentation / UI helpers. None own versioned hardware
+state or produce an inspectable node, so the contracts are **N/A** for every one.
+
+| Component                                                                                         | Role                                                                    |          Contracts apply?          |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | :--------------------------------: |
+| `App`                                                                                             | Root shell, passes `apple1Instance` prop                                |        N/A (presentational)        |
+| `AppContent`                                                                                      | Orchestration; calls worker `saveState`/`loadState` (delegates to core) |   N/A (no owned versioned state)   |
+| `Main`                                                                                            | Layout, threads `apple1Instance` prop                                   |        N/A (presentational)        |
+| `Actions`                                                                                         | Button + ref file-load control                                          |          N/A (stateless)           |
+| `AddressLink` / `SmartAddress`                                                                    | Address rendering / navigation                                          |        N/A (presentational)        |
+| `CompactCpuRegisters` / `RegisterRow`                                                             | Register display                                                        |        N/A (presentational)        |
+| `ExecutionControls` / `CompactExecutionControls`                                                  | Run/step buttons                                                        |        N/A (presentational)        |
+| `EngineSwitcher`                                                                                  | Engine toggle control                                                   |        N/A (presentational)        |
+| `CRT`, `CRTCursor`, `CRTRow`, `CRTRowChar`, `CRTRowCharRom`, `CRTWorker`, `CharRomCanvasRenderer` | CRT render subtree                                                      | N/A (presentational/render helper) |
+| `DebuggerLayout`                                                                                  | Debugger layout; consumes `root: IInspectableComponent`                 |           N/A (consumer)           |
+| `InspectorView` / `InspectTree`                                                                   | Render the inspectable tree (calls `getInspectable()` on the core root) |  N/A (consumer, not implementer)   |
+| `DisassemblerPaginated`                                                                           | Disassembly view                                                        |     N/A (view state via hooks)     |
+| `MemoryViewerPaginated`                                                                           | Memory view                                                             |     N/A (view state via hooks)     |
+| `StackViewer`                                                                                     | Stack view                                                              |        N/A (presentational)        |
+| `PaginatedTableView`                                                                              | Generic paginated table                                                 |        N/A (presentational)        |
+| `PerformanceMetrics` / `MetricCard`                                                               | Metrics display                                                         |        N/A (presentational)        |
+| `Info`                                                                                            | Static help text                                                        |        N/A (presentational)        |
+| `Error`                                                                                           | Error boundary fallback UI                                              |        N/A (presentational)        |
+
+**Audit result:** every core/IO class that needs the contracts already implements
+them, and no React component does (correctly). No contract was added or removed by
+this audit.
+
 ### IClockable
 
 Components that respond to clock cycles:
@@ -207,12 +276,12 @@ interface IClockable {
 
 The Apple 1 memory layout is faithfully reproduced:
 
-| Address Range | Size | Component | Description |
-|--------------|------|-----------|-------------|
-| $0000-$0FFF | 4KB | RAM Bank 1 | Main RAM (includes zero page, stack) |
-| $D010-$D013 | 4B | PIA 6820 | Keyboard and display I/O |
-| $E000-$EFFF | 4KB | RAM Bank 2 | Extended RAM (for BASIC) |
-| $FF00-$FFFF | 256B | ROM | WOZ Monitor |
+| Address Range | Size | Component  | Description                          |
+| ------------- | ---- | ---------- | ------------------------------------ |
+| $0000-$0FFF   | 4KB  | RAM Bank 1 | Main RAM (includes zero page, stack) |
+| $D010-$D013   | 4B   | PIA 6820   | Keyboard and display I/O             |
+| $E000-$EFFF   | 4KB  | RAM Bank 2 | Extended RAM (for BASIC)             |
+| $FF00-$FFFF   | 256B | ROM        | WOZ Monitor                          |
 
 ## Worker Communication
 
@@ -225,15 +294,15 @@ interface IWorkerAPI {
     pauseEmulation(): void;
     resumeEmulation(): void;
     step(): DebugData;
-    
+
     // Breakpoints
     setBreakpoint(address: number): number[];
     clearBreakpoint(address: number): number[];
-    
+
     // Memory operations
     readMemoryRange(start: number, length: number): number[];
     writeMemory(address: number, value: number): void;
-    
+
     // State management
     saveState(): EmulatorState;
     loadState(state: EmulatorState): void;

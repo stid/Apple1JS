@@ -126,15 +126,21 @@ git push
 
 ## Key Patterns to Follow
 
-- **State management**: components implement `IVersionedStatefulComponent` with
-  version + migration support.
+- **State management**: _emulated-hardware_ classes (CPU, Bus, RAM, ROM, PIA,
+  Clock, Apple1) implement `IVersionedStatefulComponent` with version + migration
+  support. These contracts are **scoped to the core/IO layer, not React
+  components** — see the applicability rule + audit in
+  `docs/active/architecture.md` ("Where these contracts apply"). Presentational
+  components (`Actions`, `RegisterRow`, …) must NOT implement them.
 - **Formatting**: use the `Formatters` utility (e.g. `Formatters.hexWord(addr)`)
   — never manual `toString(16)`.
 - **Worker communication**: type-safe via
   `sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address)`. Messages
   defined in `src/apple1/types/worker-messages.ts`.
-- **Component inspection**: implement `IInspectableComponent`; return structured
-  data from `getInspectable()` for debugger visibility.
+- **Component inspection**: emulated-hardware classes implement
+  `IInspectableComponent`; return structured data from `getInspectable()` for
+  debugger visibility. React components _consume_ the inspectable tree (they don't
+  implement it).
 
 ## UI Work
 
