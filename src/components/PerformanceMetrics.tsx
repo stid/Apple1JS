@@ -233,7 +233,8 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
                                 </div>
                                 {renderSparkline(
                                     history.map((h) => h.ips || 0),
-                                    currentEngine === 'WASM' ? designTokens.colors.value : designTokens.colors.info,
+                                    // Match the engine legend above: WASM = success, JS = data-value.
+                                    currentEngine === 'WASM' ? designTokens.colors.success : designTokens.colors.value,
                                 )}
                             </div>
                         </div>

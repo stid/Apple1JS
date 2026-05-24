@@ -20,7 +20,7 @@ const statusColorClass = {
 export const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'info', className = '' }) => {
     return (
         <div
-            className={`bg-black/25 rounded-lg p-3 border border-border-primary hover:border-border-secondary transition-colors duration-150 ${className}`}
+            className={`bg-surface-overlay rounded-lg p-3 border border-border-primary hover:border-border-secondary transition-colors duration-150 ${className}`}
         >
             <div className="text-xs font-mono font-medium text-text-secondary uppercase tracking-wider mb-1">
                 {label}
