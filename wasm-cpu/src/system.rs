@@ -141,7 +141,7 @@ impl WasmSystem {
             } else {
                 0.0
             },
-            last_step_duration: 0.0, // TODO: Track last step duration in WasmSystem
+            last_step_duration: self.cpu.get_last_step_duration(),
         };
         serde_wasm_bindgen::to_value(&metrics).unwrap()
     }

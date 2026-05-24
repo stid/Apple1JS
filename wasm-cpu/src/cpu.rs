@@ -362,6 +362,12 @@ impl CPU6502 {
         serde_wasm_bindgen::to_value(&metrics).unwrap()
     }
     
+    /// Duration (ms) of the most recent step, as measured under the
+    /// `performance` feature. Stays 0.0 when the feature is disabled.
+    pub(crate) fn get_last_step_duration(&self) -> f64 {
+        self.last_step_start
+    }
+
     /// Reset metrics
     pub fn reset_metrics(&mut self) {
         self.cycles = 0;
