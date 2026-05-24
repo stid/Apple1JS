@@ -2,7 +2,7 @@ import React from 'react';
 import App from './App';
 import { IInspectableComponent } from '../core/types';
 import { APP_VERSION } from '../version';
-import { typography, color, spacing } from '../styles/utils';
+import { designTokens } from '../styles/tokens';
 import type { WorkerManager } from '../services/WorkerManager';
 
 interface MainProps {
@@ -12,47 +12,18 @@ interface MainProps {
 
 const Main: React.FC<MainProps> = ({ workerManager, apple1Instance }) => {
     return (
-        <div style={{
-            width: '100%',
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-        }}>
-            <header style={{
-                flexShrink: 0,
-                width: '100%',
-                backgroundColor: color('background.surface'),
-                borderBottom: `1px solid ${color('border.primary')}`,
-                padding: `${spacing('md')} ${spacing('lg')}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            }}>
-                <h1 style={{
-                    ...typography.base,
-                    color: color('text.accent'),
-                    fontWeight: 500,
-                    letterSpacing: '0.025em',
-                }}>
-                    Apple 1 :: JS Emulator <span style={{
-                        color: color('text.secondary'),
-                        fontWeight: 400,
-                    }}>- by =stid=</span>{' '}
-                    <span style={{
-                        ...typography.xs,
-                        color: color('text.muted'),
-                    }}>v{APP_VERSION}</span>
+        <div className="w-full h-screen flex flex-col overflow-hidden">
+            <header
+                className="flex-shrink-0 w-full bg-surface-primary border-b border-border-primary py-md px-lg flex items-center justify-between"
+                // Token md shadow; Tailwind's default shadow-md differs slightly.
+                style={{ boxShadow: designTokens.boxShadow.md }}
+            >
+                <h1 className="text-base font-mono font-medium tracking-wide text-text-accent">
+                    Apple 1 :: JS Emulator <span className="text-text-secondary font-normal">- by =stid=</span>{' '}
+                    <span className="text-xs font-mono text-text-muted">v{APP_VERSION}</span>
                 </h1>
             </header>
-            <div style={{
-                flex: 1,
-                display: 'flex',
-                overflow: 'hidden',
-                minHeight: 0,
-                padding: `${spacing('lg')} 0`,
-            }}>
+            <div className="flex-1 flex overflow-hidden min-h-0 py-lg">
                 <App workerManager={workerManager} apple1Instance={apple1Instance} />
             </div>
         </div>

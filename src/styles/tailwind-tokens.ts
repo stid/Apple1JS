@@ -80,6 +80,9 @@ export const tokenDerivedTheme = {
         },
     },
 
+    fontFamily: {
+        mono: typography.fontFamily.mono,
+    },
     spacing: { ...spacing },
     fontSize: { ...typography.fontSize },
     // Tailwind's Config type wants string values; tokens store these as numbers.

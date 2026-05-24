@@ -13,6 +13,7 @@ const config: Config = {
     content: ['./src/**/*.{html,js,ts,jsx,tsx}'],
     theme: {
         extend: {
+            fontFamily: tokenDerivedTheme.fontFamily,
             fontSize: tokenDerivedTheme.fontSize,
             fontWeight: tokenDerivedTheme.fontWeight,
             lineHeight: tokenDerivedTheme.lineHeight,

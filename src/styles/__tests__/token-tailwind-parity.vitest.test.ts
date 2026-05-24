@@ -32,6 +32,11 @@ describe('token ↔ Tailwind parity', () => {
         }
     });
 
+    it('derives the mono font family from tokens', () => {
+        expect(resolved.fontFamily?.mono).toEqual(tokenDerivedTheme.fontFamily.mono);
+        expect(tokenDerivedTheme.fontFamily.mono).toBe(designTokens.typography.fontFamily.mono);
+    });
+
     it('exposes every adapter-derived typography scale value', () => {
         for (const [key, value] of Object.entries(tokenDerivedTheme.fontSize)) {
             expect(resolved.fontSize?.[key], `fontSize.${key}`).toBe(value);
