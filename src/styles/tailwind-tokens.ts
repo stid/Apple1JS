@@ -26,11 +26,15 @@ export const tokenDerivedTheme = {
         warning: colors.warning,
         error: colors.error,
         info: colors.info,
+        'toggle-active': colors.toggleActive,
+        'toggle-inactive': colors.toggleInactive,
         semantic: {
             success: colors.success,
             warning: colors.warning,
             error: colors.error,
             info: colors.info,
+            toggleActive: colors.toggleActive,
+            toggleInactive: colors.toggleInactive,
         },
 
         // Apple 1 phosphor theme

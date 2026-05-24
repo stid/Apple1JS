@@ -47,6 +47,7 @@ in `src/**` so colors can't sneak back in outside the token file.
 | `colors.address` / `value` / `flag` / `status`                 | `text-data-address`, `bg-data-value`, `text-data-flag`           |
 | `colors.dataHover.address` / `value`                           | `text-data-address-hover`, `bg-data-value-hover`                 |
 | `colors.success` / `warning` / `error` / `info`                | `text-success`, `bg-warning`, `border-error` (also `semantic-*`) |
+| `colors.toggleActive` / `toggleInactive`                       | `text-toggle-active`, `bg-toggle-inactive` (stateful ON/OFF)     |
 | `colors.phosphor.*`                                            | `text-phosphor-primary`, `bg-phosphor-glow`                      |
 | `colors.surface.{primary…quaternary,overlay}`                  | `bg-surface-primary`, `bg-surface-overlay`                       |
 | `colors.border.{primary,secondary,accent,subtle}`              | `border-border-primary`, `border-border-accent`                  |
@@ -67,6 +68,11 @@ in `src/**` so colors can't sneak back in outside the token file.
   maps them to `component-{ram,rom,bus,cpu,pia,io,clock}`. `CPU` and `CPU6502` share one
   value and both collapse to `component-cpu`. `InspectorView.getComponentColor` mirrors
   this map for runtime `node.type` → class lookups.
+- **`toggle-active` / `toggle-inactive` carry state, not just a hue:** use them when a
+  control's colour should reflect a boolean ON/OFF (e.g. the `SUPPORT BACKSPACE` and
+  `CYCLE TIMING` buttons in `Actions.tsx`) — blue when enabled, neutral gray when off.
+  Keep them distinct from `success` (momentary command buttons) and `warning` (reserved
+  for genuine alerts), so a single colour never means two different things in one view.
 
 ## The CRT exception
 
