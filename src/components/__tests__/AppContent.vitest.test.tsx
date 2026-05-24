@@ -92,7 +92,7 @@ describe('AppContent', () => {
 
             // Fast-forward timers to trigger all setTimeout calls
             act(() => {
-                vi.runAllTimers();
+                vi.runOnlyPendingTimers();
             });
 
 
@@ -120,7 +120,7 @@ describe('AppContent', () => {
             vi.mocked(mockWorkerManager.keyDown).mockClear();
 
             act(() => {
-                vi.runAllTimers();
+                vi.runOnlyPendingTimers();
             });
 
             // Should send: A, Enter, B
@@ -148,7 +148,7 @@ describe('AppContent', () => {
             vi.mocked(mockWorkerManager.keyDown).mockClear();
 
             act(() => {
-                vi.runAllTimers();
+                vi.runOnlyPendingTimers();
             });
 
             // Should send: A, Enter, B
@@ -173,7 +173,7 @@ describe('AppContent', () => {
             vi.mocked(mockWorkerManager.keyDown).mockClear();
 
             act(() => {
-                vi.runAllTimers();
+                vi.runOnlyPendingTimers();
             });
 
             // Should not send any messages for empty paste
@@ -197,7 +197,7 @@ describe('AppContent', () => {
             vi.mocked(mockWorkerManager.keyDown).mockClear();
 
             act(() => {
-                vi.runAllTimers();
+                vi.runOnlyPendingTimers();
             });
 
             // Should not send any messages when no clipboardData

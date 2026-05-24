@@ -10,6 +10,8 @@ import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
 import { WorkerDataProvider } from '../contexts/WorkerDataContext';
 import { IInspectableComponent } from '../core/types';
 import type { WorkerManager } from '../services/WorkerManager';
+import type { EngineStatusData } from '../apple1/types/worker-messages';
+import { loggingService } from '../services/LoggingService';
 import { useUnmountSafe } from '../hooks/useUnmountSafe';
 
 type Props = {
@@ -34,6 +36,8 @@ const AppContentInner = ({
 }: AppContentInnerProps): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
+    const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
+    const [isSwitchingEngine, setIsSwitchingEngine] = useState<boolean>(false);
     const { isPaused, pause, resume } = useEmulation();
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { subscribeToNavigation } = useDebuggerNavigation();
@@ -58,6 +62,51 @@ const AppContentInner = ({
             hiddenInput.focus();
         }
     }, []);
+
+    // Poll the active CPU engine so the under-CRT toggle stays in sync with the
+    // debugger's EngineSwitcher (either surface can trigger a switch). Mirrors
+    // the 2s cadence used by EngineSwitcher.
+    useEffect(() => {
+        let cancelled = false;
+        const fetchStatus = async () => {
+            try {
+                const status = await workerManager.getEngineStatus();
+                if (!cancelled) {
+                    setEngineStatus(status);
+                }
+            } catch (error) {
+                loggingService.error('AppContent', `Failed to get engine status: ${error}`);
+            }
+        };
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 2000);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [workerManager]);
+
+    const handleEngineSwitch = useCallback<React.MouseEventHandler<HTMLAnchorElement>>(
+        async (e) => {
+            e.preventDefault();
+            if (isSwitchingEngine || !engineStatus) {
+                return;
+            }
+            const target = engineStatus.currentEngine === 'WASM' ? 'JS' : 'WASM';
+            setIsSwitchingEngine(true);
+            try {
+                await workerManager.switchEngine(target);
+                const status = await workerManager.getEngineStatus();
+                setEngineStatus(status);
+                loggingService.info('AppContent', `Switched to ${target} engine`);
+            } catch (error) {
+                loggingService.error('AppContent', `Failed to switch engine: ${error}`);
+            } finally {
+                setIsSwitchingEngine(false);
+            }
+        },
+        [workerManager, engineStatus, isSwitchingEngine],
+    );
 
     const handleKeyDown = useCallback(
         async (e: KeyboardEvent) => {
@@ -228,6 +277,10 @@ const AppContentInner = ({
                             },
                             [workerManager, cycleAccurateTiming],
                         )}
+                        currentEngine={engineStatus?.currentEngine ?? 'WASM'}
+                        wasmAvailable={engineStatus?.availableEngines.includes('WASM') ?? false}
+                        isSwitchingEngine={isSwitchingEngine}
+                        onEngineSwitch={handleEngineSwitch}
                     />
                 </div>
             </div>

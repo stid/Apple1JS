@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import type { WorkerManager } from '../../services/WorkerManager';
 import type { EmulatorState } from '../../apple1/types/emulator-state';
-import type { DebugData, MemoryMapData } from '../../apple1/types/worker-messages';
+import type { DebugData, MemoryMapData, EngineStatusData } from '../../apple1/types/worker-messages';
 import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
 
 /**
@@ -85,6 +85,17 @@ export function createMockWorkerManager(): WorkerManager {
         setCycleAccurateMode: vi.fn().mockResolvedValue(undefined),
         setCpuProfiling: vi.fn().mockResolvedValue(undefined),
         
+        // Engine Management
+        // Default to JS so engine-gated UI (e.g. CPU profiling) stays available in
+        // tests that don't care about the engine; tests can override per-case.
+        switchEngine: vi.fn().mockResolvedValue(undefined),
+        getEngineStatus: vi.fn().mockResolvedValue({
+            currentEngine: 'JS',
+            availableEngines: ['JS', 'WASM'],
+            switchCount: 0,
+            lastSwitchTime: 0,
+        } as EngineStatusData),
+
         // Input
         keyDown: vi.fn().mockResolvedValue(undefined),
         

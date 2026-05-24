@@ -11,6 +11,10 @@ export type ActionsProps = {
     onRefocus: () => void;
     onCycleAccurateTiming: React.MouseEventHandler<HTMLAnchorElement>;
     cycleAccurateTiming: boolean;
+    currentEngine: 'JS' | 'WASM';
+    wasmAvailable: boolean;
+    isSwitchingEngine: boolean;
+    onEngineSwitch: React.MouseEventHandler<HTMLAnchorElement>;
 };
 
 // Shared action-button styling, token-backed via Tailwind classes.
@@ -38,7 +42,17 @@ const Actions = ({
     onRefocus,
     onCycleAccurateTiming,
     cycleAccurateTiming,
+    currentEngine,
+    wasmAvailable,
+    isSwitchingEngine,
+    onEngineSwitch,
 }: ActionsProps) => {
+    // Nothing to toggle to when WASM is unavailable, and mid-switch clicks are ignored.
+    const engineToggleDisabled = !wasmAvailable || isSwitchingEngine;
+    // Colour by active engine so the choice reads at a glance: green=WASM, amber=JS.
+    const engineVariant = currentEngine === 'WASM' ? actionButtonVariant.success : actionButtonVariant.warning;
+    const engineClassName = `${actionButtonBase} ${engineVariant}${engineToggleDisabled ? ' opacity-50 cursor-not-allowed' : ''}`;
+
     return (
         <nav className="flex flex-wrap gap-sm justify-center">
             {/* Control Actions Group */}
@@ -112,6 +126,19 @@ const Actions = ({
                 tabIndex={0}
             >
                 CYCLE TIMING [{cycleAccurateTiming ? 'ACCURATE' : 'FAST'}]
+            </a>
+            <a
+                onClick={(e) => {
+                    e.preventDefault();
+                    if (engineToggleDisabled) return;
+                    onEngineSwitch(e);
+                    onRefocus();
+                }}
+                href="#"
+                className={engineClassName}
+                tabIndex={0}
+            >
+                ENGINE [{currentEngine}]
             </a>
         </nav>
     );
