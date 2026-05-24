@@ -22,7 +22,7 @@ const InspectTree: React.FC<{ node: IInspectableComponent; path?: string }> = ({
     if (node.type === 'RAM' && 'data' in node && node.data instanceof Uint8Array) {
         const addrNode = node as Addressable;
         extra = (
-            <span style={{ color: '#6cf', marginLeft: 8 }}>
+            <span className="ml-2 text-component-ram">
                 size: {node.data.length} bytes
                 {addrNode.__address && `, addr: ${addrNode.__address}`}
             </span>
@@ -32,7 +32,7 @@ const InspectTree: React.FC<{ node: IInspectableComponent; path?: string }> = ({
     if (node.type === 'ROM' && 'data' in node && node.data instanceof Uint8Array) {
         const addrNode = node as Addressable;
         extra = (
-            <span style={{ color: '#fc6', marginLeft: 8 }}>
+            <span className="ml-2 text-component-rom">
                 size: {node.data.length} bytes
                 {addrNode.__address && `, addr: ${addrNode.__address}`}
             </span>
@@ -41,11 +41,11 @@ const InspectTree: React.FC<{ node: IInspectableComponent; path?: string }> = ({
     // Bus: show mapping
     if (node.type === 'Bus' && 'busMapping' in node && Array.isArray(node.busMapping)) {
         extra = (
-            <span style={{ color: '#9f9', marginLeft: 8 }}>
+            <span className="ml-2 text-component-bus">
                 mapping: [
                 {(node.busMapping as Array<{ addr: [number, number]; component: unknown; name: string }>).map(
                     (b, i) => (
-                        <span key={i} style={{ marginLeft: 4 }}>
+                        <span key={i} className="ml-1">
                             {b.name}: [{Formatters.hex(b.addr[0], 0)}:{Formatters.hex(b.addr[1], 0)}]
                         </span>
                     ),
@@ -58,9 +58,9 @@ const InspectTree: React.FC<{ node: IInspectableComponent; path?: string }> = ({
     return (
         <ul>
             <li>
-                <strong>{node.type}</strong> <span style={{ color: '#888' }}>({node.id})</span> {extra}
+                <strong>{node.type}</strong> <span className="text-text-muted">({node.id})</span> {extra}
                 {node.children && node.children.length > 0 && (
-                    <ul style={{ marginLeft: 16 }}>
+                    <ul className="ml-4">
                         {node.children.map((child, idx) => (
                             <InspectTree key={nodePath + '-' + idx} node={child} path={nodePath + '-' + idx} />
                         ))}

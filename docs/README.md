@@ -9,6 +9,7 @@ This directory contains all project documentation, organized for easy navigation
 Living documents that are actively maintained and reflect the current state of the project.
 
 - **[architecture.md](active/architecture.md)** - Primary architecture reference with system overview, module structure, and key interfaces
+- **[design-system.md](active/design-system.md)** - Design tokens as the single source of truth, token→Tailwind mapping, and the CRT exception
 - **[cpu_test_guidelines.md](active/cpu_test_guidelines.md)** - Guidelines for writing and maintaining CPU tests
 - **[consolidated_roadmap.md](active/consolidated_roadmap.md)** - Prioritized roadmap consolidating all todos and future work
 - **[standardization-progress.md](active/standardization-progress.md)** - Tracks ongoing code standardization efforts and completed work
