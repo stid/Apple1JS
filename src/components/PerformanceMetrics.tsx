@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { WorkerManager } from '../services/WorkerManager';
 import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
+import { designTokens } from '../styles/tokens';
 
 interface PerformanceMetricsProps {
     workerManager: WorkerManager;
@@ -232,7 +233,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
                                 </div>
                                 {renderSparkline(
                                     history.map((h) => h.ips || 0),
-                                    currentEngine === 'WASM' ? '#34d399' : '#60a5fa',
+                                    currentEngine === 'WASM' ? designTokens.colors.value : designTokens.colors.info,
                                 )}
                             </div>
                         </div>
