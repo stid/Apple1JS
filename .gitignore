@@ -30,3 +30,7 @@ wasm-cpu/target/
 .claude/hooks/
 # Claude Code — native parallel worktrees live here (claude --worktree <name>)
 .claude/worktrees/
+# Spec-Driven Development — local-only adapter + artifacts (depend on the maintainer's
+# private global /stid-sdd-* tooling; not portable, so never committed to this public repo)
+.claude/rules/sdd-conventions.md
+docs/specs/
