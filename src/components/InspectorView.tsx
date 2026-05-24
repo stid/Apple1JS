@@ -229,7 +229,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         const componentCard = (
             <div
                 key={node.id}
-                className="bg-black/30 border border-border-subtle rounded-lg p-md mb-sm"
+                className="bg-surface-overlay border border-border-subtle rounded-lg p-md mb-sm"
                 style={{ marginLeft: `${depth * 16}px` }}
             >
                 <div className="flex items-center justify-between mb-sm">
@@ -405,7 +405,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                                 </div>
 
                                 {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
-                                    <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                                    <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
                                         <div className="text-sm font-medium text-text-secondary mb-sm">
                                             Top Instructions
                                         </div>
@@ -429,7 +429,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                                 )}
                             </>
                         ) : (
-                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                            <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
                                 <div className="text-sm text-text-secondary text-center">
                                     {profilingPending
                                         ? 'Initializing profiler...'
@@ -539,7 +539,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     <span className="mr-2">🏗️</span>
                     Architecture Tree
                 </h3>
-                <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
                     <div className="space-y-sm">{renderArchComponent(archRoot)}</div>
                 </div>
             </section>

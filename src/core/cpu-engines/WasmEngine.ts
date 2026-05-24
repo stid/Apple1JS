@@ -882,8 +882,11 @@ export class WasmEngine implements ICPUEngine {
             HW_CYCLES: Formatters.decimal(cycles),
             IRQ_LINE: irq ? 'ACTIVE' : 'INACTIVE',
             NMI_LINE: nmi ? 'ACTIVE' : 'INACTIVE',
-            // get_cpu_state() reports the IRQ line and the NMI *pending* latch.
-            IRQ_PENDING: irq ? 'YES' : 'NO',
+            // Pending semantics match the JS engine exactly (CPU6502.core):
+            //   pendingIrq = irq line asserted AND the I (interrupt-disable) flag clear
+            //   pendingNmi = the NMI latch (get_cpu_state already reports the latch as `nmi`)
+            // Deriving IRQ pending from the line alone would just duplicate IRQ_LINE.
+            IRQ_PENDING: irq && (status & 0x04) === 0 ? 'YES' : 'NO',
             NMI_PENDING: nmi ? 'YES' : 'NO',
             // Raw numeric values (parity with CPU6502.toDebug)
             PC: pc,

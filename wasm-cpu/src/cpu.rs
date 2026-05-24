@@ -377,7 +377,7 @@ impl CPU6502 {
     pub fn read_memory_range(&self, start: u16, length: u16) -> Vec<u8> {
         let mut result = Vec::with_capacity(length as usize);
         for i in 0..length {
-            result.push(crate::bus_read(start + i));
+            result.push(crate::bus_read(start.wrapping_add(i)));
         }
         result
     }
@@ -385,7 +385,7 @@ impl CPU6502 {
     /// Write a range of memory via JavaScript Bus
     pub fn write_memory_range(&mut self, start: u16, data: &[u8]) {
         for (i, &byte) in data.iter().enumerate() {
-            crate::bus_write(start + i as u16, byte);
+            crate::bus_write(start.wrapping_add(i as u16), byte);
         }
     }
 
