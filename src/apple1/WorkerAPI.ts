@@ -298,7 +298,17 @@ export class WorkerAPI implements IWorkerAPI {
 
     writeMemory(address: number, value: number): void {
         if (address >= 0 && address <= 0xffff && value >= 0 && value <= 0xff) {
-            this.workerState.apple1.bus.write(address, value);
+            // Route through the active (dual) engine so the write reaches the
+            // engine that is actually executing. The WASM engine keeps RAM in
+            // its own memory; writing the JS Bus directly (as before) left WASM
+            // RAM stale, so hex-editor edits had no effect in WASM mode. This
+            // mirrors the readMemoryRange routing above.
+            const dualEngine = this.workerState.getDualEngine();
+            if (dualEngine) {
+                dualEngine.write(address, value);
+            } else {
+                this.workerState.apple1.bus.write(address, value);
+            }
         } else {
             loggingService.log(
                 'warn',
