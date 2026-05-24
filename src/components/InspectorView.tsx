@@ -39,9 +39,6 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         return () => clearInterval(interval);
     }, [fetchEngineStatus]);
 
-    // Determine if WASM engine is active (affects profiling availability)
-    const isWasmEngine = engineStatus?.currentEngine === 'WASM';
-
     // Helper function to translate hex opcode to human-readable mnemonic
     const getOpcodeMnemonic = (opcodeHex: string): string => {
         // Convert hex string like "$30" to number
@@ -364,12 +361,6 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                             />
                         )}
                     </div>
-                    {isWasmEngine && (
-                        <div className="mt-sm text-xs text-text-secondary bg-warning/10 rounded p-sm border border-warning/20">
-                            ⚠️ WASM engine active. Some debugging features (profiling, breakpoints) have limited
-                            support.
-                        </div>
-                    )}
                 </section>
             )}
 
