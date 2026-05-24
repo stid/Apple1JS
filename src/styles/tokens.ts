@@ -54,6 +54,11 @@ export const designTokens = {
         error: '#EF4444', // Red for errors
         info: '#3B82F6', // Blue for informational
 
+        // Toggle states — color encodes a stateful feature's ON/OFF, kept distinct
+        // from `success` (momentary actions) and `warning` (genuine alerts).
+        toggleActive: '#3B82F6', // Blue — feature enabled / active selection
+        toggleInactive: '#6B7280', // Neutral gray — feature disabled (matches neutral.500)
+
         // Apple 1 phosphor green theme
         phosphor: {
             primary: '#00FF00', // Bright green

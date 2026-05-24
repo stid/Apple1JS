@@ -28,7 +28,16 @@ const actionButtonVariant = {
     // Address actions are green (data-address token) — fixes the prior blue/green split.
     address:
         'bg-data-address/10 hover:bg-data-address/20 border-data-address/30 hover:border-data-address text-data-address',
-    warning: 'bg-warning/10 hover:bg-warning/20 border-warning/30 hover:border-warning text-warning',
+    // hover:text-* pins the on-token colour: the global `a:hover` rule in index.css
+    // (phosphor green) otherwise out-specifies the plain text utility and turns these
+    // non-green buttons green under the cursor, defeating the semantic.
+    warning: 'bg-warning/10 hover:bg-warning/20 border-warning/30 hover:border-warning text-warning hover:text-warning',
+    // Stateful toggles: blue when the feature is ON, neutral gray when OFF, so the
+    // colour itself reads the state at a glance (text label is now confirmation).
+    toggleOn:
+        'bg-toggle-active/10 hover:bg-toggle-active/20 border-toggle-active/30 hover:border-toggle-active text-toggle-active hover:text-toggle-active',
+    toggleOff:
+        'bg-toggle-inactive/10 hover:bg-toggle-inactive/20 border-toggle-inactive/30 hover:border-toggle-inactive text-toggle-inactive hover:text-toggle-inactive',
 } as const;
 
 const Actions = ({
@@ -49,8 +58,14 @@ const Actions = ({
 }: ActionsProps) => {
     // Nothing to toggle to when WASM is unavailable, and mid-switch clicks are ignored.
     const engineToggleDisabled = !wasmAvailable || isSwitchingEngine;
-    // Colour by active engine so the choice reads at a glance: green=WASM, amber=JS.
-    const engineVariant = currentEngine === 'WASM' ? actionButtonVariant.success : actionButtonVariant.warning;
+    // The engine button reads as a feature toggle: WASM is the "power", so WASM=on (blue),
+    // JS=off (gray). Amber is reserved for the one genuine problem — WASM failed to load,
+    // so we're stuck on JS. A mid-switch is transient and just dims the current colour.
+    const engineVariant = !wasmAvailable
+        ? actionButtonVariant.warning
+        : currentEngine === 'WASM'
+          ? actionButtonVariant.toggleOn
+          : actionButtonVariant.toggleOff;
     const engineClassName = `${actionButtonBase} ${engineVariant}${engineToggleDisabled ? ' opacity-50 cursor-not-allowed' : ''}`;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,7 +133,7 @@ const Actions = ({
                     onRefocus();
                 }}
                 href="#"
-                className={`${actionButtonBase} ${actionButtonVariant.warning}`}
+                className={`${actionButtonBase} ${supportBS ? actionButtonVariant.toggleOn : actionButtonVariant.toggleOff}`}
                 tabIndex={0}
             >
                 SUPPORT BACKSPACE [{supportBS ? 'ON' : 'OFF'}]
@@ -129,7 +144,7 @@ const Actions = ({
                     onRefocus();
                 }}
                 href="#"
-                className={`${actionButtonBase} ${actionButtonVariant.warning}`}
+                className={`${actionButtonBase} ${cycleAccurateTiming ? actionButtonVariant.toggleOn : actionButtonVariant.toggleOff}`}
                 tabIndex={0}
             >
                 CYCLE TIMING [{cycleAccurateTiming ? 'ACCURATE' : 'FAST'}]

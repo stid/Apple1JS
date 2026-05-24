@@ -217,6 +217,41 @@ describe('Actions component', () => {
         expect(input.style.display).toBe('none');
     });
 
+    it('should color SUPPORT BACKSPACE by its ON/OFF state', () => {
+        const { rerender } = render(<Actions {...props} supportBS={true} />);
+        expect(screen.getByText('SUPPORT BACKSPACE [ON]')).toHaveClass('text-toggle-active');
+
+        rerender(<Actions {...props} supportBS={false} />);
+        expect(screen.getByText('SUPPORT BACKSPACE [OFF]')).toHaveClass('text-toggle-inactive');
+    });
+
+    it('should color CYCLE TIMING by its ACCURATE/FAST state', () => {
+        const { rerender } = render(<Actions {...props} cycleAccurateTiming={true} />);
+        expect(screen.getByText('CYCLE TIMING [ACCURATE]')).toHaveClass('text-toggle-active');
+
+        rerender(<Actions {...props} cycleAccurateTiming={false} />);
+        expect(screen.getByText('CYCLE TIMING [FAST]')).toHaveClass('text-toggle-inactive');
+    });
+
+    it('should color the ENGINE button as a WASM-power toggle: WASM on (blue), JS off (gray)', () => {
+        const { rerender } = render(<Actions {...props} currentEngine="WASM" />);
+        const wasmAnchor = screen.getByText('ENGINE [WASM]');
+        expect(wasmAnchor).toHaveClass('text-toggle-active');
+        expect(wasmAnchor).not.toHaveClass('text-warning');
+
+        rerender(<Actions {...props} currentEngine="JS" />);
+        const jsAnchor = screen.getByText('ENGINE [JS]');
+        expect(jsAnchor).toHaveClass('text-toggle-inactive');
+        expect(jsAnchor).not.toHaveClass('text-warning');
+    });
+
+    it('should warn (amber) and disable the ENGINE button when WASM is unavailable', () => {
+        render(<Actions {...props} currentEngine="JS" wasmAvailable={false} />);
+        const engineAnchor = screen.getByText('ENGINE [JS]');
+        expect(engineAnchor).toHaveClass('text-warning');
+        expect(engineAnchor).toHaveClass('cursor-not-allowed');
+    });
+
     it('should have correct tabIndex on interactive elements', () => {
         render(<Actions {...props} />);
 
