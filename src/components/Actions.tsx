@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 export type ActionsProps = {
     onReset: React.MouseEventHandler<HTMLAnchorElement>;
@@ -53,6 +53,7 @@ const Actions = ({
     const engineVariant = currentEngine === 'WASM' ? actionButtonVariant.success : actionButtonVariant.warning;
     const engineClassName = `${actionButtonBase} ${engineVariant}${engineToggleDisabled ? ' opacity-50 cursor-not-allowed' : ''}`;
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
     return (
         <nav className="flex flex-wrap gap-sm justify-center">
             {/* Control Actions Group */}
@@ -91,18 +92,24 @@ const Actions = ({
             >
                 SAVE STATE
             </a>
-            <label className={`${actionButtonBase} ${actionButtonVariant.address}`} tabIndex={0}>
+            <button
+                type="button"
+                className={`${actionButtonBase} ${actionButtonVariant.address}`}
+                onClick={() => fileInputRef.current?.click()}
+            >
                 LOAD STATE
-                <input
-                    type="file"
-                    accept="application/json"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                        onLoadState(e);
-                        onRefocus();
-                    }}
-                />
-            </label>
+            </button>
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                style={{ display: 'none' }}
+                aria-label="Load state from file"
+                onChange={(e) => {
+                    onLoadState(e);
+                    onRefocus();
+                }}
+            />
 
             {/* Configuration Group */}
             <a
