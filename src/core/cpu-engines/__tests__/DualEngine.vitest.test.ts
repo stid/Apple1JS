@@ -126,6 +126,17 @@ describe('DualEngine', () => {
             dualEngine = new DualEngine(bus, 'JS');
             expect(dualEngine.engineType).toBe('JS');
         });
+
+        it('should initialize with WASM when requested, falling back to JS if unavailable', () => {
+            dualEngine = new DualEngine(bus, 'WASM');
+            // The app boots with 'WASM' (see apple1/index.ts); the constructor
+            // honours it when WASM is supported and silently falls back otherwise.
+            if (dualEngine.isEngineAvailable('WASM')) {
+                expect(dualEngine.engineType).toBe('WASM');
+            } else {
+                expect(dualEngine.engineType).toBe('JS');
+            }
+        });
         
         it('should initialize both engines', async () => {
             dualEngine = new DualEngine(bus);

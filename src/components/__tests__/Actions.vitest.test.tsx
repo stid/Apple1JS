@@ -15,6 +15,10 @@ describe('Actions component', () => {
         onRefocus: vi.fn(),
         onCycleAccurateTiming: vi.fn(),
         cycleAccurateTiming: true,
+        currentEngine: 'WASM',
+        wasmAvailable: true,
+        isSwitchingEngine: false,
+        onEngineSwitch: vi.fn(),
     };
 
     afterEach(() => {
@@ -167,6 +171,31 @@ describe('Actions component', () => {
         // Timing
         fireEvent.click(screen.getByText('CYCLE TIMING [ACCURATE]'));
         expect(props.onRefocus).toHaveBeenCalledTimes(4);
+    });
+
+    it('should show the correct text in the "ENGINE" anchor depending on the currentEngine prop', () => {
+        const { rerender } = render(<Actions {...props} />);
+        let engineAnchor = screen.getByText('ENGINE [WASM]');
+        expect(engineAnchor).toBeInTheDocument();
+
+        rerender(<Actions {...props} currentEngine="JS" />);
+        engineAnchor = screen.getByText('ENGINE [JS]');
+        expect(engineAnchor).toBeInTheDocument();
+    });
+
+    it('should call the onEngineSwitch prop when the "ENGINE" anchor is clicked', () => {
+        render(<Actions {...props} />);
+        const engineAnchor = screen.getByText('ENGINE [WASM]');
+        fireEvent.click(engineAnchor);
+        expect(props.onEngineSwitch).toHaveBeenCalledTimes(1);
+        expect(props.onRefocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onEngineSwitch when WASM is unavailable', () => {
+        render(<Actions {...props} currentEngine="JS" wasmAvailable={false} />);
+        const engineAnchor = screen.getByText('ENGINE [JS]');
+        fireEvent.click(engineAnchor);
+        expect(props.onEngineSwitch).not.toHaveBeenCalled();
     });
 
     it('should render file input with correct attributes', () => {

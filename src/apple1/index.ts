@@ -289,7 +289,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         
         // Create CPU - use DualEngine if enabled
         if (this.useDualEngine) {
-            this.cpuEngine = new DualEngine(this.bus, 'JS'); // Start with JS engine
+            this.cpuEngine = new DualEngine(this.bus, 'WASM'); // Prefer WASM; DualEngine falls back to JS when unavailable
             // Get the internal CPU from the DualEngine for compatibility
             // This allows WorkerState to set execution hooks for breakpoints
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
