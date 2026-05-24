@@ -38,8 +38,6 @@ const actionButtonVariant = {
         'bg-toggle-active/10 hover:bg-toggle-active/20 border-toggle-active/30 hover:border-toggle-active text-toggle-active hover:text-toggle-active',
     toggleOff:
         'bg-toggle-inactive/10 hover:bg-toggle-inactive/20 border-toggle-inactive/30 hover:border-toggle-inactive text-toggle-inactive hover:text-toggle-inactive',
-    // Informational: the active engine is a neutral choice, not a success or a warning.
-    info: 'bg-info/10 hover:bg-info/20 border-info/30 hover:border-info text-info hover:text-info',
 } as const;
 
 const Actions = ({
@@ -60,10 +58,14 @@ const Actions = ({
 }: ActionsProps) => {
     // Nothing to toggle to when WASM is unavailable, and mid-switch clicks are ignored.
     const engineToggleDisabled = !wasmAvailable || isSwitchingEngine;
-    // Both engines are valid choices, so the engine reads as informational (blue), not
-    // success/warning. Amber is reserved for the one genuine problem: WASM failed to
-    // load, so we're stuck on JS. A mid-switch is transient — just dim the info colour.
-    const engineVariant = !wasmAvailable ? actionButtonVariant.warning : actionButtonVariant.info;
+    // The engine button reads as a feature toggle: WASM is the "power", so WASM=on (blue),
+    // JS=off (gray). Amber is reserved for the one genuine problem — WASM failed to load,
+    // so we're stuck on JS. A mid-switch is transient and just dims the current colour.
+    const engineVariant = !wasmAvailable
+        ? actionButtonVariant.warning
+        : currentEngine === 'WASM'
+          ? actionButtonVariant.toggleOn
+          : actionButtonVariant.toggleOff;
     const engineClassName = `${actionButtonBase} ${engineVariant}${engineToggleDisabled ? ' opacity-50 cursor-not-allowed' : ''}`;
 
     const fileInputRef = useRef<HTMLInputElement>(null);

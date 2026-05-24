@@ -233,15 +233,15 @@ describe('Actions component', () => {
         expect(screen.getByText('CYCLE TIMING [FAST]')).toHaveClass('text-toggle-inactive');
     });
 
-    it('should color the ENGINE button as informational (not a warning) for either engine', () => {
+    it('should color the ENGINE button as a WASM-power toggle: WASM on (blue), JS off (gray)', () => {
         const { rerender } = render(<Actions {...props} currentEngine="WASM" />);
         const wasmAnchor = screen.getByText('ENGINE [WASM]');
-        expect(wasmAnchor).toHaveClass('text-info');
+        expect(wasmAnchor).toHaveClass('text-toggle-active');
         expect(wasmAnchor).not.toHaveClass('text-warning');
 
         rerender(<Actions {...props} currentEngine="JS" />);
         const jsAnchor = screen.getByText('ENGINE [JS]');
-        expect(jsAnchor).toHaveClass('text-info');
+        expect(jsAnchor).toHaveClass('text-toggle-inactive');
         expect(jsAnchor).not.toHaveClass('text-warning');
     });
 
