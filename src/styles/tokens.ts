@@ -42,6 +42,12 @@ export const designTokens = {
         flag: '#F59E0B', // Amber for CPU flags
         status: '#8B5CF6', // Purple for status info
 
+        // Hover variants for data type colors (brighter green)
+        dataHover: {
+            address: '#6EE7B7',
+            value: '#6EE7B7',
+        },
+
         // Semantic colors
         success: '#10B981', // Green for success/active states
         warning: '#F59E0B', // Amber for warnings
@@ -71,11 +77,20 @@ export const designTokens = {
             950: '#0F172A',
         },
 
-        // Background colors
+        // Background colors (consumed via the legacy color() helper)
         background: {
             primary: '#000000', // Pure black
             secondary: '#0F172A', // Very dark slate
             surface: '#1E293B', // Dark slate
+            overlay: '#00000060', // Black with 60% opacity
+        },
+
+        // Surface colors (canonical Tailwind-facing names; surface.primary == background.surface)
+        surface: {
+            primary: '#1E293B', // Dark slate
+            secondary: '#0F172A', // Very dark slate
+            tertiary: '#334155', // Lighter slate
+            quaternary: '#475569', // Lightest slate
             overlay: '#00000060', // Black with 60% opacity
         },
 
@@ -91,20 +106,21 @@ export const designTokens = {
         text: {
             primary: '#F3F4F6', // Light gray
             secondary: '#9CA3AF', // Medium gray
+            tertiary: '#6B7280', // Darker gray (same as muted)
             accent: '#10B981', // Green accent
             muted: '#6B7280', // Darker gray
         },
 
         // Component type colors for consistent mapping
         componentColors: {
-            RAM: '#3B82F6',      // Blue (info color)
-            ROM: '#F59E0B',      // Amber (warning color)
-            Bus: '#10B981',      // Green (success color)
-            CPU: '#EF4444',      // Red (error color)
-            CPU6502: '#EF4444',  // Red (error color)
-            PIA6820: '#8B5CF6',  // Purple (status color)
+            RAM: '#3B82F6', // Blue (info color)
+            ROM: '#F59E0B', // Amber (warning color)
+            Bus: '#10B981', // Green (success color)
+            CPU: '#EF4444', // Red (error color)
+            CPU6502: '#EF4444', // Red (error color)
+            PIA6820: '#8B5CF6', // Purple (status color)
             IoComponent: '#06B6D4', // Cyan
-            Clock: '#F97316',    // Orange
+            Clock: '#F97316', // Orange
         },
     },
 
