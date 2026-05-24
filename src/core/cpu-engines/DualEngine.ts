@@ -275,6 +275,17 @@ export class DualEngine implements ICPUEngine {
         this.wasmEngine?.resetMetrics();
     }
 
+    setProfiling(enabled: boolean): void {
+        // Fan out to both engines so profiling state stays in sync regardless
+        // of which engine is active when the user later switches.
+        this.jsEngine.setProfiling?.(enabled);
+        this.wasmEngine?.setProfiling?.(enabled);
+    }
+
+    getProfilingData(): Map<number, { count: number; cycles: number }> {
+        return this.activeEngine.getProfilingData?.() ?? new Map();
+    }
+
     getMemoryUsage(): number {
         // Return combined memory usage
         let total = this.jsEngine.getMemoryUsage();

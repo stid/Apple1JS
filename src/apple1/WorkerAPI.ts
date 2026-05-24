@@ -388,7 +388,15 @@ export class WorkerAPI implements IWorkerAPI {
     }
 
     setCpuProfiling(enabled: boolean): void {
-        this.workerState.apple1.cpu.setProfilingEnabled(enabled);
+        // Route through the active (dual) engine so profiling toggles on the
+        // engine that is actually executing. Writing the dormant JS CPU
+        // directly left the WASM engine unprofiled while it was active.
+        const dualEngine = this.workerState.getDualEngine();
+        if (dualEngine?.setProfiling) {
+            dualEngine.setProfiling(enabled);
+        } else {
+            this.workerState.apple1.cpu.setProfilingEnabled(enabled);
+        }
     }
 
     setCycleAccurateMode(enabled: boolean): void {
