@@ -63,12 +63,33 @@ export default [
             'react-hooks/rules-of-hooks': 'error',
             'react-hooks/exhaustive-deps': 'warn',
             'react/react-in-jsx-scope': 'off',
+            // Ban raw hex colors — the design system is the single source of
+            // truth. Use a design token (src/styles/tokens.ts) or a token-derived
+            // Tailwind class. CRT display files and tokens.ts are allowlisted
+            // below (see CLAUDE.md "design tokens except CRT display").
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: 'Literal[value=/#[0-9a-fA-F]{3,8}/]',
+                    message:
+                        'Hardcoded hex color. Use a design token (src/styles/tokens.ts) or a token-derived Tailwind class (e.g. text-data-address, bg-surface-primary). CRT files are exempt.',
+                },
+            ],
             ...prettier.rules,
         },
         settings: {
             react: {
                 version: 'detect',
             },
+        },
+    },
+    {
+        // CRT display + the token source are exempt from the raw-hex ban:
+        // CRT effects are intentionally hand-tuned raw colors (CLAUDE.md), and
+        // tokens.ts *is* the canonical place where hex values are defined.
+        files: ['**/CRT*.{ts,tsx}', '**/CharRom*.{ts,tsx}', 'src/styles/tokens.ts'],
+        rules: {
+            'no-restricted-syntax': 'off',
         },
     },
     {
@@ -91,6 +112,8 @@ export default [
         },
         rules: {
             ...jest.configs.recommended.rules,
+            // Tests legitimately assert on raw hex token values (parity guard).
+            'no-restricted-syntax': 'off',
         },
         languageOptions: {
             globals: {
