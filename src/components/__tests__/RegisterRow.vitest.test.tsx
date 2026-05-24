@@ -1,7 +1,15 @@
-import { describe, expect } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { RegisterRow } from '../RegisterRow';
+import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
+
+// Mock navigation hook so AddressLink can render without a provider
+vi.mock('../../contexts/DebuggerNavigationContext', () => ({
+    useDebuggerNavigation: () => ({
+        navigate: vi.fn(),
+    }),
+}));
 
 describe('RegisterRow component', () => {
     it('should render label and value correctly', () => {
@@ -50,5 +58,24 @@ describe('RegisterRow component', () => {
 
         expect(screen.getByText('REG_A:')).toBeInTheDocument();
         expect(screen.queryByText('REG_A')).not.toBeInTheDocument();
+    });
+
+    it('should render a valid address value as an AddressLink', () => {
+        const workerManager = createMockWorkerManager();
+        render(<RegisterRow label="PC" value="$1234" type="address" workerManager={workerManager} />);
+
+        // AddressLink renders a button with the formatted address
+        const link = screen.getByRole('button');
+        expect(link).toHaveTextContent('$1234');
+    });
+
+    it('should NOT parse a malformed address value as an address', () => {
+        const workerManager = createMockWorkerManager();
+        render(<RegisterRow label="PC" value="x0$F" type="address" workerManager={workerManager} />);
+
+        // parseAddressValue returns null for the malformed input, so it falls
+        // through to a plain span instead of rendering a clickable AddressLink.
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        expect(screen.getByText('x0$F')).toHaveClass('text-data-address');
     });
 });
