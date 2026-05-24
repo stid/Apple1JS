@@ -2,31 +2,31 @@
  * 6502 CPU Core Implementation
  */
 
-use wasm_bindgen::prelude::*;
+use crate::{console_log, CPUState, Metrics};
 use std::collections::HashSet;
-use crate::{CPUState, Metrics, console_log};
+use wasm_bindgen::prelude::*;
 
 /// Status register flags
 pub mod flags {
-    pub const CARRY: u8 = 0x01;      // C
-    pub const ZERO: u8 = 0x02;       // Z
-    pub const INTERRUPT: u8 = 0x04;  // I
-    pub const DECIMAL: u8 = 0x08;    // D
-    pub const BREAK: u8 = 0x10;      // B
-    pub const UNUSED: u8 = 0x20;     // Always 1
-    pub const OVERFLOW: u8 = 0x40;   // V
-    pub const NEGATIVE: u8 = 0x80;   // N
+    pub const CARRY: u8 = 0x01; // C
+    pub const ZERO: u8 = 0x02; // Z
+    pub const INTERRUPT: u8 = 0x04; // I
+    pub const DECIMAL: u8 = 0x08; // D
+    pub const BREAK: u8 = 0x10; // B
+    pub const UNUSED: u8 = 0x20; // Always 1
+    pub const OVERFLOW: u8 = 0x40; // V
+    pub const NEGATIVE: u8 = 0x80; // N
 }
 
 /// 6502 CPU implementation
 #[wasm_bindgen]
 pub struct CPU6502 {
     // Registers
-    pub(crate) pc: u16,  // Program Counter
-    pub(crate) a: u8,    // Accumulator
-    pub(crate) x: u8,    // X Index Register
-    pub(crate) y: u8,    // Y Index Register
-    pub(crate) s: u8,    // Stack Pointer
+    pub(crate) pc: u16,    // Program Counter
+    pub(crate) a: u8,      // Accumulator
+    pub(crate) x: u8,      // X Index Register
+    pub(crate) y: u8,      // Y Index Register
+    pub(crate) s: u8,      // Stack Pointer
     pub(crate) status: u8, // Status Register (NV-BDIZC)
 
     // No internal memory - all memory access goes through JavaScript Bus
@@ -50,6 +50,10 @@ pub struct CPU6502 {
     // Profiling support
     profiling_enabled: bool,
     opcode_counts: [u64; 256],
+
+    // Last bus access (for debugger HW_ADDR / HW_DATA parity with the JS engine)
+    last_addr: u16,
+    last_data: u8,
 }
 
 #[wasm_bindgen]
@@ -58,9 +62,9 @@ impl CPU6502 {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         console_log!("Creating new WASM CPU6502 instance");
-        
+
         CPU6502 {
-            pc: 0xFFFC,  // Reset vector
+            pc: 0xFFFC, // Reset vector
             a: 0,
             x: 0,
             y: 0,
@@ -76,9 +80,11 @@ impl CPU6502 {
             breakpoint_hit: None,
             profiling_enabled: false,
             opcode_counts: [0; 256],
+            last_addr: 0,
+            last_data: 0,
         }
     }
-    
+
     /// Reset the CPU (uses JavaScript bridge)
     pub fn reset(&mut self) {
         // Read reset vector from 0xFFFC-0xFFFD via Bus
@@ -118,7 +124,7 @@ impl CPU6502 {
 
         console_log!("CPU reset (Bus-aware), PC = 0x{:04X}", self.pc);
     }
-    
+
     /// Execute a single instruction (using JavaScript Bus bridge)
     pub fn step(&mut self) -> u32 {
         #[cfg(feature = "performance")]
@@ -194,21 +200,21 @@ impl CPU6502 {
 
         (self.cycles - start_cycles) as u32
     }
-    
+
     /// Execute multiple cycles
     pub fn step_cycles(&mut self, target_cycles: u32) -> u32 {
         let start_cycles = self.cycles;
         let target = start_cycles + target_cycles as u64;
-        
+
         while self.cycles < target {
             self.step();
         }
-        
+
         (self.cycles - start_cycles) as u32
     }
-    
+
     // ============ State Management ============
-    
+
     /// Save CPU state
     pub fn save_state(&self) -> JsValue {
         let state = CPUState {
@@ -222,14 +228,14 @@ impl CPU6502 {
             irq: self.irq,
             nmi: self.nmi,
         };
-        
+
         serde_wasm_bindgen::to_value(&state).unwrap()
     }
-    
+
     /// Load CPU state
     pub fn load_state(&mut self, state: &JsValue) {
         let state: CPUState = serde_wasm_bindgen::from_value(state.clone()).unwrap();
-        
+
         self.pc = state.pc;
         self.a = state.a;
         self.x = state.x;
@@ -240,44 +246,68 @@ impl CPU6502 {
         self.irq = state.irq;
         self.nmi = state.nmi;
     }
-    
+
     // ============ Register Access ============
 
     #[wasm_bindgen(getter)]
-    pub fn pc(&self) -> u16 { self.pc }
+    pub fn pc(&self) -> u16 {
+        self.pc
+    }
 
     #[wasm_bindgen(setter)]
-    pub fn set_pc(&mut self, value: u16) { self.pc = value; }
+    pub fn set_pc(&mut self, value: u16) {
+        self.pc = value;
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn a(&self) -> u8 { self.a }
+    pub fn a(&self) -> u8 {
+        self.a
+    }
 
     #[wasm_bindgen(setter)]
-    pub fn set_a(&mut self, value: u8) { self.a = value; }
+    pub fn set_a(&mut self, value: u8) {
+        self.a = value;
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn x(&self) -> u8 { self.x }
+    pub fn x(&self) -> u8 {
+        self.x
+    }
 
     #[wasm_bindgen(setter)]
-    pub fn set_x(&mut self, value: u8) { self.x = value; }
+    pub fn set_x(&mut self, value: u8) {
+        self.x = value;
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn y(&self) -> u8 { self.y }
+    pub fn y(&self) -> u8 {
+        self.y
+    }
 
     #[wasm_bindgen(setter)]
-    pub fn set_y(&mut self, value: u8) { self.y = value; }
+    pub fn set_y(&mut self, value: u8) {
+        self.y = value;
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn s(&self) -> u8 { self.s }
+    pub fn s(&self) -> u8 {
+        self.s
+    }
 
     #[wasm_bindgen(setter)]
-    pub fn set_s(&mut self, value: u8) { self.s = value; }
+    pub fn set_s(&mut self, value: u8) {
+        self.s = value;
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn status(&self) -> u8 { self.status }
+    pub fn status(&self) -> u8 {
+        self.status
+    }
 
     #[wasm_bindgen(setter)]
-    pub fn set_status(&mut self, value: u8) { self.status = value; }
+    pub fn set_status(&mut self, value: u8) {
+        self.status = value;
+    }
 
     /// Get CPU status as byte (internal)
     pub(crate) fn get_status(&self) -> u8 {
@@ -287,65 +317,83 @@ impl CPU6502 {
     // ============ Internal Getters for WasmSystem ============
 
     /// Get program counter (internal)
-    pub(crate) fn get_pc(&self) -> u16 { self.pc }
+    pub(crate) fn get_pc(&self) -> u16 {
+        self.pc
+    }
 
     /// Get accumulator (internal)
-    pub(crate) fn get_a(&self) -> u8 { self.a }
+    pub(crate) fn get_a(&self) -> u8 {
+        self.a
+    }
 
     /// Get X register (internal)
-    pub(crate) fn get_x(&self) -> u8 { self.x }
+    pub(crate) fn get_x(&self) -> u8 {
+        self.x
+    }
 
     /// Get Y register (internal)
-    pub(crate) fn get_y(&self) -> u8 { self.y }
+    pub(crate) fn get_y(&self) -> u8 {
+        self.y
+    }
 
     /// Get stack pointer (internal)
-    pub(crate) fn get_s(&self) -> u8 { self.s }
+    pub(crate) fn get_s(&self) -> u8 {
+        self.s
+    }
 
     /// Get cycle count (internal)
-    pub(crate) fn get_cycles(&self) -> u64 { self.cycles }
+    pub(crate) fn get_cycles(&self) -> u64 {
+        self.cycles
+    }
 
     /// Get instruction count (internal)
-    pub(crate) fn get_instructions(&self) -> u64 { self.instructions }
+    pub(crate) fn get_instructions(&self) -> u64 {
+        self.instructions
+    }
 
     /// Get IRQ state (internal)
-    pub(crate) fn get_irq(&self) -> bool { self.irq }
+    pub(crate) fn get_irq(&self) -> bool {
+        self.irq
+    }
 
     /// Get NMI pending state (internal)
-    pub(crate) fn get_nmi_pending(&self) -> bool { self.nmi_pending }
+    pub(crate) fn get_nmi_pending(&self) -> bool {
+        self.nmi_pending
+    }
 
     // ============ Memory Access ============
-    
+
     /// Read a byte from memory via JavaScript Bus
     pub fn read_memory(&self, address: u16) -> u8 {
         crate::bus_read(address)
     }
-    
+
     /// Write a byte to memory via JavaScript Bus
     pub fn write_memory(&mut self, address: u16, value: u8) {
         crate::bus_write(address, value);
     }
-    
+
     /// Read a range of memory via JavaScript Bus
     pub fn read_memory_range(&self, start: u16, length: u16) -> Vec<u8> {
         let mut result = Vec::with_capacity(length as usize);
         for i in 0..length {
-            result.push(crate::bus_read(start + i));
+            result.push(crate::bus_read(start.wrapping_add(i)));
         }
         result
     }
-    
+
     /// Write a range of memory via JavaScript Bus
     pub fn write_memory_range(&mut self, start: u16, data: &[u8]) {
         for (i, &byte) in data.iter().enumerate() {
-            crate::bus_write(start + i as u16, byte);
+            crate::bus_write(start.wrapping_add(i as u16), byte);
         }
     }
-    
+
     // Note: memory_ptr removed as we no longer have internal memory
     // All memory access goes through JavaScript Bus
-    
+
     // ============ Performance Metrics ============
-    
+
     /// Get performance metrics
     pub fn get_metrics(&self) -> JsValue {
         let metrics = Metrics {
@@ -358,28 +406,28 @@ impl CPU6502 {
             },
             last_step_duration: self.last_step_start,
         };
-        
+
         serde_wasm_bindgen::to_value(&metrics).unwrap()
     }
-    
+
     /// Reset metrics
     pub fn reset_metrics(&mut self) {
         self.cycles = 0;
         self.instructions = 0;
     }
-    
+
     // ============ Interrupt Handling ============
-    
+
     /// Trigger IRQ
     pub fn trigger_irq(&mut self) {
         self.irq = true;
     }
-    
+
     /// Clear IRQ
     pub fn clear_irq(&mut self) {
         self.irq = false;
     }
-    
+
     /// Trigger NMI
     pub fn trigger_nmi(&mut self) {
         self.nmi_pending = true;
@@ -461,7 +509,8 @@ impl CPU6502 {
     /// Returns pairs of (opcode, count) sorted by count descending
     pub fn get_top_opcodes(&self, count: usize) -> Vec<u8> {
         // Create pairs of (opcode, count) for non-zero counts
-        let mut pairs: Vec<(u8, u64)> = self.opcode_counts
+        let mut pairs: Vec<(u8, u64)> = self
+            .opcode_counts
             .iter()
             .enumerate()
             .filter(|(_, &c)| c > 0)
@@ -501,42 +550,57 @@ impl CPU6502 {
     /// Read a byte from memory using internal Bus (for WasmSystem)
     pub(crate) fn read_byte_from_bus(&mut self, bus: &crate::Bus, address: u16) -> u8 {
         self.cycles += 1;
-        bus.read(address)
+        let data = bus.read(address);
+        self.last_addr = address;
+        self.last_data = data;
+        data
     }
 
     /// Write a byte to memory using internal Bus (for WasmSystem)
     pub(crate) fn write_byte_to_bus(&mut self, bus: &mut crate::Bus, address: u16, value: u8) {
         self.cycles += 1;
+        self.last_addr = address;
+        self.last_data = value;
         bus.write(address, value);
     }
-    
+
+    /// Last bus-access address (for debugger HW_ADDR)
+    pub(crate) fn get_last_addr(&self) -> u16 {
+        self.last_addr
+    }
+
+    /// Last bus-access data (for debugger HW_DATA)
+    pub(crate) fn get_last_data(&self) -> u8 {
+        self.last_data
+    }
+
     /// Read a word from memory (little-endian)
     pub(crate) fn read_word(&mut self, address: u16) -> u16 {
         let low = self.read_byte(address) as u16;
         let high = self.read_byte(address.wrapping_add(1)) as u16;
         (high << 8) | low
     }
-    
+
     /// Read a word from zero page memory (handles wrap-around within zero page)
     pub(crate) fn read_word_zp(&mut self, address: u8) -> u16 {
         let low = self.read_byte(address as u16) as u16;
         let high = self.read_byte(address.wrapping_add(1) as u16) as u16;
         (high << 8) | low
     }
-    
+
     /// Push byte to stack
     pub(crate) fn push(&mut self, value: u8) {
         self.write_byte(0x0100 | self.s as u16, value);
         self.s = self.s.wrapping_sub(1);
     }
-    
+
     /// Pop byte from stack
     #[allow(dead_code)]
     pub(crate) fn pop(&mut self) -> u8 {
         self.s = self.s.wrapping_add(1);
         self.read_byte(0x0100 | self.s as u16)
     }
-    
+
     /// Set a status flag
     pub(crate) fn set_flag(&mut self, flag: u8, value: bool) {
         if value {
@@ -545,43 +609,43 @@ impl CPU6502 {
             self.status &= !flag;
         }
     }
-    
+
     /// Get a status flag
     pub(crate) fn get_flag(&self, flag: u8) -> bool {
         (self.status & flag) != 0
     }
-    
+
     /// Update Zero and Negative flags
     pub(crate) fn update_nz(&mut self, value: u8) {
         self.set_flag(flags::ZERO, value == 0);
         self.set_flag(flags::NEGATIVE, (value & 0x80) != 0);
     }
-    
+
     /// Push a byte onto the stack
     pub(crate) fn push_byte(&mut self, value: u8) {
         self.write_byte(0x0100 | (self.s as u16), value);
         self.s = self.s.wrapping_sub(1);
     }
-    
+
     /// Pop a byte from the stack
     pub(crate) fn pop_byte(&mut self) -> u8 {
         self.s = self.s.wrapping_add(1);
         self.read_byte(0x0100 | (self.s as u16))
     }
-    
+
     /// Push a word onto the stack (high byte first)
     pub(crate) fn push_word(&mut self, value: u16) {
         self.push_byte((value >> 8) as u8);
         self.push_byte(value as u8);
     }
-    
+
     /// Pop a word from the stack (low byte first)
     pub(crate) fn pop_word(&mut self) -> u16 {
         let low = self.pop_byte() as u16;
         let high = self.pop_byte() as u16;
         (high << 8) | low
     }
-    
+
     /// Handle IRQ interrupt
     fn handle_irq(&mut self) {
         self.push((self.pc >> 8) as u8);
@@ -641,7 +705,7 @@ impl CPU6502 {
         self.s = self.s.wrapping_add(1);
         self.read_byte_from_bus(bus, 0x0100 | (self.s as u16))
     }
-    
+
     /// Execute an instruction
     pub(crate) fn execute_instruction(&mut self, opcode: u8) {
         self.dispatch_opcode(opcode);
@@ -653,9 +717,9 @@ impl CPU6502 {
         // Use Bus-aware dispatch table for maximum performance
         self.dispatch_opcode_with_bus(bus, opcode);
     }
-    
+
     // ========== Addressing Mode Helpers ==========
-    
+
     /// Get address for indexed indirect mode (zero page,X)
     /// Used for instructions like LDA ($20,X)
     pub(crate) fn get_izx_addr(&mut self) -> u16 {
@@ -666,7 +730,7 @@ impl CPU6502 {
         let high = self.read_byte(addr.wrapping_add(1) as u16) as u16;
         (high << 8) | low
     }
-    
+
     /// Get address for indirect indexed mode (zero page),Y
     /// Used for instructions like LDA ($20),Y
     pub(crate) fn get_izy_addr(&mut self) -> u16 {
@@ -677,7 +741,7 @@ impl CPU6502 {
         let base_addr = (high << 8) | low;
         base_addr.wrapping_add(self.y as u16)
     }
-    
+
     /// Check if page boundary was crossed for indirect indexed mode
     pub(crate) fn check_izy_page_cross(&mut self) -> bool {
         // Read the indirect address from zero page via Bus
@@ -688,14 +752,14 @@ impl CPU6502 {
         let final_addr = base_addr.wrapping_add(self.y as u16);
         (base_addr & 0xFF00) != (final_addr & 0xFF00)
     }
-    
+
     /// Get address for zero page,Y mode
     pub(crate) fn get_zpy_addr(&mut self) -> u16 {
         let addr = self.read_byte(self.pc).wrapping_add(self.y);
         self.pc = self.pc.wrapping_add(1);
         addr as u16
     }
-    
+
     /// Get address for absolute,Y mode
     #[allow(dead_code)]
     pub(crate) fn get_aby_addr(&mut self) -> u16 {

@@ -39,9 +39,6 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         return () => clearInterval(interval);
     }, [fetchEngineStatus]);
 
-    // Determine if WASM engine is active (affects profiling availability)
-    const isWasmEngine = engineStatus?.currentEngine === 'WASM';
-
     // Helper function to translate hex opcode to human-readable mnemonic
     const getOpcodeMnemonic = (opcodeHex: string): string => {
         // Convert hex string like "$30" to number
@@ -52,19 +49,17 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
 
     // Debug info is now provided by WorkerDataContext, no need to poll
 
-
-
     // Handler for profiling toggle
     const handleProfilingToggle = async () => {
         if (!workerManager || profilingPending) return;
-        
+
         const newProfilingState = !profilingEnabled;
         setProfilingPending(true);
-        
+
         try {
             await workerManager.setCpuProfiling(newProfilingState);
             setProfilingEnabled(newProfilingState);
-            
+
             // Force a debug info refresh to get updated profiling state
             if (workerManager.getDebugInfo) {
                 await workerManager.getDebugInfo();
@@ -81,7 +76,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
     // Get CPU performance data if available
     const cpuDebugData = debugInfo.cpu || {};
     const perfData = cpuDebugData._PERF_DATA;
-    
+
     // Sync profiling state with actual worker state from debug info
     React.useEffect(() => {
         // Only sync if we have actual profiling state from worker
@@ -105,19 +100,19 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
     // Helper function to get debug data for a component based on its type and id
     const getDebugDataForComponent = (node: InspectableData): Record<string, string | number | boolean> => {
         if (!debugInfo || Object.keys(debugInfo).length === 0) return {};
-        
+
         // Map component types to debug domains
         const typeToDebugDomain: Record<string, string> = {
-            'CPU': 'cpu',
-            'CPU6502': 'cpu',  // Real CPU6502 component type
-            'PIA6820': 'pia', 
-            'Bus': 'Bus',
-            'Clock': 'clock'
+            CPU: 'cpu',
+            CPU6502: 'cpu', // Real CPU6502 component type
+            PIA6820: 'pia',
+            Bus: 'Bus',
+            Clock: 'clock',
         };
-        
+
         const debugDomain = typeToDebugDomain[node.type];
         if (!debugDomain) return {};
-        
+
         // Type-safe access to debug domains
         let domainData: Record<string, string | number | object> | undefined;
         switch (debugDomain) {
@@ -136,9 +131,9 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             default:
                 return {};
         }
-        
+
         if (!domainData) return {};
-        
+
         // Handle CPU debug data (could be flat or nested depending on source)
         if (debugDomain === 'cpu' && typeof domainData === 'object') {
             const result: Record<string, string | number | boolean> = {};
@@ -147,12 +142,16 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 if (key === '_PERF_DATA') {
                     return;
                 }
-                
+
                 if (typeof value === 'object' && value !== null) {
                     // Flatten nested objects like REG: { PC: '0x1234' } -> REG_PC: '0x1234'
                     Object.entries(value).forEach(([subKey, subValue]) => {
                         // Only include string/number/boolean values
-                        if (typeof subValue === 'string' || typeof subValue === 'number' || typeof subValue === 'boolean') {
+                        if (
+                            typeof subValue === 'string' ||
+                            typeof subValue === 'number' ||
+                            typeof subValue === 'boolean'
+                        ) {
                             result[`${key}_${subKey}`] = subValue;
                         }
                     });
@@ -163,7 +162,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             });
             return result;
         }
-        
+
         return domainData as Record<string, string | number | boolean>;
     };
 
@@ -219,52 +218,46 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 configObj[key] = node[key];
             }
         }
-        
+
         // Add debug data for this component if available
         const debugData = getDebugDataForComponent(node);
         const combinedConfig = { ...configObj, ...debugData };
-        
+
         const filteredConfigEntries = Object.entries(combinedConfig).filter(([, v]) => v !== undefined && v !== null);
-        
+
         // Component card - all components use same Top Instructions styling
         const componentCard = (
-            <div key={node.id} className="bg-black/30 border border-border-subtle rounded-lg p-md mb-sm" style={{ marginLeft: `${depth * 16}px` }}>
+            <div
+                key={node.id}
+                className="bg-surface-overlay border border-border-subtle rounded-lg p-md mb-sm"
+                style={{ marginLeft: `${depth * 16}px` }}
+            >
                 <div className="flex items-center justify-between mb-sm">
                     <div className="flex items-center">
-                        {depth > 0 && (
-                            <span className="text-text-secondary mr-2">
-                                {'└─ '}
-                            </span>
-                        )}
-                        <span className={`font-medium text-sm ${getComponentColor(node.type)}`}>
-                            {node.type}
-                        </span>
-                        <span className="text-text-secondary text-xs ml-2 font-mono">
-                            {node.id}
-                        </span>
+                        {depth > 0 && <span className="text-text-secondary mr-2">{'└─ '}</span>}
+                        <span className={`font-medium text-sm ${getComponentColor(node.type)}`}>{node.type}</span>
+                        <span className="text-text-secondary text-xs ml-2 font-mono">{node.id}</span>
                     </div>
-                    <span className="text-text-secondary text-xs">
-                        {node.name || '(unnamed)'}
-                    </span>
+                    <span className="text-text-secondary text-xs">{node.name || '(unnamed)'}</span>
                 </div>
-                
+
                 {filteredConfigEntries.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-lg gap-y-xs">
                         {filteredConfigEntries.map(([k, v]) => {
                             const isDebugData = k in debugData;
                             const formattedValue = formatValue(k, v as string | number | boolean);
                             return workerManager ? (
-                                <RegisterRow 
-                                    key={k} 
-                                    label={k} 
+                                <RegisterRow
+                                    key={k}
+                                    label={k}
                                     value={formattedValue}
                                     type={isDebugData ? getDataType(k) : 'status'}
                                     workerManager={workerManager}
                                 />
                             ) : (
-                                <RegisterRow 
-                                    key={k} 
-                                    label={k} 
+                                <RegisterRow
+                                    key={k}
+                                    label={k}
                                     value={formattedValue}
                                     type={isDebugData ? getDataType(k) : 'status'}
                                 />
@@ -274,11 +267,11 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 )}
             </div>
         );
-        
+
         // Helper function to format values with consistent width
         function formatValue(key: string, value: string | number | boolean): string {
             const strValue = String(value);
-            
+
             // For known numeric fields that can vary in length, pad them
             if (key === 'drift' || key === 'actualFrequency') {
                 // For drift percentage and frequency, ensure consistent decimal places
@@ -286,12 +279,12 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     return value.toFixed(2);
                 }
             }
-            
+
             // For large numbers, add thousand separators for readability
             if (typeof value === 'number' && value > 999) {
                 return value.toLocaleString();
             }
-            
+
             return strValue;
         }
 
@@ -302,10 +295,12 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             if (key.includes('REG_') || key.includes('DATA')) return 'value';
             return 'status';
         }
-        
+
         let childrenNodes: React.ReactNode[] = [];
         if (hasChildren(node) && node.children.length > 0) {
-            childrenNodes = node.children.flatMap((child) => renderArchComponent(child as InspectableData, depth + 1, seen));
+            childrenNodes = node.children.flatMap((child) =>
+                renderArchComponent(child as InspectableData, depth + 1, seen),
+            );
         }
         return [componentCard, ...childrenNodes];
     }
@@ -355,21 +350,9 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                         CPU Engine Status
                     </h3>
                     <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
-                        <RegisterRow
-                            label="Active Engine"
-                            value={engineStatus.currentEngine}
-                            type="status"
-                        />
-                        <RegisterRow
-                            label="Available"
-                            value={engineStatus.availableEngines.join(', ')}
-                            type="status"
-                        />
-                        <RegisterRow
-                            label="Switch Count"
-                            value={String(engineStatus.switchCount)}
-                            type="value"
-                        />
+                        <RegisterRow label="Active Engine" value={engineStatus.currentEngine} type="status" />
+                        <RegisterRow label="Available" value={engineStatus.availableEngines.join(', ')} type="status" />
+                        <RegisterRow label="Switch Count" value={String(engineStatus.switchCount)} type="value" />
                         {engineStatus.lastSwitchTime > 0 && (
                             <RegisterRow
                                 label="Last Switch"
@@ -378,11 +361,6 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                             />
                         )}
                     </div>
-                    {isWasmEngine && (
-                        <div className="mt-sm text-xs text-text-secondary bg-warning/10 rounded p-sm border border-warning/20">
-                            ⚠️ WASM engine active. Some debugging features (profiling, breakpoints) have limited support.
-                        </div>
-                    )}
                 </section>
             )}
 
@@ -395,58 +373,54 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     </h3>
                     <button
                         onClick={handleProfilingToggle}
-                        disabled={profilingPending || !workerManager || isWasmEngine}
-                        title={isWasmEngine ? 'Profiling not yet supported in WASM engine' : undefined}
+                        disabled={profilingPending || !workerManager}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                             profilingPending
                                 ? 'bg-border-secondary text-text-disabled cursor-wait'
-                                : isWasmEngine
-                                    ? 'bg-border-secondary text-text-disabled cursor-not-allowed'
-                                    : profilingEnabled
-                                        ? 'bg-success text-white hover:bg-success/80'
-                                        : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
+                                : profilingEnabled
+                                  ? 'bg-success text-white hover:bg-success/80'
+                                  : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
                         } ${!workerManager ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                        {profilingPending
-                            ? 'Updating...'
-                            : isWasmEngine
-                                ? 'WASM (No Profiling)'
-                                : profilingEnabled
-                                    ? 'Disable Profiling'
-                                    : 'Enable Profiling'}
+                        {profilingPending ? 'Updating...' : profilingEnabled ? 'Disable Profiling' : 'Enable Profiling'}
                     </button>
                 </div>
-                
+
                 {profilingEnabled && (
                     <div className="space-y-md">
                         {perfData ? (
                             <>
                                 <div className="grid grid-cols-3 gap-md">
-                                    <MetricCard 
-                                        label="Instructions" 
+                                    <MetricCard
+                                        label="Instructions"
                                         value={perfData.stats?.instructionCount.toLocaleString() || '0'}
                                         status="info"
                                     />
-                                    <MetricCard 
-                                        label="Unique Opcodes" 
+                                    <MetricCard
+                                        label="Unique Opcodes"
                                         value={perfData.stats?.totalInstructions || '0'}
                                         status="info"
                                     />
-                                    <MetricCard 
-                                        label="Status" 
-                                        value="ACTIVE"
-                                        status="success"
-                                    />
+                                    <MetricCard label="Status" value="ACTIVE" status="success" />
                                 </div>
-                                
+
                                 {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
-                                    <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
-                                        <div className="text-sm font-medium text-text-secondary mb-sm">Top Instructions</div>
+                                    <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
+                                        <div className="text-sm font-medium text-text-secondary mb-sm">
+                                            Top Instructions
+                                        </div>
                                         <div className="space-y-sm">
                                             {perfData.topOpcodes.slice(0, 3).map((opcode) => (
-                                                <div key={opcode.opcode} className="flex justify-between items-center text-sm font-mono">
-                                                    <span className="text-data-status font-medium">{getOpcodeMnemonic(opcode.opcode)}</span>
-                                                    <span className="text-data-value">{opcode.count.toLocaleString()}</span>
+                                                <div
+                                                    key={opcode.opcode}
+                                                    className="flex justify-between items-center text-sm font-mono"
+                                                >
+                                                    <span className="text-data-status font-medium">
+                                                        {getOpcodeMnemonic(opcode.opcode)}
+                                                    </span>
+                                                    <span className="text-data-value">
+                                                        {opcode.count.toLocaleString()}
+                                                    </span>
                                                     <span className="text-data-flag">{opcode.avgCycles}c</span>
                                                 </div>
                                             ))}
@@ -455,10 +429,10 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                                 )}
                             </>
                         ) : (
-                            <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
+                            <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
                                 <div className="text-sm text-text-secondary text-center">
-                                    {profilingPending 
-                                        ? 'Initializing profiler...' 
+                                    {profilingPending
+                                        ? 'Initializing profiler...'
                                         : 'Waiting for profiling data... Run some code to see statistics.'}
                                 </div>
                             </div>
@@ -475,7 +449,12 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 </h3>
                 <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
                     {workerManager ? (
-                        <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" workerManager={workerManager} />
+                        <RegisterRow
+                            label="REG_PC"
+                            value={cpuRegisterData.pc}
+                            type="address"
+                            workerManager={workerManager}
+                        />
                     ) : (
                         <RegisterRow label="REG_PC" value={cpuRegisterData.pc} type="address" />
                     )}
@@ -501,13 +480,32 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 <div className="space-y-sm">
                     {workerManager ? (
                         <>
-                            <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" workerManager={workerManager} />
-                            <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" workerManager={workerManager} />
-                            <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" workerManager={workerManager} />
+                            <RegisterRow
+                                label="ramBank2Address"
+                                value={cpuRegisterData.ramBank2Address}
+                                type="address"
+                                workerManager={workerManager}
+                            />
+                            <RegisterRow
+                                label="piaAddress"
+                                value={cpuRegisterData.piaAddress}
+                                type="address"
+                                workerManager={workerManager}
+                            />
+                            <RegisterRow
+                                label="HW_ADDR"
+                                value={cpuRegisterData.hwAddr}
+                                type="address"
+                                workerManager={workerManager}
+                            />
                         </>
                     ) : (
                         <>
-                            <RegisterRow label="ramBank2Address" value={cpuRegisterData.ramBank2Address} type="address" />
+                            <RegisterRow
+                                label="ramBank2Address"
+                                value={cpuRegisterData.ramBank2Address}
+                                type="address"
+                            />
                             <RegisterRow label="piaAddress" value={cpuRegisterData.piaAddress} type="address" />
                             <RegisterRow label="HW_ADDR" value={cpuRegisterData.hwAddr} type="address" />
                         </>
@@ -521,7 +519,12 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     <RegisterRow label="NMI_PENDING" value={cpuRegisterData.nmiPending} type="flag" />
                     <RegisterRow label="EXEC_TMP" value={cpuRegisterData.execTmp} type="value" />
                     {workerManager ? (
-                        <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" workerManager={workerManager} />
+                        <RegisterRow
+                            label="EXEC_ADDR"
+                            value={cpuRegisterData.execAddr}
+                            type="address"
+                            workerManager={workerManager}
+                        />
                     ) : (
                         <RegisterRow label="EXEC_ADDR" value={cpuRegisterData.execAddr} type="address" />
                     )}
@@ -536,10 +539,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                     <span className="mr-2">🏗️</span>
                     Architecture Tree
                 </h3>
-                <div className="bg-black/30 rounded-lg p-md border border-border-subtle">
-                    <div className="space-y-sm">
-                        {renderArchComponent(archRoot)}
-                    </div>
+                <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
+                    <div className="space-y-sm">{renderArchComponent(archRoot)}</div>
                 </div>
             </section>
         </div>

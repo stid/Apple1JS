@@ -692,6 +692,81 @@ export class WasmEngine implements ICPUEngine {
         return ramSize + 256 + 4096 + this.breakpoints.size * 8;
     }
 
+    // ============ Profiling ============
+
+    /**
+     * Enable/disable profiling on the WASM CPU. Profiling already exists in the
+     * Rust core (opcode counters); this wires it through so the WASM engine is
+     * at parity with JSEngine.setProfiling().
+     */
+    setProfiling(enabled: boolean): void {
+        this.wasmSystem?.enable_profiling(enabled);
+    }
+
+    /**
+     * Profiling data in the same shape as JSEngine.getProfilingData(). The Rust
+     * core tracks per-opcode counts but not per-opcode cycles, so cycles is 0.
+     */
+    getProfilingData(): Map<number, { count: number; cycles: number }> {
+        const map = new Map<number, { count: number; cycles: number }>();
+        if (!this.wasmSystem || !this.wasmSystem.is_profiling_enabled()) {
+            return map;
+        }
+        for (const { opcode, count } of this.readTopOpcodes(256)) {
+            map.set(opcode, { count, cycles: 0 });
+        }
+        return map;
+    }
+
+    /**
+     * Profiling fields for toDebug(), in the same shape CPU6502.toDebug() emits
+     * so the inspector renders WASM profiling identically to the JS engine.
+     */
+    private profilingDebugFields(): { [key: string]: string | number | boolean | object } {
+        const enabled = this.wasmSystem?.is_profiling_enabled() ?? false;
+        if (!this.wasmSystem || !enabled) {
+            return { PERF_ENABLED: 'NO' };
+        }
+
+        const top = this.readTopOpcodes(256);
+        const instructionCount = Number(this.wasmSystem.get_profiled_instruction_count());
+        const totalInstructions = top.length;
+        const topOpcodes = top.slice(0, 5).map(({ opcode, count }) => ({
+            opcode: Formatters.hexByte(opcode),
+            count,
+            cycles: 0, // Rust core tracks per-opcode counts, not cycles
+            avgCycles: 0,
+        }));
+
+        return {
+            PERF_ENABLED: 'YES',
+            PERF_INSTRUCTIONS: Formatters.decimal(instructionCount),
+            PERF_UNIQUE_OPCODES: totalInstructions.toString(),
+            PERF_TOP_OPCODES: topOpcodes.map((o) => `${o.opcode}:${o.count}`).join(', '),
+            _PERF_DATA: {
+                stats: { instructionCount, totalInstructions, profilingEnabled: true },
+                topOpcodes,
+            },
+        };
+    }
+
+    /**
+     * Decode WasmSystem.get_top_opcodes() — a packed [opcode, count(u64 LE)]×N
+     * byte array (9 bytes per entry) — into {opcode, count} pairs.
+     */
+    private readTopOpcodes(limit: number): Array<{ opcode: number; count: number }> {
+        if (!this.wasmSystem) return [];
+        const packed = this.wasmSystem.get_top_opcodes(limit);
+        const view = new DataView(packed.buffer, packed.byteOffset, packed.byteLength);
+        const out: Array<{ opcode: number; count: number }> = [];
+        for (let off = 0; off + 9 <= packed.byteLength; off += 9) {
+            const opcode = view.getUint8(off);
+            const count = Number(view.getBigUint64(off + 1, true));
+            if (count > 0) out.push({ opcode, count });
+        }
+        return out;
+    }
+
     // ============ Private Methods ============
 
     private updateMetrics(cycles: number, duration: number): void {
@@ -789,6 +864,7 @@ export class WasmEngine implements ICPUEngine {
         const opcode = this.wasmSystem.read_memory(pc);
 
         return {
+            ...this.profilingDebugFields(),
             REG_PC: Formatters.hexWord(pc),
             REG_A: Formatters.hexByte(a),
             REG_X: Formatters.hexByte(x),
@@ -800,15 +876,18 @@ export class WasmEngine implements ICPUEngine {
             FLAG_I: Formatters.flag((status >> 2) & 1),
             FLAG_Z: Formatters.flag((status >> 1) & 1),
             FLAG_C: Formatters.flag(status & 1),
-            HW_ADDR: Formatters.hexWord(0),
-            HW_DATA: Formatters.hexByte(0),
+            HW_ADDR: Formatters.hexWord(this.wasmSystem.get_last_addr()),
+            HW_DATA: Formatters.hexByte(this.wasmSystem.get_last_data()),
             HW_OPCODE: Formatters.hexByte(opcode),
             HW_CYCLES: Formatters.decimal(cycles),
             IRQ_LINE: irq ? 'ACTIVE' : 'INACTIVE',
             NMI_LINE: nmi ? 'ACTIVE' : 'INACTIVE',
-            IRQ_PENDING: 'NO',
-            NMI_PENDING: 'NO',
-            PERF_ENABLED: 'NO',
+            // Pending semantics match the JS engine exactly (CPU6502.core):
+            //   pendingIrq = irq line asserted AND the I (interrupt-disable) flag clear
+            //   pendingNmi = the NMI latch (get_cpu_state already reports the latch as `nmi`)
+            // Deriving IRQ pending from the line alone would just duplicate IRQ_LINE.
+            IRQ_PENDING: irq && (status & 0x04) === 0 ? 'YES' : 'NO',
+            NMI_PENDING: nmi ? 'YES' : 'NO',
             // Raw numeric values (parity with CPU6502.toDebug)
             PC: pc,
             A: a,

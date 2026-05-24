@@ -6,8 +6,8 @@
  * providing 5-10x performance improvement.
  */
 
+use crate::{console_log, Bus, CPUState, Metrics, CPU6502, RAM, ROM};
 use wasm_bindgen::prelude::*;
-use crate::{CPU6502, Bus, RAM, ROM, CPUState, Metrics, console_log};
 
 /// Complete emulator system containing all hardware components
 #[wasm_bindgen]
@@ -38,8 +38,11 @@ impl WasmSystem {
     /// RAM size: total system RAM (typically 64KB)
     /// ROM data: Monitor ROM content (256 bytes)
     pub fn initialize(&mut self, ram_size: usize, rom_data: Vec<u8>) -> Result<(), JsValue> {
-        console_log!("Initializing WASM system: RAM={}KB, ROM={}bytes",
-                     ram_size / 1024, rom_data.len());
+        console_log!(
+            "Initializing WASM system: RAM={}KB, ROM={}bytes",
+            ram_size / 1024,
+            rom_data.len()
+        );
 
         // Create RAM (full 64KB for Apple 1)
         let ram = RAM::new(ram_size);
@@ -170,6 +173,16 @@ impl WasmSystem {
     /// Get bus mapping information (for debugging)
     pub fn get_memory_map(&self) -> String {
         self.bus.get_mapping_info()
+    }
+
+    /// Last bus-access address (for debugger HW_ADDR parity with the JS engine)
+    pub fn get_last_addr(&self) -> u16 {
+        self.cpu.get_last_addr()
+    }
+
+    /// Last bus-access data byte (for debugger HW_DATA parity with the JS engine)
+    pub fn get_last_data(&self) -> u8 {
+        self.cpu.get_last_data()
     }
 
     // ============ CPU Debugging Methods ============
@@ -334,4 +347,12 @@ mod tests {
         // Test ROM read
         assert_eq!(system.read_memory(0xFF00), 0xEA); // NOP we flashed
     }
+
+    // NOTE: last_addr/last_data tracking (get_last_addr/get_last_data) is
+    // exercised on the CPU execution path (step_with_bus), which cannot run
+    // under native `cargo test` — CPU6502::new() and initialize() call
+    // wasm-bindgen imports (console_log, etc.), so the WasmSystem tests above
+    // already panic natively. The last-access behavior is verified instead by
+    // the browser dual-engine parity test (AC-7) in
+    // EngineParity-wasm-js-parity.vitest.test.ts.
 }
