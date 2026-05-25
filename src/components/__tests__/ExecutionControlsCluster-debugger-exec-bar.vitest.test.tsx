@@ -82,21 +82,23 @@ describe('ExecutionControlsCluster', () => {
     });
 
     it('AC-6 (RENDER): activating controls invokes the matching action once', () => {
-        renderCluster();
+        // Running: Pause is the available action.
+        setRunning();
+        const running = renderCluster();
         fireEvent.click(screen.getByRole('button', { name: /^pause$/i }));
         expect(emu.pause).toHaveBeenCalledTimes(1);
+        running.unmount();
 
-        fireEvent.click(screen.getByRole('button', { name: /step/i }));
-        // step is disabled while running, so guard by pausing first instead:
+        // Paused: Step, Run and Reset are available.
         setPaused();
         renderCluster();
-        fireEvent.click(screen.getAllByRole('button', { name: /step/i })[0]);
-        expect(emu.step).toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: /step/i }));
+        expect(emu.step).toHaveBeenCalledTimes(1);
 
-        fireEvent.click(screen.getAllByRole('button', { name: /^run$/i })[0]);
-        expect(emu.resume).toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: /^run$/i }));
+        expect(emu.resume).toHaveBeenCalledTimes(1);
 
-        fireEvent.click(screen.getAllByRole('button', { name: /reset/i })[0]);
+        fireEvent.click(screen.getByRole('button', { name: /reset/i }));
         expect(workerManager.keyDown).toHaveBeenCalledWith('Tab');
     });
 
