@@ -229,6 +229,16 @@ export interface ICPUEngine {
     hasBreakpoint(address: number): boolean;
 
     /**
+     * Subscribe to breakpoint-hit events. The engine invokes the listener with
+     * the PC of the breakpoint *before* that instruction executes, having halted
+     * execution. This is the single, engine-agnostic enforcement signal the
+     * worker wires to its pause/notify path — it works identically for the JS
+     * engine (CPU6502 execution hook) and the WASM engine (Rust-side check).
+     * @returns Unsubscribe function
+     */
+    onBreakpointHit?(callback: (address: number) => void): () => void;
+
+    /**
      * Get disassembly at current PC
      * @param instructionCount Number of instructions to disassemble
      * @returns Disassembled instructions

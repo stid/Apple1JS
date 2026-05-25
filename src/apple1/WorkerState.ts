@@ -3,7 +3,6 @@ import WebWorkerKeyboard from './WebKeyboard';
 import WebCRTVideo from './WebCRTVideo';
 import type { IWorkerState } from './types/worker-api';
 import { loggingService } from '../services/LoggingService';
-import { Formatters } from '../utils/formatters';
 import type { DualEngine } from '../core/cpu-engines';
 import type { EngineStatusData, EngineComparisonData, EngineMetricsData } from './types/worker-messages';
 
@@ -30,10 +29,6 @@ export class WorkerState implements IWorkerState {
     public debuggerActive: boolean;
     public debugUpdateInterval: number | null;
 
-    // Callbacks for events
-    private statusCallback?: (status: 'running' | 'paused') => void;
-    private breakpointCallback?: (address: number) => void;
-
     constructor() {
         // Initialize video and keyboard
         this.video = new WebCRTVideo();
@@ -57,9 +52,6 @@ export class WorkerState implements IWorkerState {
 
         // Set up video subscription
         this.setupVideoSubscription();
-
-        // Initialize breakpoint hook
-        this.updateBreakpointHook();
     }
 
     /**
@@ -68,52 +60,6 @@ export class WorkerState implements IWorkerState {
     private setupVideoSubscription(): void {
         // Video updates are handled directly in WorkerAPI
         // This is kept for compatibility
-    }
-
-    /**
-     * Update the CPU execution hook for breakpoint checking
-     */
-    public updateBreakpointHook(): void {
-        if (this.breakpoints.size === 0) {
-            // No breakpoints - remove hook for performance
-            this.apple1.cpu.setExecutionHook(undefined);
-        } else {
-            // Install hook to check breakpoints before each instruction
-            this.apple1.cpu.setExecutionHook((pc: number) => {
-                // Skip breakpoint check if we're stepping (to allow stepping over breakpoints)
-                if (this.isStepping) {
-                    return true;
-                }
-
-                // Only check breakpoints when running (not already paused)
-                if (!this.isPaused && this.breakpoints.has(pc)) {
-                    // Hit a breakpoint - pause execution
-                    this.apple1.clock.pause();
-                    this.isPaused = true;
-                    // Use callbacks if available
-                    if (this.statusCallback) {
-                        this.statusCallback('paused');
-                    }
-                    if (this.breakpointCallback) {
-                        this.breakpointCallback(pc);
-                    }
-                    loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
-                    return false; // Halt execution
-                }
-                return true; // Continue execution
-            });
-        }
-    }
-
-    /**
-     * Set callbacks for events
-     */
-    public setCallbacks(callbacks: {
-        onStatus?: (status: 'running' | 'paused') => void;
-        onBreakpoint?: (address: number) => void;
-    }): void {
-        if (callbacks.onStatus) this.statusCallback = callbacks.onStatus;
-        if (callbacks.onBreakpoint) this.breakpointCallback = callbacks.onBreakpoint;
     }
 
     /**

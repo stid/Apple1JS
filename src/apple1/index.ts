@@ -22,11 +22,15 @@ import anniversary from './progs/anniversary';
 import basic from './progs/basic';
 import wozMonitor from './progs/woz_monitor';
 import { IoComponent, BusSpaceType } from '@/core/types';
-import { 
-    ROM_START, ROM_END, 
-    RAM_BANK1_START, RAM_BANK1_END,
-    RAM_BANK2_START, RAM_BANK2_END,
-    PIA_START, PIA_END 
+import {
+    ROM_START,
+    ROM_END,
+    RAM_BANK1_START,
+    RAM_BANK1_END,
+    RAM_BANK2_START,
+    RAM_BANK2_END,
+    PIA_START,
+    PIA_END,
 } from '../core/constants/memory';
 import { CPU_SPEED_MHZ, CPU_STEP_INTERVAL_MS } from './constants/system';
 
@@ -49,7 +53,7 @@ interface Apple1State extends StateBase {
     /** System configuration */
     cpuSpeedMHz: number;
     stepIntervalMs: number;
-    
+
     /** Component states - using the new stateful component pattern */
     cpu: ReturnType<CPU6502['saveState']>;
     clock: ReturnType<Clock['saveState']>;
@@ -57,10 +61,10 @@ interface Apple1State extends StateBase {
     ramBank1: ReturnType<RAM['saveState']>;
     ramBank2: ReturnType<RAM['saveState']>;
     pia: ReturnType<PIA6820['saveState']>;
-    
+
     /** Video state (if available) */
     video?: VideoState;
-    
+
     /** System identification */
     systemId: string;
 }
@@ -78,11 +82,11 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
             cpu: this.cpu.saveState(),
             pia: this.pia.saveState() as PIAState,
         };
-        
+
         if (typeof this.video.getState === 'function') {
             state.video = this.video.getState();
         }
-        
+
         return state;
     }
 
@@ -104,7 +108,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                 crb: state.pia.crb,
                 controlLines: state.pia.controlLines,
                 pb7InputState: false, // Default for old states
-                componentId: 'pia6820'
+                componentId: 'pia6820',
             };
             this.pia.loadState(convertedPIAState);
         }
@@ -131,7 +135,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                 version: '1.0', // Mark as old version to trigger migration
                 data: saved.state.data,
                 size: saved.state.data.length,
-                componentId: saved.id
+                componentId: saved.id,
             };
 
             if (saved.id === this.ramBank1.id) {
@@ -225,13 +229,17 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     busMapping: Array<BusSpaceType>;
     bus: Bus;
     cpu: CPU6502;
-    cpuEngine?: ICPUEngine;  // Optional dual-engine CPU
+    cpuEngine?: ICPUEngine; // Optional dual-engine CPU
     clock: Clock;
     useDualEngine: boolean;
 
-    constructor({ video, keyboard, useDualEngine = false }: { 
-        video: IoComponent<VideoState>; 
-        keyboard: IoComponent; 
+    constructor({
+        video,
+        keyboard,
+        useDualEngine = false,
+    }: {
+        video: IoComponent<VideoState>;
+        keyboard: IoComponent;
         useDualEngine?: boolean;
     }) {
         this.useDualEngine = useDualEngine;
@@ -286,19 +294,17 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         // Bound CPU to related Address Spaces
         this.bus = new Bus(this.busMapping);
         this.bus.name = 'System Bus';
-        
+
         // Create CPU - use DualEngine if enabled
         if (this.useDualEngine) {
-            this.cpuEngine = new DualEngine(this.bus, 'WASM'); // Prefer WASM; DualEngine falls back to JS when unavailable
-            // Get the internal CPU from the DualEngine for compatibility
-            // This allows WorkerState to set execution hooks for breakpoints
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.cpu = (this.cpuEngine as any).getInternalCPU();
-            
-            // DON'T override the CPU methods - this causes infinite recursion
-            // The Clock subscribes to cpuEngine directly, not cpu
-            // The cpu is only used for setExecutionHook for breakpoints
-            
+            const dualEngine = new DualEngine(this.bus, 'WASM'); // Prefer WASM; DualEngine falls back to JS when unavailable
+            this.cpuEngine = dualEngine;
+            // Hold the JS engine's CPU6502 as this.cpu for state save/load and
+            // inspection — it is kept synchronized with the active engine.
+            // Breakpoints are now enforced inside the engines, not via a hook here.
+            this.cpu = dualEngine.getInternalCPU();
+
+            // The Clock subscribes to cpuEngine directly, not this.cpu.
             this.cpu.name = 'Dual-Engine CPU (JS/WASM)';
             loggingService.info('Apple1', 'Using DualEngine CPU with runtime switching capability');
         } else {
@@ -385,7 +391,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                 loggingService.error('Apple1', `Failed to initialize CPU engine: ${error}`);
             }
         }
-        
+
         return this.clock.startLoop();
     }
 
@@ -398,7 +404,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
      */
     saveState(options?: StateOptions): Apple1State {
         const opts = { includeDebugInfo: false, ...options };
-        
+
         const state: Apple1State = {
             version: Apple1.STATE_VERSION,
             // System configuration
@@ -426,7 +432,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                     timestamp: Date.now(),
                     componentId: 'Apple1',
                     systemType: 'Apple 1 Computer',
-                }
+                },
             });
         }
 
@@ -438,15 +444,11 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
      */
     loadState(state: Apple1State, options?: StateOptions): void {
         const opts = { validate: true, migrate: true, ...options };
-        
+
         if (opts.validate) {
             const validation = this.validateState(state);
             if (!validation.valid) {
-                throw new StateError(
-                    `Invalid Apple1 state: ${validation.errors.join(', ')}`,
-                    'Apple1',
-                    'load'
-                );
+                throw new StateError(`Invalid Apple1 state: ${validation.errors.join(', ')}`, 'Apple1', 'load');
             }
         }
 
@@ -591,11 +593,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                 return this.migrateFromV1(state);
 
             default:
-                throw new StateError(
-                    `Unsupported Apple1 state version: ${fromVersion}`,
-                    'Apple1',
-                    'migrate'
-                );
+                throw new StateError(`Unsupported Apple1 state version: ${fromVersion}`, 'Apple1', 'migrate');
         }
     }
 
@@ -605,7 +603,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     private migrateFromV1(oldState: Record<string, unknown>): Apple1State {
         // Extract old state components
         const emulatorState = oldState as unknown as EmulatorState;
-        
+
         // Create new state format
         const newState: Apple1State = {
             version: Apple1.STATE_VERSION,
@@ -629,14 +627,14 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                         version: '1.0',
                         data: ramState.state.data,
                         size: ramState.state.data.length,
-                        componentId: 'ram1'
+                        componentId: 'ram1',
                     } as ReturnType<RAM['saveState']>;
                 } else if (ramState.id === 'ram2') {
                     newState.ramBank2 = {
                         version: '1.0',
                         data: ramState.state.data,
                         size: ramState.state.data.length,
-                        componentId: 'ram2'
+                        componentId: 'ram2',
                     } as ReturnType<RAM['saveState']>;
                 }
             });
@@ -649,7 +647,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
                 version: '2.0',
                 ...emulatorState.pia,
                 pb7InputState: false,
-                componentId: 'pia6820'
+                componentId: 'pia6820',
             } as ReturnType<PIA6820['saveState']>;
         }
 

@@ -29,18 +29,47 @@ export class WorkerAPI implements IWorkerAPI {
     private runToCursorCallbacks = new Set<(target: number | null) => void>();
 
     constructor(private workerState: WorkerState) {
-        // Set up callbacks for WorkerState to use
-        this.workerState.setCallbacks({
-            onStatus: (status) => {
-                this.statusCallbacks.forEach((cb) => cb(status));
-            },
-            onBreakpoint: (address) => {
-                this.breakpointCallbacks.forEach((cb) => cb(address));
-            },
-        });
+        // Enforce breakpoints uniformly across engines: subscribe to the active
+        // engine's breakpoint-hit signal and route it to the pause/notify path.
+        // This works identically for the JS engine (CPU6502 execution hook) and
+        // the WASM engine (Rust-side check) — the worker no longer installs a
+        // JS-CPU-only hook, which is why WASM breakpoints never used to fire.
+        this.workerState.getDualEngine()?.onBreakpointHit?.((address) => this.handleBreakpointHit(address));
 
         // Set up internal event subscriptions (including logging handler)
         this.setupInternalSubscriptions();
+    }
+
+    /**
+     * Single, engine-agnostic breakpoint-hit handler. Invoked by the active CPU
+     * engine when execution halts on a breakpoint. Pauses the clock and notifies
+     * the UI; also resolves a transient run-to-cursor target.
+     */
+    private handleBreakpointHit(address: number): void {
+        // A deliberate single step bypasses breakpoints (stepping off one).
+        if (this.workerState.isStepping) {
+            return;
+        }
+
+        this.workerState.apple1.clock.pause();
+        this.workerState.isPaused = true;
+
+        // Run-to-cursor: if this is the transient target, clear it (unless it is
+        // also a real user breakpoint) and report completion rather than a hit.
+        const target = this.workerState.runToCursorTarget;
+        if (target !== null && address === target) {
+            this.workerState.runToCursorTarget = null;
+            if (!this.workerState.breakpoints.has(target)) {
+                this.workerState.getDualEngine()?.clearBreakpoint(target);
+            }
+            this.statusCallbacks.forEach((cb) => cb('paused'));
+            this.runToCursorCallbacks.forEach((cb) => cb(null));
+            return;
+        }
+
+        this.statusCallbacks.forEach((cb) => cb('paused'));
+        this.breakpointCallbacks.forEach((cb) => cb(address));
+        loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(address)}`);
     }
 
     /**
@@ -120,28 +149,38 @@ export class WorkerAPI implements IWorkerAPI {
     }
 
     step(): FilteredDebugData {
+        const { cpu, pia, bus, clock } = this.workerState.apple1;
+        const dualEngine = this.workerState.getDualEngine();
+
         // First pause the clock to prevent concurrent execution
-        this.workerState.apple1.clock.pause();
+        clock.pause();
         this.workerState.isPaused = true;
 
-        // Set stepping flag to bypass breakpoint check for this instruction
+        // Set stepping flag so the engine/handler bypass any breakpoint on the
+        // current PC (this is how the debugger steps *off* a breakpoint).
         this.workerState.isStepping = true;
 
-        // Execute one instruction
-        this.workerState.apple1.cpu.performSingleStep();
+        // Step the *active* engine (JS CPU only when there is no dual engine).
+        if (dualEngine) {
+            dualEngine.performSingleStep();
+        } else {
+            cpu.performSingleStep();
+        }
 
         // Clear stepping flag
         this.workerState.isStepping = false;
 
-        // Check if we hit a breakpoint after stepping (at the new PC)
-        if (this.workerState.breakpoints.has(this.workerState.apple1.cpu.PC)) {
-            this.breakpointCallbacks.forEach((cb) => cb(this.workerState.apple1.cpu.PC));
+        // Check if we landed on a breakpoint after stepping (at the new PC).
+        const pc = dualEngine?.getRegisters ? dualEngine.getRegisters().PC : cpu.PC;
+        if (this.workerState.breakpoints.has(pc)) {
+            this.breakpointCallbacks.forEach((cb) => cb(pc));
         }
 
-        // Return debug info, filtering out boolean and object values for backward compatibility
-        const { cpu, pia, bus, clock } = this.workerState.apple1;
+        // CPU state must come from the active engine (the JS CPU is dormant/stale
+        // under WASM); other components are engine-independent.
+        const cpuDebug = dualEngine?.toDebug ? dualEngine.toDebug() : cpu.toDebug();
         return {
-            cpu: this.filterDebugData(cpu.toDebug()),
+            cpu: this.filterDebugData(cpuDebug),
             pia: this.filterDebugData(pia.toDebug()),
             Bus: this.filterDebugData(bus.toDebug()),
             clock: this.filterDebugData(clock.toDebug()),
@@ -178,20 +217,21 @@ export class WorkerAPI implements IWorkerAPI {
 
     setBreakpoint(address: number): number[] {
         this.workerState.breakpoints.add(address);
-        this.workerState.updateBreakpointHook();
-
+        // Route to the active engine so the running engine actually enforces it
+        // (for WASM this populates the Rust breakpoint set).
+        this.workerState.getDualEngine()?.setBreakpoint(address);
         return Array.from(this.workerState.breakpoints);
     }
 
     clearBreakpoint(address: number): number[] {
         this.workerState.breakpoints.delete(address);
-        this.workerState.updateBreakpointHook();
+        this.workerState.getDualEngine()?.clearBreakpoint(address);
         return Array.from(this.workerState.breakpoints);
     }
 
     clearAllBreakpoints(): void {
         this.workerState.breakpoints.clear();
-        this.workerState.updateBreakpointHook();
+        this.workerState.getDualEngine()?.clearAllBreakpoints();
     }
 
     getBreakpoints(): number[] {
@@ -200,9 +240,11 @@ export class WorkerAPI implements IWorkerAPI {
 
     runToAddress(address: number): void {
         const targetAddress = address;
+        const dualEngine = this.workerState.getDualEngine();
 
-        // Don't run if we're already at the target address
-        if (this.workerState.apple1.cpu.PC === targetAddress) {
+        // Don't run if we're already at the target address (read the active engine).
+        const currentPC = dualEngine?.getRegisters ? dualEngine.getRegisters().PC : this.workerState.apple1.cpu.PC;
+        if (currentPC === targetAddress) {
             loggingService.log(
                 'info',
                 'RunToAddress',
@@ -211,57 +253,32 @@ export class WorkerAPI implements IWorkerAPI {
             return;
         }
 
-        // Store the run-to-cursor target
-        this.workerState.runToCursorTarget = targetAddress;
+        // Run-to-cursor is realized as a transient engine breakpoint. Without a
+        // dual engine (e.g. the non-worker inspector path, useDualEngine=false)
+        // there is nothing to set a breakpoint on, so resuming would silently run
+        // past the target. Bail with a warning instead of a misleading "running".
+        if (!dualEngine) {
+            loggingService.log(
+                'warn',
+                'RunToAddress',
+                `Cannot run to ${Formatters.address(targetAddress)} without a dual engine; ignoring.`,
+            );
+            return;
+        }
 
-        // Notify callbacks about the run-to-cursor target
+        // Store the run-to-cursor target and notify listeners.
+        this.workerState.runToCursorTarget = targetAddress;
         this.runToCursorCallbacks.forEach((cb) => cb(this.workerState.runToCursorTarget));
 
-        // Set up a temporary execution hook for run-to-address
-        let runToAddressHit = false;
+        // Model run-to-cursor as a transient breakpoint on the active engine.
+        // handleBreakpointHit() clears it on arrival (unless it is also a real
+        // user breakpoint). This works for both engines, unlike the old JS-only
+        // execution hook.
+        if (!this.workerState.breakpoints.has(targetAddress)) {
+            dualEngine.setBreakpoint(targetAddress);
+        }
 
-        this.workerState.apple1.cpu.setExecutionHook((pc: number) => {
-            // Skip breakpoint check if we're stepping
-            if (this.workerState.isStepping) {
-                return true;
-            }
-
-            // Check existing breakpoints first
-            if (!this.workerState.isPaused && this.workerState.breakpoints.has(pc)) {
-                // Hit a breakpoint - pause execution
-                this.workerState.apple1.clock.pause();
-                this.workerState.isPaused = true;
-                this.statusCallbacks.forEach((cb) => cb('paused'));
-                this.breakpointCallbacks.forEach((cb) => cb(pc));
-                loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(pc)}`);
-                return false; // Halt execution
-            }
-
-            // Check if we've reached the target address
-            if (pc === targetAddress && !runToAddressHit) {
-                runToAddressHit = true;
-                // Clear run-to-cursor target
-                this.workerState.runToCursorTarget = null;
-                // Pause execution
-                this.workerState.apple1.clock.pause();
-                this.workerState.isPaused = true;
-                // Restore normal breakpoint hook
-                this.workerState.updateBreakpointHook();
-                // Send notifications
-                this.statusCallbacks.forEach((cb) => cb('paused'));
-                this.runToCursorCallbacks.forEach((cb) => cb(null));
-                loggingService.log(
-                    'info',
-                    'RunToAddress',
-                    `Reached target address ${Formatters.address(targetAddress)}`,
-                );
-                return false; // Halt execution
-            }
-
-            return true; // Continue execution
-        });
-
-        // Resume execution to run to the target
+        // Resume execution to run to the target.
         if (this.workerState.isPaused) {
             this.workerState.apple1.clock.resume();
             this.workerState.isPaused = false;
