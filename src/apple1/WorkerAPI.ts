@@ -1,4 +1,5 @@
 import { WorkerState } from './WorkerState';
+import { Subscribable } from './Subscribable';
 import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
 import type { VideoData } from './types/video';
@@ -21,12 +22,23 @@ import { Formatters } from '../utils/formatters';
  * This replaces the large switch statement with a cleaner API.
  */
 export class WorkerAPI implements IWorkerAPI {
-    // Event callback storage
-    private videoCallbacks = new Set<(data: VideoData) => void>();
-    private breakpointCallbacks = new Set<(address: number) => void>();
-    private statusCallbacks = new Set<(status: 'running' | 'paused') => void>();
-    private clockCallbacks = new Set<(data: ClockData) => void>();
-    private runToCursorCallbacks = new Set<(target: number | null) => void>();
+    // Event sources fanned out to UI subscribers. Listener errors are isolated
+    // (one throwing subscriber can't abort dispatch to the others).
+    private readonly videoEvent = new Subscribable<VideoData>((e) =>
+        loggingService.error('WorkerAPI', `video listener threw: ${e}`),
+    );
+    private readonly breakpointEvent = new Subscribable<number>((e) =>
+        loggingService.error('WorkerAPI', `breakpoint listener threw: ${e}`),
+    );
+    private readonly statusEvent = new Subscribable<'running' | 'paused'>((e) =>
+        loggingService.error('WorkerAPI', `status listener threw: ${e}`),
+    );
+    private readonly clockEvent = new Subscribable<ClockData>((e) =>
+        loggingService.error('WorkerAPI', `clock listener threw: ${e}`),
+    );
+    private readonly runToCursorEvent = new Subscribable<number | null>((e) =>
+        loggingService.error('WorkerAPI', `run-to-cursor listener threw: ${e}`),
+    );
 
     constructor(private workerState: WorkerState) {
         // Enforce breakpoints uniformly across engines: subscribe to the active
@@ -62,13 +74,13 @@ export class WorkerAPI implements IWorkerAPI {
             if (!this.workerState.breakpoints.has(target)) {
                 this.workerState.getDualEngine()?.clearBreakpoint(target);
             }
-            this.statusCallbacks.forEach((cb) => cb('paused'));
-            this.runToCursorCallbacks.forEach((cb) => cb(null));
+            this.statusEvent.emit('paused');
+            this.runToCursorEvent.emit(null);
             return;
         }
 
-        this.statusCallbacks.forEach((cb) => cb('paused'));
-        this.breakpointCallbacks.forEach((cb) => cb(address));
+        this.statusEvent.emit('paused');
+        this.breakpointEvent.emit(address);
         loggingService.log('info', 'Breakpoint', `Hit breakpoint at ${Formatters.address(address)}`);
     }
 
@@ -84,15 +96,9 @@ export class WorkerAPI implements IWorkerAPI {
                     if (typeof globalThis.structuredClone !== 'undefined') {
                         globalThis.structuredClone(data);
                     }
-                    this.videoCallbacks.forEach((cb) => {
-                        try {
-                            cb(data);
-                        } catch (error) {
-                            console.error('Error calling video callback:', error);
-                        }
-                    });
+                    this.videoEvent.emit(data);
                 } catch (error) {
-                    console.error('VideoData cannot be structured cloned:', error, data);
+                    loggingService.error('WorkerAPI', `VideoData cannot be structured cloned: ${error}`);
                 }
             });
         }
@@ -132,7 +138,7 @@ export class WorkerAPI implements IWorkerAPI {
         }
 
         // Notify status callbacks
-        this.statusCallbacks.forEach((cb) => cb('paused'));
+        this.statusEvent.emit('paused');
     }
 
     resumeEmulation(): void {
@@ -145,7 +151,7 @@ export class WorkerAPI implements IWorkerAPI {
         }
 
         // Notify status callbacks
-        this.statusCallbacks.forEach((cb) => cb('running'));
+        this.statusEvent.emit('running');
     }
 
     step(): FilteredDebugData {
@@ -173,7 +179,7 @@ export class WorkerAPI implements IWorkerAPI {
         // Check if we landed on a breakpoint after stepping (at the new PC).
         const pc = dualEngine?.getRegisters ? dualEngine.getRegisters().PC : cpu.PC;
         if (this.workerState.breakpoints.has(pc)) {
-            this.breakpointCallbacks.forEach((cb) => cb(pc));
+            this.breakpointEvent.emit(pc);
         }
 
         // CPU state must come from the active engine (the JS CPU is dormant/stale
@@ -268,7 +274,7 @@ export class WorkerAPI implements IWorkerAPI {
 
         // Store the run-to-cursor target and notify listeners.
         this.workerState.runToCursorTarget = targetAddress;
-        this.runToCursorCallbacks.forEach((cb) => cb(this.workerState.runToCursorTarget));
+        this.runToCursorEvent.emit(this.workerState.runToCursorTarget);
 
         // Model run-to-cursor as a transient breakpoint on the active engine.
         // handleBreakpointHit() clears it on arrival (unless it is also a real
@@ -282,7 +288,7 @@ export class WorkerAPI implements IWorkerAPI {
         if (this.workerState.isPaused) {
             this.workerState.apple1.clock.resume();
             this.workerState.isPaused = false;
-            this.statusCallbacks.forEach((cb) => cb('running'));
+            this.statusEvent.emit('running');
         }
 
         loggingService.log('info', 'RunToAddress', `Running to address ${Formatters.address(targetAddress)}`);
@@ -525,7 +531,7 @@ export class WorkerAPI implements IWorkerAPI {
     // These will be implemented in Phase 1 with Comlink.proxy
 
     onVideoUpdate(callback: (data: VideoData) => void): () => void {
-        this.videoCallbacks.add(callback);
+        const unsubscribe = this.videoEvent.subscribe(callback);
         // Deliver the current frame immediately: the power-on screen is emitted
         // before any subscriber registers, so a late subscriber (e.g. React mounting
         // after the worker booted) would otherwise never see it until the next write.
@@ -534,36 +540,22 @@ export class WorkerAPI implements IWorkerAPI {
             const { buffer, row, column } = video.getState();
             callback({ buffer, row, column });
         }
-        return () => {
-            this.videoCallbacks.delete(callback);
-        };
+        return unsubscribe;
     }
 
     onBreakpointHit(callback: (address: number) => void): () => void {
-        this.breakpointCallbacks.add(callback);
-        return () => {
-            this.breakpointCallbacks.delete(callback);
-        };
+        return this.breakpointEvent.subscribe(callback);
     }
 
     onEmulationStatus(callback: (status: 'running' | 'paused') => void): () => void {
-        this.statusCallbacks.add(callback);
-        return () => {
-            this.statusCallbacks.delete(callback);
-        };
+        return this.statusEvent.subscribe(callback);
     }
 
     onClockData(callback: (data: ClockData) => void): () => void {
-        this.clockCallbacks.add(callback);
-        return () => {
-            this.clockCallbacks.delete(callback);
-        };
+        return this.clockEvent.subscribe(callback);
     }
 
     onRunToCursorTarget(callback: (target: number | null) => void): () => void {
-        this.runToCursorCallbacks.add(callback);
-        return () => {
-            this.runToCursorCallbacks.delete(callback);
-        };
+        return this.runToCursorEvent.subscribe(callback);
     }
 }
