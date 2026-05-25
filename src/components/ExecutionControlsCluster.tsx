@@ -56,7 +56,7 @@ const ExecutionControlsCluster: React.FC<ExecutionControlsClusterProps> = ({
     const btn = 'px-md py-xs text-xs font-medium rounded transition-all min-h-[28px] border';
 
     return (
-        <div className="flex items-center gap-sm">
+        <div className="flex items-center gap-sm flex-wrap justify-end">
             <RunStateBadge executionState={executionState} currentPC={currentPC} />
 
             <button

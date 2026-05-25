@@ -267,7 +267,7 @@ const AppContentInner = ({
 
             {/* Right column */}
             <div className="flex-1 bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md flex flex-col mt-1 lg:mt-0 overflow-hidden">
-                <div className="flex-none flex items-center justify-between mb-md">
+                <div className="flex-none flex items-center justify-between gap-sm flex-wrap mb-md">
                     <div className="flex gap-sm">
                         <button
                             className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
