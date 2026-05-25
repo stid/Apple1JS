@@ -13,6 +13,7 @@ import type { CPU6502State } from '../cpu6502/types';
 import type { WasmSystem } from './wasm-loader';
 import type Bus from '../Bus';
 import { initializeWasmModule, getWasmSystemClass, isWasmSupported } from './wasm-loader';
+import { EngineMetricsTracker } from './EngineMetricsTracker';
 import { installMemoryBridge, setBusForWasm } from './wasm-memory-bridge';
 import { loggingService } from '../../services/LoggingService';
 import { Formatters } from '../../utils/formatters';
@@ -37,24 +38,13 @@ export class WasmEngine implements ICPUEngine {
     private bus: Bus; // Keep for I/O synchronization
     private breakpoints = new Set<number>();
     private breakpointListeners = new Set<(address: number) => void>();
-    private metrics: EngineMetrics;
-    private metricsStartTime: number;
-    private lastMetricsUpdate: number;
-    private lastSecondInstructions: number;
-    private lastSecondStartTime: number;
+    // WasmSystem efficiency baseline 500 (5x JS, no boundary crossings).
+    private metricsTracker = new EngineMetricsTracker(500, () => this.getMemoryUsage());
     private initPromise: Promise<void> | null = null;
     private _isReady = false;
-    // Cumulative host wall-clock ms spent executing since the last reset.
-    // Divided by emulated seconds in getMetrics() to expose real engine cost.
-    private hostExecMs = 0;
 
     constructor(bus: Bus) {
         this.bus = bus;
-        this.metricsStartTime = Date.now();
-        this.lastMetricsUpdate = Date.now();
-        this.lastSecondInstructions = 0;
-        this.lastSecondStartTime = Date.now();
-        this.metrics = this.initializeMetrics();
 
         // Check WASM support
         if (!isWasmSupported()) {
@@ -66,18 +56,6 @@ export class WasmEngine implements ICPUEngine {
 
     get isReady(): boolean {
         return this._isReady;
-    }
-
-    private initializeMetrics(): EngineMetrics {
-        return {
-            totalCycles: 0,
-            instructionsExecuted: 0,
-            averageIPS: 0,
-            memoryUsage: 0,
-            lastStepDuration: 0,
-            initializationTime: 0,
-            efficiency: 500, // WasmSystem is 5x more efficient (no boundary crossings)
-        };
     }
 
     // ============ Initialization ============
@@ -204,12 +182,10 @@ export class WasmEngine implements ICPUEngine {
             this.seedRamFromBus();
 
             this._isReady = true;
-            this.metrics.initializationTime = Date.now() - startTime;
+            const initializationTime = Date.now() - startTime;
+            this.metricsTracker.setInitializationTime(initializationTime);
 
-            loggingService.info(
-                'WasmEngine',
-                `WASM System initialized in ${this.metrics.initializationTime.toFixed(2)}ms`,
-            );
+            loggingService.info('WasmEngine', `WASM System initialized in ${initializationTime.toFixed(2)}ms`);
         } catch (error) {
             loggingService.error('WasmEngine', `Failed to initialize WASM engine: ${error}`);
             throw new Error(`WASM engine initialization failed: ${error}`);
@@ -296,7 +272,7 @@ export class WasmEngine implements ICPUEngine {
 
         // Update metrics
         const duration = Date.now() - startTime;
-        this.updateMetrics(cycles, duration);
+        this.metricsTracker.recordStep(cycles, duration);
 
         return cycles;
     }
@@ -311,7 +287,7 @@ export class WasmEngine implements ICPUEngine {
         // Time the call with performance.now() (sub-ms) for the host-utilization metric.
         const startTime = performance.now();
         const executedCycles = this.wasmSystem.run_cycles(cycles);
-        this.hostExecMs += performance.now() - startTime;
+        const duration = performance.now() - startTime;
 
         // Check if a breakpoint was hit during bulk execution. Rust halts before
         // executing the instruction at the breakpoint, leaving the PC parked on
@@ -333,16 +309,11 @@ export class WasmEngine implements ICPUEngine {
 
         // Note: I/O happens automatically via memory bridge - no sync needed
 
-        // Update metrics for the whole batch. NOTE: updateMetrics() increments
-        // the instruction counter by one and is only correct for single steps;
-        // a bulk batch runs many instructions, so account for them here the same
-        // way JSEngine does (estimate from cycles) to keep IPS comparable.
+        // Account for the whole batch with an estimated instruction count
+        // (cycles/3, same as JSEngine) so IPS stays comparable across engines.
         if (executedCycles > 0) {
             const estimatedInstructions = Math.floor(executedCycles / 3);
-            this.metrics.totalCycles += executedCycles;
-            this.metrics.instructionsExecuted += estimatedInstructions;
-            this.lastSecondInstructions += estimatedInstructions;
-            this.updateIPSMetrics();
+            this.metricsTracker.recordBulk(executedCycles, duration, estimatedInstructions);
         }
     }
 
@@ -355,12 +326,7 @@ export class WasmEngine implements ICPUEngine {
         // Reset the WASM System
         this.wasmSystem.reset();
 
-        this.metrics = this.initializeMetrics();
-        this.metricsStartTime = Date.now();
-        this.lastMetricsUpdate = Date.now();
-        this.lastSecondInstructions = 0;
-        this.lastSecondStartTime = Date.now();
-        this.hostExecMs = 0;
+        this.metricsTracker.reset();
     }
 
     halt(): void {
@@ -392,7 +358,7 @@ export class WasmEngine implements ICPUEngine {
         const status = wasmState.status;
         const irq = wasmState.irq;
         const nmi = wasmState.nmi;
-        const cycles = wasmState.cycles || this.metrics.totalCycles;
+        const cycles = wasmState.cycles || this.metricsTracker.totalCycles;
 
         // Return new object (wasmState reference is now released)
         return {
@@ -634,57 +600,24 @@ export class WasmEngine implements ICPUEngine {
 
     getMetrics(): EngineMetrics {
         if (this.wasmSystem) {
-            // Get metrics from WasmSystem if available
+            // Get cumulative counts from WasmSystem if available. averageIPS and
+            // hostMillisPerSecond stay computed by the tracker (wall-clock), NOT
+            // taken from the Rust get_metrics() idealized instructions-per-1MHz
+            // figure, so the two engines remain directly comparable.
             const wasmMetrics = this.wasmSystem.get_metrics();
             if (wasmMetrics) {
-                this.metrics.totalCycles = wasmMetrics.cycles || this.metrics.totalCycles;
-                this.metrics.instructionsExecuted = wasmMetrics.instructions || this.metrics.instructionsExecuted;
-                // averageIPS is intentionally NOT taken from wasmMetrics: the Rust
-                // get_metrics() reports (instructions/cycles)*1e6 (an idealized
-                // instructions-per-1MHz figure), not wall-clock IPS. updateIPSMetrics()
-                // below computes a real wall-clock rate from instructionsExecuted,
-                // matching JSEngine so the two engines are comparable.
+                this.metricsTracker.setCounts({
+                    totalCycles: wasmMetrics.cycles || undefined,
+                    instructionsExecuted: wasmMetrics.instructions || undefined,
+                });
             }
         }
 
-        // Force update IPS calculation when metrics are requested (consistent with JSEngine)
-        this.updateIPSMetrics();
-
-        // Calculate instantaneous IPS (last second)
-        const now = Date.now();
-        const timeSinceSecondStart = now - this.lastSecondStartTime;
-        let lastIPS = 0;
-        if (timeSinceSecondStart > 0) {
-            // Calculate IPS based on instructions in the current second window
-            lastIPS = Math.floor((this.lastSecondInstructions / timeSinceSecondStart) * 1000);
-        }
-
-        return {
-            ...this.metrics,
-            // Add lastIPS as a computed field
-            lastIPS: lastIPS || this.metrics.averageIPS,
-            // Host wall-clock ms per emulated second (1MHz => totalCycles/1e6 s)
-            hostMillisPerSecond: this.computeHostMillisPerSecond(),
-        } as EngineMetrics;
-    }
-
-    /**
-     * Host wall-clock milliseconds spent executing per second of emulated
-     * 6502 time. Mirrors JSEngine so the two engines are directly comparable;
-     * this is where WASM's real advantage shows (far fewer host ms per second).
-     */
-    private computeHostMillisPerSecond(): number {
-        const emulatedSeconds = this.metrics.totalCycles / 1_000_000;
-        return emulatedSeconds > 0 ? this.hostExecMs / emulatedSeconds : 0;
+        return this.metricsTracker.snapshot();
     }
 
     resetMetrics(): void {
-        this.metrics = this.initializeMetrics();
-        this.metricsStartTime = Date.now();
-        this.lastMetricsUpdate = Date.now();
-        this.lastSecondInstructions = 0;
-        this.lastSecondStartTime = Date.now();
-        this.hostExecMs = 0;
+        this.metricsTracker.reset();
     }
 
     getMemoryUsage(): number {
@@ -775,51 +708,6 @@ export class WasmEngine implements ICPUEngine {
 
     // ============ Private Methods ============
 
-    private updateMetrics(cycles: number, duration: number): void {
-        this.metrics.totalCycles += cycles;
-        this.metrics.instructionsExecuted++;
-        this.lastSecondInstructions++;
-        this.metrics.lastStepDuration = duration * 1_000_000; // Convert to nanoseconds
-
-        // Update IPS calculation (same algorithm as JSEngine for consistency)
-        this.updateIPSMetrics();
-
-        // Update memory usage periodically
-        if (this.metrics.instructionsExecuted % 1000 === 0) {
-            this.metrics.memoryUsage = this.getMemoryUsage();
-        }
-    }
-
-    /**
-     * Update IPS metrics with consistent algorithm (matches JSEngine)
-     * Uses 100ms minimum update interval and 1-second rolling window for lastIPS
-     */
-    private updateIPSMetrics(): void {
-        const now = Date.now();
-        const timeSinceLastUpdate = now - this.lastMetricsUpdate;
-
-        // Update IPS every 100ms minimum OR when explicitly requested (timeSinceLastUpdate === 0)
-        if (timeSinceLastUpdate >= 100 || timeSinceLastUpdate === 0) {
-            // Calculate average IPS over entire runtime
-            const totalTime = now - this.metricsStartTime;
-            if (totalTime > 0 && this.metrics.instructionsExecuted > 0) {
-                this.metrics.averageIPS = Math.floor((this.metrics.instructionsExecuted / totalTime) * 1000);
-            }
-
-            // Reset last second counter every second for instantaneous IPS
-            const timeSinceSecondStart = now - this.lastSecondStartTime;
-            if (timeSinceSecondStart >= 1000) {
-                this.lastSecondInstructions = 0;
-                this.lastSecondStartTime = now;
-            }
-
-            // Only update lastMetricsUpdate if time has actually passed
-            if (timeSinceLastUpdate > 0) {
-                this.lastMetricsUpdate = now;
-            }
-        }
-    }
-
     // ============ Engine-Specific Features ============
 
     getDebugInfo(): unknown {
@@ -827,7 +715,7 @@ export class WasmEngine implements ICPUEngine {
             return {
                 status: 'Not initialized',
                 breakpoints: Array.from(this.breakpoints),
-                metrics: this.metrics,
+                metrics: this.metricsTracker.raw(),
             };
         }
 
@@ -836,7 +724,7 @@ export class WasmEngine implements ICPUEngine {
             engineVersion: this.engineVersion,
             registers: this.getRegisters(),
             breakpoints: Array.from(this.breakpoints),
-            metrics: this.metrics,
+            metrics: this.metricsTracker.raw(),
             wasmMetrics: this.wasmSystem.get_metrics(),
             memoryMap: this.wasmSystem.get_memory_map(),
         };
@@ -860,7 +748,7 @@ export class WasmEngine implements ICPUEngine {
         const y = state.y;
         const s = state.s;
         const status = state.status;
-        const cycles = state.cycles ?? this.metrics.totalCycles;
+        const cycles = state.cycles ?? this.metricsTracker.totalCycles;
         const irq = state.irq;
         const nmi = state.nmi;
 
