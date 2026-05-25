@@ -38,10 +38,15 @@ const ExecutionControlsCluster: React.FC<ExecutionControlsClusterProps> = ({
         await workerManager.keyDown('Tab');
     }, [workerManager]);
 
-    // The single global keyboard binding for execution control.
+    // The single global keyboard binding for execution control. Only the
+    // non-printable function keys are bound — Space is intentionally NOT a
+    // shortcut here: this bar is always mounted, and Space is a normal character
+    // the user types into the emulator (it would otherwise both step and inject
+    // a space). Modifier combos are left for the browser/OS.
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            if ((e.key === 'F10' || e.key === ' ') && isPaused) {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.key === 'F10' && isPaused) {
                 e.preventDefault();
                 step();
             } else if (e.key === 'F5') {
@@ -67,7 +72,7 @@ const ExecutionControlsCluster: React.FC<ExecutionControlsClusterProps> = ({
                         ? 'bg-data-value/10 text-data-value hover:bg-data-value/20 border-data-value/30'
                         : 'bg-surface-secondary text-text-disabled cursor-not-allowed border-border-subtle'
                 }`}
-                title="Step (F10 or Space)"
+                title="Step (F10)"
             >
                 Step
             </button>

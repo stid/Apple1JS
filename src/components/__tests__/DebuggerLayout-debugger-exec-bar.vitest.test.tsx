@@ -49,5 +49,7 @@ describe('DebuggerLayout CPU State panel', () => {
 
         // The flag register is labelled "Flags" (its old "Status" label is gone).
         expect(screen.getByText(/Flags/i)).toBeInTheDocument();
+        // Guard against the "Status" overload regressing.
+        expect(screen.queryByText(/Status/i)).toBeNull();
     });
 });
