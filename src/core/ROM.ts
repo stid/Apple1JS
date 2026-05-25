@@ -1,8 +1,10 @@
-import { IInspectableComponent, InspectableData, WithBusMetadata, IoAddressable } from './types';
+import { IInspectableComponent, InspectableData, IoAddressable } from './types';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
 import { DEFAULT_ROM_SIZE, MIN_BYTE_VALUE, BYTE_MASK } from './constants/memory';
-import { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateError, StateBase } from './types';
+import { StateValidationResult, StateOptions, StateError, StateBase } from './types';
+import { VersionedStatefulComponentBase } from './base/VersionedStatefulComponentBase';
+import { baseInspectable } from './base/inspectable';
 
 /**
  * ROM state interface
@@ -19,7 +21,8 @@ interface ROMState extends StateBase {
     initialized: boolean;
 }
 
-class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulComponent<ROMState> {
+class ROM extends VersionedStatefulComponentBase<ROMState> implements IoAddressable, IInspectableComponent {
+    protected readonly stateComponentName = 'ROM';
     id = 'rom';
     type = 'ROM';
     name?: string;
@@ -31,19 +34,13 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
      * Returns a serializable architecture view of the ROM, suitable for inspectors.
      */
     getInspectable(): InspectableData {
-        const self = this as WithBusMetadata<typeof this>;
-        return {
-            id: this.id,
-            type: this.type,
-            name: this.name ?? '',
-            ...(self.__address !== undefined && { address: self.__address }),
-            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
+        return baseInspectable(this, {
             size: this.data.length,
             state: {
                 size: this.data.length + ' bytes',
-                readOnly: true
-            }
-        };
+                readOnly: true,
+            },
+        });
     }
     private data: Uint8Array;
     private _initialized = false;
@@ -62,6 +59,7 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
     }
 
     constructor(byteSize: number = DEFAULT_ROM_SIZE) {
+        super();
         this.data = new Uint8Array(byteSize).fill(MIN_BYTE_VALUE);
     }
 
@@ -70,13 +68,13 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
      */
     saveState(options?: StateOptions): ROMState {
         const opts = { includeDebugInfo: false, ...options };
-        
+
         const state: ROMState = {
             version: ROM.STATE_VERSION,
             data: Array.from(this.data),
             size: this.data.length,
             componentId: this.id,
-            initialized: this._initialized
+            initialized: this._initialized,
         };
 
         if (opts.includeDebugInfo) {
@@ -85,8 +83,8 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
                     timestamp: Date.now(),
                     componentId: this.id,
                     type: this.type,
-                    name: this.name
-                }
+                    name: this.name,
+                },
             });
         }
 
@@ -94,34 +92,16 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
     }
 
     /**
-     * Load ROM state - recreates ROM contents
+     * Load ROM state - recreates ROM contents from an already-validated,
+     * already-migrated state.
      */
-    loadState(state: ROMState, options?: StateOptions): void {
-        const opts = { validate: true, migrate: true, ...options };
-        
-        if (opts.validate) {
-            const validation = this.validateState(state);
-            if (!validation.valid) {
-                throw new StateError(
-                    `Invalid ROM state: ${validation.errors.join(', ')}`, 
-                    'ROM', 
-                    'load'
-                );
-            }
-        }
-
-        // Handle version migration if needed
-        let finalState = state;
-        if (opts.migrate && state.version && state.version !== ROM.STATE_VERSION) {
-            finalState = this.migrateState(state, state.version);
-        }
-
+    protected applyState(finalState: ROMState): void {
         // Validate size compatibility
         if (finalState.data.length !== this.data.length) {
             throw new StateError(
                 `ROM size mismatch: expected ${this.data.length}, got ${finalState.data.length}`,
                 'ROM',
-                'load'
+                'load',
             );
         }
 
@@ -152,9 +132,11 @@ class ROM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
                 .map((value, index) => ({ value, index }))
                 .filter(({ value }) => typeof value !== 'number' || value < 0 || value > 255)
                 .map(({ index }) => index);
-            
+
             if (invalidIndices.length > 0) {
-                errors.push(`Invalid byte values at indices: ${invalidIndices.slice(0, 5).join(', ')}${invalidIndices.length > 5 ? '...' : ''}`);
+                errors.push(
+                    `Invalid byte values at indices: ${invalidIndices.slice(0, 5).join(', ')}${invalidIndices.length > 5 ? '...' : ''}`,
+                );
             }
         }
 
