@@ -9,47 +9,50 @@ import type { WorkerManager } from '../../services/WorkerManager';
 // Mock child components
 vi.mock('../Info', () => ({
     __esModule: true,
-    default: () => <div data-testid="info-component">Info Component</div>
+    default: () => <div data-testid="info-component">Info Component</div>,
 }));
 
 vi.mock('../InspectorView', () => ({
     __esModule: true,
-    default: () => <div data-testid="inspector-component">Inspector Component</div>
+    default: () => <div data-testid="inspector-component">Inspector Component</div>,
 }));
 
 vi.mock('../DebuggerLayout', () => ({
     __esModule: true,
-    default: () => <div data-testid="debugger-component">Debugger Component</div>
+    default: () => <div data-testid="debugger-component">Debugger Component</div>,
 }));
 
 vi.mock('../CRTWorker', () => ({
     __esModule: true,
-    default: () => <div data-testid="crt-worker">CRT Worker</div>
+    default: () => <div data-testid="crt-worker">CRT Worker</div>,
 }));
 
 vi.mock('../Actions', () => ({
     __esModule: true,
-    default: () => <div data-testid="actions">Actions</div>
+    default: () => <div data-testid="actions">Actions</div>,
 }));
 
 // Mock contexts
 vi.mock('../../contexts/DebuggerNavigationContext', () => ({
     useDebuggerNavigation: () => ({
-        subscribeToNavigation: vi.fn(() => () => {})
-    })
+        subscribeToNavigation: vi.fn(() => () => {}),
+    }),
 }));
 
 vi.mock('../../contexts/EmulationContext', () => ({
     useEmulation: () => ({
         isPaused: false,
+        executionState: 'running',
+        currentPC: 0,
         pause: vi.fn(),
-        resume: vi.fn()
+        resume: vi.fn(),
+        step: vi.fn(),
     }),
-    EmulationProvider: ({ children }: { children: React.ReactNode }) => children
+    EmulationProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 vi.mock('../../contexts/WorkerDataContext', () => ({
-    WorkerDataProvider: ({ children }: { children: React.ReactNode }) => children
+    WorkerDataProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 describe('AppContent', () => {
@@ -82,8 +85,8 @@ describe('AppContent', () => {
             act(() => {
                 fireEvent.paste(hiddenInput!, {
                     clipboardData: {
-                        getData: () => pasteText
-                    }
+                        getData: () => pasteText,
+                    },
                 });
             });
 
@@ -94,7 +97,6 @@ describe('AppContent', () => {
             act(() => {
                 vi.runOnlyPendingTimers();
             });
-
 
             // Verify each character was sent with proper timing
             expect(mockWorkerManager.keyDown).toHaveBeenCalledTimes(2);
@@ -111,8 +113,8 @@ describe('AppContent', () => {
             act(() => {
                 fireEvent.paste(hiddenInput!, {
                     clipboardData: {
-                        getData: () => pasteText
-                    }
+                        getData: () => pasteText,
+                    },
                 });
             });
 
@@ -125,7 +127,7 @@ describe('AppContent', () => {
 
             // Should send: A, Enter, B
             expect(mockWorkerManager.keyDown).toHaveBeenCalledTimes(3);
-            
+
             // Check that newline becomes Enter
             expect(mockWorkerManager.keyDown).toHaveBeenCalledWith('Enter');
         });
@@ -139,8 +141,8 @@ describe('AppContent', () => {
             act(() => {
                 fireEvent.paste(hiddenInput!, {
                     clipboardData: {
-                        getData: () => pasteText
-                    }
+                        getData: () => pasteText,
+                    },
                 });
             });
 
@@ -164,8 +166,8 @@ describe('AppContent', () => {
             act(() => {
                 fireEvent.paste(hiddenInput!, {
                     clipboardData: {
-                        getData: () => ''
-                    }
+                        getData: () => '',
+                    },
                 });
             });
 
@@ -184,12 +186,12 @@ describe('AppContent', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
             const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]');
-            
+
             act(() => {
                 fireEvent.paste(hiddenInput!, {
                     clipboardData: {
-                        getData: () => null
-                    }
+                        getData: () => null,
+                    },
                 });
             });
 
@@ -213,8 +215,8 @@ describe('AppContent', () => {
             act(() => {
                 fireEvent.paste(hiddenInput!, {
                     clipboardData: {
-                        getData: () => pasteText
-                    }
+                        getData: () => pasteText,
+                    },
                 });
             });
 
@@ -226,7 +228,7 @@ describe('AppContent', () => {
 
             // Test timing - the first character should fire at 0ms delay (index 0 * 160)
             // Second character at 160ms (index 1 * 160), third at 320ms (index 2 * 160)
-            
+
             // Advance timer by 1ms - no characters should be sent yet since first is at 0ms already
             act(() => {
                 vi.advanceTimersByTime(1);
@@ -286,9 +288,11 @@ describe('AppContent', () => {
         it('should have a hidden input field with proper mobile attributes', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
-            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const hiddenInput = document.querySelector(
+                'input[aria-label="Hidden input for keyboard focus"]',
+            ) as HTMLInputElement;
             expect(hiddenInput).toBeInTheDocument();
-            
+
             // Test mobile-friendly attributes
             expect(hiddenInput).toHaveAttribute('autoComplete', 'off');
             expect(hiddenInput).toHaveAttribute('autoCorrect', 'off');
@@ -296,10 +300,10 @@ describe('AppContent', () => {
             expect(hiddenInput).toHaveAttribute('spellCheck', 'false');
             expect(hiddenInput).toHaveAttribute('tabIndex', '0');
             expect(hiddenInput).toHaveAttribute('type', 'text');
-            
+
             // Should NOT have readOnly attribute (breaks mobile keyboards)
             expect(hiddenInput).not.toHaveAttribute('readOnly');
-            
+
             // Should be controllable
             expect(hiddenInput).toHaveValue('');
         });
@@ -307,16 +311,18 @@ describe('AppContent', () => {
         it('should have proper positioning styles for mobile compatibility', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
-            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const hiddenInput = document.querySelector(
+                'input[aria-label="Hidden input for keyboard focus"]',
+            ) as HTMLInputElement;
             const styles = window.getComputedStyle(hiddenInput);
-            
+
             // Should be positioned off-screen but still focusable
             expect(styles.position).toBe('absolute');
             expect(styles.left).toBe('-9999px');
             expect(styles.opacity).toBe('0');
             expect(styles.width).toBe('1px');
             expect(styles.height).toBe('1px');
-            
+
             // Should NOT have pointerEvents: none (breaks mobile touch)
             expect(styles.pointerEvents).not.toBe('none');
         });
@@ -324,18 +330,20 @@ describe('AppContent', () => {
         it('should focus hidden input when CRT area is clicked', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
-            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const hiddenInput = document.querySelector(
+                'input[aria-label="Hidden input for keyboard focus"]',
+            ) as HTMLInputElement;
             const crtArea = document.querySelector('[data-testid="crt-worker"]')?.parentElement;
-            
+
             expect(crtArea).toBeInTheDocument();
-            
+
             // Mock focus method
             const focusSpy = vi.spyOn(hiddenInput, 'focus');
-            
+
             act(() => {
                 fireEvent.click(crtArea!);
             });
-            
+
             expect(focusSpy).toHaveBeenCalled();
             focusSpy.mockRestore();
         });
@@ -344,12 +352,12 @@ describe('AppContent', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
             const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]');
-            
+
             // Simulate mobile keyboard input
             act(() => {
                 fireEvent.keyDown(hiddenInput!, { key: 'a' });
             });
-            
+
             expect(mockWorkerManager.keyDown).toHaveBeenCalledWith('a');
         });
 
@@ -357,23 +365,23 @@ describe('AppContent', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
             const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]');
-            
+
             // Clear any existing calls first
             vi.mocked(mockWorkerManager.keyDown).mockClear();
-            
+
             // Test various modifier key combinations
             act(() => {
                 fireEvent.keyDown(hiddenInput!, { key: 'a', metaKey: true });
             });
-            
+
             act(() => {
                 fireEvent.keyDown(hiddenInput!, { key: 'a', ctrlKey: true });
             });
-            
+
             act(() => {
                 fireEvent.keyDown(hiddenInput!, { key: 'a', altKey: true });
             });
-            
+
             // Should not send any messages for modifier key combinations
             expect(mockWorkerManager.keyDown).not.toHaveBeenCalled();
         });
@@ -381,16 +389,18 @@ describe('AppContent', () => {
         it('should maintain focus when switching tabs', () => {
             const { getByText } = render(<AppContent workerManager={mockWorkerManager} />);
 
-            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
+            const hiddenInput = document.querySelector(
+                'input[aria-label="Hidden input for keyboard focus"]',
+            ) as HTMLInputElement;
             const inspectorTab = getByText('Inspector');
-            
+
             // Mock focus method
             const focusSpy = vi.spyOn(hiddenInput, 'focus');
-            
+
             act(() => {
                 fireEvent.click(inspectorTab);
             });
-            
+
             expect(focusSpy).toHaveBeenCalled();
             focusSpy.mockRestore();
         });
@@ -398,13 +408,15 @@ describe('AppContent', () => {
         it('should handle onChange events properly (controlled input)', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
-            const hiddenInput = document.querySelector('input[aria-label="Hidden input for keyboard focus"]') as HTMLInputElement;
-            
+            const hiddenInput = document.querySelector(
+                'input[aria-label="Hidden input for keyboard focus"]',
+            ) as HTMLInputElement;
+
             // Should handle change events without errors
             act(() => {
                 fireEvent.change(hiddenInput, { target: { value: 'test' } });
             });
-            
+
             // Value should remain empty (controlled input)
             expect(hiddenInput.value).toBe('');
         });

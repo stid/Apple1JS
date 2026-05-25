@@ -6,7 +6,8 @@ import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
 import Actions from './Actions';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
-import { EmulationProvider, useEmulation } from '../contexts/EmulationContext';
+import { EmulationProvider } from '../contexts/EmulationContext';
+import ExecutionControlsCluster from './ExecutionControlsCluster';
 import { WorkerDataProvider } from '../contexts/WorkerDataContext';
 import { IInspectableComponent } from '../core/types';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -23,26 +24,27 @@ interface AppContentInnerProps extends Props {
     rightTab: 'info' | 'inspector' | 'debugger';
     setRightTab: React.Dispatch<React.SetStateAction<'info' | 'inspector' | 'debugger'>>;
     pendingNavigation: { address: number; target: 'memory' | 'disassembly' } | null;
-    setPendingNavigation: React.Dispatch<React.SetStateAction<{ address: number; target: 'memory' | 'disassembly' } | null>>;
+    setPendingNavigation: React.Dispatch<
+        React.SetStateAction<{ address: number; target: 'memory' | 'disassembly' } | null>
+    >;
 }
 
-const AppContentInner = ({ 
-    workerManager, 
+const AppContentInner = ({
+    workerManager,
     apple1Instance,
     rightTab,
     setRightTab,
     pendingNavigation,
-    setPendingNavigation
+    setPendingNavigation,
 }: AppContentInnerProps): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
     const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
     const [isSwitchingEngine, setIsSwitchingEngine] = useState<boolean>(false);
-    const { isPaused, pause, resume } = useEmulation();
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { subscribeToNavigation } = useDebuggerNavigation();
     const { safeSetTimeout } = useUnmountSafe();
-    
+
     // Persist debugger view states across tab switches
     const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
     const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
@@ -86,27 +88,23 @@ const AppContentInner = ({
         };
     }, [workerManager]);
 
-    const handleEngineSwitch = useCallback<React.MouseEventHandler<HTMLAnchorElement>>(
-        async (e) => {
-            e.preventDefault();
-            if (isSwitchingEngine || !engineStatus) {
-                return;
-            }
-            const target = engineStatus.currentEngine === 'WASM' ? 'JS' : 'WASM';
-            setIsSwitchingEngine(true);
-            try {
-                await workerManager.switchEngine(target);
-                const status = await workerManager.getEngineStatus();
-                setEngineStatus(status);
-                loggingService.info('AppContent', `Switched to ${target} engine`);
-            } catch (error) {
-                loggingService.error('AppContent', `Failed to switch engine: ${error}`);
-            } finally {
-                setIsSwitchingEngine(false);
-            }
-        },
-        [workerManager, engineStatus, isSwitchingEngine],
-    );
+    const handleEngineSwitch = useCallback(async () => {
+        if (isSwitchingEngine || !engineStatus) {
+            return;
+        }
+        const target = engineStatus.currentEngine === 'WASM' ? 'JS' : 'WASM';
+        setIsSwitchingEngine(true);
+        try {
+            await workerManager.switchEngine(target);
+            const status = await workerManager.getEngineStatus();
+            setEngineStatus(status);
+            loggingService.info('AppContent', `Switched to ${target} engine`);
+        } catch (error) {
+            loggingService.error('AppContent', `Failed to switch engine: ${error}`);
+        } finally {
+            setIsSwitchingEngine(false);
+        }
+    }, [workerManager, engineStatus, isSwitchingEngine]);
 
     const handleKeyDown = useCallback(
         async (e: KeyboardEvent) => {
@@ -215,46 +213,34 @@ const AppContentInner = ({
         [workerManager],
     );
 
-    const handlePauseResume = useCallback(
-        (e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.preventDefault();
-            if (isPaused) {
-                resume();
-            } else {
-                pause();
-            }
-        },
-        [isPaused, pause, resume],
-    );
-
     return (
-        <div className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1" onClick={(e) => {
-            // Refocus hidden input when clicking on the background
-            if (e.target === e.currentTarget) {
-                focusHiddenInput();
-            }
-        }}>
+        <div
+            className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1"
+            onClick={(e) => {
+                // Refocus hidden input when clicking on the background
+                if (e.target === e.currentTarget) {
+                    focusHiddenInput();
+                }
+            }}
+        >
             {/* Left column: CRT, Actions */}
             <div
                 className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
                 style={{ maxWidth: '538px' }}
             >
-                <div className="w-full flex justify-center" onClick={() => {
-                    // Always refocus when clicking anywhere in the CRT area
-                    focusHiddenInput();
-                }} role="presentation">
+                <div
+                    className="w-full flex justify-center"
+                    onClick={() => {
+                        // Always refocus when clicking anywhere in the CRT area
+                        focusHiddenInput();
+                    }}
+                    role="presentation"
+                >
                     <CRTWorker workerManager={workerManager} />
                 </div>
                 <div className="mt-md w-full">
                     <Actions
                         supportBS={supportBS}
-                        onReset={useCallback(
-                            async (e) => {
-                                e.preventDefault();
-                                await workerManager.keyDown('Tab');
-                            },
-                            [workerManager],
-                        )}
                         onBS={useCallback(
                             async (e) => {
                                 e.preventDefault();
@@ -265,8 +251,6 @@ const AppContentInner = ({
                         )}
                         onSaveState={handleSaveState}
                         onLoadState={handleLoadState}
-                        onPauseResume={handlePauseResume}
-                        isPaused={isPaused}
                         onRefocus={focusHiddenInput}
                         cycleAccurateTiming={cycleAccurateTiming}
                         onCycleAccurateTiming={useCallback(
@@ -277,10 +261,6 @@ const AppContentInner = ({
                             },
                             [workerManager, cycleAccurateTiming],
                         )}
-                        currentEngine={engineStatus?.currentEngine ?? 'WASM'}
-                        wasmAvailable={engineStatus?.availableEngines.includes('WASM') ?? false}
-                        isSwitchingEngine={isSwitchingEngine}
-                        onEngineSwitch={handleEngineSwitch}
                     />
                 </div>
             </div>
@@ -291,8 +271,8 @@ const AppContentInner = ({
                     <div className="flex gap-sm">
                         <button
                             className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
-                                rightTab === 'info' 
-                                    ? 'bg-text-accent text-black border-text-accent' 
+                                rightTab === 'info'
+                                    ? 'bg-text-accent text-black border-text-accent'
                                     : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
                             }`}
                             onClick={() => {
@@ -304,8 +284,8 @@ const AppContentInner = ({
                         </button>
                         <button
                             className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
-                                rightTab === 'inspector' 
-                                    ? 'bg-text-accent text-black border-text-accent' 
+                                rightTab === 'inspector'
+                                    ? 'bg-text-accent text-black border-text-accent'
                                     : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
                             }`}
                             onClick={() => {
@@ -317,8 +297,8 @@ const AppContentInner = ({
                         </button>
                         <button
                             className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
-                                rightTab === 'debugger' 
-                                    ? 'bg-text-accent text-black border-text-accent' 
+                                rightTab === 'debugger'
+                                    ? 'bg-text-accent text-black border-text-accent'
                                     : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
                             }`}
                             onClick={() => {
@@ -329,6 +309,15 @@ const AppContentInner = ({
                             Debugger
                         </button>
                     </div>
+                    {/* Always-visible execution bar: the single home for run-state +
+                        run/pause/step/reset + engine switch, regardless of which tab is shown. */}
+                    <ExecutionControlsCluster
+                        workerManager={workerManager}
+                        currentEngine={engineStatus?.currentEngine ?? 'WASM'}
+                        wasmAvailable={engineStatus?.availableEngines.includes('WASM') ?? false}
+                        isSwitchingEngine={isSwitchingEngine}
+                        onEngineSwitch={handleEngineSwitch}
+                    />
                 </div>
                 <div className="flex-1 overflow-hidden">
                     {rightTab === 'info' && (
@@ -346,9 +335,9 @@ const AppContentInner = ({
                     )}
                     {rightTab === 'debugger' && apple1Instance && (
                         <div className="h-full" style={{ overflow: 'hidden' }}>
-                            <DebuggerLayout 
-                                root={apple1Instance} 
-                                workerManager={workerManager} 
+                            <DebuggerLayout
+                                root={apple1Instance}
+                                workerManager={workerManager}
                                 initialNavigation={pendingNavigation}
                                 onNavigationHandled={() => setPendingNavigation(null)}
                                 memoryViewAddress={memoryViewAddress}
@@ -371,7 +360,7 @@ const AppContentInner = ({
                     left: '-9999px',
                     width: '1px',
                     height: '1px',
-                    opacity: 0
+                    opacity: 0,
                 }}
                 tabIndex={0}
                 aria-label="Hidden input for keyboard focus"
@@ -388,14 +377,17 @@ const AppContentInner = ({
 
 export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Element => {
     const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
-    const [pendingNavigation, setPendingNavigation] = useState<{ address: number; target: 'memory' | 'disassembly' } | null>(null);
-    
+    const [pendingNavigation, setPendingNavigation] = useState<{
+        address: number;
+        target: 'memory' | 'disassembly';
+    } | null>(null);
+
     const handleBreakpointHit = useCallback((address: number) => {
         // When any breakpoint hits, switch to debugger tab and disassembly view
         setPendingNavigation({ address, target: 'disassembly' });
         setRightTab('debugger');
     }, []);
-    
+
     const handleRunToCursorSet = useCallback((address: number | null) => {
         // When run-to-cursor is set, switch to debugger tab and disassembly view
         if (address !== null) {
@@ -403,16 +395,16 @@ export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Elemen
             setRightTab('debugger');
         }
     }, []);
-    
+
     return (
         <WorkerDataProvider workerManager={workerManager}>
-            <EmulationProvider 
-                workerManager={workerManager} 
+            <EmulationProvider
+                workerManager={workerManager}
                 onBreakpointHit={handleBreakpointHit}
                 onRunToCursorSet={handleRunToCursorSet}
             >
-                <AppContentInner 
-                    workerManager={workerManager} 
+                <AppContentInner
+                    workerManager={workerManager}
                     {...(apple1Instance !== undefined && { apple1Instance })}
                     rightTab={rightTab}
                     setRightTab={setRightTab}
