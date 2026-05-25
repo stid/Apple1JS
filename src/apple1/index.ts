@@ -1,7 +1,8 @@
 // Emulator state type for save/load
 import type { EmulatorState, PIAState, VideoState } from './TSTypes';
-import type { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from '../core/types';
+import type { StateValidationResult, StateOptions, StateBase } from '../core/types';
 import { StateError } from '../core/types';
+import { VersionedStatefulComponentBase } from '../core/base/VersionedStatefulComponentBase';
 import CPU6502 from '../core/cpu6502';
 import { DualEngine } from '../core/cpu-engines';
 import type { ICPUEngine } from '../core/cpu-interface/ICPUEngine';
@@ -69,7 +70,8 @@ interface Apple1State extends StateBase {
     systemId: string;
 }
 
-class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple1State> {
+class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IInspectableComponent {
+    protected readonly stateComponentName = 'Apple1';
     /** Current state schema version */
     private static readonly STATE_VERSION = '2.0';
     // Keep old methods for backward compatibility but mark as deprecated
@@ -242,6 +244,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
         keyboard: IoComponent;
         useDualEngine?: boolean;
     }) {
+        super();
         this.useDualEngine = useDualEngine;
         // Keyboard & Video are injected from the outside (browser vs nodejs). This make this core
         // implementation agnostic. They just need to conform to IOComponent interfaces.
@@ -442,22 +445,7 @@ class Apple1 implements IInspectableComponent, IVersionedStatefulComponent<Apple
     /**
      * Restore the Apple1 system from a saved state
      */
-    loadState(state: Apple1State, options?: StateOptions): void {
-        const opts = { validate: true, migrate: true, ...options };
-
-        if (opts.validate) {
-            const validation = this.validateState(state);
-            if (!validation.valid) {
-                throw new StateError(`Invalid Apple1 state: ${validation.errors.join(', ')}`, 'Apple1', 'load');
-            }
-        }
-
-        // Handle version migration if needed
-        let finalState = state;
-        if (opts.migrate && state.version && state.version !== Apple1.STATE_VERSION) {
-            finalState = this.migrateState(state, state.version);
-        }
-
+    protected applyState(finalState: Apple1State, opts: Required<StateOptions>): void {
         // Stop clock before loading state
         // Get running state from the current clock state
         const currentClockState = this.clock.saveState();

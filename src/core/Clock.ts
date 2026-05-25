@@ -12,9 +12,11 @@ const MAX_WAIT_TIME = 50;
 const TIMING_SAMPLE_SIZE = 100;
 const DRIFT_CORRECTION_THRESHOLD = 0.02; // More aggressive threshold
 
-import { IInspectableComponent, InspectableData, WithBusMetadata } from './types';
-import type { TimingStats, IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from './types';
+import { IInspectableComponent, InspectableData } from './types';
+import type { TimingStats, StateValidationResult, StateOptions, StateBase } from './types';
 import { StateError } from './types';
+import { VersionedStatefulComponentBase } from './base/VersionedStatefulComponentBase';
+import { baseInspectable } from './base/inspectable';
 
 /**
  * Clock state interface for serialization/deserialization
@@ -23,20 +25,20 @@ interface ClockState extends StateBase {
     /** Clock configuration */
     mhz: number;
     stepChunk: number;
-    
+
     /** Execution state */
     running: boolean;
     paused: boolean;
-    
+
     /** Timing state */
     provisionedCycles: number;
     maxedCycles: number;
     totalElapsedCycles: number;
-    
+
     /** Pause management */
     pausedAt: number;
     totalPausedTime: number;
-    
+
     /** Performance tracking */
     frameTimeSamples: number[];
     driftCompensation: number;
@@ -47,7 +49,8 @@ interface ClockState extends StateBase {
  * Clock class simulates a clock and allows subscribers to be notified of its changes.
  */
 
-class Clock implements PubSub<number>, IInspectableComponent, IVersionedStatefulComponent<ClockState> {
+class Clock extends VersionedStatefulComponentBase<ClockState> implements PubSub<number>, IInspectableComponent {
+    protected readonly stateComponentName = 'Clock';
     id = 'clock';
     type = 'Clock';
     name?: string;
@@ -71,6 +74,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
     private static readonly STATE_VERSION = '2.0';
 
     constructor(mhz: number = DEFAULT_MHZ, stepChunk: number = DEFAULT_STEP_INTERVAL) {
+        super();
         this.mhz = mhz;
         this.stepChunk = stepChunk;
         this.provisionedCycles = 0;
@@ -96,15 +100,9 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
      * Returns a standardized view of the Clock component.
      */
     getInspectable(): InspectableData {
-        const self = this as WithBusMetadata<typeof this>;
         const stats = this.getTimingStats();
-        
-        return {
-            id: this.id,
-            type: this.type,
-            name: this.name ?? '',
-            ...(self.__address !== undefined && { address: self.__address }),
-            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
+
+        return baseInspectable(this, {
             state: {
                 mhz: this.mhz,
                 stepChunk: this.stepChunk,
@@ -117,7 +115,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
                 drift: (stats.drift * 100).toFixed(2) + '%',
                 avgCycleTime: stats.avgCycleTime.toFixed(2) + 'ms',
                 totalCycles: stats.totalCycles,
-                totalTime: stats.totalTime.toFixed(2) + 's'
+                totalTime: stats.totalTime.toFixed(2) + 's',
             },
             // Backward compatibility - flat properties
             mhz: this.mhz,
@@ -128,7 +126,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
             drift: (stats.drift * 100).toFixed(2) + '%',
             avgCycleTime: stats.avgCycleTime.toFixed(2) + 'ms',
             totalCycles: stats.totalCycles,
-        };
+        });
     }
 
     // Allows a function to subscribe to the clock's updates.
@@ -153,15 +151,15 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
     toDebug(): { [key: string]: number | string | boolean } {
         const { mhz, stepChunk, provisionedCycles, maxedCycles } = this;
         const stats = this.getTimingStats();
-        return { 
-            mhz, 
-            stepChunk, 
-            provisionedCycles, 
+        return {
+            mhz,
+            stepChunk,
+            provisionedCycles,
             maxedCycles,
             actualFrequency: stats.actualFrequency,
             drift: stats.drift,
             running: this.running,
-            paused: this.paused
+            paused: this.paused,
         };
     }
 
@@ -209,10 +207,11 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
         const actualFrequency = elapsedTime > 0 ? this.totalElapsedCycles / elapsedTime / 1000000 : 0;
         const targetFrequency = this.mhz;
         const drift = targetFrequency > 0 ? (actualFrequency - targetFrequency) / targetFrequency : 0;
-        
-        const avgCycleTime = this.frameTimeSamples.length > 0 
-            ? this.frameTimeSamples.reduce((a, b) => a + b, 0) / this.frameTimeSamples.length 
-            : 0;
+
+        const avgCycleTime =
+            this.frameTimeSamples.length > 0
+                ? this.frameTimeSamples.reduce((a, b) => a + b, 0) / this.frameTimeSamples.length
+                : 0;
 
         return {
             actualFrequency,
@@ -220,7 +219,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
             drift,
             avgCycleTime,
             totalCycles: this.totalElapsedCycles,
-            totalTime: elapsedTime
+            totalTime: elapsedTime,
         };
     }
 
@@ -230,7 +229,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
         if (Math.abs(stats.drift) > DRIFT_CORRECTION_THRESHOLD) {
             // More aggressive compensation: use 0.5x multiplier for drift
             this.driftCompensation = Math.max(0.3, Math.min(2.0, 1.0 - stats.drift * 0.5));
-            
+
             // Also adjust wait time dynamically
             if (stats.drift > 0) {
                 // Running too fast, increase wait time
@@ -265,7 +264,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
 
             const currentTime = performance.now();
             const deltaTime = currentTime - this.lastFrameTime;
-            
+
             this.provisionedCycles = Math.floor(deltaTime * this.mhz * 1000 * this.driftCompensation);
             this.lastFrameTime = currentTime;
 
@@ -315,7 +314,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
      */
     saveState(options?: StateOptions): ClockState {
         const opts = { includeDebugInfo: false, includeRuntimeState: false, ...options };
-        
+
         const state: ClockState = {
             version: Clock.STATE_VERSION,
             // Configuration
@@ -342,7 +341,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
                 metadata: {
                     timestamp: Date.now(),
                     componentId: 'Clock',
-                }
+                },
             });
         }
 
@@ -350,28 +349,9 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
     }
 
     /**
-     * Restore the Clock from a saved state
+     * Restore the Clock from an already-validated, already-migrated state.
      */
-    loadState(state: ClockState, options?: StateOptions): void {
-        const opts = { validate: true, migrate: true, ...options };
-        
-        if (opts.validate) {
-            const validation = this.validateState(state);
-            if (!validation.valid) {
-                throw new StateError(
-                    `Invalid Clock state: ${validation.errors.join(', ')}`,
-                    'Clock',
-                    'load'
-                );
-            }
-        }
-
-        // Handle version migration if needed
-        let finalState = state;
-        if (opts.migrate && state.version && state.version !== Clock.STATE_VERSION) {
-            finalState = this.migrateState(state, state.version);
-        }
-
+    protected applyState(finalState: ClockState): void {
         // Stop any running clock before loading state
         const wasRunning = this.running;
         if (wasRunning) {
@@ -460,7 +440,11 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
         if (typeof s.driftCompensation !== 'number' || s.driftCompensation <= 0) {
             errors.push('driftCompensation must be a positive number');
         }
-        if (typeof s.dynamicWaitTime !== 'number' || s.dynamicWaitTime < MIN_WAIT_TIME || s.dynamicWaitTime > MAX_WAIT_TIME) {
+        if (
+            typeof s.dynamicWaitTime !== 'number' ||
+            s.dynamicWaitTime < MIN_WAIT_TIME ||
+            s.dynamicWaitTime > MAX_WAIT_TIME
+        ) {
             errors.push(`dynamicWaitTime must be between ${MIN_WAIT_TIME} and ${MAX_WAIT_TIME}`);
         }
 
@@ -532,15 +516,15 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
                 // Version 1.0 didn't have: frameTimeSamples, driftCompensation, dynamicWaitTime
                 return {
                     version: Clock.STATE_VERSION,
-                    mhz: state.mhz as number ?? DEFAULT_MHZ,
-                    stepChunk: state.stepChunk as number ?? DEFAULT_STEP_INTERVAL,
-                    running: state.running as boolean ?? false,
-                    paused: state.paused as boolean ?? false,
-                    provisionedCycles: state.provisionedCycles as number ?? 0,
-                    maxedCycles: state.maxedCycles as number ?? 0,
-                    totalElapsedCycles: state.totalElapsedCycles as number ?? 0,
-                    pausedAt: state.pausedAt as number ?? 0,
-                    totalPausedTime: state.totalPausedTime as number ?? 0,
+                    mhz: (state.mhz as number) ?? DEFAULT_MHZ,
+                    stepChunk: (state.stepChunk as number) ?? DEFAULT_STEP_INTERVAL,
+                    running: (state.running as boolean) ?? false,
+                    paused: (state.paused as boolean) ?? false,
+                    provisionedCycles: (state.provisionedCycles as number) ?? 0,
+                    maxedCycles: (state.maxedCycles as number) ?? 0,
+                    totalElapsedCycles: (state.totalElapsedCycles as number) ?? 0,
+                    pausedAt: (state.pausedAt as number) ?? 0,
+                    totalPausedTime: (state.totalPausedTime as number) ?? 0,
                     // New fields added in v2.0
                     frameTimeSamples: [],
                     driftCompensation: 1.0,
@@ -548,11 +532,7 @@ class Clock implements PubSub<number>, IInspectableComponent, IVersionedStateful
                 };
 
             default:
-                throw new StateError(
-                    `Unsupported Clock state version: ${fromVersion}`,
-                    'Clock',
-                    'migrate'
-                );
+                throw new StateError(`Unsupported Clock state version: ${fromVersion}`, 'Clock', 'migrate');
         }
     }
 

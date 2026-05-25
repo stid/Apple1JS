@@ -1,7 +1,9 @@
 import { IInspectableComponent, InspectableData, WithBusMetadata, IoAddressable } from './types';
 import { loggingService } from '../services/LoggingService';
 import { DEFAULT_RAM_BANK_SIZE, MIN_BYTE_VALUE, MAX_BYTE_VALUE, BYTE_MASK } from './constants/memory';
-import { IVersionedStatefulComponent, StateValidationResult, StateOptions, StateError, StateBase } from './types';
+import { StateValidationResult, StateOptions, StateError, StateBase } from './types';
+import { VersionedStatefulComponentBase } from './base/VersionedStatefulComponentBase';
+import { baseInspectable } from './base/inspectable';
 
 /**
  * RAM state interface
@@ -15,23 +17,25 @@ interface RAMState extends StateBase {
     componentId: string;
 }
 
-class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulComponent<RAMState> {
+class RAM extends VersionedStatefulComponentBase<RAMState> implements IoAddressable, IInspectableComponent {
     /**
      * Current state version for RAM component
      */
     private static readonly STATE_VERSION = '2.0';
+
+    protected readonly stateComponentName = 'RAM';
 
     /**
      * Returns a serializable copy of the RAM contents.
      */
     saveState(options?: StateOptions): RAMState {
         const opts = { includeDebugInfo: false, ...options };
-        
+
         const state: RAMState = {
             version: RAM.STATE_VERSION,
             data: Array.from(this.data),
             size: this.data.length,
-            componentId: this.id
+            componentId: this.id,
         };
 
         if (opts.includeDebugInfo) {
@@ -40,8 +44,8 @@ class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
                     timestamp: Date.now(),
                     componentId: this.id,
                     type: this.type,
-                    name: this.name
-                }
+                    name: this.name,
+                },
             });
         }
 
@@ -49,34 +53,15 @@ class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
     }
 
     /**
-     * Restores RAM contents from a previously saved state.
+     * Restores RAM contents from an already-validated, already-migrated state.
      */
-    loadState(state: RAMState, options?: StateOptions): void {
-        const opts = { validate: true, migrate: true, ...options };
-        
-        if (opts.validate) {
-            const validation = this.validateState(state);
-            if (!validation.valid) {
-                throw new StateError(
-                    `Invalid RAM state: ${validation.errors.join(', ')}`, 
-                    'RAM', 
-                    'load'
-                );
-            }
-        }
-
-        // Handle version migration if needed
-        let finalState = state;
-        if (opts.migrate && state.version && state.version !== RAM.STATE_VERSION) {
-            finalState = this.migrateState(state, state.version);
-        }
-
+    protected applyState(finalState: RAMState): void {
         // Validate size compatibility
         if (finalState.data.length !== this.data.length) {
             throw new StateError(
                 `RAM size mismatch: expected ${this.data.length}, got ${finalState.data.length}`,
                 'RAM',
-                'load'
+                'load',
             );
         }
 
@@ -93,19 +78,13 @@ class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
      * Returns a serializable architecture view of the RAM, suitable for inspectors.
      */
     getInspectable(): InspectableData {
-        const self = this as WithBusMetadata<typeof this>;
-        return {
-            id: this.id,
-            type: this.type,
-            name: this.name ?? '',
-            ...(self.__address !== undefined && { address: self.__address }),
-            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
+        return baseInspectable(this, {
             size: this.data.length,
             state: {
                 size: this.data.length + ' bytes',
-                initialized: true
-            }
-        };
+                initialized: true,
+            },
+        });
     }
     private data: Uint8Array;
     get details() {
@@ -118,6 +97,7 @@ class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
         };
     }
     constructor(byteSize: number = DEFAULT_RAM_BANK_SIZE) {
+        super();
         this.data = new Uint8Array(byteSize);
     }
 
@@ -144,9 +124,11 @@ class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
                 .map((value, index) => ({ value, index }))
                 .filter(({ value }) => typeof value !== 'number' || value < 0 || value > 255)
                 .map(({ index }) => index);
-            
+
             if (invalidIndices.length > 0) {
-                errors.push(`Invalid byte values at indices: ${invalidIndices.slice(0, 5).join(', ')}${invalidIndices.length > 5 ? '...' : ''}`);
+                errors.push(
+                    `Invalid byte values at indices: ${invalidIndices.slice(0, 5).join(', ')}${invalidIndices.length > 5 ? '...' : ''}`,
+                );
             }
         }
 
@@ -254,7 +236,10 @@ class RAM implements IoAddressable, IInspectableComponent, IVersionedStatefulCom
         }
 
         if (prgAddr + coreData.length > this.data.length) {
-            loggingService.error('RAM', `Flash data would write outside bounds (addr: ${prgAddr}, len: ${coreData.length})`);
+            loggingService.error(
+                'RAM',
+                `Flash data would write outside bounds (addr: ${prgAddr}, len: ${coreData.length})`,
+            );
             return;
         }
 

@@ -1,24 +1,34 @@
-import type { IInspectableComponent, InspectableData, InspectableChild, WithBusMetadata, IoComponent, subscribeFunction, IVersionedStatefulComponent, StateValidationResult, StateOptions, StateBase } from './types';
+import type {
+    IInspectableComponent,
+    InspectableData,
+    InspectableChild,
+    IoComponent,
+    subscribeFunction,
+    StateValidationResult,
+    StateOptions,
+    StateBase,
+} from './types';
 // formatByte is replaced by direct use of Formatters
 import { loggingService } from '../services/LoggingService';
-import { StateError } from './types';
 import { Formatters } from '../utils/formatters';
+import { VersionedStatefulComponentBase } from './base/VersionedStatefulComponentBase';
+import { baseInspectable } from './base/inspectable';
 
 // Use global performance API
 declare const performance: { now(): number };
 
 // PIA Registers - Apple 1 memory mapping
-const REG_ORA_DDRA = 0x0;  // $D010 - Output Register A / Data Direction Register A
-const REG_CRA = 0x1;       // $D011 - Control Register A
-const REG_ORB_DDRB = 0x2;  // $D012 - Output Register B / Data Direction Register B
-const REG_CRB = 0x3;       // $D013 - Control Register B
+const REG_ORA_DDRA = 0x0; // $D010 - Output Register A / Data Direction Register A
+const REG_CRA = 0x1; // $D011 - Control Register A
+const REG_ORB_DDRB = 0x2; // $D012 - Output Register B / Data Direction Register B
+const REG_CRB = 0x3; // $D013 - Control Register B
 
 // Control Register bit definitions
-const CR_IRQ1 = 7;         // IRQ1 flag (CA1/CB1 active transition occurred)
-const CR_IRQ2 = 6;         // IRQ2 flag (CA2/CB2 active transition occurred, if input)
-const CR_CA2_CB2_DIR = 5;  // CA2/CB2 direction (0=input, 1=output)
+const CR_IRQ1 = 7; // IRQ1 flag (CA1/CB1 active transition occurred)
+const CR_IRQ2 = 6; // IRQ2 flag (CA2/CB2 active transition occurred, if input)
+const CR_CA2_CB2_DIR = 5; // CA2/CB2 direction (0=input, 1=output)
 // const CR_CA2_CB2_CTRL = 3; // CA2/CB2 control (2 bits: 3-4) - Reserved for future use
-const CR_DDR_ACCESS = 2;   // DDR access control (0=DDR selected, 1=Output Register selected)
+const CR_DDR_ACCESS = 2; // DDR access control (0=DDR selected, 1=Output Register selected)
 // const CR_CA1_CB1_CTRL = 0; // CA1/CB1 control (2 bits: 0-1) - Reserved for future use
 
 /**
@@ -56,7 +66,7 @@ interface PIA6820State extends StateBase {
 
 /**
  * MC6820/6821 Peripheral Interface Adapter (PIA) emulation.
- * 
+ *
  * The PIA provides two 8-bit bidirectional I/O ports (A and B) with handshaking
  * control lines (CA1/CA2, CB1/CB2). In the Apple 1:
  * - Port A is connected to the keyboard (input)
@@ -64,18 +74,19 @@ interface PIA6820State extends StateBase {
  * - CA1 is used for keyboard strobe
  * - CB2 is wired to PB7 for display handshaking
  */
-class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6820State> {
+class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements IInspectableComponent {
+    protected readonly stateComponentName = 'PIA6820';
     id = 'pia6820';
     type = 'PIA6820';
     name?: string;
 
     // Internal registers
-    private ora = 0x00;     // Output Register A
-    private orb = 0x00;     // Output Register B
-    private ddra = 0x00;    // Data Direction Register A (0=input, 1=output)
-    private ddrb = 0x00;    // Data Direction Register B
-    private cra = 0x00;     // Control Register A
-    private crb = 0x00;     // Control Register B
+    private ora = 0x00; // Output Register A
+    private orb = 0x00; // Output Register B
+    private ddra = 0x00; // Data Direction Register A (0=input, 1=output)
+    private ddrb = 0x00; // Data Direction Register B
+    private cra = 0x00; // Control Register A
+    private crb = 0x00; // Control Register B
 
     // Control line states
     private ca1 = false;
@@ -115,6 +126,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
     private static readonly STATE_VERSION = '3.0';
 
     constructor() {
+        super();
         // Initialize PIA registers to proper Apple 1 state
         this.ora = 0x00;
         this.orb = 0x00;
@@ -122,11 +134,11 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         // Port A: all inputs (keyboard)
         this.ddra = 0x00;
         // Port B: bits 0-6 outputs (display data), bit 7 input (display status)
-        this.ddrb = 0x7F;
+        this.ddrb = 0x7f;
         // Set CRA and CRB bit 2 to access Output Registers (not DDR)
         this.cra = 0x04; // Bit 2 = 1 to access ORA
         this.crb = 0x04; // Bit 2 = 1 to access ORB
-        
+
         // Initialize control lines
         this.ca1 = false;
         this.ca2 = false;
@@ -177,7 +189,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
                 // Clear CA1 interrupt flag when reading port A
                 this.cra &= ~(1 << CR_IRQ1);
                 // Return DDR or Output Register based on CRA bit 2
-                result = (this.cra & (1 << CR_DDR_ACCESS)) ? this.readPortA() : this.ddra;
+                result = this.cra & (1 << CR_DDR_ACCESS) ? this.readPortA() : this.ddra;
                 break;
 
             case REG_CRA:
@@ -188,7 +200,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
                 // Clear CB1 interrupt flag when reading port B
                 this.crb &= ~(1 << CR_IRQ1);
                 // Return DDR or Output Register based on CRB bit 2
-                result = (this.crb & (1 << CR_DDR_ACCESS)) ? this.readPortB() : this.ddrb;
+                result = this.crb & (1 << CR_DDR_ACCESS) ? this.readPortB() : this.ddrb;
                 break;
 
             case REG_CRB:
@@ -216,7 +228,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         }
 
         // Ensure 8-bit value
-        value = value & 0xFF;
+        value = value & 0xff;
 
         // Track if we need to notify
         let valueChanged = false;
@@ -243,7 +255,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
 
             case REG_CRA: {
                 // Bits 6-7 are read-only interrupt flags
-                const newCra = (this.cra & 0xC0) | (value & 0x3F);
+                const newCra = (this.cra & 0xc0) | (value & 0x3f);
                 if (this.cra !== newCra) {
                     this.cra = newCra;
                     valueChanged = true;
@@ -271,7 +283,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
 
             case REG_CRB: {
                 // Bits 6-7 are read-only interrupt flags
-                const newCrb = (this.crb & 0xC0) | (value & 0x3F);
+                const newCrb = (this.crb & 0xc0) | (value & 0x3f);
                 if (this.crb !== newCrb) {
                     this.crb = newCrb;
                     valueChanged = true;
@@ -297,7 +309,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         this.ca1 = state;
 
         if (this.detectCA1Transition()) {
-            this.cra |= (1 << CR_IRQ1);
+            this.cra |= 1 << CR_IRQ1;
             // Use batched notification to prevent recursion
             this.notificationBatch.add('ca1');
             this.scheduleNotification();
@@ -313,7 +325,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         this.cb1 = state;
 
         if (this.detectCB1Transition()) {
-            this.crb |= (1 << CR_IRQ1);
+            this.crb |= 1 << CR_IRQ1;
             // Use batched notification to prevent recursion
             this.notificationBatch.add('cb1');
             this.scheduleNotification();
@@ -330,7 +342,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
             this.ca2 = state;
 
             if (this.detectCA2Transition()) {
-                this.cra |= (1 << CR_IRQ2);
+                this.cra |= 1 << CR_IRQ2;
                 // Use batched notification to prevent recursion
                 this.notificationBatch.add('ca2');
                 this.scheduleNotification();
@@ -348,7 +360,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
             this.cb2 = state;
 
             if (this.detectCB2Transition()) {
-                this.crb |= (1 << CR_IRQ2);
+                this.crb |= 1 << CR_IRQ2;
                 // Use batched notification to prevent recursion
                 this.notificationBatch.add('cb2');
                 this.scheduleNotification();
@@ -377,7 +389,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         const irq2Enable = (this.cra & 0x08) !== 0;
         const irq1Active = (this.cra & 0x80) !== 0;
         const irq2Active = (this.cra & 0x40) !== 0;
-        
+
         return (irq1Enable && irq1Active) || (irq2Enable && irq2Active);
     }
 
@@ -389,7 +401,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         const irq2Enable = (this.crb & 0x08) !== 0;
         const irq1Active = (this.crb & 0x80) !== 0;
         const irq2Active = (this.crb & 0x40) !== 0;
-        
+
         return (irq1Enable && irq1Active) || (irq2Enable && irq2Active);
     }
 
@@ -428,7 +440,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
      */
     saveState(options?: StateOptions): PIA6820State {
         const opts = { includeDebugInfo: false, ...options };
-        
+
         const state: PIA6820State = {
             version: PIA6820.STATE_VERSION,
             // Core registers
@@ -463,8 +475,8 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
                     type: this.type,
                     name: this.name,
                     stats: { ...this.stats },
-                    cacheSize: this.registerCache.size
-                }
+                    cacheSize: this.registerCache.size,
+                },
             });
         }
 
@@ -472,28 +484,9 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
     }
 
     /**
-     * Load PIA state with validation and migration support
+     * Load PIA state from an already-validated, already-migrated state.
      */
-    loadState(state: PIA6820State, options?: StateOptions): void {
-        const opts = { validate: true, migrate: true, ...options };
-        
-        if (opts.validate) {
-            const validation = this.validateState(state);
-            if (!validation.valid) {
-                throw new StateError(
-                    `Invalid PIA6820 state: ${validation.errors.join(', ')}`, 
-                    'PIA6820', 
-                    'load'
-                );
-            }
-        }
-
-        // Handle version migration if needed
-        let finalState = state;
-        if (opts.migrate && state.version && state.version !== PIA6820.STATE_VERSION) {
-            finalState = this.migrateState(state, state.version);
-        }
-        
+    protected applyState(finalState: PIA6820State): void {
         // Load core registers
         this.ora = finalState.ora;
         this.orb = finalState.orb;
@@ -514,14 +507,14 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
 
         // Load hardware-controlled input pins
         this.pb7InputState = finalState.pb7InputState;
-        
+
         // CRITICAL: Always clear the display busy bit after loading state
         // If the state was saved while the display was processing a character (pb7InputState = true),
         // the WOZ Monitor will be stuck in an infinite loop waiting for the display to become ready.
         // Since we're loading a saved state, any pending display operation would have been lost anyway,
         // so it's safe to mark the display as ready.
         this.pb7InputState = false;
-        
+
         this.notifySubscribers();
     }
 
@@ -593,11 +586,11 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         // Port A: all inputs (keyboard)
         this.ddra = 0x00;
         // Port B: bits 0-6 outputs (display data), bit 7 input (display status)
-        this.ddrb = 0x7F;
+        this.ddrb = 0x7f;
         // Set CRA and CRB bit 2 to access Output Registers (not DDR)
         this.cra = 0x04; // Bit 2 = 1 to access ORA
         this.crb = 0x04; // Bit 2 = 1 to access ORB
-        
+
         this.ca1 = false;
         this.ca2 = false;
         this.cb1 = false;
@@ -674,7 +667,6 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
      * Returns a standardized view of the PIA6820 component.
      */
     getInspectable(): InspectableData {
-        const self = this as WithBusMetadata<typeof this>;
         const uptime = (performance.now() - this.stats.startTime) / 1000;
         const opsPerSecond = uptime > 0 ? (this.stats.reads + this.stats.writes) / uptime : 0;
 
@@ -682,22 +674,17 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
             const childObj: InspectableChild = {
                 id: child.id,
                 type: child.type || 'IoComponent',
-                name: child.name ?? ''
+                name: child.name ?? '',
             };
-            
+
             if (typeof child.getInspectable === 'function') {
                 childObj.component = child.getInspectable();
             }
-            
+
             return childObj;
         });
 
-        return {
-            id: this.id,
-            type: this.type,
-            name: this.name ?? '',
-            ...(self.__address !== undefined && { address: self.__address }),
-            ...(self.__addressName !== undefined && { addressName: self.__addressName }),
+        return baseInspectable(this, {
             state: {
                 // Registers
                 'Port A Data': Formatters.hexByte(this.ora),
@@ -708,12 +695,12 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
                 'Port B Control': Formatters.hexByte(this.crb),
                 // Control Lines
                 'CA1 (Kbd Strobe)': this.ca1 ? 'HIGH' : 'LOW',
-                'CA2': this.ca2 ? 'HIGH' : 'LOW',
-                'CB1': this.cb1 ? 'HIGH' : 'LOW',
-                'CB2': this.cb2 ? 'HIGH' : 'LOW',
+                CA2: this.ca2 ? 'HIGH' : 'LOW',
+                CB1: this.cb1 ? 'HIGH' : 'LOW',
+                CB2: this.cb2 ? 'HIGH' : 'LOW',
                 // Interrupts
-                'IRQA': this.getIRQA() ? 'ACTIVE' : 'INACTIVE',
-                'IRQB': this.getIRQB() ? 'ACTIVE' : 'INACTIVE',
+                IRQA: this.getIRQA() ? 'ACTIVE' : 'INACTIVE',
+                IRQB: this.getIRQB() ? 'ACTIVE' : 'INACTIVE',
             },
             stats: {
                 reads: this.stats.reads,
@@ -724,8 +711,8 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
                 cacheSize: this.registerCache.size,
                 cacheStatus: this.registerCache.size > 0 ? 'Active' : 'Empty',
             },
-            ...(children.length > 0 && { children })
-        };
+            ...(children.length > 0 && { children }),
+        });
     }
 
     /**
@@ -776,34 +763,34 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
         // Output bits (DDR=1) come from ORB
         // Input bits (DDR=0) come from external hardware sources
         let result = this.orb & this.ddrb; // Output bits only
-        
+
         // Bit 7 is special - it's the display ready status controlled by display hardware
         if ((this.ddrb & 0x80) === 0) {
             // Bit 7 is input, read the hardware-controlled state
             result |= this.pb7InputState ? 0x80 : 0x00;
         }
-        
+
         return result;
     }
 
     private detectCA1Transition(): boolean {
         const edge = (this.cra & 0x02) !== 0; // Bit 1: 0=negative edge, 1=positive edge
-        return edge ? (!this.prevCa1 && this.ca1) : (this.prevCa1 && !this.ca1);
+        return edge ? !this.prevCa1 && this.ca1 : this.prevCa1 && !this.ca1;
     }
 
     private detectCB1Transition(): boolean {
         const edge = (this.crb & 0x02) !== 0;
-        return edge ? (!this.prevCb1 && this.cb1) : (this.prevCb1 && !this.cb1);
+        return edge ? !this.prevCb1 && this.cb1 : this.prevCb1 && !this.cb1;
     }
 
     private detectCA2Transition(): boolean {
         const edge = (this.cra & 0x10) !== 0; // Bit 4: edge for CA2 as input
-        return edge ? (!this.prevCa2 && this.ca2) : (this.prevCa2 && !this.ca2);
+        return edge ? !this.prevCa2 && this.ca2 : this.prevCa2 && !this.ca2;
     }
 
     private detectCB2Transition(): boolean {
         const edge = (this.crb & 0x10) !== 0;
-        return edge ? (!this.prevCb2 && this.cb2) : (this.prevCb2 && !this.cb2);
+        return edge ? !this.prevCb2 && this.cb2 : this.prevCb2 && !this.cb2;
     }
 
     private updateCA2Output(): void {
@@ -815,7 +802,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
     }
 
     private updateCB2Output(): void {
-        // Update CB2 if configured as output  
+        // Update CB2 if configured as output
         if (this.crb & (1 << CR_CA2_CB2_DIR)) {
             // const mode = (this.crb >> 3) & 0x07;
             // TODO: Implement CB2 output modes if needed for full 6820 compliance
@@ -837,7 +824,7 @@ class PIA6820 implements IInspectableComponent, IVersionedStatefulComponent<PIA6
      */
     private scheduleNotification(): void {
         if (this.pendingNotification) return;
-        
+
         this.pendingNotification = true;
         // Use microtask to batch notifications within the same execution cycle
         globalThis.queueMicrotask(() => {
