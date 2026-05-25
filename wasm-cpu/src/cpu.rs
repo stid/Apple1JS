@@ -85,26 +85,6 @@ impl CPU6502 {
         }
     }
 
-    /// Reset the CPU (uses JavaScript bridge)
-    pub fn reset(&mut self) {
-        // Read reset vector from 0xFFFC-0xFFFD via Bus
-        let low = crate::bus_read(0xFFFC) as u16;
-        let high = crate::bus_read(0xFFFD) as u16;
-        self.pc = (high << 8) | low;
-
-        self.a = 0;
-        self.x = 0;
-        self.y = 0;
-        self.s = 0xFF;
-        self.status = flags::UNUSED | flags::INTERRUPT;
-        self.irq = false;
-        self.nmi = false;
-        self.cycles = 0;
-        self.instructions = 0;
-
-        console_log!("CPU reset, PC = 0x{:04X}", self.pc);
-    }
-
     /// Reset the CPU using internal Bus (for WasmSystem)
     pub(crate) fn reset_with_bus(&mut self, bus: &crate::Bus) {
         // Read reset vector from 0xFFFC-0xFFFD from internal Bus
@@ -123,38 +103,6 @@ impl CPU6502 {
         self.instructions = 0;
 
         console_log!("CPU reset (Bus-aware), PC = 0x{:04X}", self.pc);
-    }
-
-    /// Execute a single instruction (using JavaScript Bus bridge)
-    pub fn step(&mut self) -> u32 {
-        #[cfg(feature = "performance")]
-        let start = crate::now();
-
-        let start_cycles = self.cycles;
-
-        // Check for interrupts
-        if self.nmi_pending {
-            self.handle_nmi();
-            self.nmi_pending = false;
-        } else if self.irq && !self.get_flag(flags::INTERRUPT) {
-            self.handle_irq();
-        }
-
-        // Fetch opcode
-        let opcode = self.read_byte(self.pc);
-        self.pc = self.pc.wrapping_add(1);
-
-        // Execute instruction
-        self.execute_instruction(opcode);
-
-        self.instructions += 1;
-
-        #[cfg(feature = "performance")]
-        {
-            self.last_step_start = crate::now() - start;
-        }
-
-        (self.cycles - start_cycles) as u32
     }
 
     /// Execute a single instruction with internal Bus (for WasmSystem)
@@ -196,18 +144,6 @@ impl CPU6502 {
         #[cfg(feature = "performance")]
         {
             self.last_step_start = crate::now() - start;
-        }
-
-        (self.cycles - start_cycles) as u32
-    }
-
-    /// Execute multiple cycles
-    pub fn step_cycles(&mut self, target_cycles: u32) -> u32 {
-        let start_cycles = self.cycles;
-        let target = start_cycles + target_cycles as u64;
-
-        while self.cycles < target {
-            self.step();
         }
 
         (self.cycles - start_cycles) as u32
@@ -533,20 +469,6 @@ impl CPU6502 {
 
 // Internal implementation
 impl CPU6502 {
-    /// Read a byte from memory (internal) via JavaScript Bus
-    pub(crate) fn read_byte(&mut self, address: u16) -> u8 {
-        self.cycles += 1;
-        // Use JavaScript Bus.read() as single source of truth
-        crate::bus_read(address)
-    }
-
-    /// Write a byte to memory (internal) via JavaScript Bus
-    pub(crate) fn write_byte(&mut self, address: u16, value: u8) {
-        self.cycles += 1;
-        // Use JavaScript Bus.write() as single source of truth
-        crate::bus_write(address, value);
-    }
-
     /// Read a byte from memory using internal Bus (for WasmSystem)
     pub(crate) fn read_byte_from_bus(&mut self, bus: &crate::Bus, address: u16) -> u8 {
         self.cycles += 1;
@@ -574,33 +496,6 @@ impl CPU6502 {
         self.last_data
     }
 
-    /// Read a word from memory (little-endian)
-    pub(crate) fn read_word(&mut self, address: u16) -> u16 {
-        let low = self.read_byte(address) as u16;
-        let high = self.read_byte(address.wrapping_add(1)) as u16;
-        (high << 8) | low
-    }
-
-    /// Read a word from zero page memory (handles wrap-around within zero page)
-    pub(crate) fn read_word_zp(&mut self, address: u8) -> u16 {
-        let low = self.read_byte(address as u16) as u16;
-        let high = self.read_byte(address.wrapping_add(1) as u16) as u16;
-        (high << 8) | low
-    }
-
-    /// Push byte to stack
-    pub(crate) fn push(&mut self, value: u8) {
-        self.write_byte(0x0100 | self.s as u16, value);
-        self.s = self.s.wrapping_sub(1);
-    }
-
-    /// Pop byte from stack
-    #[allow(dead_code)]
-    pub(crate) fn pop(&mut self) -> u8 {
-        self.s = self.s.wrapping_add(1);
-        self.read_byte(0x0100 | self.s as u16)
-    }
-
     /// Set a status flag
     pub(crate) fn set_flag(&mut self, flag: u8, value: bool) {
         if value {
@@ -619,51 +514,6 @@ impl CPU6502 {
     pub(crate) fn update_nz(&mut self, value: u8) {
         self.set_flag(flags::ZERO, value == 0);
         self.set_flag(flags::NEGATIVE, (value & 0x80) != 0);
-    }
-
-    /// Push a byte onto the stack
-    pub(crate) fn push_byte(&mut self, value: u8) {
-        self.write_byte(0x0100 | (self.s as u16), value);
-        self.s = self.s.wrapping_sub(1);
-    }
-
-    /// Pop a byte from the stack
-    pub(crate) fn pop_byte(&mut self) -> u8 {
-        self.s = self.s.wrapping_add(1);
-        self.read_byte(0x0100 | (self.s as u16))
-    }
-
-    /// Push a word onto the stack (high byte first)
-    pub(crate) fn push_word(&mut self, value: u16) {
-        self.push_byte((value >> 8) as u8);
-        self.push_byte(value as u8);
-    }
-
-    /// Pop a word from the stack (low byte first)
-    pub(crate) fn pop_word(&mut self) -> u16 {
-        let low = self.pop_byte() as u16;
-        let high = self.pop_byte() as u16;
-        (high << 8) | low
-    }
-
-    /// Handle IRQ interrupt
-    fn handle_irq(&mut self) {
-        self.push((self.pc >> 8) as u8);
-        self.push(self.pc as u8);
-        self.push(self.status | flags::UNUSED);
-        self.set_flag(flags::INTERRUPT, true);
-        self.pc = self.read_word(0xFFFE);
-        self.cycles += 7;
-    }
-
-    /// Handle NMI interrupt
-    fn handle_nmi(&mut self) {
-        self.push((self.pc >> 8) as u8);
-        self.push(self.pc as u8);
-        self.push(self.status | flags::UNUSED);
-        self.set_flag(flags::INTERRUPT, true);
-        self.pc = self.read_word(0xFFFA);
-        self.cycles += 7;
     }
 
     /// Handle IRQ interrupt with internal Bus
@@ -706,65 +556,10 @@ impl CPU6502 {
         self.read_byte_from_bus(bus, 0x0100 | (self.s as u16))
     }
 
-    /// Execute an instruction
-    pub(crate) fn execute_instruction(&mut self, opcode: u8) {
-        self.dispatch_opcode(opcode);
-    }
-
     /// Execute an instruction with internal Bus (for WasmSystem)
     /// This implementation uses the internal Bus to eliminate WASM→JS boundary crossings
     pub(crate) fn execute_instruction_with_bus(&mut self, opcode: u8, bus: &mut crate::Bus) {
         // Use Bus-aware dispatch table for maximum performance
         self.dispatch_opcode_with_bus(bus, opcode);
-    }
-
-    // ========== Addressing Mode Helpers ==========
-
-    /// Get address for indexed indirect mode (zero page,X)
-    /// Used for instructions like LDA ($20,X)
-    pub(crate) fn get_izx_addr(&mut self) -> u16 {
-        let base = self.read_byte(self.pc);
-        self.pc = self.pc.wrapping_add(1);
-        let addr = base.wrapping_add(self.x);
-        let low = self.read_byte(addr as u16) as u16;
-        let high = self.read_byte(addr.wrapping_add(1) as u16) as u16;
-        (high << 8) | low
-    }
-
-    /// Get address for indirect indexed mode (zero page),Y
-    /// Used for instructions like LDA ($20),Y
-    pub(crate) fn get_izy_addr(&mut self) -> u16 {
-        let zp_addr = self.read_byte(self.pc);
-        self.pc = self.pc.wrapping_add(1);
-        let low = self.read_byte(zp_addr as u16) as u16;
-        let high = self.read_byte(zp_addr.wrapping_add(1) as u16) as u16;
-        let base_addr = (high << 8) | low;
-        base_addr.wrapping_add(self.y as u16)
-    }
-
-    /// Check if page boundary was crossed for indirect indexed mode
-    pub(crate) fn check_izy_page_cross(&mut self) -> bool {
-        // Read the indirect address from zero page via Bus
-        let zp_addr = crate::bus_read(self.pc - 1);
-        let low = crate::bus_read(zp_addr as u16) as u16;
-        let high = crate::bus_read(zp_addr.wrapping_add(1) as u16) as u16;
-        let base_addr = (high << 8) | low;
-        let final_addr = base_addr.wrapping_add(self.y as u16);
-        (base_addr & 0xFF00) != (final_addr & 0xFF00)
-    }
-
-    /// Get address for zero page,Y mode
-    pub(crate) fn get_zpy_addr(&mut self) -> u16 {
-        let addr = self.read_byte(self.pc).wrapping_add(self.y);
-        self.pc = self.pc.wrapping_add(1);
-        addr as u16
-    }
-
-    /// Get address for absolute,Y mode
-    #[allow(dead_code)]
-    pub(crate) fn get_aby_addr(&mut self) -> u16 {
-        let base_addr = self.read_word(self.pc);
-        self.pc = self.pc.wrapping_add(2);
-        base_addr.wrapping_add(self.y as u16)
     }
 }

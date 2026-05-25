@@ -11,10 +11,9 @@ use wasm_bindgen::prelude::*;
 // Module declarations
 mod bus;
 mod cpu;
-mod instructions;
 mod instructions_bus_impl; // Full Bus-aware instruction implementations
 mod instructions_with_bus; // Helper methods for Bus-aware instructions
-mod opcodes;
+mod opcodes; // Shared opcode constant table
 mod opcodes_with_bus; // Bus-aware opcode dispatch
 mod ram;
 mod rom;
