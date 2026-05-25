@@ -4,7 +4,7 @@ import { getNumericDebugValue } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from './WorkerDataContext';
 
-type ExecutionState = 'running' | 'paused' | 'stepping';
+export type ExecutionState = 'running' | 'paused' | 'stepping';
 
 interface EmulationContextType {
     // State
@@ -13,7 +13,7 @@ interface EmulationContextType {
     currentPC: number;
     debugInfo: FilteredDebugData;
     breakpoints: Set<number>;
-    
+
     // Actions
     pause: () => void;
     resume: () => void;
@@ -22,16 +22,16 @@ interface EmulationContextType {
     runToAddress: (address: number) => void;
     toggleBreakpoint: (address: number) => void;
     clearAllBreakpoints: () => void;
-    
+
     // Events
     onBreakpointHit?: (address: number) => void;
     onRunToCursorSet?: (address: number | null) => void;
-    
+
     // Navigation events
     subscribeToNavigationEvents: (callback: (event: NavigationEvent) => void) => () => void;
 }
 
-export type NavigationEvent = 
+export type NavigationEvent =
     | { type: 'pause-clicked'; address: number }
     | { type: 'breakpoint-hit'; address: number }
     | { type: 'step-completed'; address: number };
@@ -45,11 +45,11 @@ interface EmulationProviderProps {
     onRunToCursorSet?: (address: number | null) => void;
 }
 
-export const EmulationProvider: React.FC<EmulationProviderProps> = ({ 
-    children, 
+export const EmulationProvider: React.FC<EmulationProviderProps> = ({
+    children,
     workerManager,
     onBreakpointHit,
-    onRunToCursorSet 
+    onRunToCursorSet,
 }) => {
     const [isPaused, setIsPaused] = useState(false);
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
@@ -57,13 +57,13 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     // Get debug info from WorkerDataContext
     const { debugInfo, subscribeToDebugInfo, setDebuggerActive } = useWorkerData();
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
-    
+
     // Navigation event subscribers
     const navigationSubscribersRef = useRef<Set<(event: NavigationEvent) => void>>(new Set());
-    
+
     // Helper to emit navigation events
     const emitNavigationEvent = useCallback((event: NavigationEvent) => {
-        navigationSubscribersRef.current.forEach(callback => {
+        navigationSubscribersRef.current.forEach((callback) => {
             try {
                 callback(event);
             } catch (error) {
@@ -71,7 +71,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             }
         });
     }, []);
-    
+
     // Subscribe to navigation events
     const subscribeToNavigationEvents = useCallback((callback: (event: NavigationEvent) => void): (() => void) => {
         navigationSubscribersRef.current.add(callback);
@@ -85,7 +85,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         let unsubscribeStatus: (() => void) | undefined;
         let unsubscribeBreakpoint: (() => void) | undefined;
         let unsubscribeRunToCursor: (() => void) | undefined;
-        
+
         const setupEventHandlers = async () => {
             // Set up event subscriptions
             const statusResult = await workerManager.onEmulationStatus((status: 'running' | 'paused') => {
@@ -100,7 +100,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             if (statusResult) {
                 unsubscribeStatus = statusResult;
             }
-            
+
             const breakpointResult = await workerManager.onBreakpointHit((hitAddress: number) => {
                 setCurrentPC(hitAddress);
                 setIsPaused(true);
@@ -112,21 +112,21 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             if (breakpointResult) {
                 unsubscribeBreakpoint = breakpointResult;
             }
-            
+
             const runToCursorResult = await workerManager.onRunToCursorTarget((target: number | null) => {
                 onRunToCursorSet?.(target);
             });
             if (runToCursorResult) {
                 unsubscribeRunToCursor = runToCursorResult;
             }
-            
+
             // Get initial state
             try {
                 const breakpoints = await workerManager.getBreakpoints();
                 if (breakpoints) {
                     setBreakpoints(new Set(breakpoints));
                 }
-                
+
                 // Get initial PC value from debug info
                 const debugData = await workerManager.getDebugInfo();
                 if (debugData?.cpu) {
@@ -140,9 +140,9 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 console.warn('Failed to get initial state:', error);
             }
         };
-        
+
         setupEventHandlers();
-        
+
         return () => {
             if (unsubscribeStatus) unsubscribeStatus();
             if (unsubscribeBreakpoint) unsubscribeBreakpoint();
@@ -219,37 +219,43 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         }
     }, [workerManager, emitNavigationEvent]);
 
-    const runToAddress = useCallback(async (address: number) => {
-        try {
-            await workerManager.runToAddress(address);
-        } catch (error) {
-            console.error('Failed to run to address:', error);
-        }
-    }, [workerManager]);
-
-    const toggleBreakpoint = useCallback(async (address: number) => {
-        try {
-            if (breakpoints.has(address)) {
-                const newBreakpoints = await workerManager.clearBreakpoint(address);
-                if (newBreakpoints) {
-                    setBreakpoints(new Set(newBreakpoints));
-                }
-            } else {
-                const newBreakpoints = await workerManager.setBreakpoint(address);
-                if (newBreakpoints) {
-                    setBreakpoints(new Set(newBreakpoints));
-                }
+    const runToAddress = useCallback(
+        async (address: number) => {
+            try {
+                await workerManager.runToAddress(address);
+            } catch (error) {
+                console.error('Failed to run to address:', error);
             }
-        } catch (error) {
-            console.error('Failed to toggle breakpoint:', error);
-        }
-    }, [workerManager, breakpoints]);
+        },
+        [workerManager],
+    );
+
+    const toggleBreakpoint = useCallback(
+        async (address: number) => {
+            try {
+                if (breakpoints.has(address)) {
+                    const newBreakpoints = await workerManager.clearBreakpoint(address);
+                    if (newBreakpoints) {
+                        setBreakpoints(new Set(newBreakpoints));
+                    }
+                } else {
+                    const newBreakpoints = await workerManager.setBreakpoint(address);
+                    if (newBreakpoints) {
+                        setBreakpoints(new Set(newBreakpoints));
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to toggle breakpoint:', error);
+            }
+        },
+        [workerManager, breakpoints],
+    );
 
     // Subscribe to debug info updates from WorkerDataContext
     useEffect(() => {
         let unsubscribe: (() => void) | null = null;
         let mounted = true;
-        
+
         // Try to subscribe, handling the case where WorkerDataSync might not be ready
         const trySubscribe = () => {
             try {
@@ -257,7 +263,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     if (!mounted) {
                         return;
                     }
-                    
+
                     if (data?.cpu) {
                         const pc = data.cpu.REG_PC || data.cpu.PC;
                         if (pc !== undefined) {
@@ -274,9 +280,9 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 }
             }
         };
-        
+
         trySubscribe();
-        
+
         return () => {
             mounted = false;
             if (unsubscribe) {
@@ -284,7 +290,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             }
         };
     }, [subscribeToDebugInfo]);
-    
+
     // Update debugger active state based on context
     useEffect(() => {
         // This context is typically used when debugger UI is visible
@@ -318,14 +324,10 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         clearAllBreakpoints,
         subscribeToNavigationEvents,
         ...(onBreakpointHit !== undefined && { onBreakpointHit }),
-        ...(onRunToCursorSet !== undefined && { onRunToCursorSet })
+        ...(onRunToCursorSet !== undefined && { onRunToCursorSet }),
     };
 
-    return (
-        <EmulationContext.Provider value={value}>
-            {children}
-        </EmulationContext.Provider>
-    );
+    return <EmulationContext.Provider value={value}>{children}</EmulationContext.Provider>;
 };
 
 export const useEmulation = () => {

@@ -3,275 +3,92 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Actions, { ActionsProps } from '../Actions';
 
-describe('Actions component', () => {
+// Actions is now a settings-only panel: Save/Load state + Backspace/Timing toggles.
+// Run / pause / step / reset and the engine switch moved to the always-visible
+// execution bar (see ExecutionControlsCluster + AppContent).
+describe('Actions component (settings panel)', () => {
     const props: ActionsProps = {
-        onReset: vi.fn(),
         onBS: vi.fn(),
         supportBS: true,
         onSaveState: vi.fn(),
         onLoadState: vi.fn(),
-        onPauseResume: vi.fn(),
-        isPaused: false,
         onRefocus: vi.fn(),
         onCycleAccurateTiming: vi.fn(),
         cycleAccurateTiming: true,
-        currentEngine: 'WASM',
-        wasmAvailable: true,
-        isSwitchingEngine: false,
-        onEngineSwitch: vi.fn(),
     };
 
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('should render two anchor elements with the correct text', () => {
+    it('renders the retained settings controls', () => {
         render(<Actions {...props} />);
-        const resetAnchor = screen.getByText('RESET');
-        const bsAnchor = screen.getByText('SUPPORT BACKSPACE [ON]');
-        expect(resetAnchor).toBeInTheDocument();
-        expect(bsAnchor).toBeInTheDocument();
+        expect(screen.getByText('SUPPORT BACKSPACE [ON]')).toBeInTheDocument();
+        expect(screen.getByText('CYCLE TIMING [ACCURATE]')).toBeInTheDocument();
+        expect(screen.getByText('SAVE STATE')).toBeInTheDocument();
+        expect(screen.getByText('LOAD STATE')).toBeInTheDocument();
     });
 
-    it('should call the onReset prop when the "RESET" anchor is clicked', () => {
+    it('no longer renders execution or engine controls (they live in the bar)', () => {
         render(<Actions {...props} />);
-        const resetAnchor = screen.getByText('RESET');
-        fireEvent.click(resetAnchor);
-        expect(props.onReset).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText(/^RESET$/i)).toBeNull();
+        expect(screen.queryByText(/PAUSE|RESUME/i)).toBeNull();
+        expect(screen.queryByText(/ENGINE/i)).toBeNull();
     });
 
-    it('should call the onBS prop when the "SUPPORT BACKSPACE" anchor is clicked', () => {
-        render(<Actions {...props} />);
-        const bsAnchor = screen.getByText('SUPPORT BACKSPACE [ON]');
-        fireEvent.click(bsAnchor);
+    it('calls onBS and toggles its label by supportBS', () => {
+        const { rerender } = render(<Actions {...props} />);
+        fireEvent.click(screen.getByText('SUPPORT BACKSPACE [ON]'));
         expect(props.onBS).toHaveBeenCalledTimes(1);
-    });
-
-    it('should show the correct text in the "SUPPORT BACKSPACE" anchor depending on the supportBS prop', () => {
-        const { rerender } = render(<Actions {...props} />);
-        let bsAnchor = screen.getByText('SUPPORT BACKSPACE [ON]');
-        expect(bsAnchor).toBeInTheDocument();
-
         rerender(<Actions {...props} supportBS={false} />);
-        bsAnchor = screen.getByText('SUPPORT BACKSPACE [OFF]');
-        expect(bsAnchor).toBeInTheDocument();
+        expect(screen.getByText('SUPPORT BACKSPACE [OFF]')).toBeInTheDocument();
     });
 
-    it('should show the correct text in the "PAUSE/RESUME" anchor depending on the isPaused prop', () => {
+    it('calls onCycleAccurateTiming and toggles its label', () => {
         const { rerender } = render(<Actions {...props} />);
-        let pauseAnchor = screen.getByText('PAUSE');
-        expect(pauseAnchor).toBeInTheDocument();
-
-        rerender(<Actions {...props} isPaused={true} />);
-        pauseAnchor = screen.getByText('RESUME');
-        expect(pauseAnchor).toBeInTheDocument();
-    });
-
-    it('should call the onPauseResume prop when the "PAUSE/RESUME" anchor is clicked', () => {
-        render(<Actions {...props} />);
-        const pauseAnchor = screen.getByText('PAUSE');
-        fireEvent.click(pauseAnchor);
-        expect(props.onPauseResume).toHaveBeenCalledTimes(1);
-    });
-
-    it('should show the correct text in the "CYCLE TIMING" anchor depending on the cycleAccurateTiming prop', () => {
-        const { rerender } = render(<Actions {...props} />);
-        let timingAnchor = screen.getByText('CYCLE TIMING [ACCURATE]');
-        expect(timingAnchor).toBeInTheDocument();
-
-        rerender(<Actions {...props} cycleAccurateTiming={false} />);
-        timingAnchor = screen.getByText('CYCLE TIMING [FAST]');
-        expect(timingAnchor).toBeInTheDocument();
-    });
-
-    it('should call the onCycleAccurateTiming prop when the "CYCLE TIMING" anchor is clicked', () => {
-        render(<Actions {...props} />);
-        const timingAnchor = screen.getByText('CYCLE TIMING [ACCURATE]');
-        fireEvent.click(timingAnchor);
+        fireEvent.click(screen.getByText('CYCLE TIMING [ACCURATE]'));
         expect(props.onCycleAccurateTiming).toHaveBeenCalledTimes(1);
+        rerender(<Actions {...props} cycleAccurateTiming={false} />);
+        expect(screen.getByText('CYCLE TIMING [FAST]')).toBeInTheDocument();
     });
 
-    it('should call onSaveState when SAVE STATE is clicked', () => {
+    it('calls onSaveState and onRefocus when SAVE STATE is clicked', () => {
         render(<Actions {...props} />);
-        const saveAnchor = screen.getByText('SAVE STATE');
-        fireEvent.click(saveAnchor);
+        fireEvent.click(screen.getByText('SAVE STATE'));
         expect(props.onSaveState).toHaveBeenCalledTimes(1);
         expect(props.onRefocus).toHaveBeenCalledTimes(1);
     });
 
-    it('should call onLoadState when a file is selected', () => {
+    it('calls onLoadState when a file is selected', () => {
         const { container } = render(<Actions {...props} />);
         const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-
         const file = new File(['{}'], 'state.json', { type: 'application/json' });
-        const changeEvent = { target: { files: [file] } };
-
-        fireEvent.change(input, changeEvent);
+        fireEvent.change(input, { target: { files: [file] } });
         expect(props.onLoadState).toHaveBeenCalledTimes(1);
         expect(props.onRefocus).toHaveBeenCalledTimes(1);
     });
 
-    it('should trigger the hidden file input click when "LOAD STATE" is clicked', () => {
+    it('triggers the hidden file input when LOAD STATE is clicked', () => {
         const { container } = render(<Actions {...props} />);
         const input = container.querySelector('input[type="file"]') as HTMLInputElement;
         const clickSpy = vi.spyOn(input, 'click');
-
         fireEvent.click(screen.getByText('LOAD STATE'));
-
         expect(clickSpy).toHaveBeenCalledTimes(1);
         clickSpy.mockRestore();
     });
 
-    it('should handle hover states for buttons', () => {
-        render(<Actions {...props} />);
-        const resetAnchor = screen.getByText('RESET');
-
-        // Test mouse enter
-        fireEvent.mouseEnter(resetAnchor);
-        // The style should change but we can't directly test inline styles in jest-dom
-
-        // Test mouse leave
-        fireEvent.mouseLeave(resetAnchor);
-
-        // Test other buttons for hover
-        const pauseAnchor = screen.getByText('PAUSE');
-        fireEvent.mouseEnter(pauseAnchor);
-        fireEvent.mouseLeave(pauseAnchor);
-
-        const saveAnchor = screen.getByText('SAVE STATE');
-        fireEvent.mouseEnter(saveAnchor);
-        fireEvent.mouseLeave(saveAnchor);
-
-        const loadButton = screen.getByText('LOAD STATE');
-        fireEvent.mouseEnter(loadButton);
-        fireEvent.mouseLeave(loadButton);
-
-        const bsAnchor = screen.getByText('SUPPORT BACKSPACE [ON]');
-        fireEvent.mouseEnter(bsAnchor);
-        fireEvent.mouseLeave(bsAnchor);
-
-        const timingAnchor = screen.getByText('CYCLE TIMING [ACCURATE]');
-        fireEvent.mouseEnter(timingAnchor);
-        fireEvent.mouseLeave(timingAnchor);
-
-        // Verify all elements still exist after hover interactions
-        expect(resetAnchor).toBeInTheDocument();
-        expect(pauseAnchor).toBeInTheDocument();
-        expect(saveAnchor).toBeInTheDocument();
-        expect(loadButton).toBeInTheDocument();
-        expect(bsAnchor).toBeInTheDocument();
-        expect(timingAnchor).toBeInTheDocument();
-    });
-
-    it('should call onRefocus when any action is triggered', () => {
-        render(<Actions {...props} />);
-
-        // Reset
-        fireEvent.click(screen.getByText('RESET'));
-        expect(props.onRefocus).toHaveBeenCalledTimes(1);
-
-        // Pause
-        fireEvent.click(screen.getByText('PAUSE'));
-        expect(props.onRefocus).toHaveBeenCalledTimes(2);
-
-        // Backspace
-        fireEvent.click(screen.getByText('SUPPORT BACKSPACE [ON]'));
-        expect(props.onRefocus).toHaveBeenCalledTimes(3);
-
-        // Timing
-        fireEvent.click(screen.getByText('CYCLE TIMING [ACCURATE]'));
-        expect(props.onRefocus).toHaveBeenCalledTimes(4);
-    });
-
-    it('should show the correct text in the "ENGINE" anchor depending on the currentEngine prop', () => {
-        const { rerender } = render(<Actions {...props} />);
-        let engineAnchor = screen.getByText('ENGINE [WASM]');
-        expect(engineAnchor).toBeInTheDocument();
-
-        rerender(<Actions {...props} currentEngine="JS" />);
-        engineAnchor = screen.getByText('ENGINE [JS]');
-        expect(engineAnchor).toBeInTheDocument();
-    });
-
-    it('should call the onEngineSwitch prop when the "ENGINE" anchor is clicked', () => {
-        render(<Actions {...props} />);
-        const engineAnchor = screen.getByText('ENGINE [WASM]');
-        fireEvent.click(engineAnchor);
-        expect(props.onEngineSwitch).toHaveBeenCalledTimes(1);
-        expect(props.onRefocus).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not call onEngineSwitch when WASM is unavailable', () => {
-        render(<Actions {...props} currentEngine="JS" wasmAvailable={false} />);
-        const engineAnchor = screen.getByText('ENGINE [JS]');
-        fireEvent.click(engineAnchor);
-        expect(props.onEngineSwitch).not.toHaveBeenCalled();
-    });
-
-    it('should render file input with correct attributes', () => {
-        const { container } = render(<Actions {...props} />);
-        const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-
-        expect(input).toBeInTheDocument();
-        expect(input.accept).toBe('application/json');
-        expect(input.style.display).toBe('none');
-    });
-
-    it('should color SUPPORT BACKSPACE by its ON/OFF state', () => {
+    it('colours SUPPORT BACKSPACE by its ON/OFF state', () => {
         const { rerender } = render(<Actions {...props} supportBS={true} />);
         expect(screen.getByText('SUPPORT BACKSPACE [ON]')).toHaveClass('text-toggle-active');
-
         rerender(<Actions {...props} supportBS={false} />);
         expect(screen.getByText('SUPPORT BACKSPACE [OFF]')).toHaveClass('text-toggle-inactive');
     });
 
-    it('should color CYCLE TIMING by its ACCURATE/FAST state', () => {
-        const { rerender } = render(<Actions {...props} cycleAccurateTiming={true} />);
-        expect(screen.getByText('CYCLE TIMING [ACCURATE]')).toHaveClass('text-toggle-active');
-
-        rerender(<Actions {...props} cycleAccurateTiming={false} />);
-        expect(screen.getByText('CYCLE TIMING [FAST]')).toHaveClass('text-toggle-inactive');
-    });
-
-    it('should color the ENGINE button as a WASM-power toggle: WASM on (blue), JS off (gray)', () => {
-        const { rerender } = render(<Actions {...props} currentEngine="WASM" />);
-        const wasmAnchor = screen.getByText('ENGINE [WASM]');
-        expect(wasmAnchor).toHaveClass('text-toggle-active');
-        expect(wasmAnchor).not.toHaveClass('text-warning');
-
-        rerender(<Actions {...props} currentEngine="JS" />);
-        const jsAnchor = screen.getByText('ENGINE [JS]');
-        expect(jsAnchor).toHaveClass('text-toggle-inactive');
-        expect(jsAnchor).not.toHaveClass('text-warning');
-    });
-
-    it('should warn (amber) and disable the ENGINE button when WASM is unavailable', () => {
-        render(<Actions {...props} currentEngine="JS" wasmAvailable={false} />);
-        const engineAnchor = screen.getByText('ENGINE [JS]');
-        expect(engineAnchor).toHaveClass('text-warning');
-        expect(engineAnchor).toHaveClass('cursor-not-allowed');
-    });
-
-    it('should have correct tabIndex on interactive elements', () => {
-        render(<Actions {...props} />);
-
-        const interactiveElements = [
-            screen.getByText('RESET'),
-            screen.getByText('PAUSE'),
-            screen.getByText('SAVE STATE'),
-            screen.getByText('SUPPORT BACKSPACE [ON]'),
-            screen.getByText('CYCLE TIMING [ACCURATE]'),
-        ];
-
-        interactiveElements.forEach((element) => {
-            expect(element).toHaveAttribute('tabIndex', '0');
-        });
-
-        // LOAD STATE is a real <button> — natively focusable without an explicit tabIndex.
-        const loadButton = screen.getByText('LOAD STATE');
-        expect(loadButton.tagName).toBe('BUTTON');
-        expect(loadButton).not.toHaveAttribute('tabIndex');
-        loadButton.focus();
-        expect(loadButton).toHaveFocus();
+    it('renders the file input with correct attributes', () => {
+        const { container } = render(<Actions {...props} />);
+        const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+        expect(input).toBeInTheDocument();
+        expect(input.accept).toBe('application/json');
+        expect(input.style.display).toBe('none');
     });
 });

@@ -1,20 +1,13 @@
 import React, { useRef } from 'react';
 
 export type ActionsProps = {
-    onReset: React.MouseEventHandler<HTMLAnchorElement>;
     onBS: React.MouseEventHandler<HTMLAnchorElement>;
     supportBS: boolean;
     onSaveState: React.MouseEventHandler<HTMLAnchorElement>;
     onLoadState: React.ChangeEventHandler<HTMLInputElement>;
-    onPauseResume: React.MouseEventHandler<HTMLAnchorElement>;
-    isPaused: boolean;
     onRefocus: () => void;
     onCycleAccurateTiming: React.MouseEventHandler<HTMLAnchorElement>;
     cycleAccurateTiming: boolean;
-    currentEngine: 'JS' | 'WASM';
-    wasmAvailable: boolean;
-    isSwitchingEngine: boolean;
-    onEngineSwitch: React.MouseEventHandler<HTMLAnchorElement>;
 };
 
 // Shared action-button styling, token-backed via Tailwind classes.
@@ -41,61 +34,19 @@ const actionButtonVariant = {
 } as const;
 
 const Actions = ({
-    onReset,
     onBS,
     supportBS,
     onSaveState,
     onLoadState,
-    onPauseResume,
-    isPaused,
     onRefocus,
     onCycleAccurateTiming,
     cycleAccurateTiming,
-    currentEngine,
-    wasmAvailable,
-    isSwitchingEngine,
-    onEngineSwitch,
 }: ActionsProps) => {
-    // Nothing to toggle to when WASM is unavailable, and mid-switch clicks are ignored.
-    const engineToggleDisabled = !wasmAvailable || isSwitchingEngine;
-    // The engine button reads as a feature toggle: WASM is the "power", so WASM=on (blue),
-    // JS=off (gray). Amber is reserved for the one genuine problem — WASM failed to load,
-    // so we're stuck on JS. A mid-switch is transient and just dims the current colour.
-    const engineVariant = !wasmAvailable
-        ? actionButtonVariant.warning
-        : currentEngine === 'WASM'
-          ? actionButtonVariant.toggleOn
-          : actionButtonVariant.toggleOff;
-    const engineClassName = `${actionButtonBase} ${engineVariant}${engineToggleDisabled ? ' opacity-50 cursor-not-allowed' : ''}`;
-
     const fileInputRef = useRef<HTMLInputElement>(null);
     return (
         <nav className="flex flex-wrap gap-sm justify-center">
-            {/* Control Actions Group */}
-            <a
-                onClick={(e) => {
-                    onReset(e);
-                    onRefocus();
-                }}
-                href="#"
-                className={`${actionButtonBase} ${actionButtonVariant.success}`}
-                tabIndex={0}
-            >
-                RESET
-            </a>
-            <a
-                onClick={(e) => {
-                    onPauseResume(e);
-                    onRefocus();
-                }}
-                href="#"
-                className={`${actionButtonBase} ${actionButtonVariant.success}`}
-                tabIndex={0}
-            >
-                {isPaused ? 'RESUME' : 'PAUSE'}
-            </a>
-
-            {/* State Management Group */}
+            {/* State Management Group — execution + engine controls now live in the
+                always-visible execution bar (see ExecutionControlsCluster). */}
             <a
                 onClick={(e) => {
                     onSaveState(e);
@@ -148,19 +99,6 @@ const Actions = ({
                 tabIndex={0}
             >
                 CYCLE TIMING [{cycleAccurateTiming ? 'ACCURATE' : 'FAST'}]
-            </a>
-            <a
-                onClick={(e) => {
-                    e.preventDefault();
-                    if (engineToggleDisabled) return;
-                    onEngineSwitch(e);
-                    onRefocus();
-                }}
-                href="#"
-                className={engineClassName}
-                tabIndex={0}
-            >
-                ENGINE [{currentEngine}]
             </a>
         </nav>
     );
