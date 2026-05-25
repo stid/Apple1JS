@@ -7,7 +7,7 @@ import type {
     FilteredDebugData,
     MemoryMapData,
     EngineStatusData,
-    EngineComparisonData
+    EngineComparisonData,
 } from '../apple1/types/worker-messages';
 // CONFIG no longer needed since Comlink is the only implementation
 
@@ -15,7 +15,7 @@ import type {
  * WorkerManager provides a unified interface for worker communication
  * that can switch between the legacy postMessage approach and the new
  * Comlink-based implementation based on a feature flag.
- * 
+ *
  * This enables a gradual migration and easy rollback if needed.
  */
 export class WorkerManager {
@@ -37,14 +37,11 @@ export class WorkerManager {
         }
 
         // Load the Comlink-based worker (only implementation)
-        this.worker = new Worker(
-            new URL('../apple1/Apple.worker.comlink.ts', import.meta.url),
-            { type: 'module' }
-        );
-        
+        this.worker = new Worker(new URL('../apple1/Apple.worker.comlink.ts', import.meta.url), { type: 'module' });
+
         // Wrap the worker with Comlink
         this.comlinkAPI = Comlink.wrap<IWorkerAPI>(this.worker);
-        
+
         // Set up message handler for backward compatibility
         // Note: All events now go through Comlink, this is kept for potential future use
         this.worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
@@ -78,153 +75,128 @@ export class WorkerManager {
         this.messageHandlers.delete(type);
     }
 
+    /**
+     * Invoke an operation on the Comlink worker API if it is initialized,
+     * otherwise resolve to `undefined` (a no-op). Collapses the
+     * `if (this.comlinkAPI) return await this.comlinkAPI.x(...)` boilerplate.
+     */
+    private async call<T>(fn: (api: Comlink.Remote<IWorkerAPI>) => Promise<T>): Promise<T | void> {
+        if (this.comlinkAPI) {
+            return await fn(this.comlinkAPI);
+        }
+    }
+
+    /**
+     * Like {@link call} but throws when the worker is not initialized — for
+     * methods whose contract is non-void (callers depend on a real result).
+     */
+    private async callOrThrow<T>(fn: (api: Comlink.Remote<IWorkerAPI>) => Promise<T>): Promise<T> {
+        if (this.comlinkAPI) {
+            return await fn(this.comlinkAPI);
+        }
+        throw new Error('Worker not initialized');
+    }
+
     // ========== Emulation Control ==========
 
     async pauseEmulation(): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.pauseEmulation();
-        }
+        await this.call((api) => api.pauseEmulation());
     }
 
     async resumeEmulation(): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.resumeEmulation();
-        }
+        await this.call((api) => api.resumeEmulation());
     }
 
     async step(): Promise<FilteredDebugData | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.step();
-        }
+        return this.call((api) => api.step());
     }
 
     async saveState(): Promise<EmulatorState | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.saveState();
-        }
+        return this.call((api) => api.saveState());
     }
 
     async loadState(state: EmulatorState): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.loadState(state);
-        }
+        await this.call((api) => api.loadState(state));
     }
 
     // ========== Breakpoint Management ==========
 
     async setBreakpoint(address: number): Promise<number[] | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.setBreakpoint(address);
-        }
+        return this.call((api) => api.setBreakpoint(address));
     }
 
     async clearBreakpoint(address: number): Promise<number[] | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.clearBreakpoint(address);
-        }
+        return this.call((api) => api.clearBreakpoint(address));
     }
 
     async clearAllBreakpoints(): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.clearAllBreakpoints();
-        }
+        await this.call((api) => api.clearAllBreakpoints());
     }
 
     async runToAddress(address: number): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.runToAddress(address);
-        }
+        await this.call((api) => api.runToAddress(address));
     }
 
     async getBreakpoints(): Promise<number[] | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.getBreakpoints();
-        }
+        return this.call((api) => api.getBreakpoints());
     }
 
     // ========== Memory Operations ==========
 
     async readMemoryRange(start: number, length: number): Promise<number[] | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.readMemoryRange(start, length);
-        }
+        return this.call((api) => api.readMemoryRange(start, length));
     }
 
     async writeMemory(address: number, value: number): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.writeMemory(address, value);
-        }
+        await this.call((api) => api.writeMemory(address, value));
     }
 
     async getDebugInfo(): Promise<FilteredDebugData | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.getDebugInfo();
-        }
+        return this.call((api) => api.getDebugInfo());
     }
 
     async getMemoryMap(): Promise<MemoryMapData | void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.getMemoryMap();
-        }
+        return this.call((api) => api.getMemoryMap());
     }
 
     // ========== Configuration ==========
 
     async setCrtBsSupport(enabled: boolean): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.setCrtBsSupport(enabled);
-        }
+        await this.call((api) => api.setCrtBsSupport(enabled));
     }
 
     async setDebuggerActive(active: boolean): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.setDebuggerActive(active);
-        }
+        await this.call((api) => api.setDebuggerActive(active));
     }
 
     async setCycleAccurateMode(enabled: boolean): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.setCycleAccurateMode(enabled);
-        }
+        await this.call((api) => api.setCycleAccurateMode(enabled));
     }
 
     async setCpuProfiling(enabled: boolean): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.setCpuProfiling(enabled);
-        }
+        await this.call((api) => api.setCpuProfiling(enabled));
     }
 
     // ========== Input ==========
 
     async keyDown(key: string): Promise<void> {
-        if (this.comlinkAPI) {
-            await this.comlinkAPI.keyDown(key);
-        }
+        await this.call((api) => api.keyDown(key));
     }
 
     // ========== Engine Management ==========
-    
+
     async switchEngine(engineType: 'JS' | 'WASM'): Promise<void> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.switchEngine(engineType);
-        }
-        throw new Error('Worker not initialized');
+        await this.callOrThrow((api) => api.switchEngine(engineType));
     }
-    
+
     async getEngineStatus(): Promise<EngineStatusData> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.getEngineStatus();
-        }
-        throw new Error('Worker not initialized');
+        return this.callOrThrow((api) => api.getEngineStatus());
     }
-    
+
     async compareEngines(): Promise<EngineComparisonData> {
-        if (this.comlinkAPI) {
-            return await this.comlinkAPI.compareEngines();
-        }
-        throw new Error('Worker not initialized');
+        return this.callOrThrow((api) => api.compareEngines());
     }
-    
+
     // Auto-switch feature has been removed for simplicity
 
     // ========== Event Subscriptions (Comlink only) ==========
@@ -262,7 +234,9 @@ export class WorkerManager {
         // Legacy mode removed
     }
 
-    async onClockData(callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void): Promise<(() => void) | void> {
+    async onClockData(
+        callback: (data: { cycles: number; frequency: number; totalCycles: number }) => void,
+    ): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
             const proxiedCallback = Comlink.proxy(callback);
             return await this.comlinkAPI.onClockData(proxiedCallback);
