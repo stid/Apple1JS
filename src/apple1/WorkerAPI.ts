@@ -509,6 +509,14 @@ export class WorkerAPI implements IWorkerAPI {
 
     onVideoUpdate(callback: (data: VideoData) => void): () => void {
         this.videoCallbacks.add(callback);
+        // Deliver the current frame immediately: the power-on screen is emitted
+        // before any subscriber registers, so a late subscriber (e.g. React mounting
+        // after the worker booted) would otherwise never see it until the next write.
+        const video = this.workerState.video;
+        if (video && typeof video.getState === 'function') {
+            const { buffer, row, column } = video.getState();
+            callback({ buffer, row, column });
+        }
         return () => {
             this.videoCallbacks.delete(callback);
         };

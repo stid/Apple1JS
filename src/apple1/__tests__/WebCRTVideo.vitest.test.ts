@@ -18,12 +18,21 @@ describe('WebCRTVideo', function () {
         expect(webCRTVideo.column).toBe(0);
     });
 
-    test('Should Init with Cold State', function () {
-        const compBuffer = Array(NUM_ROWS);
-        for (let i = 0; i < compBuffer.length; i++) {
-            compBuffer[i] = [i, Array(NUM_COLUMNS).fill('@')];
+    test('Should Init with Cold State (power-on noise)', function () {
+        // Authentic Apple 1 cold-start: the buffer powers up full of random junk
+        // glyphs from the displayable set (0x20..0x5f), not a cleared screen.
+        const { buffer, row, column } = webCRTVideo.getState();
+        expect(row).toBe(0);
+        expect(column).toBe(0);
+        expect(buffer.length).toBe(NUM_ROWS);
+        for (const [, chars] of buffer) {
+            expect(chars.length).toBe(NUM_COLUMNS);
+            for (const ch of chars) {
+                const code = ch.charCodeAt(0);
+                expect(code).toBeGreaterThanOrEqual(0x20);
+                expect(code).toBeLessThanOrEqual(0x5f);
+            }
         }
-        expect(onChange).toHaveBeenCalledWith({ buffer: compBuffer, column: 0, row: 0 });
     });
 
     test('Should Reset', function () {

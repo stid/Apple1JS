@@ -8,6 +8,28 @@ import { IoComponent, PubSub, subscribeFunction } from '@/core/types';
 const NUM_COLUMNS = 40;
 const NUM_ROWS = 24;
 
+// Apple-1 displayable character set (space..underscore). On a real Apple 1 the
+// video RAM powered up in an indeterminate state with no routine to clear it, so
+// the screen showed a field of "junk" until the user reset/cleared it. We emulate
+// that cold-start by filling each cell with a random glyph from this range; the
+// character ROM (apple1vid.ts) renders every code in it.
+const POWERON_CHAR_MIN = 0x20;
+const POWERON_CHAR_MAX = 0x5f;
+
+function powerOnNoiseBuffer(): VideoBuffer {
+    const span = POWERON_CHAR_MAX - POWERON_CHAR_MIN + 1;
+    return Array.from(
+        { length: NUM_ROWS },
+        (_, i) =>
+            [
+                i,
+                Array.from({ length: NUM_COLUMNS }, () =>
+                    String.fromCharCode(POWERON_CHAR_MIN + Math.floor(Math.random() * span)),
+                ),
+            ] as [number, string[]],
+    );
+}
+
 // NOTE: WOZ monitor will wait in a loop until DSP B7 is clear and another char
 // was echoed.
 // DISPLAY_DELAY will in fact slow down the effective execution as the
@@ -24,7 +46,6 @@ const NUM_ROWS = 24;
 // On Apple 1 the display logic, including scroll was entirely hardware driven.
 // The CPU was free to execute in the meantime. In fact Apple 1 was faster than
 // the Apple II in this sense.
-
 
 function cloneBuffer(buffer: VideoBuffer): VideoBuffer {
     // Deep clone: each row and its data array
@@ -78,8 +99,8 @@ class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVide
                 column: this.column,
                 supportBS: this.supportBS,
                 rowShift: this.rowShift,
-                bufferSize: this.buffer.length
-            }
+                bufferSize: this.buffer.length,
+            },
         };
     }
     row: number;
@@ -94,7 +115,7 @@ class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVide
         this.column = 0;
         this.rowShift = 0;
         this.supportBS = CONFIG.CRT_SUPPORT_BS;
-        this.buffer = Array.from({ length: NUM_ROWS }, (_, i) => [i, Array(NUM_COLUMNS).fill('@')]);
+        this.buffer = powerOnNoiseBuffer();
         this.subscribers = [];
     }
 
