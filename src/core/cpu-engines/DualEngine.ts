@@ -14,6 +14,7 @@ import type {
     EngineComparison,
 } from '../cpu-interface/ICPUEngine';
 import type { CPU6502State } from '../cpu6502/types';
+import type CPU6502 from '../cpu6502/core';
 import type Bus from '../Bus';
 import { JSEngine } from './JSEngine';
 import { WasmEngine } from './WasmEngine';
@@ -230,6 +231,17 @@ export class DualEngine implements ICPUEngine {
 
     hasBreakpoint(address: number): boolean {
         return this.activeEngine.hasBreakpoint(address);
+    }
+
+    onBreakpointHit(callback: (address: number) => void): () => void {
+        // Subscribe on both engines so the listener keeps working across an
+        // engine switch. Each engine only emits while it is the one executing.
+        const unsubs: Array<() => void> = [];
+        const jsUnsub = this.jsEngine.onBreakpointHit?.(callback);
+        if (jsUnsub) unsubs.push(jsUnsub);
+        const wasmUnsub = this.wasmEngine?.onBreakpointHit?.(callback);
+        if (wasmUnsub) unsubs.push(wasmUnsub);
+        return () => unsubs.forEach((unsub) => unsub());
     }
 
     // ============ Performance & Metrics ============
@@ -517,14 +529,11 @@ export class DualEngine implements ICPUEngine {
     }
 
     /**
-     * Get the internal JS CPU for compatibility with execution hooks
-     * This is needed for breakpoint functionality in WorkerState
+     * The JS engine's underlying CPU6502. Apple1 holds this as its `this.cpu`
+     * for state save/load and inspection (the JS CPU is kept synchronized with
+     * the active engine). Typed accessor — no `any` cast required.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public getInternalCPU(): any {
-        // Access the private cpu property of JSEngine
-        // This is a workaround for breakpoint support
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (this.jsEngine as any).cpu;
+    getInternalCPU(): CPU6502 {
+        return this.jsEngine.getInternalCPU();
     }
 }

@@ -36,6 +36,7 @@ export class WasmEngine implements ICPUEngine {
     private wasmSystem: WasmSystem | null = null;
     private bus: Bus; // Keep for I/O synchronization
     private breakpoints = new Set<number>();
+    private breakpointListeners = new Set<(address: number) => void>();
     private metrics: EngineMetrics;
     private metricsStartTime: number;
     private lastMetricsUpdate: number;
@@ -257,23 +258,27 @@ export class WasmEngine implements ICPUEngine {
 
         const startTime = Date.now();
 
+        // A deliberate single step must advance even when the PC sits on a
+        // breakpoint, so the debugger can step *off* it. Rust checks the
+        // breakpoint before executing and would return 0 forever otherwise, so
+        // lift any breakpoint on the current PC across this one step.
+        const currentPC = this.wasmSystem.get_cpu_state().pc;
+        const liftBreakpoint = this.breakpoints.has(currentPC);
+        if (liftBreakpoint) {
+            this.wasmSystem.clear_breakpoint(currentPC);
+        }
+
         // Execute one instruction in WASM (breakpoint checking happens in Rust!)
         const cycles = this.wasmSystem.step();
 
-        // Check if a breakpoint was hit (WASM returns 0 cycles on breakpoint)
-        const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
-        if (breakpointAddr >= 0) {
-            loggingService.info(
-                'WasmEngine',
-                `Breakpoint hit at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`,
-            );
-            // Don't clear the flag - let the caller handle it
-            // This signals to DualEngine/WorkerState that execution should pause
-            return 0; // Signal breakpoint hit
+        if (liftBreakpoint) {
+            this.wasmSystem.set_breakpoint(currentPC);
         }
+        // A deliberate step never pauses on a breakpoint; clear any stale flag.
+        this.wasmSystem.clear_breakpoint_hit();
 
-        // CRITICAL: If WASM returns 0 cycles without breakpoint, something went wrong
-        if (cycles === 0 && breakpointAddr < 0) {
+        // CRITICAL: If WASM returns 0 cycles, something went wrong
+        if (cycles === 0) {
             const cpuState = this.wasmSystem.get_cpu_state();
             loggingService.error(
                 'WasmEngine',
@@ -303,13 +308,14 @@ export class WasmEngine implements ICPUEngine {
         const executedCycles = this.wasmSystem.run_cycles(cycles);
         this.hostExecMs += performance.now() - startTime;
 
-        // Check if a breakpoint was hit during bulk execution
+        // Check if a breakpoint was hit during bulk execution. Rust halts before
+        // executing the instruction at the breakpoint, leaving the PC parked on
+        // it. Emit the unified hit signal so the worker pauses + notifies the UI,
+        // then clear the flag so the next run starts clean.
         const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
         if (breakpointAddr >= 0) {
-            loggingService.info(
-                'WasmEngine',
-                `Breakpoint hit during bulk execution at $${breakpointAddr.toString(16).toUpperCase().padStart(4, '0')}`,
-            );
+            this.wasmSystem.clear_breakpoint_hit();
+            this.breakpointListeners.forEach((listener) => listener(breakpointAddr));
         }
 
         // Note: I/O happens automatically via memory bridge - no sync needed
@@ -604,24 +610,11 @@ export class WasmEngine implements ICPUEngine {
         return this.breakpoints.has(address);
     }
 
-    /**
-     * Check if a breakpoint was hit during the last step
-     * Returns the address of the breakpoint, or -1 if none
-     */
-    getBreakpointHit(): number {
-        if (!this.wasmSystem) {
-            return -1;
-        }
-        return this.wasmSystem.get_breakpoint_hit();
-    }
-
-    /**
-     * Clear the breakpoint hit flag after handling it
-     */
-    clearBreakpointHit(): void {
-        if (this.wasmSystem) {
-            this.wasmSystem.clear_breakpoint_hit();
-        }
+    onBreakpointHit(callback: (address: number) => void): () => void {
+        this.breakpointListeners.add(callback);
+        return () => {
+            this.breakpointListeners.delete(callback);
+        };
     }
 
     // ============ Performance & Metrics ============
@@ -906,6 +899,7 @@ export class WasmEngine implements ICPUEngine {
 
         // Clean up other resources
         this.breakpoints.clear();
+        this.breakpointListeners.clear();
         this.resetMetrics();
         this._isReady = false;
         this.initPromise = null;

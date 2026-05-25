@@ -27,6 +27,10 @@ export class JSEngine implements ICPUEngine {
 
     private cpu: CPU6502;
     private breakpoints = new Set<number>();
+    private breakpointListeners = new Set<(address: number) => void>();
+    // Set while performing a deliberate single step so the breakpoint on the
+    // current PC is ignored — this is how the debugger steps *off* a breakpoint.
+    private isSingleStepping = false;
     private metrics: EngineMetrics;
     private metricsStartTime: number;
     private lastMetricsUpdate: number;
@@ -69,13 +73,12 @@ export class JSEngine implements ICPUEngine {
     performSingleStep(): number {
         const startTime = Date.now();
 
-        // Check for breakpoints
-        if (this.breakpoints.has(this.cpu.PC)) {
-            // In a real implementation, we'd handle this differently
-            console.log(`Breakpoint hit at ${this.cpu.PC.toString(16)}`);
-        }
-
+        // A deliberate single step always advances, even when sitting on a
+        // breakpoint, so the debugger can step off it. The execution hook
+        // consults this flag.
+        this.isSingleStepping = true;
         const cycles = this.cpu.performSingleStep();
+        this.isSingleStepping = false;
 
         // Update metrics
         const duration = Date.now() - startTime;
@@ -192,14 +195,17 @@ export class JSEngine implements ICPUEngine {
 
     setBreakpoint(address: number): void {
         this.breakpoints.add(address);
+        this.updateExecutionHook();
     }
 
     clearBreakpoint(address: number): void {
         this.breakpoints.delete(address);
+        this.updateExecutionHook();
     }
 
     clearAllBreakpoints(): void {
         this.breakpoints.clear();
+        this.updateExecutionHook();
     }
 
     getBreakpoints(): number[] {
@@ -208,6 +214,43 @@ export class JSEngine implements ICPUEngine {
 
     hasBreakpoint(address: number): boolean {
         return this.breakpoints.has(address);
+    }
+
+    onBreakpointHit(callback: (address: number) => void): () => void {
+        this.breakpointListeners.add(callback);
+        return () => {
+            this.breakpointListeners.delete(callback);
+        };
+    }
+
+    /**
+     * The underlying CPU6502 instance. Apple1 uses this as its `this.cpu` for
+     * state save/load and inspection under the dual engine (the JS engine's CPU
+     * is the one kept in sync). Typed accessor — avoids an `any` cast.
+     */
+    getInternalCPU(): CPU6502 {
+        return this.cpu;
+    }
+
+    /**
+     * Install (or remove) the CPU6502 execution hook that enforces breakpoints.
+     * The hook is only present while breakpoints exist, so the no-breakpoint hot
+     * path keeps its per-instruction overhead at zero. When the PC reaches a
+     * breakpoint (and we're not single-stepping), it notifies listeners and
+     * returns false, which halts CPU6502 execution before that instruction runs.
+     */
+    private updateExecutionHook(): void {
+        if (this.breakpoints.size === 0) {
+            this.cpu.setExecutionHook(undefined);
+            return;
+        }
+        this.cpu.setExecutionHook((pc: number): boolean => {
+            if (!this.isSingleStepping && this.breakpoints.has(pc)) {
+                this.breakpointListeners.forEach((listener) => listener(pc));
+                return false; // Halt before executing the instruction at the breakpoint
+            }
+            return true;
+        });
     }
 
     // ============ Performance & Metrics ============
@@ -342,6 +385,8 @@ export class JSEngine implements ICPUEngine {
     cleanup(): void {
         // Clean up any resources
         this.breakpoints.clear();
+        this.breakpointListeners.clear();
+        this.updateExecutionHook();
         this.resetMetrics();
     }
 }
