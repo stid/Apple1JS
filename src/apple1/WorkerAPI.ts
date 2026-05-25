@@ -253,6 +253,19 @@ export class WorkerAPI implements IWorkerAPI {
             return;
         }
 
+        // Run-to-cursor is realized as a transient engine breakpoint. Without a
+        // dual engine (e.g. the non-worker inspector path, useDualEngine=false)
+        // there is nothing to set a breakpoint on, so resuming would silently run
+        // past the target. Bail with a warning instead of a misleading "running".
+        if (!dualEngine) {
+            loggingService.log(
+                'warn',
+                'RunToAddress',
+                `Cannot run to ${Formatters.address(targetAddress)} without a dual engine; ignoring.`,
+            );
+            return;
+        }
+
         // Store the run-to-cursor target and notify listeners.
         this.workerState.runToCursorTarget = targetAddress;
         this.runToCursorCallbacks.forEach((cb) => cb(this.workerState.runToCursorTarget));
@@ -262,7 +275,7 @@ export class WorkerAPI implements IWorkerAPI {
         // user breakpoint). This works for both engines, unlike the old JS-only
         // execution hook.
         if (!this.workerState.breakpoints.has(targetAddress)) {
-            dualEngine?.setBreakpoint(targetAddress);
+            dualEngine.setBreakpoint(targetAddress);
         }
 
         // Resume execution to run to the target.

@@ -110,4 +110,27 @@ describe('WorkerAPI.runToAddress', () => {
         expect(fake.calls).toEqual([]);
         expect(resumeCalls.length).toBe(0);
     });
+
+    it('does not resume when there is no dual engine (avoids running past the target)', () => {
+        const resumeCalls: number[] = [];
+        const state = {
+            setCallbacks: () => {},
+            video: undefined,
+            breakpoints: new Set<number>(),
+            runToCursorTarget: null as number | null,
+            isPaused: true,
+            isStepping: false,
+            apple1: {
+                cpu: { PC: 0x0000, toDebug: () => ({}) },
+                clock: { pause: () => {}, resume: () => resumeCalls.push(1) },
+            },
+            getDualEngine: () => null,
+        };
+        const api = new WorkerAPI(state as unknown as WorkerState);
+
+        api.runToAddress(0xff00);
+
+        expect(resumeCalls.length).toBe(0);
+        expect(state.runToCursorTarget).toBeNull();
+    });
 });

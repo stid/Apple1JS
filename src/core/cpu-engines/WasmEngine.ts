@@ -268,14 +268,19 @@ export class WasmEngine implements ICPUEngine {
             this.wasmSystem.clear_breakpoint(currentPC);
         }
 
-        // Execute one instruction in WASM (breakpoint checking happens in Rust!)
-        const cycles = this.wasmSystem.step();
-
-        if (liftBreakpoint) {
-            this.wasmSystem.set_breakpoint(currentPC);
+        // Execute one instruction in WASM (breakpoint checking happens in Rust!).
+        // Restore the lifted breakpoint in `finally` so a throw can't leave it
+        // permanently cleared.
+        let cycles: number;
+        try {
+            cycles = this.wasmSystem.step();
+        } finally {
+            if (liftBreakpoint) {
+                this.wasmSystem.set_breakpoint(currentPC);
+            }
+            // A deliberate step never pauses on a breakpoint; clear any stale flag.
+            this.wasmSystem.clear_breakpoint_hit();
         }
-        // A deliberate step never pauses on a breakpoint; clear any stale flag.
-        this.wasmSystem.clear_breakpoint_hit();
 
         // CRITICAL: If WASM returns 0 cycles, something went wrong
         if (cycles === 0) {
@@ -315,7 +320,15 @@ export class WasmEngine implements ICPUEngine {
         const breakpointAddr = this.wasmSystem.get_breakpoint_hit();
         if (breakpointAddr >= 0) {
             this.wasmSystem.clear_breakpoint_hit();
-            this.breakpointListeners.forEach((listener) => listener(breakpointAddr));
+            // Isolate listener failures so one throwing callback can't interrupt
+            // dispatch or bubble into engine control flow.
+            this.breakpointListeners.forEach((listener) => {
+                try {
+                    listener(breakpointAddr);
+                } catch (error) {
+                    loggingService.error('WasmEngine', `Breakpoint listener threw: ${error}`);
+                }
+            });
         }
 
         // Note: I/O happens automatically via memory bridge - no sync needed

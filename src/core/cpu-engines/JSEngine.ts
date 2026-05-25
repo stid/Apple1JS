@@ -9,6 +9,7 @@ import type { ICPUEngine, EngineType, CPURegisters, EngineMetrics } from '../cpu
 import type { CPU6502State } from '../cpu6502/types';
 import type Bus from '../Bus';
 import CPU6502 from '../cpu6502/core';
+import { loggingService } from '../../services/LoggingService';
 
 /**
  * JavaScript implementation of the CPU engine
@@ -75,10 +76,15 @@ export class JSEngine implements ICPUEngine {
 
         // A deliberate single step always advances, even when sitting on a
         // breakpoint, so the debugger can step off it. The execution hook
-        // consults this flag.
+        // consults this flag. Reset it in `finally` so a throw can't leave it
+        // stuck `true` (which would silently disable all later breakpoints).
+        let cycles: number;
         this.isSingleStepping = true;
-        const cycles = this.cpu.performSingleStep();
-        this.isSingleStepping = false;
+        try {
+            cycles = this.cpu.performSingleStep();
+        } finally {
+            this.isSingleStepping = false;
+        }
 
         // Update metrics
         const duration = Date.now() - startTime;
@@ -246,7 +252,15 @@ export class JSEngine implements ICPUEngine {
         }
         this.cpu.setExecutionHook((pc: number): boolean => {
             if (!this.isSingleStepping && this.breakpoints.has(pc)) {
-                this.breakpointListeners.forEach((listener) => listener(pc));
+                // Isolate listener failures: a throwing listener must not escape
+                // the execution hook and break the run loop / pause handling.
+                this.breakpointListeners.forEach((listener) => {
+                    try {
+                        listener(pc);
+                    } catch (error) {
+                        loggingService.error('JSEngine', `Breakpoint listener threw: ${error}`);
+                    }
+                });
                 return false; // Halt before executing the instruction at the breakpoint
             }
             return true;
