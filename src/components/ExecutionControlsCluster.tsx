@@ -42,10 +42,11 @@ const ExecutionControlsCluster: React.FC<ExecutionControlsClusterProps> = ({
     // non-printable function keys are bound — Space is intentionally NOT a
     // shortcut here: this bar is always mounted, and Space is a normal character
     // the user types into the emulator (it would otherwise both step and inject
-    // a space). Modifier combos are left for the browser/OS.
+    // a space). Any modifier combo — Meta/Ctrl/Alt/Shift — is left for the
+    // browser/OS (e.g. Shift+F5 must not hijack run/pause).
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
             if (e.key === 'F10' && isPaused) {
                 e.preventDefault();
                 step();
