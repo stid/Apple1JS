@@ -79,9 +79,15 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
      * @deprecated Use the new saveState() method that returns Apple1State
      */
     saveEmulatorState(): EmulatorState {
+        // Pull live RAM from the active engine first: under WASM the JS Bus copy
+        // is stale (WASM owns its own RAM), so serializing it directly would
+        // capture init-time RAM instead of what the machine is actually running.
+        this.syncRAMFromEngine();
         const state: EmulatorState = {
             ram: this.saveRAMState(),
-            cpu: this.cpu.saveState(),
+            // CPU must come from the active engine; this.cpu is the dormant JS
+            // CPU when WASM is active (see WorkerAPI.toDebug for the same lesson).
+            cpu: this.cpuEngine ? this.cpuEngine.saveState() : this.cpu.saveState(),
             pia: this.pia.saveState() as PIAState,
         };
 
@@ -97,7 +103,12 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
      */
     loadEmulatorState(state: EmulatorState) {
         if (state.ram) this.loadRAMState(state.ram);
-        if (state.cpu) this.cpu.loadState(state.cpu);
+        // Load CPU into the active engine (DualEngine fans out to both engines);
+        // writing only this.cpu would leave the running WASM engine untouched.
+        if (state.cpu) {
+            if (this.cpuEngine) this.cpuEngine.loadState(state.cpu);
+            else this.cpu.loadState(state.cpu);
+        }
         if (state.pia) {
             // Convert old PIAState format to new PIA6820State format for migration
             const convertedPIAState = {
@@ -115,7 +126,48 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
             this.pia.loadState(convertedPIAState);
         }
         if (state.video && typeof this.video.setState === 'function') this.video.setState(state.video);
+        // Mirror the restored JS-Bus RAM into the active engine's internal RAM so
+        // the WASM engine runs the loaded program rather than its init-time RAM.
+        this.syncRAMToEngine();
     }
+
+    /**
+     * RAM bank ranges that must stay mirrored between the JS Bus and the active
+     * engine's own RAM. The WASM engine owns a separate RAM copy seeded from the
+     * Bus only at init, so save/load has to bridge both banks explicitly.
+     */
+    private static readonly RAM_BANK_RANGES: ReadonlyArray<readonly [number, number]> = [
+        RAM_BANK1_ADDR,
+        RAM_BANK2_ADDR,
+    ];
+
+    /**
+     * Pull live RAM from the active engine into the JS Bus before serializing.
+     * No-op without a dual engine; idempotent when the JS engine is active
+     * (it already reads/writes the Bus directly).
+     */
+    private syncRAMFromEngine(): void {
+        if (!this.cpuEngine) return;
+        for (const [start, end] of Apple1.RAM_BANK_RANGES) {
+            const data = this.cpuEngine.readRange(start, end - start + 1);
+            for (let i = 0; i < data.length; i++) this.bus.write(start + i, data[i]);
+        }
+    }
+
+    /**
+     * Push the restored JS-Bus RAM into the active engine's internal RAM after
+     * loading. No-op without a dual engine.
+     */
+    private syncRAMToEngine(): void {
+        if (!this.cpuEngine) return;
+        for (const [start, end] of Apple1.RAM_BANK_RANGES) {
+            const len = end - start + 1;
+            const data = new Uint8Array(len);
+            for (let i = 0; i < len; i++) data[i] = this.bus.read(start + i);
+            this.cpuEngine.writeRange(start, data);
+        }
+    }
+
     /**
      * Save the state of all RAM banks.
      */
@@ -408,13 +460,17 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
     saveState(options?: StateOptions): Apple1State {
         const opts = { includeDebugInfo: false, ...options };
 
+        // Capture the active engine's live RAM into the JS Bus before serializing.
+        this.syncRAMFromEngine();
+
         const state: Apple1State = {
             version: Apple1.STATE_VERSION,
             // System configuration
             cpuSpeedMHz: MHZ_CPU_SPEED,
             stepIntervalMs: STEP_INTERVAL,
-            // Component states
-            cpu: this.cpu.saveState(opts),
+            // Component states — CPU from the active engine (this.cpu is dormant
+            // under WASM); other components are engine-independent.
+            cpu: this.cpuEngine ? this.cpuEngine.saveState() : this.cpu.saveState(opts),
             clock: this.clock.saveState(opts),
             rom: this.rom.saveState(opts),
             ramBank1: this.ramBank1.saveState(opts),
@@ -454,8 +510,12 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
             this.clock.stopLoop();
         }
 
-        // Load component states
-        this.cpu.loadState(finalState.cpu, opts);
+        // Load component states. CPU goes into the active engine (DualEngine
+        // fans out to both); this.cpu alone would leave a running WASM engine
+        // untouched. RAM banks restore the JS Bus, then syncRAMToEngine() mirrors
+        // them into the active engine's own RAM.
+        if (this.cpuEngine) this.cpuEngine.loadState(finalState.cpu);
+        else this.cpu.loadState(finalState.cpu, opts);
         this.clock.loadState(finalState.clock, opts);
         this.rom.loadState(finalState.rom, opts);
         this.ramBank1.loadState(finalState.ramBank1, opts);
@@ -466,6 +526,8 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
         if (finalState.video && this.video && typeof this.video.setState === 'function') {
             this.video.setState(finalState.video);
         }
+
+        this.syncRAMToEngine();
 
         // Restart clock if it was running
         if (wasRunning) {

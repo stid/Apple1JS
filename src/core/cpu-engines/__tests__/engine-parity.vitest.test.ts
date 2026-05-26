@@ -489,5 +489,34 @@ describe.skipIf(!wasmRuntimeAvailable)('CPU Engine Parity Tests', () => {
             unsubscribe();
             dualEngine.cleanup();
         });
+
+        it('switchEngine syncs RAM for BOTH banks (bank 1 and bank 2)', async () => {
+            if (!wasmEngine) {
+                throw new Error('WASM engine expected but failed to initialize');
+            }
+
+            const dualEngine = new DualEngine(bus, 'JS');
+            await dualEngine.initialize();
+
+            // Diverge the engines: write only to the JS-backed Bus (the active
+            // JS engine reads the Bus; the WASM engine keeps its own RAM copy).
+            // switchEngine must then copy BOTH banks into WASM — the old code
+            // synced only bank 1, silently dropping bank 2 ($E000, Integer BASIC).
+            bus.write(0x0000, 0xa1); // bank 1 start
+            bus.write(0x0fff, 0xa2); // bank 1 end
+            bus.write(0xe000, 0xb1); // bank 2 start
+            bus.write(0xefff, 0xb2); // bank 2 end
+
+            await dualEngine.switchEngine('WASM');
+            expect(dualEngine.engineType).toBe('WASM');
+
+            // The now-active WASM engine must see both banks, read from its own RAM.
+            expect(dualEngine.read(0x0000)).toBe(0xa1);
+            expect(dualEngine.read(0x0fff)).toBe(0xa2);
+            expect(dualEngine.read(0xe000)).toBe(0xb1);
+            expect(dualEngine.read(0xefff)).toBe(0xb2);
+
+            dualEngine.cleanup();
+        });
     });
 });
