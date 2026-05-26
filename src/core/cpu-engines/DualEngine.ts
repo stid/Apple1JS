@@ -20,6 +20,7 @@ import { JSEngine } from './JSEngine';
 import { WasmEngine } from './WasmEngine';
 import { isWasmSupported } from './wasm-loader';
 import { loggingService } from '../../services/LoggingService';
+import { RAM_BANK1_START, RAM_BANK1_END, RAM_BANK2_START, RAM_BANK2_END } from '../constants/memory';
 
 /**
  * Engine switch reason types
@@ -339,11 +340,20 @@ export class DualEngine implements ICPUEngine {
             // Ensure target engine is ready
             await newEngine.ensureReady();
 
-            // Synchronize RAM contents from source to target engine
-            // Apple 1 has 4KB RAM at $0000-$0FFF
-            const ramData = this.activeEngine.readRange(0x0000, 0x1000);
-            newEngine.writeRange(0x0000, ramData);
-            loggingService.info('DualEngine', `Synchronized ${ramData.length} bytes of RAM to ${targetEngine} engine`);
+            // Synchronize RAM contents from source to target engine for BOTH
+            // banks: bank 1 ($0000-$0FFF) and bank 2 ($E000-$EFFF, Integer BASIC).
+            // Syncing only bank 1 would drop bank-2 RAM on an engine switch.
+            const ramRanges: ReadonlyArray<readonly [number, number]> = [
+                [RAM_BANK1_START, RAM_BANK1_END],
+                [RAM_BANK2_START, RAM_BANK2_END],
+            ];
+            let syncedBytes = 0;
+            for (const [start, end] of ramRanges) {
+                const ramData = this.activeEngine.readRange(start, end - start + 1);
+                newEngine.writeRange(start, ramData);
+                syncedBytes += ramData.length;
+            }
+            loggingService.info('DualEngine', `Synchronized ${syncedBytes} bytes of RAM to ${targetEngine} engine`);
 
             // Load CPU state into target engine
             newEngine.loadState(currentState);
