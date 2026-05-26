@@ -6,6 +6,7 @@ import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
 import Actions from './Actions';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
+import { useToast } from '../contexts/ToastContext';
 import { EmulationProvider } from '../contexts/EmulationContext';
 import ExecutionControlsCluster from './ExecutionControlsCluster';
 import { WorkerDataProvider } from '../contexts/WorkerDataContext';
@@ -43,6 +44,7 @@ const AppContentInner = ({
     const [isSwitchingEngine, setIsSwitchingEngine] = useState<boolean>(false);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { subscribeToNavigation } = useDebuggerNavigation();
+    const { showToast } = useToast();
     const { safeSetTimeout } = useUnmountSafe();
 
     // Persist debugger view states across tab switches
@@ -99,12 +101,14 @@ const AppContentInner = ({
             const status = await workerManager.getEngineStatus();
             setEngineStatus(status);
             loggingService.info('AppContent', `Switched to ${target} engine`);
+            showToast(`Switched to ${target} engine`, 'success');
         } catch (error) {
             loggingService.error('AppContent', `Failed to switch engine: ${error}`);
+            showToast(`Failed to switch engine to ${target}.`, 'error');
         } finally {
             setIsSwitchingEngine(false);
         }
-    }, [workerManager, engineStatus, isSwitchingEngine]);
+    }, [workerManager, engineStatus, isSwitchingEngine, showToast]);
 
     const handleKeyDown = useCallback(
         async (e: KeyboardEvent) => {
@@ -185,12 +189,13 @@ const AppContentInner = ({
                     }
                     URL.revokeObjectURL(url);
                 }, 100);
+                showToast('State saved: apple1_state.json', 'success');
             } catch (error) {
-                console.error('Failed to save state:', error);
-                window.alert('Failed to save state.');
+                loggingService.error('AppContent', `Failed to save state: ${error}`);
+                showToast('Failed to save state.', 'error');
             }
         },
-        [workerManager, safeSetTimeout],
+        [workerManager, safeSetTimeout, showToast],
     );
 
     const handleLoadState = useCallback(
@@ -204,13 +209,14 @@ const AppContentInner = ({
                     workerManager.loadState(state);
                     // Reset input so selecting the same file again triggers change
                     e.target.value = '';
+                    showToast('State loaded', 'success');
                 } catch {
-                    window.alert('Invalid state file.');
+                    showToast('Invalid state file.', 'error');
                 }
             };
             reader.readAsText(file);
         },
-        [workerManager],
+        [workerManager, showToast],
     );
 
     return (
