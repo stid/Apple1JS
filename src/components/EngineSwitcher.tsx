@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { WorkerManager } from '../services/WorkerManager';
 import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
+import Spinner from './Spinner';
 
 interface EngineSwitcherProps {
     workerManager: WorkerManager;
@@ -105,6 +106,13 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
                 >
                     WASM Engine
                 </button>
+
+                {isSwitching && (
+                    <span className="flex items-center gap-xs text-xs text-text-secondary">
+                        <Spinner label="Switching engine" />
+                        Switching…
+                    </span>
+                )}
             </div>
 
             {/* Engine Statistics */}

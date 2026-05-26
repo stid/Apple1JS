@@ -15,11 +15,18 @@ import type { WorkerManager } from '../services/WorkerManager';
 import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { useUnmountSafe } from '../hooks/useUnmountSafe';
+import { useLocalStorageState } from '../hooks/useLocalStorageState';
 
 type Props = {
     workerManager: WorkerManager;
     apple1Instance?: IInspectableComponent | null;
 };
+
+type RightTab = 'info' | 'inspector' | 'debugger';
+
+// Guards for persisted UI prefs: reject valid-JSON-but-invalid values from localStorage.
+const isNumber = (v: unknown): v is number => typeof v === 'number';
+const isRightTab = (v: unknown): v is RightTab => v === 'info' || v === 'inspector' || v === 'debugger';
 
 interface AppContentInnerProps extends Props {
     rightTab: 'info' | 'inspector' | 'debugger';
@@ -47,9 +54,13 @@ const AppContentInner = ({
     const { showToast } = useToast();
     const { safeSetTimeout } = useUnmountSafe();
 
-    // Persist debugger view states across tab switches
-    const [memoryViewAddress, setMemoryViewAddress] = useState(0x0000);
-    const [disassemblerAddress, setDisassemblerAddress] = useState(0x0000);
+    // Persist debugger view addresses across tab switches AND reloads.
+    const [memoryViewAddress, setMemoryViewAddress] = useLocalStorageState('apple1js_ui_memAddr', 0x0000, isNumber);
+    const [disassemblerAddress, setDisassemblerAddress] = useLocalStorageState(
+        'apple1js_ui_disasmAddr',
+        0x0000,
+        isNumber,
+    );
 
     // Subscribe to navigation events and switch to debugger tab
     useEffect(() => {
@@ -382,25 +393,31 @@ const AppContentInner = ({
 };
 
 export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Element => {
-    const [rightTab, setRightTab] = useState<'info' | 'inspector' | 'debugger'>('info');
+    const [rightTab, setRightTab] = useLocalStorageState<RightTab>('apple1js_ui_rightTab', 'info', isRightTab);
     const [pendingNavigation, setPendingNavigation] = useState<{
         address: number;
         target: 'memory' | 'disassembly';
     } | null>(null);
 
-    const handleBreakpointHit = useCallback((address: number) => {
-        // When any breakpoint hits, switch to debugger tab and disassembly view
-        setPendingNavigation({ address, target: 'disassembly' });
-        setRightTab('debugger');
-    }, []);
-
-    const handleRunToCursorSet = useCallback((address: number | null) => {
-        // When run-to-cursor is set, switch to debugger tab and disassembly view
-        if (address !== null) {
+    const handleBreakpointHit = useCallback(
+        (address: number) => {
+            // When any breakpoint hits, switch to debugger tab and disassembly view
             setPendingNavigation({ address, target: 'disassembly' });
             setRightTab('debugger');
-        }
-    }, []);
+        },
+        [setRightTab],
+    );
+
+    const handleRunToCursorSet = useCallback(
+        (address: number | null) => {
+            // When run-to-cursor is set, switch to debugger tab and disassembly view
+            if (address !== null) {
+                setPendingNavigation({ address, target: 'disassembly' });
+                setRightTab('debugger');
+            }
+        },
+        [setRightTab],
+    );
 
     return (
         <WorkerDataProvider workerManager={workerManager}>

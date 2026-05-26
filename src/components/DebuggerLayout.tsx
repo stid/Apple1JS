@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import DisassemblerPaginated from './DisassemblerPaginated';
 import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
@@ -8,6 +8,7 @@ import { IInspectableComponent } from '../core/types';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { useWorkerData } from '../contexts/WorkerDataContext';
 import { getDebugValueOrDefault, getNumericDebugValue } from '../utils/debug-helpers';
+import { useLocalStorageState } from '../hooks/useLocalStorageState';
 import AddressLink from './AddressLink';
 import type { WorkerManager } from '../services/WorkerManager';
 
@@ -24,6 +25,9 @@ interface DebuggerLayoutProps {
 
 type DebugView = 'overview' | 'memory' | 'disassembly';
 
+// Guard for the persisted view pref: reject valid-JSON-but-invalid values from localStorage.
+const isDebugView = (v: unknown): v is DebugView => v === 'overview' || v === 'memory' || v === 'disassembly';
+
 const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
     workerManager,
     initialNavigation,
@@ -33,7 +37,11 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
     disassemblerAddress,
     setDisassemblerAddress,
 }) => {
-    const [activeView, setActiveView] = useState<DebugView>('overview');
+    const [activeView, setActiveView] = useLocalStorageState<DebugView>(
+        'apple1js_ui_debugView',
+        'overview',
+        isDebugView,
+    );
     const { subscribeToNavigation } = useDebuggerNavigation();
     const { debugInfo, setDebuggerActive } = useWorkerData();
 
@@ -49,7 +57,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
             }
             onNavigationHandled?.();
         }
-    }, [initialNavigation, onNavigationHandled, setDisassemblerAddress, setMemoryViewAddress]);
+    }, [initialNavigation, onNavigationHandled, setActiveView, setDisassemblerAddress, setMemoryViewAddress]);
 
     // Control debugger visibility state using WorkerDataContext
     useEffect(() => {
@@ -77,7 +85,7 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
         });
 
         return unsubscribe;
-    }, [subscribeToNavigation, setDisassemblerAddress, setMemoryViewAddress]);
+    }, [subscribeToNavigation, setActiveView, setDisassemblerAddress, setMemoryViewAddress]);
 
     return (
         <div className="flex flex-col h-full">
