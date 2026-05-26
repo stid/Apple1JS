@@ -34,3 +34,6 @@ wasm-cpu/target/
 # private global /stid-sdd-* tooling; not portable, so never committed to this public repo)
 .claude/rules/sdd-conventions.md
 docs/specs/
+# Private hosting/deployment notes — we publish via Cloudflare but don't disclose the
+# migration playbook/account IDs in the public repo (kept in the maintainer's private vault).
+docs/active/cloudflare-migration-plan.md
