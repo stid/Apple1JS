@@ -72,4 +72,19 @@ describe('useLocalStorageState', () => {
         const { result } = renderHook(() => useLocalStorageState(KEY, 'info'));
         expect(result.current[0]).toBe('info');
     });
+
+    it('falls back to the default when a valid-JSON value fails the validator', () => {
+        // valid JSON, but not an allowed value (e.g. a renamed/hand-edited enum)
+        window.localStorage.setItem(KEY, JSON.stringify('settings'));
+        const isTab = (v: unknown): v is 'info' | 'debugger' => v === 'info' || v === 'debugger';
+        const { result } = renderHook(() => useLocalStorageState(KEY, 'info', isTab));
+        expect(result.current[0]).toBe('info');
+    });
+
+    it('hydrates a stored value that passes the validator', () => {
+        window.localStorage.setItem(KEY, JSON.stringify('debugger'));
+        const isTab = (v: unknown): v is 'info' | 'debugger' => v === 'info' || v === 'debugger';
+        const { result } = renderHook(() => useLocalStorageState(KEY, 'info', isTab));
+        expect(result.current[0]).toBe('debugger');
+    });
 });

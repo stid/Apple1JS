@@ -25,6 +25,9 @@ interface DebuggerLayoutProps {
 
 type DebugView = 'overview' | 'memory' | 'disassembly';
 
+// Guard for the persisted view pref: reject valid-JSON-but-invalid values from localStorage.
+const isDebugView = (v: unknown): v is DebugView => v === 'overview' || v === 'memory' || v === 'disassembly';
+
 const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
     workerManager,
     initialNavigation,
@@ -34,7 +37,11 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
     disassemblerAddress,
     setDisassemblerAddress,
 }) => {
-    const [activeView, setActiveView] = useLocalStorageState<DebugView>('apple1js_ui_debugView', 'overview');
+    const [activeView, setActiveView] = useLocalStorageState<DebugView>(
+        'apple1js_ui_debugView',
+        'overview',
+        isDebugView,
+    );
     const { subscribeToNavigation } = useDebuggerNavigation();
     const { debugInfo, setDebuggerActive } = useWorkerData();
 

@@ -22,6 +22,12 @@ type Props = {
     apple1Instance?: IInspectableComponent | null;
 };
 
+type RightTab = 'info' | 'inspector' | 'debugger';
+
+// Guards for persisted UI prefs: reject valid-JSON-but-invalid values from localStorage.
+const isNumber = (v: unknown): v is number => typeof v === 'number';
+const isRightTab = (v: unknown): v is RightTab => v === 'info' || v === 'inspector' || v === 'debugger';
+
 interface AppContentInnerProps extends Props {
     rightTab: 'info' | 'inspector' | 'debugger';
     setRightTab: React.Dispatch<React.SetStateAction<'info' | 'inspector' | 'debugger'>>;
@@ -49,8 +55,12 @@ const AppContentInner = ({
     const { safeSetTimeout } = useUnmountSafe();
 
     // Persist debugger view addresses across tab switches AND reloads.
-    const [memoryViewAddress, setMemoryViewAddress] = useLocalStorageState('apple1js_ui_memAddr', 0x0000);
-    const [disassemblerAddress, setDisassemblerAddress] = useLocalStorageState('apple1js_ui_disasmAddr', 0x0000);
+    const [memoryViewAddress, setMemoryViewAddress] = useLocalStorageState('apple1js_ui_memAddr', 0x0000, isNumber);
+    const [disassemblerAddress, setDisassemblerAddress] = useLocalStorageState(
+        'apple1js_ui_disasmAddr',
+        0x0000,
+        isNumber,
+    );
 
     // Subscribe to navigation events and switch to debugger tab
     useEffect(() => {
@@ -383,10 +393,7 @@ const AppContentInner = ({
 };
 
 export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Element => {
-    const [rightTab, setRightTab] = useLocalStorageState<'info' | 'inspector' | 'debugger'>(
-        'apple1js_ui_rightTab',
-        'info',
-    );
+    const [rightTab, setRightTab] = useLocalStorageState<RightTab>('apple1js_ui_rightTab', 'info', isRightTab);
     const [pendingNavigation, setPendingNavigation] = useState<{
         address: number;
         target: 'memory' | 'disassembly';
