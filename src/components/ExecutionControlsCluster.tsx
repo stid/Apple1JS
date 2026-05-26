@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { useEmulation } from '../contexts/EmulationContext';
 import type { WorkerManager } from '../services/WorkerManager';
 import RunStateBadge from './RunStateBadge';
+import Spinner from './Spinner';
 
 interface ExecutionControlsClusterProps {
     workerManager: WorkerManager;
@@ -101,6 +102,12 @@ const ExecutionControlsCluster: React.FC<ExecutionControlsClusterProps> = ({
             {/* Engine switch — labelled "Engine", kept distinct from run-state (AC-7/AC-8). */}
             <div className="flex items-center gap-xs ml-sm" role="group" aria-label="CPU engine">
                 <span className="text-xs text-text-secondary">Engine:</span>
+                {isSwitchingEngine && (
+                    <span className="flex items-center gap-xs text-xs text-text-secondary">
+                        <Spinner label="Switching engine" />
+                        Switching…
+                    </span>
+                )}
                 {ENGINES.map((engine) => {
                     const active = engine === currentEngine;
                     const unavailable = engine === 'WASM' && !wasmAvailable;
