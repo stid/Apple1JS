@@ -55,6 +55,10 @@ vi.mock('../../contexts/WorkerDataContext', () => ({
     WorkerDataProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock('../../contexts/ToastContext', () => ({
+    useToast: () => ({ toasts: [], showToast: vi.fn(), dismiss: vi.fn() }),
+}));
+
 describe('AppContent', () => {
     let mockWorkerManager: WorkerManager;
 
