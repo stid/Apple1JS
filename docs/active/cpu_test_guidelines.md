@@ -80,4 +80,21 @@ test('OPCODE ($HEX) - Description', function () {
 4. Reset vector points to correct address (0xff00)
 5. setupProgram is called in each test
 
+### 🧬 WASM core: where tests can and can't run
+
+The Rust/WASM 6502 core cannot be exercised by `cargo test` or Node vitest:
+
+- **Native `cargo test`** (`yarn wasm:test`): `CPU6502::new()` / `WasmSystem::initialize()`
+  call wasm-bindgen imports (`console_log!`, …) that panic on non-wasm targets. Only the pure
+  component tests (`bus.rs`, `ram.rs`, `rom.rs`) run natively — the `system.rs` / CPU-execution
+  tests fail on `master` too. **Don't add native Rust tests on the CPU/`WasmSystem` path; they
+  cannot pass.**
+- **Node vitest**: the wasm-pack "web" build loads via `fetch()`, absent in Node, so the
+  engine-parity suites are `describe.skipIf(!wasmRuntimeAvailable)` and **skip in CI**.
+
+So a Rust core change gets `cargo check` (compile) + a skipped parity test in CI — nothing
+exercises actual execution. **Verify WASM behavior in a real browser**: import the engine modules
+through Vite (e.g. `await import('/src/core/cpu-engines/WasmEngine.ts')`) so the real wasm-pack
+build runs, then build JS + WASM engines over a shared Bus and assert parity directly.
+
 ---
