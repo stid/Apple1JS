@@ -5,7 +5,10 @@ const StartInstructions = () => (
             FIRST START / RESET
         </h3>
         <p className="text-text-primary text-sm">
-            Press <span className="font-mono bg-black/40 px-sm py-1 rounded-sm text-data-value border border-border-subtle">TAB</span>
+            Press{' '}
+            <span className="font-mono bg-surface-sunken/40 px-sm py-1 rounded-sm text-data-value border border-border-subtle">
+                TAB
+            </span>
         </p>
     </section>
 );
@@ -16,7 +19,7 @@ const TestProgram = () => (
             <span className="mr-2">🧪</span>
             TEST PROGRAM
         </h3>
-        <pre className="bg-black/40 text-data-value rounded-sm p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0
+        <pre className="bg-surface-sunken/40 text-data-value rounded-sm p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0
 0
 R`}</pre>
     </section>
@@ -28,7 +31,7 @@ const BasicProgram = () => (
             <span className="mr-2">💻</span>
             BASIC
         </h3>
-        <pre className="bg-black/40 text-data-value rounded-sm p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`E000R
+        <pre className="bg-surface-sunken/40 text-data-value rounded-sm p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`E000R
 10 PRINT "HELLO WORLD!"
 20 GOTO 10
 RUN`}</pre>
@@ -41,10 +44,9 @@ const AnniversaryInfo = () => (
             <span className="mr-2">🎉</span>
             APPLE 30th ANNIVERSARY
         </h3>
-        <pre className="bg-black/40 text-data-value rounded-sm p-sm text-xs font-mono inline-block whitespace-pre border border-border-subtle">{`280R`}</pre>
+        <pre className="bg-surface-sunken/40 text-data-value rounded-sm p-sm text-xs font-mono inline-block whitespace-pre border border-border-subtle">{`280R`}</pre>
     </section>
 );
-
 
 const MemoryAddresses = () => (
     <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
@@ -52,7 +54,7 @@ const MemoryAddresses = () => (
             <span className="mr-2">🔍</span>
             LIST MEMORY ADDRESS
         </h3>
-        <pre className="bg-black/40 text-data-address rounded-sm p-sm text-xs font-mono inline-block whitespace-pre border border-border-subtle">{`0.FF`}</pre>
+        <pre className="bg-surface-sunken/40 text-data-address rounded-sm p-sm text-xs font-mono inline-block whitespace-pre border border-border-subtle">{`0.FF`}</pre>
     </section>
 );
 

@@ -5,29 +5,29 @@ interface PaginatedTableViewProps {
     // Basic configuration
     currentAddress: number;
     onAddressChange: (address: number) => void;
-    
+
     // Content rendering
     renderTableHeader: () => ReactNode;
     renderTableRows: () => ReactNode;
-    
+
     // Optional sections
     renderExtraControls?: () => ReactNode;
     renderStatusInfo?: () => ReactNode;
-    
+
     // Navigation
     onNavigateUp: () => void;
     onNavigateDown: () => void;
-    
+
     // Display info
     addressRange?: string;
     rowCount: number;
-    
+
     // Keyboard shortcuts help text
     keyboardShortcuts?: string;
-    
+
     // Styling
     className?: string;
-    
+
     // External refs (optional)
     containerRef?: React.RefObject<HTMLDivElement | null>;
     contentRef?: React.RefObject<HTMLDivElement | null>;
@@ -47,28 +47,26 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     keyboardShortcuts = '↑↓: Navigate',
     className = '',
     containerRef: externalContainerRef,
-    contentRef: externalContentRef
+    contentRef: externalContentRef,
 }) => {
-    const [addressInput, setAddressInput] = useState(
-        Formatters.hex(currentAddress, 4)
-    );
+    const [addressInput, setAddressInput] = useState(Formatters.hex(currentAddress, 4));
     const internalContainerRef = useRef<HTMLDivElement>(null);
     const internalContentRef = useRef<HTMLDivElement>(null);
-    
+
     // Use external refs if provided, otherwise use internal ones
     const containerRef = externalContainerRef || internalContainerRef;
     const contentRef = externalContentRef || internalContentRef;
-    
+
     // Update address input when currentAddress changes
     useEffect(() => {
         setAddressInput(Formatters.hex(currentAddress, 4));
     }, [currentAddress]);
-    
+
     // Handle address input
     const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         // Allow $ prefix and hex digits
         const value = e.target.value.toUpperCase();
-        
+
         // If it starts with $, keep it and ensure the rest is hex
         if (value.startsWith('$')) {
             const hexPart = value.slice(1).replace(/[^0-9A-F]/g, '');
@@ -83,26 +81,27 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
             }
         }
     }, []);
-    
-    const handleAddressSubmit = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            // Handle $ prefix for hex values
-            const cleanInput = addressInput.startsWith('$') 
-                ? addressInput.slice(1) 
-                : addressInput;
-            const addr = parseInt(cleanInput || '0', 16);
-            if (!isNaN(addr) && addr >= 0 && addr <= 0xFFFF) {
-                onAddressChange(addr);
+
+    const handleAddressSubmit = useCallback(
+        (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+                // Handle $ prefix for hex values
+                const cleanInput = addressInput.startsWith('$') ? addressInput.slice(1) : addressInput;
+                const addr = parseInt(cleanInput || '0', 16);
+                if (!isNaN(addr) && addr >= 0 && addr <= 0xffff) {
+                    onAddressChange(addr);
+                }
             }
-        }
-    }, [addressInput, onAddressChange]);
-    
+        },
+        [addressInput, onAddressChange],
+    );
+
     // Keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Don't handle if input is focused
             if (document.activeElement?.tagName === 'INPUT') return;
-            
+
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 onNavigateUp();
@@ -111,14 +110,14 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
                 onNavigateDown();
             }
         };
-        
+
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onNavigateUp, onNavigateDown]);
-    
+
     return (
-        <div 
-            ref={containerRef} 
+        <div
+            ref={containerRef}
             className={`h-full flex flex-col bg-surface-primary rounded-lg border border-border-primary ${className}`}
         >
             {/* Controls Header */}
@@ -132,7 +131,7 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
                             value={addressInput}
                             onChange={handleAddressChange}
                             onKeyDown={handleAddressSubmit}
-                            className="bg-black/40 border border-border-primary text-data-address px-2 py-1 w-20 font-mono text-xs rounded-sm transition-colors focus:border-border-accent focus:outline-hidden"
+                            className="bg-surface-sunken/40 border border-border-primary text-data-address px-2 py-1 w-20 font-mono text-xs rounded-sm transition-colors focus:border-border-accent focus:outline-hidden"
                             placeholder="0000"
                             maxLength={4}
                         />
@@ -153,7 +152,7 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
                             </button>
                         </div>
                     </div>
-                    
+
                     {/* Optional separator and extra controls */}
                     {renderExtraControls && (
                         <>
@@ -161,36 +160,24 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
                             {renderExtraControls()}
                         </>
                     )}
-                    
+
                     {/* Status info on the right */}
                     <div className="flex items-center gap-xs ml-auto">
                         {renderStatusInfo && renderStatusInfo()}
-                        {addressRange && (
-                            <span className="text-xs text-text-secondary font-mono">
-                                {addressRange}
-                            </span>
-                        )}
-                        <span className="text-xs text-text-muted">
-                            {rowCount} rows
-                        </span>
+                        {addressRange && <span className="text-xs text-text-secondary font-mono">{addressRange}</span>}
+                        <span className="text-xs text-text-muted">{rowCount} rows</span>
                     </div>
                 </div>
-                
+
                 {/* Keyboard shortcuts help */}
-                {keyboardShortcuts && (
-                    <div className="mt-xs text-xs text-text-muted">
-                        {keyboardShortcuts}
-                    </div>
-                )}
+                {keyboardShortcuts && <div className="mt-xs text-xs text-text-muted">{keyboardShortcuts}</div>}
             </div>
-            
+
             {/* Table Content */}
-            <div ref={contentRef} className="flex-1 bg-black/20 overflow-hidden">
+            <div ref={contentRef} className="flex-1 bg-surface-sunken/20 overflow-hidden">
                 <table className="w-full">
                     {renderTableHeader()}
-                    <tbody>
-                        {renderTableRows()}
-                    </tbody>
+                    <tbody>{renderTableRows()}</tbody>
                 </table>
             </div>
         </div>

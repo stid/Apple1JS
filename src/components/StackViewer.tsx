@@ -13,9 +13,9 @@ interface StackMemoryData {
     [address: string]: number;
 }
 
-const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer = 0xFF }) => {
+const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer = 0xff }) => {
     const [stackData, setStackData] = useState<StackMemoryData>({});
-    
+
     // 6502 stack is at $0100-$01FF
     const STACK_BASE = 0x0100;
     const STACK_SIZE = 0x100;
@@ -46,16 +46,16 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
     // Show only the active portion of the stack (from SP to FF)
     const renderStackEntries = () => {
         const entries = [];
-        
+
         // Stack grows downward, so we show from current SP up to FF
-        for (let offset = stackPointer; offset <= 0xFF; offset++) {
+        for (let offset = stackPointer; offset <= 0xff; offset++) {
             const addr = STACK_BASE + offset;
             const addrKey = Formatters.hexWord(addr);
             const value = stackData[addrKey] ?? 0;
             const isCurrent = offset === stackPointer;
-            
+
             entries.push(
-                <div 
+                <div
                     key={addr}
                     className={`flex justify-between items-center px-2 py-1 text-xs font-mono border-b border-border-subtle ${
                         isCurrent ? 'bg-info/20 border-info' : 'hover:bg-surface-hover/50'
@@ -73,28 +73,26 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
                             className="text-xs"
                         />
                     </span>
-                    <span className="text-data-value">
-                        {Formatters.hex(value, 2)}
-                    </span>
-                </div>
+                    <span className="text-data-value">{Formatters.hex(value, 2)}</span>
+                </div>,
             );
         }
-        
+
         // If stack is empty (SP = FF), show a message
-        if (stackPointer === 0xFF) {
+        if (stackPointer === 0xff) {
             entries.push(
                 <div key="empty" className="text-center text-text-secondary text-xs py-2">
                     Stack is empty
-                </div>
+                </div>,
             );
         }
-        
+
         return entries;
     };
 
     // Calculate stack usage
-    const stackUsage = 0xFF - stackPointer;
-    const stackPercentage = (stackUsage / 0xFF) * 100;
+    const stackUsage = 0xff - stackPointer;
+    const stackPercentage = (stackUsage / 0xff) * 100;
 
     return (
         <div className="h-full flex flex-col" style={{ minHeight: 0 }}>
@@ -102,23 +100,17 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
             <div className="mb-sm">
                 <div className="flex justify-between items-center mb-xs">
                     <span className="text-xs text-text-secondary">Stack Pointer:</span>
-                    <span className="text-xs font-mono text-data-value">
-                        {Formatters.hexByte(stackPointer)}
-                    </span>
+                    <span className="text-xs font-mono text-data-value">{Formatters.hexByte(stackPointer)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-xs">
                     <span className="text-xs text-text-secondary">Usage:</span>
-                    <span className="text-xs font-mono">
-                        {stackUsage} / 255 bytes
-                    </span>
+                    <span className="text-xs font-mono">{stackUsage} / 255 bytes</span>
                 </div>
                 {/* Stack usage bar */}
                 <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
-                    <div 
+                    <div
                         className={`h-full transition-all ${
-                            stackPercentage > 80 ? 'bg-error' : 
-                            stackPercentage > 60 ? 'bg-warning' : 
-                            'bg-success'
+                            stackPercentage > 80 ? 'bg-error' : stackPercentage > 60 ? 'bg-warning' : 'bg-success'
                         }`}
                         style={{ width: `${stackPercentage}%` }}
                     />
@@ -126,16 +118,14 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
             </div>
 
             {/* Stack Contents */}
-            <div className="flex-1 overflow-auto bg-black/20 rounded-sm border border-border-subtle">
+            <div className="flex-1 overflow-auto bg-surface-sunken/20 rounded-sm border border-border-subtle">
                 <div className="sticky top-0 bg-surface-primary border-b border-border-primary px-2 py-1">
                     <div className="flex justify-between text-xs text-text-secondary">
                         <span>Address</span>
                         <span>Value</span>
                     </div>
                 </div>
-                <div>
-                    {renderStackEntries()}
-                </div>
+                <div>{renderStackEntries()}</div>
             </div>
 
             {/* Stack Operations Info */}
