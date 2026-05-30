@@ -97,6 +97,8 @@ export const designTokens = {
             tertiary: '#334155', // Lighter slate
             quaternary: '#475569', // Lightest slate
             overlay: '#00000060', // Black with 60% opacity
+            hover: '#334155', // Hover lift over primary (== tertiary; semantic alias)
+            sunken: '#000000', // Recessed panel; used translucent via opacity modifiers (bg-surface-sunken/40)
         },
 
         // Border colors
@@ -114,6 +116,7 @@ export const designTokens = {
             tertiary: '#6B7280', // Darker gray (same as muted)
             accent: '#10B981', // Green accent
             muted: '#6B7280', // Darker gray
+            disabled: '#6B7280', // Disabled/inactive text (== neutral.500; semantic alias)
         },
 
         // Component type colors for consistent mapping

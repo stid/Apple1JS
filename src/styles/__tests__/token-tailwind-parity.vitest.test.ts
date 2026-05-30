@@ -77,4 +77,19 @@ describe('token ↔ Tailwind parity', () => {
         expect((tokenDerivedTheme.colors.component as Record<string, string>).cpu).toBe('#EF4444');
         expect((tokenDerivedTheme.colors.surface as Record<string, string>).primary).toBe('#1E293B');
     });
+
+    // v4-cleanup: tokens that repair previously-dead component classes
+    // (`bg-surface-hover`, `text-text-disabled`) and replace hardcoded translucent
+    // blacks (`bg-black/{40,20}` → `bg-surface-sunken/{40,20}`).
+    it('exposes the surface.hover / surface.sunken / text.disabled repair tokens', () => {
+        const surface = tokenDerivedTheme.colors.surface as Record<string, string>;
+        const text = tokenDerivedTheme.colors.text as Record<string, string>;
+        expect(surface.hover, 'surface.hover').toBe('#334155');
+        expect(surface.sunken, 'surface.sunken').toBe('#000000');
+        expect(text.disabled, 'text.disabled').toBe('#6B7280');
+        // and they must be wired into the resolved Tailwind theme, not just the adapter
+        expect((resolved.colors?.surface as Record<string, string>)?.hover).toBe('#334155');
+        expect((resolved.colors?.surface as Record<string, string>)?.sunken).toBe('#000000');
+        expect((resolved.colors?.text as Record<string, string>)?.disabled).toBe('#6B7280');
+    });
 });
