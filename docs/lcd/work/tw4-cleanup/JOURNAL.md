@@ -10,7 +10,7 @@
 
 - **Lane:** Standard
 - **Goal:** Tailwind v4 follow-ups — drop redundant cssnano + tokenize hardcoded panel/disabled colors and repair the dead `surface.hover`/`text.disabled` tokens.
-- **Next action:** Commit docs; push branch; open PR. (All code + verification done.)
+- **Next action:** Done — PR #181 open (<https://github.com/stid/Apple1JS/pull/181>), awaiting review/merge.
 - **Branch:** chore/tw4-cleanup · **Updated:** 2026-05-30 12:50
 
 ## STEPS
@@ -20,7 +20,7 @@
 - [x] S3 — TDD: parity assertions red → added `surface.hover/sunken` + `text.disabled` to tokens.ts + adapter, green (commit 858e877)
 - [x] S4 — Swapped `bg-black/{40,20}` → `bg-surface-sunken/{40,20}` (×10) + `text-gray-500!` → `text-text-tertiary!` (commit 654ad40)
 - [x] S5 — Gate green (759 passed/20 skipped); verified via dist-CSS grep (dead utilities now emit correct values)
-- [ ] S6 — Commit docs (DECISIONS D-007 + roadmap); push; open PR ← next
+- [x] S6 — Committed docs (DECISIONS D-007 + roadmap); pushed; opened PR #181
 
 ## DECISIONS (this work-item)
 
@@ -38,7 +38,7 @@
 - `src/styles/tokens.ts`, `src/styles/tailwind-tokens.ts`, `src/styles/__tests__/token-tailwind-parity.vitest.test.ts`
 - `src/components/{Info,PaginatedTableView,StackViewer,MemoryViewerPaginated}.tsx`
 - `docs/lcd/DECISIONS.md`, `docs/active/consolidated_roadmap.md`
-  <!-- /lcd-resume -->
+      <!-- /lcd-resume -->
 
 ---
 
