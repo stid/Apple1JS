@@ -52,6 +52,8 @@ export const tokenDerivedTheme = {
             tertiary: colors.surface.tertiary,
             quaternary: colors.surface.quaternary,
             overlay: colors.surface.overlay,
+            hover: colors.surface.hover,
+            sunken: colors.surface.sunken,
         },
 
         // Border colors
@@ -69,6 +71,7 @@ export const tokenDerivedTheme = {
             tertiary: colors.text.tertiary,
             accent: colors.text.accent,
             muted: colors.text.muted,
+            disabled: colors.text.disabled,
         },
 
         // Component type colors — PascalCase token keys → lowercase Tailwind keys.

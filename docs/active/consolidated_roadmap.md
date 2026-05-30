@@ -72,7 +72,7 @@ These items improve core functionality without significant regression risk.
 src/core/cpu6502/
 ├── types.ts        # Shared interfaces and types
 ├── opcodes.ts      # Opcode table (256 entries)
-├── addressing.ts   # Addressing mode implementations  
+├── addressing.ts   # Addressing mode implementations
 ├── instructions.ts # Instruction implementations
 ├── debug.ts        # Debugging functionality
 ├── core.ts         # Main CPU class
@@ -93,14 +93,14 @@ src/core/cpu6502/
 
 - ✅ Analyzed existing worker state sync patterns across components
 - ✅ Created generic `useWorkerState<T>` hook with:
-  - Polling and subscription support
-  - Optimistic updates
-  - Error handling with custom handlers
-  - Transform functions for data processing
-  - Caching capabilities
+    - Polling and subscription support
+    - Optimistic updates
+    - Error handling with custom handlers
+    - Transform functions for data processing
+    - Caching capabilities
 - ✅ Created specialized hooks using `useWorkerState`:
-  - `useWorkerDebugInfo` - Adaptive polling based on pause state
-  - `useWorkerBreakpoints` - Helper functions for breakpoint management
+    - `useWorkerDebugInfo` - Adaptive polling based on pause state
+    - `useWorkerBreakpoints` - Helper functions for breakpoint management
 - ✅ Fixed duplicate CPU type definitions (moved to `core/cpu6502/types.ts`)
 - ✅ All tests passing (626 passed, 0 skipped)
 - ✅ App running successfully with no regressions
@@ -216,7 +216,7 @@ These enhance functionality with moderate complexity and risk.
 **Files to Update**:
 
 - WorkerCommunicationService.ts
-- StatePersistenceService.ts  
+- StatePersistenceService.ts
 - Error.tsx
 - errors.ts
 
@@ -317,13 +317,6 @@ These are nice-to-have improvements with minimal risk.
 - Rapid changes could cause flickering
 - Add debouncing to externalAddress
 
-#### Tailwind v4 follow-ups
-
-- Drop `cssnano` — redundant under v4 (`@tailwindcss/postcss` + Vite both minify CSS; it was
-  dead even on v3 via a stale `.postcssrc` shadow). One-line removal + dep drop.
-- Token-compliance for the `bg-black/*` / `text-gray-500` usages the v4 renames surfaced —
-  tracked under Component Color Standardization (#16).
-
 ---
 
 ### 16. Documentation & Standards
@@ -346,9 +339,12 @@ These are nice-to-have improvements with minimal risk.
 
 - Audit remaining hardcoded colors
 - Update to use design tokens
-- Known sites: `bg-black/40`, `bg-black/20` (~10 uses) and `!text-gray-500` (`UNMAPPED`
-  dimming). Grays map to `text-text-tertiary` (#6B7280); the translucent blacks need a new
-  `surface-translucent` token decision. (Surfaced by CodeRabbit on PR #179.)
+- ✅ Done (D-007): translucent blacks → `surface.sunken` (`bg-surface-sunken/{40,20}`), unmapped
+  `!text-gray-500` → `text-text-tertiary!`, and the dead `surface.hover`/`text.disabled` tokens
+  repaired.
+- Remaining (deferred): error reds in `Error.tsx` / `AppContent.tsx` "not connected" messages
+  (→ `error` token), `text-black` contrast text on accent backgrounds, and `index.css` base-layer
+  defaults (`bg-black`, `text-gray-400`, `text-slate-500`).
 
 ---
 
@@ -380,6 +376,8 @@ These are nice-to-have improvements with minimal risk.
 
 From various documents:
 
+- ✅ Tailwind v4 cleanup — dropped redundant `cssnano`; tokenized hardcoded panel/unmapped colors
+    - repaired dead `surface.hover`/`text.disabled` tokens (D-007)
 - ✅ Tailwind CSS v3→v4 upgrade — compat-first via `@config`, token SSOT preserved (PR #179)
 - ✅ Comlink Worker Migration (Phase 2 complete)
 - ✅ Jest to Vitest Migration (601 tests)
