@@ -8,16 +8,17 @@
  * (glow box-shadows, animations, keyframes) are intentionally NOT covered here.
  */
 import { describe, expect, it } from 'vitest';
-import resolveConfig from 'tailwindcss/resolveConfig';
 import type { Config } from 'tailwindcss';
 import { tokenDerivedTheme } from '../tailwind-tokens';
 import { designTokens } from '../tokens';
 // The TS Tailwind config at repo root, derived from tokens via the adapter.
 import tailwindConfig from '../../../tailwind.config';
 
-// Tailwind's resolved theme types use literal keys; index through a loose
-// record so the parity loops can address arbitrary token-derived keys.
-const resolved = resolveConfig(tailwindConfig as Config).theme as unknown as Record<string, Record<string, unknown>>;
+// Tailwind v4 removed `tailwindcss/resolveConfig`. The JS config (loaded at
+// runtime via `@config`) wires the adapter into `theme.extend`, so we assert
+// against that directly — this still guards the token↔config wiring against
+// drift. Index through a loose record to address arbitrary token-derived keys.
+const resolved = (tailwindConfig as Config).theme?.extend as unknown as Record<string, Record<string, unknown>>;
 
 describe('token ↔ Tailwind parity', () => {
     it('exposes every adapter-derived color in the resolved Tailwind theme', () => {

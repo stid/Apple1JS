@@ -14,7 +14,7 @@ const Main: React.FC<MainProps> = ({ workerManager, apple1Instance }) => {
     return (
         <div className="w-full h-screen flex flex-col overflow-hidden">
             <header
-                className="flex-shrink-0 w-full bg-surface-primary border-b border-border-primary py-md px-lg flex items-center justify-between"
+                className="shrink-0 w-full bg-surface-primary border-b border-border-primary py-md px-lg flex items-center justify-between"
                 // Token md shadow; Tailwind's default shadow-md differs slightly.
                 style={{ boxShadow: designTokens.boxShadow.md }}
             >

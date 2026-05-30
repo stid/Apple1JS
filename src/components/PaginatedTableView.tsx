@@ -122,7 +122,7 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
             className={`h-full flex flex-col bg-surface-primary rounded-lg border border-border-primary ${className}`}
         >
             {/* Controls Header */}
-            <div className="p-sm border-b border-border-subtle flex-shrink-0">
+            <div className="p-sm border-b border-border-subtle shrink-0">
                 <div className="flex flex-wrap items-center gap-sm">
                     {/* Address Navigation */}
                     <div className="flex items-center gap-xs">
@@ -132,21 +132,21 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
                             value={addressInput}
                             onChange={handleAddressChange}
                             onKeyDown={handleAddressSubmit}
-                            className="bg-black/40 border border-border-primary text-data-address px-2 py-1 w-20 font-mono text-xs rounded transition-colors focus:border-border-accent focus:outline-none"
+                            className="bg-black/40 border border-border-primary text-data-address px-2 py-1 w-20 font-mono text-xs rounded-sm transition-colors focus:border-border-accent focus:outline-hidden"
                             placeholder="0000"
                             maxLength={4}
                         />
                         <div className="flex gap-xs">
                             <button
                                 onClick={onNavigateUp}
-                                className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded hover:bg-surface-hover"
+                                className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
                                 title="Previous page (↑)"
                             >
                                 ↑
                             </button>
                             <button
                                 onClick={onNavigateDown}
-                                className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded hover:bg-surface-hover"
+                                className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
                                 title="Next page (↓)"
                             >
                                 ↓

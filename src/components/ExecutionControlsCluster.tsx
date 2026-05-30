@@ -60,7 +60,7 @@ const ExecutionControlsCluster: React.FC<ExecutionControlsClusterProps> = ({
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [isPaused, step, handleRunPause]);
 
-    const btn = 'px-md py-xs text-xs font-medium rounded transition-all min-h-[28px] border';
+    const btn = 'px-md py-xs text-xs font-medium rounded-sm transition-all min-h-[28px] border';
 
     return (
         <div className="flex items-center gap-sm flex-wrap justify-end">

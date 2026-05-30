@@ -120,7 +120,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
     const renderPerformanceBar = (value: number | undefined, max: number, color: string): React.ReactElement => {
         const percentage = value && max > 0 ? (value / max) * 100 : 0;
         return (
-            <div className="w-full bg-surface-secondary rounded-sm h-2 overflow-hidden">
+            <div className="w-full bg-surface-secondary rounded-xs h-2 overflow-hidden">
                 <div className={`h-full transition-all duration-300 ${color}`} style={{ width: `${percentage}%` }} />
             </div>
         );

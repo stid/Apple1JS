@@ -14,7 +14,7 @@ export type ActionsProps = {
 // Hover states are pure CSS (no JS hover tracking needed).
 const actionButtonBase =
     'inline-block py-sm px-md rounded-lg text-xs font-mono tracking-wide ' +
-    'transition-all duration-150 ease-in-out no-underline cursor-pointer border outline-none';
+    'transition-all duration-150 ease-in-out no-underline cursor-pointer border outline-hidden';
 
 const actionButtonVariant = {
     success: 'bg-success/10 hover:bg-success/20 border-success/30 hover:border-success text-success',

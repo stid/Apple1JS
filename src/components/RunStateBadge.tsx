@@ -33,7 +33,7 @@ const RunStateBadge: React.FC<RunStateBadgeProps> = ({ executionState, currentPC
             role="status"
             aria-live="polite"
             aria-label={showAddress ? `${label} at ${address}` : label}
-            className={`inline-flex items-center gap-xs text-xs font-medium px-sm py-xxs rounded ${classes} ${className}`}
+            className={`inline-flex items-center gap-xs text-xs font-medium px-sm py-xxs rounded-sm ${classes} ${className}`}
         >
             <span aria-hidden="true">{glyph}</span>
             <span>{label}</span>

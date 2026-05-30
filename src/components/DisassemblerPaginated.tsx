@@ -636,7 +636,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         <div className="flex items-center gap-xs">
             <button
                 onClick={jumpToPC}
-                className="px-sm py-xxs text-xs font-medium rounded transition-all bg-data-address/10 text-data-address hover:bg-data-address/20 border border-data-address/30"
+                className="px-sm py-xxs text-xs font-medium rounded-sm transition-all bg-data-address/10 text-data-address hover:bg-data-address/20 border border-data-address/30"
                 title="Jump to PC (F8)"
             >
                 →PC
