@@ -11,6 +11,7 @@
 ---
 
 ## D-005 · 2026-05-28 · Worker-hosted architecture with typed comlink messaging
+
 - **Context:** The emulator must run the CPU loop without blocking the UI thread.
 - **Decision:** Run the system in a Web Worker; communicate via `comlink` and type-safe
   `sendWorkerMessage(...)` with messages defined in `src/apple1/types/worker-messages.ts`.
@@ -19,6 +20,7 @@
 - **Status:** active   <!-- detected at onboarding — confirm/edit -->
 
 ## D-004 · 2026-05-28 · WASM build is speed-first
+
 - **Context:** Two viable WASM optimization strategies — size-first vs speed-first.
 - **Decision:** Build the WASM CPU speed-first (`opt-level = 3` + `-O3` wasm-opt, ~155 KB release);
   this is what `yarn dev` ships. The old "<100 KB / 90 KB" size-first target is abandoned.
@@ -27,6 +29,7 @@
 - **Status:** active   <!-- detected at onboarding — confirm/edit -->
 
 ## D-003 · 2026-05-28 · Dual-engine 6502 (TypeScript + Rust/WASM)
+
 - **Context:** Wanted both an approachable reference implementation and high throughput.
 - **Decision:** Maintain two 6502 engines — a TypeScript reference and a Rust→WASM engine
   (`wasm-cpu/` → `src/wasm/`) — switchable at runtime, with the JS engine as the always-available
@@ -36,6 +39,7 @@
 - **Status:** active   <!-- detected at onboarding — confirm/edit -->
 
 ## D-002 · 2026-05-28 · Vitest as the test framework
+
 - **Context:** Needed a fast test runner aligned with the Vite toolchain.
 - **Decision:** Use Vitest (`jsdom`/`happy-dom` env, `globals: true`), discovery glob
   `src/**/*.vitest.{test,spec}.{js,jsx,ts,tsx}`, tests co-located under `__tests__/`.
@@ -44,6 +48,7 @@
 - **Status:** active   <!-- detected at onboarding — confirm/edit -->
 
 ## D-001 · 2026-05-28 · Yarn (classic) as the package manager
+
 - **Context:** A single lockfile/PM is needed for reproducible installs.
 - **Decision:** Use Yarn (`yarn.lock`) for dependency management and script running.
 - **Alternatives rejected:** npm / pnpm — no migration reason.
