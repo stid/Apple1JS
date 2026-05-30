@@ -12,8 +12,11 @@
 4. **Keep the JS engine as fallback**; document performance differences.
 5. **No `any` types** (strict mode), **no `console.log`** (use LoggingService),
    **no hardcoded colors** (design tokens — except the CRT display).
-6. **Bump `src/version.ts`** before every PR — it's the single source of truth
-   for the app version (patch/minor/major per branch prefix).
+6. **Bump `src/version.ts`** before every PR — single source of truth for the app
+   version. Branch-prefix → bump: `feat/` = **minor**; `fix/` `refactor/` `chore/`
+   `docs/` `test/` = **patch**; **major** needs explicit approval. (A `refactor/` may
+   take a minor for a notable user-facing change — an owner override; resolve the
+   review thread rather than concede.)
 
 ## Quick Start Checklist
 
@@ -21,7 +24,7 @@
 git branch --show-current                         # 1. NEVER work on master
 git checkout -b <type>/<description>              # 2. branch if needed
 yarn test:ci                                      # 3. verify starting state
-cat src/version.ts                                # 4. check version (4.42.7)
+cat src/version.ts                                # 4. check current version
 yarn wasm:build:release                           # 5. build WASM (release = speed-first)
 # 6. Use the task tools for any multi-step work.
 ```
@@ -122,12 +125,22 @@ yarn test:coverage # coverage
 
 Test guidelines: `docs/active/cpu_test_guidelines.md`.
 
+**WASM core tests need a real browser.** Don't add native Rust tests on the CPU/`WasmSystem`
+path — `CPU6502::new()` / `WasmSystem::initialize()` call wasm-bindgen imports that panic under
+native `cargo test` (`yarn wasm:test` only runs the pure `bus.rs`/`ram.rs`/`rom.rs` component
+tests). The Node-vitest engine-parity suites load the wasm-pack "web" build via `fetch()` (absent
+in Node), so they `skipIf`/**skip in CI**. A Rust core change therefore gets `cargo check` + a
+skipped parity test — verify actual WASM behavior in a browser (see the test guidelines).
+
 ## Before ANY Commit
 
 ```bash
 yarn run lint && yarn run type-check && yarn run test:ci
-yarn run lint:md:fix    # after editing/creating any markdown
-# bump src/version.ts (patch/minor/major)
+npx markdownlint-cli2 --fix "<file.md>"   # ONLY the file(s) you edited
+# ⚠️ NEVER run the repo-wide `yarn lint:md:fix`: it corrupts the machine block in
+#    .claude/rules/lcd-conventions.md and reflows nested lists (prettier wants 4-space,
+#    markdownlint MD007 wants 2-space). md-lint is NOT in CI, so the breakage is silent.
+# bump src/version.ts — see the branch-prefix mapping in Critical Development Rules #6
 git add -A && git commit -m "type: description"   # feat:, fix:, docs:, ...
 git push
 ```
@@ -155,6 +168,14 @@ git push
 For UI changes, iterate against visuals: ask for current-state screenshots /
 mockups and concrete success criteria up front, then screenshot progress and
 iterate 2–3 times.
+
+**Verifying in a real browser:** the emulator runs a continuous worker/rAF loop, so the page
+never reaches `document_idle` — idle-gated screenshot / page-text tooling times out (don't retry
+it). Drive and inspect the DOM via in-page JS instead. For auto-dismissing UI (toasts clear after
+`UI_TIMINGS.TOAST_DURATION` ≈ 4s), sample within a **single** in-page async loop rather than across
+separate tool round-trips — the round-trip latency can miss the transient state and look like a
+bug. Dev server: `yarn dev` (builds the WASM release, then Vite on :3000); `yarn dev:vite` reuses
+prebuilt WASM for CSS/markup-only changes.
 
 ## GitHub CLI
 
