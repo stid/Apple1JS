@@ -126,7 +126,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
             </div>
 
             {/* Stack Contents */}
-            <div className="flex-1 overflow-auto bg-black/20 rounded border border-border-subtle">
+            <div className="flex-1 overflow-auto bg-black/20 rounded-sm border border-border-subtle">
                 <div className="sticky top-0 bg-surface-primary border-b border-border-primary px-2 py-1">
                     <div className="flex justify-between text-xs text-text-secondary">
                         <span>Address</span>

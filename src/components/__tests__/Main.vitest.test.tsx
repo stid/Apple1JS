@@ -72,7 +72,7 @@ describe('Main component', () => {
         // Check header layout classes (token-backed surface + border)
         const header = screen.getByRole('banner');
         expect(header).toHaveClass(
-            'flex-shrink-0',
+            'shrink-0',
             'w-full',
             'bg-surface-primary',
             'border-b',

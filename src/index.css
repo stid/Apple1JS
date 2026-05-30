@@ -1,6 +1,140 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@config '../tailwind.config.ts';
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility animate-fade-in {
+  /* Fade-in animation for status messages */
+  animation: fadeIn 0.3s ease-in-out;
+}
+@utility crt-container {
+  /* Advanced CRT Effects */
+  @apply relative overflow-hidden;
+  isolation: isolate;
+}
+@utility crt-phosphor {
+  /* Phosphor persistence effect */
+  position: relative;
+  text-shadow:
+    0 0 3px currentColor,
+    0 0 6px rgba(0, 255, 0, 0.6),
+    0 0 10px rgba(0, 255, 0, 0.3);
+  transition: opacity 150ms ease-out;
+}
+@utility crt-bloom {
+  /* CRT bloom effect */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 35%,
+      rgba(0, 255, 0, 0.04) 55%,
+      rgba(0, 255, 0, 0.02) 75%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 5;
+    mix-blend-mode: screen;
+  }
+}
+@utility crt-barrel {
+  /* Barrel distortion effect */
+  filter: contrast(1.08) brightness(0.97);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      transparent 65%,
+      rgba(0, 0, 0, 0.1) 85%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    pointer-events: none;
+    z-index: 15;
+  }
+}
+@utility crt-scanline-wobble {
+  /* Scan line wobble animation */
+  animation: scanlineWobble 10s ease-in-out infinite;
+}
+@utility crt-scanlines {
+  /* Enhanced scanline effect */
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.25) 2.5px,
+    rgba(0, 0, 0, 0.25) 3.5px,
+    transparent 4px
+  );
+
+  /* Moving scanline effect */
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 255, 0, 0.05) 50%,
+      transparent 100%
+    );
+    height: 200px;
+    animation: scanlineMove 5s linear infinite;
+  }
+}
+@utility crt-power-on {
+  /* Power-on effect */
+  animation: powerOn 0.6s ease-out;
+}
+@utility crt-flicker {
+  /* CRT flicker effect */
+  animation: crtFlicker 0.15s infinite;
+}
+@utility crt-chromatic {
+  /* Chromatic aberration for extra realism */
+  text-shadow:
+    0.7px 0 0 rgba(255, 0, 0, 0.2),
+    -0.7px 0 0 rgba(0, 255, 255, 0.2);
+}
+@utility crt-char-glow {
+  /* Character glow for brighter text */
+  filter: brightness(1.1);
+  text-shadow:
+    0 0 1px currentColor,
+    0 0 2px rgba(0, 255, 0, 0.5);
+}
 
 /* Define custom styles for the base layer */
 @layer base {
@@ -39,10 +173,6 @@
 
 /* Define custom utilities */
 @layer utilities {
-  /* Fade-in animation for status messages */
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
 
   @keyframes fadeIn {
     from {
@@ -54,116 +184,16 @@
       transform: translateY(0);
     }
   }
-
-  /* Advanced CRT Effects */
-  .crt-container {
-    @apply relative overflow-hidden;
-    isolation: isolate;
-  }
-
-  /* Phosphor persistence effect */
-  .crt-phosphor {
-    position: relative;
-    text-shadow: 
-      0 0 3px currentColor,
-      0 0 6px rgba(0, 255, 0, 0.6),
-      0 0 10px rgba(0, 255, 0, 0.3);
-    transition: opacity 150ms ease-out;
-  }
-
-  /* CRT bloom effect */
-  .crt-bloom::before {
-    content: '';
-    position: absolute;
-    inset: -40px;
-    background: radial-gradient(
-      ellipse at center,
-      transparent 35%,
-      rgba(0, 255, 0, 0.04) 55%,
-      rgba(0, 255, 0, 0.02) 75%,
-      transparent 100%
-    );
-    pointer-events: none;
-    z-index: 5;
-    mix-blend-mode: screen;
-  }
-
-  /* Barrel distortion effect */
-  .crt-barrel {
-    filter: 
-      contrast(1.08) 
-      brightness(0.97);
-    transform-style: preserve-3d;
-    perspective: 1000px;
-  }
-
-  .crt-barrel::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 65%,
-      rgba(0, 0, 0, 0.1) 85%,
-      rgba(0, 0, 0, 0.2) 100%
-    );
-    pointer-events: none;
-    z-index: 15;
-  }
-
-  /* Scan line wobble animation */
   @keyframes scanlineWobble {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(0.3px); }
     50% { transform: translateX(-0.3px); }
     75% { transform: translateX(0.2px); }
   }
-
-  .crt-scanline-wobble {
-    animation: scanlineWobble 10s ease-in-out infinite;
-  }
-
-  /* Enhanced scanline effect */
-  .crt-scanlines {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    opacity: 0.3;
-    mix-blend-mode: multiply;
-    background-image: 
-      repeating-linear-gradient(
-        180deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.25) 2.5px,
-        rgba(0, 0, 0, 0.25) 3.5px,
-        transparent 4px
-      );
-  }
-
-  /* Moving scanline effect */
   @keyframes scanlineMove {
     0% { transform: translateY(0); }
     100% { transform: translateY(10px); }
   }
-
-  .crt-scanlines::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      rgba(0, 255, 0, 0.05) 50%,
-      transparent 100%
-    );
-    height: 200px;
-    animation: scanlineMove 5s linear infinite;
-  }
-
-  /* Power-on effect */
   @keyframes powerOn {
     0% {
       filter: brightness(0) contrast(0);
@@ -190,33 +220,8 @@
       transform: scale(1, 1);
     }
   }
-
-  .crt-power-on {
-    animation: powerOn 0.6s ease-out;
-  }
-
-  /* CRT flicker effect */
   @keyframes crtFlicker {
     0%, 100% { opacity: 0.98; }
     50% { opacity: 1; }
-  }
-
-  .crt-flicker {
-    animation: crtFlicker 0.15s infinite;
-  }
-
-  /* Chromatic aberration for extra realism */
-  .crt-chromatic {
-    text-shadow: 
-      0.7px 0 0 rgba(255, 0, 0, 0.2),
-      -0.7px 0 0 rgba(0, 255, 255, 0.2);
-  }
-
-  /* Character glow for brighter text */
-  .crt-char-glow {
-    filter: brightness(1.1);
-    text-shadow: 
-      0 0 1px currentColor,
-      0 0 2px rgba(0, 255, 0, 0.5);
   }
 }

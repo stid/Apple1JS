@@ -173,7 +173,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
 
   return (
     <button
-      className={`cursor-pointer hover:underline hover:text-data-address-hover hover:bg-data-address/10 hover:px-1 hover:-mx-1 rounded transition-all duration-150 text-data-address ${className} bg-transparent border-none p-0 m-0 font-inherit`}
+      className={`cursor-pointer hover:underline hover:text-data-address-hover hover:bg-data-address/10 hover:px-1 hover:-mx-1 rounded-sm transition-all duration-150 text-data-address ${className} bg-transparent border-none p-0 m-0 font-inherit`}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onMouseDown={handleMouseDown}

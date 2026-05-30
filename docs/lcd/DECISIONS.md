@@ -6,9 +6,26 @@
 > one `superseded by D-NNN`. Work-item-local decisions live in that item's `JOURNAL.md`; mirror
 > here only the ones that outlive the work item.
 
-<!-- Next id: D-006 -->
+<!-- Next id: D-007 -->
 
 ---
+
+## D-006 · 2026-05-30 · Tailwind v4 adopted compat-first (`@config`); CSS-first `@theme` deferred
+
+- **Context:** Tailwind v3→v4 is a config-paradigm rewrite. `npx @tailwindcss/upgrade`
+  defaults to CSS-first — it inlined the token values as hardcoded `@theme` variables and
+  deleted `tailwind.config.ts`.
+- **Decision:** Adopt the v4 engine **compat-first**: keep `tailwind.config.ts` + the
+  `tokens.ts → tailwind-tokens.ts` adapter, load it via `@config "../tailwind.config.ts"` in
+  `src/index.css`, and use `@tailwindcss/postcss`. The token single-source-of-truth + its
+  parity test stay live. (PR #179.)
+- **Alternatives rejected:** the upgrade tool's CSS-first `@theme` inlining — hardcodes token
+  values and orphans the adapter + parity test (a token-SSOT downgrade); `@tailwindcss/vite` —
+  Rolldown plugin-hook friction under Vite 8. The **CSS-first `@theme` rewrite is deferred** as a
+  future modernization (re-architect `tokens.ts` to *emit* `@theme`, unifying Tailwind utilities
+  and runtime inline styles on one set of CSS variables) — not needed; we are fully on v4.
+- **Scope:** project-wide
+- **Status:** active
 
 ## D-005 · 2026-05-28 · Worker-hosted architecture with typed comlink messaging
 

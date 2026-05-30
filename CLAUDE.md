@@ -48,6 +48,14 @@ shadows it).
 - **Build from wrong directory**: always `cd wasm-cpu` first (or use the `yarn`
   scripts above).
 - **Missing target**: `rustup target add wasm32-unknown-unknown`.
+- **Homebrew rustc shadows rustup** — `wasm-pack` fails with
+  `wasm32-unknown-unknown target not found in sysroot`. The rustup toolchain has
+  the target but Homebrew's `rustc` wins on PATH. Prepend the rustup toolchain
+  bin (the concrete bin, not the `~/.cargo/bin` shim) so the WASM rebuild in
+  `yarn dev`/`yarn build` works:
+  `env PATH="$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH" yarn dev`.
+  For a CSS-only change use `yarn dev:vite` — it reuses the already-built
+  `src/wasm/*` and skips the rebuild.
 
 ## Performance Tracking
 

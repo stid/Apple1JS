@@ -122,11 +122,11 @@ const MemoryRow = memo<MemoryRowProps>(({
                         onBlur={onCellEditComplete}
                         onKeyDown={onKeyDown}
                         onFocus={(e) => e.target.select()}
-                        className="w-6 text-center bg-info text-black font-mono text-xs rounded"
+                        className="w-6 text-center bg-info text-black font-mono text-xs rounded-sm"
                         autoFocus
                     />
                 ) : (
-                    <span className={`font-mono text-xs ${!region || region.type === 'UNMAPPED' ? '!text-gray-500' : 'text-data-value'}`}>
+                    <span className={`font-mono text-xs ${!region || region.type === 'UNMAPPED' ? 'text-gray-500!' : 'text-data-value'}`}>
                         {Formatters.hex(value, 2)}
                     </span>
                 )}
@@ -451,20 +451,20 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                     value={addressInput}
                     onChange={handleAddressChange}
                     onKeyDown={handleAddressSubmit}
-                    className="w-20 px-2 py-1 text-xs font-mono bg-black/40 border border-border-primary rounded text-data-address focus:border-border-accent focus:outline-none"
+                    className="w-20 px-2 py-1 text-xs font-mono bg-black/40 border border-border-primary rounded-sm text-data-address focus:border-border-accent focus:outline-hidden"
                     placeholder="0000"
                 />
                 <div className="flex gap-xs">
                     <button
                         onClick={navigateUp}
-                        className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded hover:bg-surface-hover"
+                        className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
                         title="Previous page (↑)"
                     >
                         ↑
                     </button>
                     <button
                         onClick={navigateDown}
-                        className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded hover:bg-surface-hover"
+                        className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
                         title="Next page (↓)"
                     >
                         ↓

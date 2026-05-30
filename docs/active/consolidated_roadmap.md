@@ -317,6 +317,13 @@ These are nice-to-have improvements with minimal risk.
 - Rapid changes could cause flickering
 - Add debouncing to externalAddress
 
+#### Tailwind v4 follow-ups
+
+- Drop `cssnano` — redundant under v4 (`@tailwindcss/postcss` + Vite both minify CSS; it was
+  dead even on v3 via a stale `.postcssrc` shadow). One-line removal + dep drop.
+- Token-compliance for the `bg-black/*` / `text-gray-500` usages the v4 renames surfaced —
+  tracked under Component Color Standardization (#16).
+
 ---
 
 ### 16. Documentation & Standards
@@ -339,6 +346,9 @@ These are nice-to-have improvements with minimal risk.
 
 - Audit remaining hardcoded colors
 - Update to use design tokens
+- Known sites: `bg-black/40`, `bg-black/20` (~10 uses) and `!text-gray-500` (`UNMAPPED`
+  dimming). Grays map to `text-text-tertiary` (#6B7280); the translucent blacks need a new
+  `surface-translucent` token decision. (Surfaced by CodeRabbit on PR #179.)
 
 ---
 
@@ -357,12 +367,20 @@ These are nice-to-have improvements with minimal risk.
 - **E2E Tests**: Playwright integration
 - **Telemetry**: Usage analytics
 
+### Tooling & Architecture
+
+- **CSS-first Tailwind theme (`@theme`)**: re-architect `tokens.ts` to emit `@theme` CSS
+  variables, retiring the JS config + `tailwind-tokens.ts` adapter + `@config`. Unifies Tailwind
+  utilities and runtime inline styles (CRT.tsx, etc.) on one set of CSS custom properties.
+  Deferred Phase 2 of the v4 upgrade (see DECISIONS D-006). Modernization only — not needed.
+
 ---
 
 ## ✅ Recently Completed
 
 From various documents:
 
+- ✅ Tailwind CSS v3→v4 upgrade — compat-first via `@config`, token SSOT preserved (PR #179)
 - ✅ Comlink Worker Migration (Phase 2 complete)
 - ✅ Jest to Vitest Migration (601 tests)
 - ✅ Type System Organization
