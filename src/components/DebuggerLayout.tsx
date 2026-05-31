@@ -4,10 +4,12 @@ import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
 import EngineSwitcher from './EngineSwitcher';
 import PerformanceMetrics from './PerformanceMetrics';
+import CpuStateCard from './CpuStateCard';
+import ExecutionCard from './ExecutionCard';
 import { IInspectableComponent } from '../core/types';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { useWorkerData } from '../contexts/WorkerDataContext';
-import { getDebugValueOrDefault, getNumericDebugValue } from '../utils/debug-helpers';
+import { getNumericDebugValue } from '../utils/debug-helpers';
 import { useLocalStorageState } from '../hooks/useLocalStorageState';
 import AddressLink from './AddressLink';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -136,152 +138,10 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
                             <EngineSwitcher workerManager={workerManager} />
 
                             {/* CPU State */}
-                            <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                                <div className="flex items-center justify-between mb-sm">
-                                    <h3 className="text-sm font-medium text-text-accent">CPU State</h3>
-                                    <div className="text-xs font-mono text-text-secondary">
-                                        PC:{' '}
-                                        {debugInfo.cpu?.REG_PC ? (
-                                            <AddressLink
-                                                address={getNumericDebugValue(debugInfo.cpu.REG_PC, 0)}
-                                                showContextMenu={true}
-                                                workerManager={workerManager}
-                                                showRunToCursor={true}
-                                            />
-                                        ) : (
-                                            <span className="text-data-address">$0000</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-3 gap-sm text-sm">
-                                    <div>
-                                        <span className="text-text-secondary">A:</span>
-                                        <div className="font-mono text-data-value">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.REG_A, '$00')}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span className="text-text-secondary">X:</span>
-                                        <div className="font-mono text-data-value">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.REG_X, '$00')}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span className="text-text-secondary">Y:</span>
-                                        <div className="font-mono text-data-value">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.REG_Y, '$00')}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span className="text-text-secondary">SP:</span>
-                                        <div className="font-mono text-data-value">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.REG_S, '$FF')}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span className="text-text-secondary">Flags:</span>
-                                        <div className="font-mono text-xs space-x-1">
-                                            <span
-                                                className={
-                                                    debugInfo.cpu?.FLAG_N === 'SET'
-                                                        ? 'text-success'
-                                                        : 'text-text-secondary'
-                                                }
-                                            >
-                                                N
-                                            </span>
-                                            <span
-                                                className={
-                                                    debugInfo.cpu?.FLAG_V === 'SET'
-                                                        ? 'text-success'
-                                                        : 'text-text-secondary'
-                                                }
-                                            >
-                                                V
-                                            </span>
-                                            <span className="text-text-secondary">-</span>
-                                            <span className="text-text-secondary">B</span>
-                                            <span
-                                                className={
-                                                    debugInfo.cpu?.FLAG_D === 'SET'
-                                                        ? 'text-success'
-                                                        : 'text-text-secondary'
-                                                }
-                                            >
-                                                D
-                                            </span>
-                                            <span
-                                                className={
-                                                    debugInfo.cpu?.FLAG_I === 'SET'
-                                                        ? 'text-success'
-                                                        : 'text-text-secondary'
-                                                }
-                                            >
-                                                I
-                                            </span>
-                                            <span
-                                                className={
-                                                    debugInfo.cpu?.FLAG_Z === 'SET'
-                                                        ? 'text-success'
-                                                        : 'text-text-secondary'
-                                                }
-                                            >
-                                                Z
-                                            </span>
-                                            <span
-                                                className={
-                                                    debugInfo.cpu?.FLAG_C === 'SET'
-                                                        ? 'text-success'
-                                                        : 'text-text-secondary'
-                                                }
-                                            >
-                                                C
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span className="text-text-secondary">Cycles:</span>
-                                        <div className="font-mono text-data-status">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.HW_CYCLES, '0')}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <CpuStateCard debugInfo={debugInfo} workerManager={workerManager} />
 
                             {/* Execution State */}
-                            <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                                <h3 className="text-sm font-medium text-text-accent mb-sm">Execution</h3>
-                                <div className="space-y-sm text-sm">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-text-secondary">Last Opcode:</span>
-                                        <span className="font-mono text-data-value">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.HW_OPCODE, '$00')}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-text-secondary">Instructions:</span>
-                                        <span className="font-mono text-data-status">
-                                            {getDebugValueOrDefault(debugInfo.cpu?.PERF_INSTRUCTIONS, '0')}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-text-secondary">IRQ Line:</span>
-                                        <span
-                                            className={`font-mono text-sm ${debugInfo.cpu?.IRQ_LINE === 'ACTIVE' ? 'text-warning' : 'text-text-secondary'}`}
-                                        >
-                                            {getDebugValueOrDefault(debugInfo.cpu?.IRQ_LINE, 'INACTIVE')}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-text-secondary">NMI Line:</span>
-                                        <span
-                                            className={`font-mono text-sm ${debugInfo.cpu?.NMI_LINE === 'ACTIVE' ? 'text-warning' : 'text-text-secondary'}`}
-                                        >
-                                            {getDebugValueOrDefault(debugInfo.cpu?.NMI_LINE, 'INACTIVE')}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <ExecutionCard debugInfo={debugInfo} />
 
                             {/* Memory Map Quick Reference */}
                             <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
