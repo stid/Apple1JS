@@ -47,7 +47,7 @@ const CpuStateCardComponent: React.FC<CpuStateCardProps> = ({ debugInfo, workerM
         <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
             {/* Header: title + clickable PC pill */}
             <div className="flex items-center justify-between mb-sm">
-                <h3 className="text-sm font-medium text-text-accent">CPU State</h3>
+                <h3 className="text-base font-semibold tracking-wide text-text-accent">CPU State</h3>
                 <span className="inline-flex items-center gap-xs rounded-md border border-border-primary bg-data-value/5 px-sm py-xs text-xs font-mono">
                     <span className="text-text-secondary">PC</span>
                     {cpu?.REG_PC ? (

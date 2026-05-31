@@ -16,8 +16,9 @@ describe('ExecutionCard (cpu-state-panel-redesign)', () => {
         expect(screen.getByText('Instructions')).toBeInTheDocument();
         expect(screen.getByText('IRQ Line')).toBeInTheDocument();
         expect(screen.getByText('NMI Line')).toBeInTheDocument();
-        expect(screen.getByText('$38')).toHaveClass('text-data-value');
-        expect(screen.getByText('14,056')).toHaveClass('text-data-status');
+        // Values are emphasized (semibold) so they carry the visual hierarchy, matching the mockup.
+        expect(screen.getByText('$38')).toHaveClass('text-data-value', 'font-semibold');
+        expect(screen.getByText('14,056')).toHaveClass('text-data-status', 'font-semibold');
     });
 
     it('highlights an ACTIVE interrupt line with the warning token', () => {
