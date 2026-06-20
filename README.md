@@ -10,7 +10,7 @@ All AI-generated contributions are reviewed and curated by me to ensure quality 
 
 ## Demo
 
-You can try out the emulator in your browser with the [Interactive Demo](https://stid.me).
+You can try out the emulator in your browser with the [Interactive Demo](https://apple1.stid.me).
 
 ## Local Setup
 
