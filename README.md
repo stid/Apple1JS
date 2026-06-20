@@ -1,6 +1,5 @@
 # Apple 1 JS Emulator
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/8dda601a-c4c2-4cde-80c4-bc08ffd6d18e/deploy-status)](https://app.netlify.com/sites/stidme/deploys)
 [![CodeQL](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/stid/Apple1JS/actions/workflows/github-code-scanning/codeql)
 
 A modern TypeScript/React-based Apple 1 computer emulator featuring complete 6502 CPU emulation, memory management, peripheral interface adapter (PIA 6820), and a CRT-style display interface. Built with Vite and modern web technologies.
@@ -10,7 +9,7 @@ All AI-generated contributions are reviewed and curated by me to ensure quality 
 
 ## Demo
 
-You can try out the emulator in your browser with the [Interactive Demo](https://stid.me).
+You can try out the emulator in your browser with the [Interactive Demo](https://apple1.stid.me).
 
 ## Local Setup
 
