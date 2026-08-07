@@ -6,9 +6,52 @@
 > one `superseded by D-NNN`. Work-item-local decisions live in that item's `JOURNAL.md`; mirror
 > here only the ones that outlive the work item.
 
-<!-- Next id: D-011 -->
+<!-- Next id: D-014 -->
 
 ---
+
+## D-013 · 2026-08-06 · Dual-engine parity covers undocumented opcodes, not just documented ones
+
+- **Context:** The hardware-accuracy audit found the reference engine implements ~18 undocumented
+  6502 instructions (7 of them incorrectly) while the second engine implements none. The parity
+  invariant could be honoured either by scoping it to documented instructions or by making both
+  engines implement the full set.
+- **Decision:** Parity is literal. Undocumented instructions are corrected in the first engine and
+  implemented in the second, so any program produces identical state on both.
+- **Alternatives rejected:** Scope the invariant to documented instructions and record the gap —
+  cheaper, but leaves the fuzz-parity harness permanently unable to distinguish a real regression
+  from a known divergence. Remove them from the first engine — parity by subtraction, and a
+  feature downgrade.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-012 · 2026-08-06 · Power-on memory stays uniformly cleared — a deliberate deviation
+
+- **Context:** Real dynamic memory powers up indeterminate; both engines clear it. Reproducing
+  that would surface uninitialised-memory bugs but break byte-for-byte reproducibility.
+- **Decision:** Memory continues to power up cleared. Recorded as an intentional deviation in the
+  hardware-accuracy audit rather than fixed.
+- **Alternatives rejected:** Seeded pseudo-random fill — reproducible, but invalidates existing
+  memory-view and saved-state tests for a finding no real software observes. A configuration
+  switch — two code paths to keep tested, for the same finding.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-011 · 2026-08-06 · The reference oracle is per-behaviour, not per-engine
+
+- **Context:** The project has treated the first engine as the reference oracle for parity. The
+  hardware-accuracy audit measured the opposite on four points — zero-page pointer wrapping, the
+  indirect-jump page bug, the software-interrupt effect on the decimal flag, and indexed store
+  timing — where the second engine matches the datasheet and the first does not. The second engine
+  meanwhile has no decimal arithmetic at all.
+- **Decision:** Neither engine is authoritative by default. The datasheet is the oracle; when the
+  engines disagree, the documentation decides which one moves. The first engine keeps its role as
+  the always-available fallback and the one testable in CI, which is a separate property from
+  being correct.
+- **Alternatives rejected:** Keep the first engine authoritative — would have propagated four
+  measured defects into the second engine in the name of parity.
+- **Scope:** project-wide
+- **Status:** active
 
 ## D-010 · 2026-06-20 · Published at `apple1.stid.me` via Cloudflare; deploy config stays out of the repo
 
