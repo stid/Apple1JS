@@ -1,6 +1,6 @@
 /**
  * 6502 CPU Addressing Modes
- * 
+ *
  * This module implements all addressing modes for the 6502 processor.
  * Each addressing mode is responsible for calculating the effective address
  * and managing cycle counts.
@@ -14,7 +14,9 @@ import type { CPU6502Interface } from './types';
  */
 export function izx(this: CPU6502Interface): void {
     const a: number = (this.read(this.PC++) + this.X) & 0xff;
-    this.addr = (this.read(a + 1) << 8) | this.read(a);
+    // The pointer is read entirely from zero page — the high byte wraps to $00
+    // when the base lands on $FF. (`izy` below already does this.)
+    this.addr = (this.read((a + 1) & 0xff) << 8) | this.read(a);
     this.cycles += 6;
 }
 
@@ -36,13 +38,20 @@ export function izy(this: CPU6502Interface): void {
 
 /**
  * Indirect - JMP only - 6 cycles
- * Note: Has 6502 bug where page boundary wrap occurs at low byte
+ *
+ * Carries the NMOS 6502 bug: "an indirect jump must never use a vector
+ * beginning on the last byte of a page". The increment that fetches the
+ * target's high byte does not carry into the high address byte, so a vector
+ * at $10FF reads its high byte from $1000, not $1100.
+ *
+ * The bug is in the POINTER dereference, not the operand fetch — the two
+ * vector bytes following the opcode are read normally and do cross pages.
  */
 export function ind(this: CPU6502Interface): void {
     let a: number = this.read(this.PC);
-    a |= this.read((this.PC & 0xff00) | ((this.PC + 1) & 0xff)) << 8;
+    a |= this.read(this.PC + 1) << 8;
     this.addr = this.read(a);
-    this.addr |= this.read(a + 1) << 8;
+    this.addr |= this.read((a & 0xff00) | ((a + 1) & 0xff)) << 8;
     this.cycles += 6;
 }
 
@@ -156,10 +165,10 @@ export function rmw(this: CPU6502Interface): void {
         // 1. Write the original value back (1 cycle)
         // 2. Write the modified value (1 cycle)
         // The "read" phase was already handled in the addressing mode
-        
+
         // Phase 1: Write original value back (internal cycle)
         this.cycles += 1;
-        
+
         // Phase 2: Write modified value
         this.write(this.addr, this.tmp & 0xff);
         this.cycles += 1;

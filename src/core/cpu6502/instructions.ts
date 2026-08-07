@@ -1,6 +1,6 @@
 /**
  * 6502 CPU Instructions
- * 
+ *
  * This module implements all instructions for the 6502 processor.
  * Instructions are responsible for executing operations and setting flags.
  */
@@ -87,9 +87,9 @@ export function eor(this: CPU6502Interface): void {
 export function bit(this: CPU6502Interface): void {
     this.tmp = this.read(this.addr);
     // Optimized flag setting using bit operations
-    this.N = (this.tmp >> 7) & 1;        // Extract bit 7 directly
-    this.V = (this.tmp >> 6) & 1;        // Extract bit 6 directly
-    this.Z = (this.tmp & this.A) === 0 ? 1 : 0;  // Z flag logic unchanged
+    this.N = (this.tmp >> 7) & 1; // Extract bit 7 directly
+    this.V = (this.tmp >> 6) & 1; // Extract bit 6 directly
+    this.Z = (this.tmp & this.A) === 0 ? 1 : 0; // Z flag logic unchanged
 }
 
 // Shift and Rotate Instructions
@@ -271,7 +271,9 @@ export function brk(this: CPU6502Interface): void {
     this.write((this.stackBase || 0x100) + this.S, v);
     this.S = (this.S - 1) & 0xff;
     this.I = 1;
-    this.D = 0;
+    // NMOS 6502: BRK, IRQ and NMI do not affect the decimal flag. Clearing it
+    // here is 65C02 behaviour. WOZMON's `CLD` at $FF00 exists precisely because
+    // the real part leaves D undefined across a reset.
     this.PC = (this.read(0xffff) << 8) | this.read(0xfffe);
     this.cycles += 5;
 }
