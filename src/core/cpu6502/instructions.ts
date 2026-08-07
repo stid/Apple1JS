@@ -507,23 +507,27 @@ export function lax(this: CPU6502Interface): void {
 }
 
 export function arr(this: CPU6502Interface): void {
-    this.tmp = this.read(this.addr) & this.A;
-    this.C = (this.tmp & 0x80) !== 0 ? 1 : 0;
-    this.V = (((this.tmp >> 7) & 1) ^ ((this.tmp >> 6) & 1)) !== 0 ? 1 : 0;
+    // AND immediate, then ROR A. Carry comes from pre-rotate bit 7 and overflow
+    // from pre-rotate bits 7^6 — equivalently post-rotate bit 6 and bit 6^5.
+    const t = this.read(this.addr) & this.A;
+    const carryIn = this.C ? 0x80 : 0;
+    this.C = (t & 0x80) !== 0 ? 1 : 0;
+    this.V = (((t >> 7) & 1) ^ ((t >> 6) & 1)) !== 0 ? 1 : 0;
+    this.tmp = (t >> 1) | carryIn;
     if (this.D) {
-        let al = (this.tmp & 0x0f) + (this.tmp & 1);
+        let al = (t & 0x0f) + (t & 1);
         if (al > 5) al += 6;
-        const ah = ((this.tmp >> 4) & 0x0f) + ((this.tmp >> 4) & 1);
+        const ah = ((t >> 4) & 0x0f) + ((t >> 4) & 1);
         if (ah > 5) {
             al += 6;
             this.C = 1;
         } else {
             this.C = 0;
         }
-        this.tmp = (ah << 4) | al;
+        this.tmp = (ah << 4) | (al & 0x0f);
     }
-    setNZFlags(this, this.tmp);
     this.A = this.tmp & 0xff;
+    setNZFlags(this, this.A);
 }
 
 export function shy(this: CPU6502Interface): void {

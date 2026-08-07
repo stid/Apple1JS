@@ -185,7 +185,8 @@ class Bus implements IInspectableComponent {
     /**
      * Read a value from a specific address.
      * @param address - The memory address to read from.
-     * @returns The value at the specified address, or 0 if the address is not found.
+     * @returns The value at the specified address, or the floating-bus value
+     *          when no device answers.
      */
     read(address: number): number {
         const addrInstance = this.findInstanceWithAddress(address);

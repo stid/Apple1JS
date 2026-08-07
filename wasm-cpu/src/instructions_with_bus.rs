@@ -177,6 +177,12 @@ impl CPU6502 {
     // the NMOS 6502: each read-modify-write form performs its memory operation,
     // writes that result back, and applies the accumulator half separately.
 
+    /// One extra cycle when an index carries into a new page (reads only —
+    /// writes pay the fix-up cycle unconditionally).
+    pub(crate) fn page_cross(base: u16, effective: u16) -> u64 {
+        if (base & 0xFF00) != (effective & 0xFF00) { 1 } else { 0 }
+    }
+
     /// Zero page
     pub(crate) fn ill_zp(&mut self, bus: &Bus) -> u16 {
         let a = self.read_byte_from_bus(bus, self.pc) as u16;
@@ -302,14 +308,34 @@ impl CPU6502 {
         self.update_nz(self.a);
     }
 
-    /// ARR: AND immediate, then ROR A, with its own carry/overflow rules.
+    /// ARR: AND immediate, then ROR A — with its own carry/overflow rules.
+    /// Carry comes from pre-rotate bit 7 and overflow from pre-rotate bits 7^6,
+    /// which is the same as post-rotate bit 6 and bit 6^5.
     pub(crate) fn arr_imm(&mut self, bus: &Bus) {
         let v = self.ill_imm(bus);
         let t = self.a & v;
+        let carry_in: u8 = if self.get_flag(flags::CARRY) { 0x80 } else { 0 };
         self.set_flag(flags::CARRY, (t & 0x80) != 0);
         self.set_flag(flags::OVERFLOW, (((t >> 7) & 1) ^ ((t >> 6) & 1)) != 0);
-        self.a = t;
-        self.update_nz(self.a);
+        let mut result = (t >> 1) | carry_in;
+        if self.get_flag(flags::DECIMAL) {
+            // Matches the TypeScript engine's decimal adjustment so the two
+            // stay in agreement on this opcode.
+            let mut al = (t & 0x0f) + (t & 1);
+            if al > 5 {
+                al += 6;
+            }
+            let ah = ((t >> 4) & 0x0f) + ((t >> 4) & 1);
+            if ah > 5 {
+                al += 6;
+                self.set_flag(flags::CARRY, true);
+            } else {
+                self.set_flag(flags::CARRY, false);
+            }
+            result = (ah << 4) | (al & 0x0f);
+        }
+        self.a = result;
+        self.update_nz(result);
     }
 
     /// XAA/ANE: unstable on real hardware; matches the TypeScript engine.

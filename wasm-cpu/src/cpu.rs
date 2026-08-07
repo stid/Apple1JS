@@ -100,6 +100,8 @@ impl CPU6502 {
         self.status |= flags::UNUSED | flags::INTERRUPT;
         self.irq = false;
         self.nmi = false;
+        // A latched NMI must not survive reset.
+        self.nmi_pending = false;
         self.cycles = 0;
         self.instructions = 0;
 

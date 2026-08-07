@@ -9,6 +9,7 @@ import { describe, test, expect } from 'vitest';
 import Bus from '../Bus';
 import RAM from '../RAM';
 import PIA6820 from '../PIA6820';
+import { Formatters } from '../../utils/formatters';
 
 /** The value a floating Apple 1 data bus reads back. */
 const OPEN_BUS = 0xff;
@@ -31,7 +32,7 @@ describe('Bus — hardware accuracy', () => {
         // And reads decode the same way from every repeat of the block.
         pia.write(0x1, 0x24);
         for (const addr of [0xd011, 0xd015, 0xd111, 0xdff5]) {
-            expect(bus.read(addr), `read at $${addr.toString(16)}`).toBe(pia.read(0x1));
+            expect(bus.read(addr), `read at ${Formatters.hexWord(addr)}`).toBe(pia.read(0x1));
         }
 
         // The base range still works unchanged.

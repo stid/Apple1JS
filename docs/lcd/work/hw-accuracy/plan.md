@@ -173,7 +173,7 @@ src/apple1/__tests__/WebCRTVideo-hw-accuracy.vitest.test.ts    AC-11: 64-glyph u
 - `src/apple1/constants/system.ts` — delete the unused 500 µs constant; correct the stale baud comment
 - `src/apple1/const.ts` — correct the same stale baud comment
 - `wasm-cpu/src/instructions_with_bus.rs` — decimal branch in `adc_bus`/`sbc_bus`
-- `wasm-cpu/src/instructions_bus_impl.rs` — undocumented instruction implementations
+- `wasm-cpu/src/instructions_with_bus.rs` — undocumented instruction implementations
 - `wasm-cpu/src/opcodes_with_bus.rs` — dispatch arms for the undocumented opcodes
 - `wasm-cpu/src/cpu.rs` — reset register/stack semantics
 - `wasm-cpu/src/bus.rs` — widen the IO region to `$D000-$DFFF`

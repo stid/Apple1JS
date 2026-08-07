@@ -76,7 +76,7 @@
 - [x] **T29**: Modify `src/core/cpu6502/core.ts` — latch the non-maskable interrupt on assertion rather than release. Passes T28
 - [x] **T30**: Write failing test named `AC-14: undocumented read-modify-write instructions write back the memory result` in `src/core/__tests__/CPU6502-hw-accuracy.vitest.test.ts` — one case per instruction, plus the accumulator-and-immediate instruction
 - [x] **T31**: Modify `src/core/cpu6502/instructions.ts` — correct the write-back value in each undocumented read-modify-write instruction and fix the accumulator-and-immediate instruction. Passes T30
-- [x] **T32**: Modify `wasm-cpu/src/instructions_bus_impl.rs` — implement the undocumented instruction set in the Rust core, including decimal variants
+- [x] **T32**: Modify `wasm-cpu/src/instructions_with_bus.rs` — implement the undocumented instruction set in the Rust core, including decimal variants
 - [x] **T33**: Modify `wasm-cpu/src/opcodes_with_bus.rs` — wire the dispatch arms for the undocumented opcodes
 - [x] **T34**: Run `yarn wasm:check`, then browser-verify the undocumented instruction set produces identical register, flag and memory state on both engines. **This is the only proof T32/T33 work**
 - [x] **T35**: Write failing test named `AC-15: the PIA answers throughout its mirrored region` in `src/core/__tests__/Bus-hw-accuracy.vitest.test.ts`
@@ -100,8 +100,16 @@
 
 ### Gate
 
-- [ ] **T-audit**: Run `/lcd:audit hw-accuracy`; resulting `audit.md` has zero MISSING/BLOCKED rows
-- [ ] **T-final**: Run `yarn test:ci` (lint + type-check + full suite) and `yarn wasm:check`, all green. Confirm T8, T11, T24 and T34 browser verifications were actually performed and their results recorded in the JOURNAL LOG — the suite cannot prove the Rust tiers
+- [x] **T-audit**: Run `/lcd:audit hw-accuracy`; resulting `audit.md` has zero MISSING/BLOCKED rows
+- [x] **T-final**: Run `yarn test:ci` (lint + type-check + full suite) and `yarn wasm:check`, all green. Confirm T8, T11, T24 and T34 browser verifications were actually performed and their results recorded in the JOURNAL LOG — the suite cannot prove the Rust tiers
+
+### Deferred with reason
+
+- **KIL/JAM is not a true jam.** Both engines rewind PC so the opcode re-executes
+  forever, which halts forward progress but still services interrupts and advances
+  counters. A real jam latch would need CPU-state persistence on both engines. The
+  two engines agree, no Apple 1 software executes these opcodes, and the accuracy
+  gain does not justify the state-format change. Recorded rather than fixed.
 
 ## Checkpoint validation
 

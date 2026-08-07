@@ -291,9 +291,9 @@ impl CPU6502 {
             opcodes::LAX_IZX => { let a = self.get_izx_addr_bus(bus); self.lax_mem(bus, a); self.cycles += 6; }
             opcodes::LAX_ZP => { let a = self.ill_zp(bus); self.lax_mem(bus, a); self.cycles += 3; }
             opcodes::LAX_ABS => { let a = self.ill_abs(bus); self.lax_mem(bus, a); self.cycles += 4; }
-            opcodes::LAX_IZY => { let a = self.get_izy_addr_bus(bus); self.lax_mem(bus, a); self.cycles += 5; }
+            opcodes::LAX_IZY => { let a = self.get_izy_addr_bus(bus); let base = a.wrapping_sub(self.y as u16); self.lax_mem(bus, a); self.cycles += 5 + Self::page_cross(base, a); }
             opcodes::LAX_ZPY => { let a = self.get_zpy_addr_bus(bus); self.lax_mem(bus, a); self.cycles += 4; }
-            opcodes::LAX_ABY => { let a = self.ill_aby(bus); self.lax_mem(bus, a); self.cycles += 4; }
+            opcodes::LAX_ABY => { let a = self.ill_aby(bus); let base = a.wrapping_sub(self.y as u16); self.lax_mem(bus, a); self.cycles += 4 + Self::page_cross(base, a); }
             opcodes::LAX_IMM => { let v = self.ill_imm(bus); self.a = v; self.x = v; self.update_nz(v); self.cycles += 2; }
             // Immediate-operand specials
             opcodes::ANC_0B | opcodes::ANC_2B => { self.anc_imm(bus); self.cycles += 2; }
@@ -308,7 +308,7 @@ impl CPU6502 {
             opcodes::TAS => { let a = self.ill_aby(bus); self.tas_mem(bus, a); self.cycles += 5; }
             opcodes::SHY => { let a = self.ill_abx(bus); self.shy_mem(bus, a); self.cycles += 5; }
             opcodes::SHX => { let a = self.ill_aby(bus); self.shx_mem(bus, a); self.cycles += 5; }
-            opcodes::LAS => { let a = self.ill_aby(bus); self.las_mem(bus, a); self.cycles += 4; }
+            opcodes::LAS => { let a = self.ill_aby(bus); let base = a.wrapping_sub(self.y as u16); self.las_mem(bus, a); self.cycles += 4 + Self::page_cross(base, a); }
             // KIL/JAM — jams the processor
             opcodes::KIL_02
             | opcodes::KIL_12
@@ -329,27 +329,35 @@ impl CPU6502 {
             | opcodes::NOP_7A
             | opcodes::NOP_DA
             | opcodes::NOP_FA => { self.cycles += 2; }
+            // Zero page — 3 cycles
             opcodes::NOP_04
-            | opcodes::NOP_14
-            | opcodes::NOP_34
             | opcodes::NOP_44
+            | opcodes::NOP_64 => { self.pc = self.pc.wrapping_add(1); self.cycles += 3; }
+            // Zero page,X — 4 cycles
+            opcodes::NOP_14
+            | opcodes::NOP_34
             | opcodes::NOP_54
-            | opcodes::NOP_64
             | opcodes::NOP_74
-            | opcodes::NOP_80
+            | opcodes::NOP_D4
+            | opcodes::NOP_F4 => { self.pc = self.pc.wrapping_add(1); self.cycles += 4; }
+            // Immediate — 2 cycles
+            opcodes::NOP_80
             | opcodes::NOP_82
             | opcodes::NOP_89
             | opcodes::NOP_C2
-            | opcodes::NOP_D4
-            | opcodes::NOP_E2
-            | opcodes::NOP_F4 => { self.pc = self.pc.wrapping_add(1); self.cycles += 3; }
-            opcodes::NOP_0C
-            | opcodes::NOP_1C
+            | opcodes::NOP_E2 => { self.pc = self.pc.wrapping_add(1); self.cycles += 2; }
+            // Absolute — 4 cycles; absolute,X — 4 plus a page-cross cycle
+            opcodes::NOP_0C => { self.pc = self.pc.wrapping_add(2); self.cycles += 4; }
+            opcodes::NOP_1C
             | opcodes::NOP_3C
             | opcodes::NOP_5C
             | opcodes::NOP_7C
             | opcodes::NOP_DC
-            | opcodes::NOP_FC => { self.pc = self.pc.wrapping_add(2); self.cycles += 4; }
+            | opcodes::NOP_FC => {
+                let base = self.read_word_from_bus(bus, self.pc);
+                self.pc = self.pc.wrapping_add(2);
+                self.cycles += 4 + Self::page_cross(base, base.wrapping_add(self.x as u16));
+            }
 
             // No wildcard arm: every one of the 256 opcodes is now handled, and
             // the compiler enforces that. A future gap becomes a build error

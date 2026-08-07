@@ -205,6 +205,14 @@ describe('CPU6502 — hardware accuracy', () => {
         cpu.pendingNmi = 0;
         cpu.setNmi(false);
         expect(cpu.pendingNmi, 'release must not latch').toBe(0);
+
+        // The defining property of edge triggering: a line already asserted
+        // must not latch again. Without this case the test passes even with the
+        // edge check removed, since every assertion above follows a low state.
+        cpu.setNmi(true);
+        cpu.pendingNmi = 0;
+        cpu.setNmi(true);
+        expect(cpu.pendingNmi, 'a line held high must not re-latch').toBe(0);
     });
 
     test('AC-14: undocumented read-modify-write instructions write back the memory result', () => {
@@ -229,14 +237,24 @@ describe('CPU6502 — hardware accuracy', () => {
         expect(probe(0xc7, 0x05, 0x05, 0), 'DCP $10').toMatchObject({ mem: 0x04, a: 0x05, c: 1 });
         expect(probe(0xe7, 0x05, 0x10, 1), 'ISC $10').toMatchObject({ mem: 0x06, a: 0x0a });
 
-        // ANC #imm: A &= imm, then C takes the sign bit. It currently never
-        // ANDs the accumulator at all.
+        // ANC #imm: A &= imm, then carry takes the sign bit of the result.
+        // The immediate must clear bits, or the assertion cannot tell a real
+        // AND from leaving A untouched.
+        cpu.reset();
+        cpu.PC = 0x0200;
+        load(0x0200, 0x0b, 0xf0);
+        cpu.A = 0x0f;
+        cpu.performSingleStep();
+        expect(cpu.A, 'ANC #$F0 with A=$0F clears every bit').toBe(0x00);
+        expect(cpu.C, 'carry follows bit 7 of the result').toBe(0);
+
+        // And the C = N path.
         cpu.reset();
         cpu.PC = 0x0200;
         load(0x0200, 0x0b, 0xff);
-        cpu.A = 0x0f;
+        cpu.A = 0x81;
         cpu.performSingleStep();
-        expect(cpu.A, 'ANC #$FF with A=$0F').toBe(0x0f);
-        expect(cpu.C, 'carry follows bit 7 of the result').toBe(0);
+        expect(cpu.A, 'ANC #$FF with A=$81').toBe(0x81);
+        expect(cpu.C, 'carry set when bit 7 of the result is set').toBe(1);
     });
 });
