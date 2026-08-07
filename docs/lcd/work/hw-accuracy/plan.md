@@ -178,11 +178,21 @@ src/apple1/__tests__/WebCRTVideo-hw-accuracy.vitest.test.ts    AC-11: 64-glyph u
 - `wasm-cpu/src/cpu.rs` — reset register/stack semantics
 - `wasm-cpu/src/bus.rs` — widen the IO region to `$D000-$DFFF`
 - `src/core/__tests__/Bus.vitest.test.ts` — update the unmapped-read expectation (currently asserts `0`)
+- `src/core/__tests__/PIA6820.vitest.test.ts` — one case asserts the control registers are
+  "already initialized to 0x04"; that premise goes away with AC-1
+- `src/apple1/__tests__/DisplayLogic.vitest.test.ts` — asserts PB7 reads clear immediately after a
+  write; becomes cycle-dependent under AC-17
 - `docs/active/hardware-accuracy-audit.md` — annotate findings as they close
 - `docs/lcd/work/hw-accuracy/JOURNAL.md` — kept current as work proceeds
 
 ## Risks & rejected alternatives
 
+- **Two existing tests encode the behaviour being corrected.** Verified by inspection rather than
+  assumed: `PIA6820.vitest.test.ts` has one case resting on the pre-seeded control registers, and
+  `DisplayLogic.vitest.test.ts` asserts PB7 is clear the moment a write returns. Both are listed
+  above. The remaining PIA-touching suites (`WorkerAPI-power-on-noise-screen`,
+  `WorkerAPI-wasm-js-parity`, `KeyboardLogic`, and the three integration suites) were checked and
+  set the control registers explicitly or use a fake, so they are unaffected.
 - **The PIA reset change moves the boot path.** With `crb = 0x00` the monitor's `STY $D012` reaches
   DDRB and the spurious `$7F` display write stops happening. Anything that has quietly come to
   depend on the current behaviour — the display handshake, save-state fixtures, existing PIA tests

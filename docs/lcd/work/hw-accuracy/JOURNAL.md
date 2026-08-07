@@ -13,19 +13,26 @@
 - **Lane:** Deep
 - **Goal:** Bring the emulated core ICs into agreement with the original hardware, closing the 15
   deviations recorded in `docs/active/hardware-accuracy-audit.md`.
-- **Next action:** run `/lcd:tasks hw-accuracy`
-- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:29
+- **Next action:** run `/lcd:test-gen hw-accuracy`
+- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:34
 
 ## STEPS
+
+> Tier-level view of `tasks.md` (54 tasks). Task IDs in brackets.
 
 - [x] S1 — triage → Deep; audit doc + triage log committed as first commit on branch
 - [x] S2 — spec.md written; 4 scope questions resolved with the user
 - [x] S3 — plan.md written; bus mirroring found not to need `validate()` relaxed
-- [ ] S4 — tasks.md, tiered T1..T6 ← next
-- [ ] S5 — failing tests, one per (AC × surface)
-- [ ] S6 — red-green loop to green, commit per task
-- [ ] S7 — browser verification of the Rust engine + RENDER surfaces
-- [ ] S8 — audit gate, then PR
+- [x] S4 — tasks.md written; 54 tasks, 7 parallel-eligible
+- [ ] S5 — generate failing tests, one per (AC × surface) ← next
+- [ ] S6 — Tier 1 PIA power-on + IRQ flags [T1–T7], then browser boot check [T8] — lands ALONE
+- [ ] S7 — Tier 2 Rust decimal mode [T9–T10] + browser verify [T11]
+- [ ] S8 — Tier 3 TypeScript CPU correctness: (zp,X), JMP (ind), BRK/D [T12–T16]
+- [ ] S9 — Tier 4 store/RMW fixed cycle counts [T17–T21]
+- [ ] S10 — Tier 5 terminal 64-glyph folding [T22–T23] + browser verify [T24]
+- [ ] S11 — Tier 6 tail: reset, NMI, undocumented opcodes, bus mirroring, unmapped read,
+      handshake pacing, cosmetics [T25–T52] + browser verify [T34]
+- [ ] S12 — audit gate [T-audit], full suite [T-final], then PR
 
 ## DECISIONS (this work-item)
 
@@ -98,12 +105,20 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   by the maintainer's standing global rule. Confirmed the version bump against
   `git merge-base HEAD master` rather than assuming it. Recorded the real limitation: the Rust tiers
   cannot be gated by CI, so tasks.md must carry an explicit manual browser-verification task.
+- 2026-08-06 22:34 — tasks.md written: 54 tasks in 6 tiers, 7 parallel-eligible. Coverage verified — every
+  AC has a task, every new file in the plan has a creating task, every modified file a modifying
+  task. Editing the plan first (rather than inventing tasks) added two files it had missed:
+  `PIA6820.vitest.test.ts` has a case resting on the pre-seeded control registers, and
+  `DisplayLogic.vitest.test.ts` asserts PB7 is clear the instant a write returns — both premises
+  the ACs invalidate. Checked the other six PIA-touching suites: unaffected, they set the control
+  registers explicitly or use a fake. Browser-verification tasks (T8, T11, T24, T34) are written as
+  first-class tasks, not notes, because `yarn test:ci` cannot reach the Rust core.
 
 ## DEEP PIPELINE (Deep lane only)
 
 > Phase tracker for the Deep-lane pipeline. Files live beside this JOURNAL.
 
-`spec.md ✅  plan.md ✅  tasks.md ⬜  tests ⬜  red-green ⬜  audit.md ⬜`
+`spec.md ✅  plan.md ✅  tasks.md ✅  tests ⬜  red-green ⬜  audit.md ⬜`
 
 <!-- mark ✅ done · ⏳ in progress · ⬜ not started -->
 
