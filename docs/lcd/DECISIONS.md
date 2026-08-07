@@ -10,6 +10,24 @@
 
 ---
 
+## D-015 · 2026-08-06 · Nothing on the bus path may call into the WASM engine
+
+- **Context:** On the WASM engine a bus access is a callback *out of* running WASM — the Rust CPU is
+  inside a `&mut self` export and calls the JavaScript bridge. Anything that then calls back into
+  the engine trips wasm-bindgen's borrow guard ("recursive use of an object detected which would
+  lead to unsafe aliasing in rust"), which kills every I/O access: display and keyboard both dead.
+  A display-handshake change did exactly this and shipped, because the WASM engine is not exercised
+  by the Node suite and all 784 tests stayed green.
+- **Decision:** Devices reached through the bus — the PIA above all — must complete a read or write
+  using only JavaScript-side state. Any value sourced from the engine has to be sampled between
+  clock chunks and read as a plain number. Guarded by
+  `src/core/cpu-engines/__tests__/wasm-memory-bridge-reentrancy.vitest.test.ts`, which drives the
+  real bridge with a stand-in that throws the way the borrow guard does.
+- **Alternatives rejected:** Relying on review or on the browser check — the failure is invisible to
+  CI and was in fact mistaken for browser-tooling noise the first time it appeared.
+- **Scope:** project-wide
+- **Status:** active
+
 ## D-014 · 2026-08-06 · Bus mirroring is an offset mask on a widened range, not overlapping ranges
 
 - **Context:** The Apple 1 decodes addresses partially, so the peripheral adapter repeats through
@@ -149,7 +167,7 @@
 - **Alternatives rejected:** the upgrade tool's CSS-first `@theme` inlining — hardcodes token
   values and orphans the adapter + parity test (a token-SSOT downgrade); `@tailwindcss/vite` —
   Rolldown plugin-hook friction under Vite 8. The **CSS-first `@theme` rewrite is deferred** as a
-  future modernization (re-architect `tokens.ts` to _emit_ `@theme`, unifying Tailwind utilities
+  future modernization (re-architect `tokens.ts` to *emit* `@theme`, unifying Tailwind utilities
   and runtime inline styles on one set of CSS variables) — not needed; we are fully on v4.
 - **Scope:** project-wide
 - **Status:** active

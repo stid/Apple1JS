@@ -13,7 +13,7 @@
 - **Lane:** Deep
 - **Goal:** Bring the emulated core ICs into agreement with the original hardware, closing the 15
   deviations recorded in `docs/active/hardware-accuracy-audit.md`.
-- **Next action:** maintainer to confirm keyboard input in the browser; PR #213 is open
+- **Next action:** none — maintainer confirmed keyboard and reset work; PR #213 ready for merge
 - **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 23:40
 
 ## STEPS
@@ -202,6 +202,12 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   emulated time continuously — an execution-architecture change, not a work-item.
   Lesson recorded: during the original verification, keystrokes not reaching the emulator was
   written off as browser-tooling noise. It was the bug. A failed verification is a signal.
+- 2026-08-06 — Maintainer confirmed keyboard input and reset behave correctly. Review feedback
+  addressed (15 comments): ARR never rotated on either engine, a latched NMI survived reset in Rust,
+  undocumented NOP cycle counts were flat, and indexed LAX/LAS skipped the page-cross cycle. Two of
+  my own tests were vacuous — the ANC assertion passed against the exact bug it was written for, and
+  the NMI test passed with the edge check removed. KIL deferred with a recorded reason.
+  D-015 added: nothing on the bus path may call into the WASM engine.
 
 ## DEEP PIPELINE (Deep lane only)
 
