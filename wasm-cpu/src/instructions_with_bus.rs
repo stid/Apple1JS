@@ -117,12 +117,26 @@ impl CPU6502 {
         let overflow = ((self.a ^ result as u8) & (value ^ result as u8) & 0x80) != 0;
         self.set_flag(flags::OVERFLOW, overflow);
 
-        // Set carry
-        self.set_flag(flags::CARRY, result > 0xFF);
-
-        // Store result
-        self.a = result as u8;
-        self.update_nz(self.a);
+        if self.get_flag(flags::DECIMAL) {
+            // NMOS 6502 packed BCD: A and C come from the decimal-adjusted
+            // result, while N/Z/V follow the binary result computed above.
+            let mut al = (self.a & 0x0F) + (value & 0x0F) + carry as u8;
+            if al > 9 {
+                al += 6;
+            }
+            let mut ah = (self.a >> 4) as u16 + (value >> 4) as u16 + if al > 15 { 1 } else { 0 };
+            self.set_flag(flags::ZERO, (result as u8) == 0);
+            self.set_flag(flags::NEGATIVE, (ah & 8) != 0);
+            if ah > 9 {
+                ah += 6;
+            }
+            self.set_flag(flags::CARRY, ah > 15);
+            self.a = (((ah as u8) << 4) | (al & 0x0F)) as u8;
+        } else {
+            self.set_flag(flags::CARRY, result > 0xFF);
+            self.a = result as u8;
+            self.update_nz(self.a);
+        }
     }
 
     /// Helper for SBC instruction - Bus version
@@ -138,9 +152,219 @@ impl CPU6502 {
         // Set carry (inverted for subtraction)
         self.set_flag(flags::CARRY, result < 0x100);
 
-        // Store result
-        self.a = result as u8;
+        if self.get_flag(flags::DECIMAL) {
+            // NMOS 6502: only A is decimal-adjusted; N/Z/V/C all follow the
+            // binary result already computed above.
+            let a = self.a;
+            let mut al = (a & 0x0F) as i16 - (value & 0x0F) as i16 - carry as i16;
+            if al < 0 {
+                al -= 6;
+            }
+            let mut ah = (a >> 4) as i16 - (value >> 4) as i16 - if al < 0 { 1 } else { 0 };
+            if ah < 0 {
+                ah -= 6;
+            }
+            self.update_nz(result as u8);
+            self.a = (((ah as u8) << 4) | (al as u8 & 0x0F)) as u8;
+        } else {
+            self.a = result as u8;
+            self.update_nz(self.a);
+        }
+    }
+
+    // ================= Undocumented instructions =================
+    // Parity with the TypeScript engine (DECISIONS D-013). Semantics follow
+    // the NMOS 6502: each read-modify-write form performs its memory operation,
+    // writes that result back, and applies the accumulator half separately.
+
+    /// Zero page
+    pub(crate) fn ill_zp(&mut self, bus: &Bus) -> u16 {
+        let a = self.read_byte_from_bus(bus, self.pc) as u16;
+        self.pc = self.pc.wrapping_add(1);
+        a
+    }
+    /// Zero page,X
+    pub(crate) fn ill_zpx(&mut self, bus: &Bus) -> u16 {
+        let a = self.read_byte_from_bus(bus, self.pc).wrapping_add(self.x);
+        self.pc = self.pc.wrapping_add(1);
+        a as u16
+    }
+    /// Absolute
+    pub(crate) fn ill_abs(&mut self, bus: &Bus) -> u16 {
+        let a = self.read_word_from_bus(bus, self.pc);
+        self.pc = self.pc.wrapping_add(2);
+        a
+    }
+    /// Absolute,X
+    pub(crate) fn ill_abx(&mut self, bus: &Bus) -> u16 {
+        let a = self.read_word_from_bus(bus, self.pc).wrapping_add(self.x as u16);
+        self.pc = self.pc.wrapping_add(2);
+        a
+    }
+    /// Absolute,Y
+    pub(crate) fn ill_aby(&mut self, bus: &Bus) -> u16 {
+        let a = self.read_word_from_bus(bus, self.pc).wrapping_add(self.y as u16);
+        self.pc = self.pc.wrapping_add(2);
+        a
+    }
+    /// Immediate operand
+    pub(crate) fn ill_imm(&mut self, bus: &Bus) -> u8 {
+        let v = self.read_byte_from_bus(bus, self.pc);
+        self.pc = self.pc.wrapping_add(1);
+        v
+    }
+
+    /// SLO: ASL the operand, then ORA it into A.
+    pub(crate) fn slo_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr);
+        self.set_flag(flags::CARRY, (v & 0x80) != 0);
+        let shifted = v << 1;
+        self.write_byte_to_bus(bus, addr, shifted);
+        self.a |= shifted;
         self.update_nz(self.a);
+    }
+
+    /// RLA: ROL the operand, then AND it into A.
+    pub(crate) fn rla_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr);
+        let carry_in = if self.get_flag(flags::CARRY) { 1 } else { 0 };
+        self.set_flag(flags::CARRY, (v & 0x80) != 0);
+        let rotated = (v << 1) | carry_in;
+        self.write_byte_to_bus(bus, addr, rotated);
+        self.a &= rotated;
+        self.update_nz(self.a);
+    }
+
+    /// SRE: LSR the operand, then EOR it into A.
+    pub(crate) fn sre_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr);
+        self.set_flag(flags::CARRY, (v & 0x01) != 0);
+        let shifted = v >> 1;
+        self.write_byte_to_bus(bus, addr, shifted);
+        self.a ^= shifted;
+        self.update_nz(self.a);
+    }
+
+    /// RRA: ROR the operand, then ADC it into A.
+    pub(crate) fn rra_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr);
+        let carry_in = if self.get_flag(flags::CARRY) { 0x80 } else { 0 };
+        self.set_flag(flags::CARRY, (v & 0x01) != 0);
+        let rotated = (v >> 1) | carry_in;
+        self.write_byte_to_bus(bus, addr, rotated);
+        self.adc_bus(rotated);
+    }
+
+    /// DCP: DEC the operand, then CMP it against A.
+    pub(crate) fn dcp_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr).wrapping_sub(1);
+        self.write_byte_to_bus(bus, addr, v);
+        let result = (self.a as u16).wrapping_sub(v as u16);
+        self.set_flag(flags::CARRY, self.a >= v);
+        self.update_nz(result as u8);
+    }
+
+    /// ISC: INC the operand, then SBC it from A.
+    pub(crate) fn isc_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr).wrapping_add(1);
+        self.write_byte_to_bus(bus, addr, v);
+        self.sbc_bus(v);
+    }
+
+    /// SAX: store A AND X. Sets no flags.
+    pub(crate) fn sax_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.a & self.x;
+        self.write_byte_to_bus(bus, addr, v);
+    }
+
+    /// LAX: load A and X from the same operand.
+    pub(crate) fn lax_mem(&mut self, bus: &Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr);
+        self.a = v;
+        self.x = v;
+        self.update_nz(v);
+    }
+
+    /// ANC: AND immediate, then copy the resulting sign bit into carry.
+    pub(crate) fn anc_imm(&mut self, bus: &Bus) {
+        let v = self.ill_imm(bus);
+        self.a &= v;
+        self.update_nz(self.a);
+        self.set_flag(flags::CARRY, (self.a & 0x80) != 0);
+    }
+
+    /// ALR: AND immediate, then LSR A.
+    pub(crate) fn alr_imm(&mut self, bus: &Bus) {
+        let v = self.ill_imm(bus);
+        self.a &= v;
+        self.set_flag(flags::CARRY, (self.a & 0x01) != 0);
+        self.a >>= 1;
+        self.update_nz(self.a);
+    }
+
+    /// ARR: AND immediate, then ROR A, with its own carry/overflow rules.
+    pub(crate) fn arr_imm(&mut self, bus: &Bus) {
+        let v = self.ill_imm(bus);
+        let t = self.a & v;
+        self.set_flag(flags::CARRY, (t & 0x80) != 0);
+        self.set_flag(flags::OVERFLOW, (((t >> 7) & 1) ^ ((t >> 6) & 1)) != 0);
+        self.a = t;
+        self.update_nz(self.a);
+    }
+
+    /// XAA/ANE: unstable on real hardware; matches the TypeScript engine.
+    pub(crate) fn xaa_imm(&mut self, bus: &Bus) {
+        let v = self.ill_imm(bus);
+        self.a = self.x & v;
+        self.update_nz(self.a);
+    }
+
+    /// AXS/SBX: X = (A AND X) - immediate.
+    pub(crate) fn axs_imm(&mut self, bus: &Bus) {
+        let v = self.ill_imm(bus);
+        let base = self.a & self.x;
+        self.set_flag(flags::CARRY, base >= v);
+        self.x = base.wrapping_sub(v);
+        self.update_nz(self.x);
+    }
+
+    /// AHX: store A AND X AND (high byte of address + 1).
+    pub(crate) fn ahx_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.a & self.x & (((addr >> 8) as u8).wrapping_add(1));
+        self.write_byte_to_bus(bus, addr, v);
+    }
+
+    /// SHY: store Y AND (high byte of address + 1).
+    pub(crate) fn shy_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.y & (((addr >> 8) as u8).wrapping_add(1));
+        self.write_byte_to_bus(bus, addr, v);
+    }
+
+    /// SHX: store X AND (high byte of address + 1).
+    pub(crate) fn shx_mem(&mut self, bus: &mut Bus, addr: u16) {
+        let v = self.x & (((addr >> 8) as u8).wrapping_add(1));
+        self.write_byte_to_bus(bus, addr, v);
+    }
+
+    /// TAS: S = A AND X, then store A AND X AND (high byte + 1).
+    pub(crate) fn tas_mem(&mut self, bus: &mut Bus, addr: u16) {
+        self.s = self.a & self.x;
+        let v = self.a & self.x & (((addr >> 8) as u8).wrapping_add(1));
+        self.write_byte_to_bus(bus, addr, v);
+    }
+
+    /// LAS: A = X = S = memory AND S.
+    pub(crate) fn las_mem(&mut self, bus: &Bus, addr: u16) {
+        let v = self.read_byte_from_bus(bus, addr) & self.s;
+        self.a = v;
+        self.x = v;
+        self.s = v;
+        self.update_nz(v);
+    }
+
+    /// KIL/JAM: jams the processor. Rewinding PC re-executes the opcode.
+    pub(crate) fn kil_bus(&mut self) {
+        self.pc = self.pc.wrapping_sub(1);
     }
 
     /// Helper for BIT instruction - Bus version

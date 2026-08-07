@@ -236,13 +236,17 @@ impl Bus {
             region: MemoryRegion::RAM,
         });
         
-        // I/O at 0xD010-0xD013 (PIA)
-        for addr in 0xD010..=0xD013 {
+        // I/O at 0xD000-0xDFFF (PIA at 0xD010-0xD013, repeated through the
+        // block). The Apple 1 decodes only enough address lines to place the
+        // chip in its 4K bank, so its four registers repeat every four bytes.
+        // The full address is forwarded to the JavaScript bus, which applies
+        // the offset mask — this side only has to route the whole block to I/O.
+        for addr in 0xD000..=0xDFFF {
             self.region_cache[addr] = MemoryRegion::IO;
         }
         self.mappings.push(AddressRange {
-            start: 0xD010,
-            end: 0xD013,
+            start: 0xD000,
+            end: 0xDFFF,
             region: MemoryRegion::IO,
         });
         
