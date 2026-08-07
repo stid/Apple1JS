@@ -13,8 +13,8 @@
 - **Lane:** Deep
 - **Goal:** Bring the emulated core ICs into agreement with the original hardware, closing the 15
   deviations recorded in `docs/active/hardware-accuracy-audit.md`.
-- **Next action:** run `lcd:redgreen-loop` — start with Tier 1 [T6], which lands alone
-- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:42
+- **Next action:** T8 browser boot check (Tier 1 gate), then `lcd:redgreen-loop` for Tier 2 [T10]
+- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:48
 
 ## STEPS
 
@@ -25,7 +25,8 @@
 - [x] S3 — plan.md written; bus mirroring found not to need `validate()` relaxed
 - [x] S4 — tasks.md written; 54 tasks, 7 parallel-eligible
 - [x] S5 — 17 failing tests generated, one per (AC × surface); 16 red, AC-6 green on arrival
-- [ ] S6 — Tier 1 PIA power-on + IRQ flags [T1–T7], then browser boot check [T8] — lands ALONE ← next
+- [x] S6 — Tier 1 PIA power-on + IRQ flags [T1–T7] green in 2 iterations, 0 reverts
+- [ ] S6b — Tier 1 browser boot check [T8] — gates Tier 2 ← next
 - [ ] S7 — Tier 2 Rust decimal mode [T9–T10] + browser verify [T11]
 - [ ] S8 — Tier 3 TypeScript CPU correctness: (zp,X), JMP (ind), BRK/D [T12–T16]
 - [ ] S9 — Tier 4 store/RMW fixed cycle counts [T17–T21]
@@ -148,6 +149,17 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   be read as decimal mode being verified.
   Also refined `tasks.md`: it had written `none`-surface test names as `AC-N (none):`, but the phase
   contract drops the suffix for `none`. Emitted literals verified by grep: all 17 present, correct form.
+- 2026-08-06 22:48 — red-green Tier 1: **green in 2 iterations, 0 reverts**. Iteration 1 zeroed the register
+  seeds (flipped AC-1, AC-2, and AC-3 — the display artefact disappeared as soon as the routing was
+  right); iteration 2 moved the interrupt-flag clear inside the data-register branch and widened it
+  to both flags (AC-4, AC-5). Committed `0dacf22`.
+  Regression check ran the FULL suite, not just the scoped tests: exactly one existing case broke —
+  `PIA6820.vitest.test.ts > read method works correctly`, the one the plan predicted. Fixed per the
+  refinement protocol: its intent is untouched, only its setup premise, which now programs the port
+  configuration the way WOZMON does. All 17 cases in that file green again.
+  Suite now 11 failures, all later-tier ACs. `yarn type-check` reports 2 errors — `wireCycleProvider`
+  and `mirrorMask` — which are the deliberately-unwritten APIs the AC-17 and AC-15 tests call; they
+  resolve at T45 and T36. `yarn test:ci` will therefore stay red until Tier 6, as expected mid-flight.
 
 ## DEEP PIPELINE (Deep lane only)
 

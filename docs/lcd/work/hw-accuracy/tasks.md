@@ -35,8 +35,8 @@
 - [x] **T3**: Write failing test named `AC-4: reading data register A clears both interrupt flags` in `src/core/__tests__/PIA6820-hw-accuracy.vitest.test.ts`
 - [x] **T4**: Write failing test named `AC-5: reading the direction register clears no interrupt flag` in `src/core/__tests__/PIA6820-hw-accuracy.vitest.test.ts`
 - [x] **T5** [P]: Write failing test named `AC-3 (RENDER): monitor startup emits no character` in `src/apple1/__tests__/DisplayLogic-hw-accuracy.vitest.test.ts` — drives the monitor's reset sequence against a wired display and asserts nothing was written
-- [ ] **T6**: Modify `src/core/PIA6820.ts` — zero the register seeds in the constructor and `resetState()`; move the interrupt-flag clear inside the data-register branch of `read()` and clear both flags. Passes T1–T5
-- [ ] **T7**: Modify `src/core/__tests__/PIA6820.vitest.test.ts` — the case resting on "control registers are already initialized to 0x04" now sets them explicitly
+- [x] **T6**: Modify `src/core/PIA6820.ts` — zero the register seeds in the constructor and `resetState()`; move the interrupt-flag clear inside the data-register branch of `read()` and clear both flags. Passes T1–T5
+- [x] **T7**: Modify `src/core/__tests__/PIA6820.vitest.test.ts` — the case resting on "control registers are already initialized to 0x04" now sets them explicitly
 - [ ] **T8**: Browser verification — boot the app, confirm the monitor prompt appears, keyboard input echoes, and no stray character precedes the prompt. Drive via in-page JS (the emulator loop never reaches `document_idle`)
 
 ### Tier 2 — Decimal mode in the Rust core (AC-6)
