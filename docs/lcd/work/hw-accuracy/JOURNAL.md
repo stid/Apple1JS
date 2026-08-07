@@ -13,8 +13,8 @@
 - **Lane:** Deep
 - **Goal:** Bring the emulated core ICs into agreement with the original hardware, closing the 15
   deviations recorded in `docs/active/hardware-accuracy-audit.md`.
-- **Next action:** run `/lcd:test-gen hw-accuracy`
-- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:34
+- **Next action:** run `lcd:redgreen-loop` — start with Tier 1 [T6], which lands alone
+- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:42
 
 ## STEPS
 
@@ -24,8 +24,8 @@
 - [x] S2 — spec.md written; 4 scope questions resolved with the user
 - [x] S3 — plan.md written; bus mirroring found not to need `validate()` relaxed
 - [x] S4 — tasks.md written; 54 tasks, 7 parallel-eligible
-- [ ] S5 — generate failing tests, one per (AC × surface) ← next
-- [ ] S6 — Tier 1 PIA power-on + IRQ flags [T1–T7], then browser boot check [T8] — lands ALONE
+- [x] S5 — 17 failing tests generated, one per (AC × surface); 16 red, AC-6 green on arrival
+- [ ] S6 — Tier 1 PIA power-on + IRQ flags [T1–T7], then browser boot check [T8] — lands ALONE ← next
 - [ ] S7 — Tier 2 Rust decimal mode [T9–T10] + browser verify [T11]
 - [ ] S8 — Tier 3 TypeScript CPU correctness: (zp,X), JMP (ind), BRK/D [T12–T16]
 - [ ] S9 — Tier 4 store/RMW fixed cycle counts [T17–T21]
@@ -56,17 +56,38 @@
 
 ## EDIT BOUNDARY (paths this work may touch)
 
-- `src/core/PIA6820.ts`, `src/core/Bus.ts`, `src/core/RAM.ts`, `src/core/types/` (bus space type)
-- `src/core/cpu6502/` — `addressing.ts`, `instructions.ts`, `opcodes.ts`, `core.ts`, `types.ts`
-- `src/apple1/` — `index.ts`, `DisplayLogic.ts`, `WebCRTVideo.ts`, `KeyboardLogic.ts`,
-  `const.ts`, `constants/system.ts`
-- `wasm-cpu/src/` — `instructions_with_bus.rs`, `instructions_bus_impl.rs`,
-  `opcodes_with_bus.rs`, `cpu.rs`, `bus.rs`
-- `src/core/__tests__/` — new `PIA6820-hw-accuracy`, `CPU6502-hw-accuracy`, `Bus-hw-accuracy`;
-  modified `Bus.vitest.test.ts` (unmapped-read expectation)
-- `src/apple1/__tests__/` — new `DisplayLogic-hw-accuracy`, `WebCRTVideo-hw-accuracy`
-- `src/version.ts` (already bumped 4.51.8 → 4.51.9 in the branch's first commit)
-- `docs/active/hardware-accuracy-audit.md`, `docs/lcd/work/hw-accuracy/`
+- `src/core/PIA6820.ts`
+- `src/core/Bus.ts`
+- `src/core/RAM.ts`
+- `src/core/types/bus.ts`
+- `src/core/types/index.ts`
+- `src/core/cpu6502/addressing.ts`
+- `src/core/cpu6502/instructions.ts`
+- `src/core/cpu6502/opcodes.ts`
+- `src/core/cpu6502/core.ts`
+- `src/core/cpu6502/types.ts`
+- `src/core/__tests__/PIA6820-hw-accuracy.vitest.test.ts`
+- `src/core/__tests__/CPU6502-hw-accuracy.vitest.test.ts`
+- `src/core/__tests__/Bus-hw-accuracy.vitest.test.ts`
+- `src/core/__tests__/PIA6820.vitest.test.ts`
+- `src/core/__tests__/Bus.vitest.test.ts`
+- `src/apple1/index.ts`
+- `src/apple1/DisplayLogic.ts`
+- `src/apple1/WebCRTVideo.ts`
+- `src/apple1/KeyboardLogic.ts`
+- `src/apple1/const.ts`
+- `src/apple1/constants/system.ts`
+- `src/apple1/__tests__/DisplayLogic-hw-accuracy.vitest.test.ts`
+- `src/apple1/__tests__/WebCRTVideo-hw-accuracy.vitest.test.ts`
+- `src/apple1/__tests__/DisplayLogic.vitest.test.ts`
+- `wasm-cpu/src/instructions_with_bus.rs`
+- `wasm-cpu/src/instructions_bus_impl.rs`
+- `wasm-cpu/src/opcodes_with_bus.rs`
+- `wasm-cpu/src/cpu.rs`
+- `wasm-cpu/src/bus.rs`
+- `src/version.ts`
+- `docs/active/hardware-accuracy-audit.md`
+- `docs/lcd/work/hw-accuracy/`
 
 <!-- /lcd-resume -->
 
@@ -113,12 +134,26 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   the ACs invalidate. Checked the other six PIA-touching suites: unaffected, they set the control
   registers explicitly or use a fake. Browser-verification tasks (T8, T11, T24, T34) are written as
   first-class tasks, not notes, because `yarn test:ci` cannot reach the Rust core.
+- 2026-08-06 22:39 — `lcd:refine`: EDIT BOUNDARY rewritten as one concrete path per line. It had been
+  written as prose ("`src/core/__tests__/` — new `PIA6820-hw-accuracy`, ..."), which reads fine to a
+  human but gave the boundary hook nothing to match, so it denied the first test-gen write.
+  Mechanical drift, no change of intent or scope. Also added the three existing test files the
+  tasks phase identified (`PIA6820.vitest.test.ts`, `Bus.vitest.test.ts`,
+  `DisplayLogic.vitest.test.ts`), which the prose form had described but not named. 1 intervention.
+- 2026-08-06 22:42 — test-gen: 17 tests emitted across 5 files, one per (AC × surface). Scoped run is red as
+  required — **16 failing, 1 passing**. The pass is AC-6 (decimal mode) and it is expected, not a
+  defect in the test: the TypeScript engine already implements NMOS decimal correctly, and the
+  half of that AC which is actually broken lives in the Rust core, which Node cannot reach. AC-6's
+  real gate is the browser task T11. Recorded rather than papered over — a green test here must not
+  be read as decimal mode being verified.
+  Also refined `tasks.md`: it had written `none`-surface test names as `AC-N (none):`, but the phase
+  contract drops the suffix for `none`. Emitted literals verified by grep: all 17 present, correct form.
 
 ## DEEP PIPELINE (Deep lane only)
 
 > Phase tracker for the Deep-lane pipeline. Files live beside this JOURNAL.
 
-`spec.md ✅  plan.md ✅  tasks.md ✅  tests ⬜  red-green ⬜  audit.md ⬜`
+`spec.md ✅  plan.md ✅  tasks.md ✅  tests ✅  red-green ⬜  audit.md ⬜`
 
 <!-- mark ✅ done · ⏳ in progress · ⬜ not started -->
 
