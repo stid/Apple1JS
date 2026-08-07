@@ -72,6 +72,7 @@
 - `src/core/__tests__/Bus-hw-accuracy.vitest.test.ts`
 - `src/core/__tests__/PIA6820.vitest.test.ts`
 - `src/core/__tests__/Bus.vitest.test.ts`
+- `src/core/__tests__/CPU6502-JumpCall.vitest.test.ts`
 - `src/apple1/index.ts`
 - `src/apple1/DisplayLogic.ts`
 - `src/apple1/WebCRTVideo.ts`
@@ -167,6 +168,12 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   WOZMON headlessly on the TypeScript engine, which converts most of that gate into something CI can
   prove and keeps guarding it forever. The browser half of T8 still stands for the WASM engine and
   real rendering. Scope addition, logged rather than silent.
+- 2026-08-06 23:00 — `lcd:refine`: added `src/core/__tests__/CPU6502-JumpCall.vitest.test.ts` to the EDIT
+  BOUNDARY. AC-12 changed reset to decrement the stack pointer by three instead of forcing it to
+  $FF, and that test hardcoded the absolute stack addresses $1FF/$1FE rather than deriving them from
+  the stack pointer it had already captured. Its intent (JSR pushes PC-1 high-then-low, S drops by
+  two) is unchanged. The plan predicted PIA and DisplayLogic fallout but not this one — a reminder
+  that a reset-semantics change reaches further than the component it lives in.
 
 ## DEEP PIPELINE (Deep lane only)
 
