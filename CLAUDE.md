@@ -17,6 +17,14 @@
    `docs/` `test/` = **patch**; **major** needs explicit approval. (A `refactor/` may
    take a minor for a notable user-facing change — an owner override; resolve the
    review thread rather than concede.)
+7. **Never call into the CPU engine from a bus read/write.** On the WASM engine a
+   bus access is a callback _out of_ running WASM, so calling back in trips
+   wasm-bindgen's borrow guard (`recursive use of an object detected…`) and kills
+   **all** I/O — display and keyboard dead. Devices reached through the bus (the
+   PIA above all) must complete using JS-side state only; sample engine values
+   between clock chunks instead. Invisible to CI — the full suite stayed green
+   while the emulator was broken. See `docs/lcd/DECISIONS.md` D-015 and the guard
+   in `src/core/cpu-engines/__tests__/wasm-memory-bridge-reentrancy.vitest.test.ts`.
 
 ## Quick Start Checklist
 
@@ -131,6 +139,17 @@ native `cargo test` (`yarn wasm:test` only runs the pure `bus.rs`/`ram.rs`/`rom.
 tests). The Node-vitest engine-parity suites load the wasm-pack "web" build via `fetch()` (absent
 in Node), so they `skipIf`/**skip in CI**. A Rust core change therefore gets `cargo check` + a
 skipped parity test — verify actual WASM behavior in a browser (see the test guidelines).
+
+**Run the parity suite against real WASM locally.** Those suites skip only because the
+`fetch()` has nothing to serve. Start `yarn dev:vite` in another shell and `yarn vitest run
+src/core/cpu-engines/__tests__/engine-parity.vitest.test.ts` exercises the actual WASM build.
+Do this for every Rust core change — it is far stronger evidence than driving the UI by hand.
+
+**A test must fail against the behavior it replaces.** Before committing one, ask what the
+old/broken code would return for those inputs; if it matches the assertion, the test is
+decoration. Reintroduce the defect and watch it fail where practical. Three tests written
+during the hardware-accuracy work asserted nothing — one used `ANC #$FF` with `A=$0F` and
+passed against an implementation that never ANDed at all.
 
 ## Before ANY Commit
 

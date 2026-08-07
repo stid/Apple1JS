@@ -79,6 +79,31 @@ test('OPCODE ($HEX) - Description', function () {
 3. Expected values are calculated correctly (especially for status flags)
 4. Reset vector points to correct address (0xff00)
 5. setupProgram is called in each test
+6. **The test fails against the behavior it replaces** — see below
+
+### 🎯 Discriminating inputs: a test must be able to fail
+
+A test whose inputs make the correct and incorrect implementations agree asserts nothing, and
+it looks exactly like a real test in the diff. Three written during the hardware-accuracy work
+were hollow:
+
+| Test | Inputs | Why it proved nothing |
+| --- | --- | --- |
+| ANC | `A=$0F`, `#$FF` | `$0F & $FF` is `$0F`, so it passed against an implementation that never ANDed at all |
+| NMI edge | only ever asserted from a low line | passed with the edge check deleted |
+| Bridge re-entrancy | a freshly-reset PIA | reads took the DDR branch and never reached the code under test |
+
+Before committing a CPU test, ask: **what would the old/broken code return for these inputs?**
+If it matches the assertion, change the inputs. Pick operands that clear bits, cross the
+boundary you care about, or differ in the flag under test.
+
+Where practical, prove it: reintroduce the defect and watch the test fail. The boot test was
+verified this way — restoring the old PIA seed made it fail with `expected 127 to be 220`,
+i.e. the stray `$7F` where `$DC` belonged. The two hollow tests above were not.
+
+For a group of related cases, add a **meta-test** asserting the fixture actually reaches the
+subject (e.g. "a device that queries the engine *does* throw"), so a setup mistake surfaces as
+a failure instead of silent green.
 
 ### 🧬 WASM core: where tests can and can't run
 
@@ -91,6 +116,10 @@ The Rust/WASM 6502 core cannot be exercised by `cargo test` or Node vitest:
   cannot pass.**
 - **Node vitest**: the wasm-pack "web" build loads via `fetch()`, absent in Node, so the
   engine-parity suites are `describe.skipIf(!wasmRuntimeAvailable)` and **skip in CI**.
+  **But they will run locally if something serves the build**: start `yarn dev:vite` in another
+  shell, then `yarn vitest run src/core/cpu-engines/__tests__/engine-parity.vitest.test.ts`
+  exercises the real WASM. Do this for every Rust core change — much stronger than hand-driving
+  the UI, and it is how the decimal-mode and undocumented-opcode work was actually verified.
 
 So a Rust core change gets `cargo check` (compile) + a skipped parity test in CI — nothing
 exercises actual execution. **Verify WASM behavior in a real browser**: import the engine modules
