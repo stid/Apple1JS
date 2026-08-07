@@ -81,6 +81,7 @@
 - `src/apple1/__tests__/DisplayLogic-hw-accuracy.vitest.test.ts`
 - `src/apple1/__tests__/WebCRTVideo-hw-accuracy.vitest.test.ts`
 - `src/apple1/__tests__/DisplayLogic.vitest.test.ts`
+- `src/apple1/__tests__/Apple1-boot-hw-accuracy.vitest.test.ts`
 - `wasm-cpu/src/instructions_with_bus.rs`
 - `wasm-cpu/src/instructions_bus_impl.rs`
 - `wasm-cpu/src/opcodes_with_bus.rs`
@@ -160,6 +161,12 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   Suite now 11 failures, all later-tier ACs. `yarn type-check` reports 2 errors — `wireCycleProvider`
   and `mirrorMask` — which are the deliberately-unwritten APIs the AC-17 and AC-15 tests call; they
   resolve at T45 and T36. `yarn test:ci` will therefore stay red until Tier 6, as expected mid-flight.
+- 2026-08-06 22:51 — `lcd:refine`: added `src/apple1/__tests__/Apple1-boot-hw-accuracy.vitest.test.ts` to the
+  EDIT BOUNDARY. Rationale: T8 is a browser check gating Tier 2, and the plan's own risk section says
+  the PIA change moves the boot path. A system-level boot test assembles the real machine and runs
+  WOZMON headlessly on the TypeScript engine, which converts most of that gate into something CI can
+  prove and keeps guarding it forever. The browser half of T8 still stands for the WASM engine and
+  real rendering. Scope addition, logged rather than silent.
 
 ## DEEP PIPELINE (Deep lane only)
 
