@@ -524,6 +524,9 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
     abs(): void { addressing.abs.call(this); }
     abx(): void { addressing.abx.call(this); }
     aby(): void { addressing.aby.call(this); }
+    abxw(): void { addressing.abxw.call(this); }
+    abyw(): void { addressing.abyw.call(this); }
+    izyw(): void { addressing.izyw.call(this); }
     rel(): void { addressing.rel.call(this); }
     rmw(): void { addressing.rmw.call(this); }
     branch(taken: boolean): void { addressing.branch.call(this, taken); }

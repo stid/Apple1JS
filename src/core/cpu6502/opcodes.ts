@@ -114,7 +114,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *SLO izy */ CPU6502op[0x13] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.slo();
     m.rmw();
 };
@@ -149,7 +149,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.nop();
 };
 /* *SLO aby */ CPU6502op[0x1b] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.slo();
     m.rmw();
 };
@@ -162,12 +162,12 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.ora();
 };
 /*  ASL abx */ CPU6502op[0x1e] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.asl();
     m.rmw();
 };
 /* *SLO abx */ CPU6502op[0x1f] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.slo();
     m.rmw();
 };
@@ -266,7 +266,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *RLA izy */ CPU6502op[0x33] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.rla();
     m.rmw();
 };
@@ -301,7 +301,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.nop();
 };
 /* *RLA aby */ CPU6502op[0x3b] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.rla();
     m.rmw();
 };
@@ -314,12 +314,12 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.and();
 };
 /*  ROL abx */ CPU6502op[0x3e] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.rol();
     m.rmw();
 };
 /* *RLA abx */ CPU6502op[0x3f] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.rla();
     m.rmw();
 };
@@ -407,7 +407,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *SRE izy */ CPU6502op[0x53] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.sre();
     m.rmw();
 };
@@ -442,7 +442,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.nop();
 };
 /* *SRE aby */ CPU6502op[0x5b] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.sre();
     m.rmw();
 };
@@ -455,12 +455,12 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.eor();
 };
 /*  LSR abx */ CPU6502op[0x5e] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.lsr();
     m.rmw();
 };
 /* *SRE abx */ CPU6502op[0x5f] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.sre();
     m.rmw();
 };
@@ -548,7 +548,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *RRA izy */ CPU6502op[0x73] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.rra();
     m.rmw();
 };
@@ -583,7 +583,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.nop();
 };
 /* *RRA aby */ CPU6502op[0x7b] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.rra();
     m.rmw();
 };
@@ -596,12 +596,12 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.adc();
 };
 /*  ROR abx */ CPU6502op[0x7e] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.ror();
     m.rmw();
 };
 /* *RRA abx */ CPU6502op[0x7f] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.rra();
     m.rmw();
 };
@@ -676,7 +676,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.bcc();
 };
 /*  STA izy */ CPU6502op[0x91] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.sta();
 };
 /* *KIL     */ CPU6502op[0x92] = (m: CPU6502Interface) => {
@@ -684,7 +684,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *AHX izy */ CPU6502op[0x93] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.ahx();
 };
 /*  STY zpx */ CPU6502op[0x94] = (m: CPU6502Interface) => {
@@ -708,7 +708,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.tya();
 };
 /*  STA aby */ CPU6502op[0x99] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.sta();
 };
 /*  TXS     */ CPU6502op[0x9a] = (m: CPU6502Interface) => {
@@ -716,23 +716,23 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.txs();
 };
 /* *TAS aby */ CPU6502op[0x9b] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.tas();
 };
 /* *SHY abx */ CPU6502op[0x9c] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.shy();
 };
 /*  STA abx */ CPU6502op[0x9d] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.sta();
 };
 /* *SHX aby */ CPU6502op[0x9e] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.shx();
 };
 /* *AHX aby */ CPU6502op[0x9f] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.ahx();
 };
 
@@ -949,7 +949,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *DCP izy */ CPU6502op[0xd3] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.dcp();
     m.rmw();
 };
@@ -984,7 +984,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.nop();
 };
 /* *DCP aby */ CPU6502op[0xdb] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.dcp();
     m.rmw();
 };
@@ -997,12 +997,12 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.cmp();
 };
 /*  DEC abx */ CPU6502op[0xde] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.dec();
     m.rmw();
 };
 /* *DCP abx */ CPU6502op[0xdf] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.dcp();
     m.rmw();
 };
@@ -1090,7 +1090,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.kil();
 };
 /* *ISC izy */ CPU6502op[0xf3] = (m: CPU6502Interface) => {
-    m.izy();
+    m.izyw();
     m.isc();
     m.rmw();
 };
@@ -1125,7 +1125,7 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.nop();
 };
 /* *ISC aby */ CPU6502op[0xfb] = (m: CPU6502Interface) => {
-    m.aby();
+    m.abyw();
     m.isc();
     m.rmw();
 };
@@ -1138,12 +1138,12 @@ const CPU6502op: Array<(m: CPU6502Interface) => void> = [];
     m.sbc();
 };
 /*  INC abx */ CPU6502op[0xfe] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.inc();
     m.rmw();
 };
 /* *ISC abx */ CPU6502op[0xff] = (m: CPU6502Interface) => {
-    m.abx();
+    m.abxw();
     m.isc();
     m.rmw();
 };

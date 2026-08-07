@@ -142,6 +142,43 @@ export function aby(this: CPU6502Interface): void {
 }
 
 /**
+ * Absolute,X for WRITING instructions - always 5 cycles
+ *
+ * A store cannot know whether the high byte needs fixing up until it has
+ * already done the (discarded) access at the un-fixed address, so it pays that
+ * cycle unconditionally. Only reads get the conditional page-cross penalty.
+ * Paired with `rmw()` this yields the published 7 cycles for `ASL abs,X`.
+ */
+export function abxw(this: CPU6502Interface): void {
+    let paddr: number = this.read(this.PC++);
+    paddr |= this.read(this.PC++) << 8;
+    this.addr = paddr + this.X;
+    this.cycles += 5;
+}
+
+/**
+ * Absolute,Y for WRITING instructions - always 5 cycles
+ * See `abxw`.
+ */
+export function abyw(this: CPU6502Interface): void {
+    let paddr: number = this.read(this.PC++);
+    paddr |= this.read(this.PC++) << 8;
+    this.addr = paddr + this.Y;
+    this.cycles += 5;
+}
+
+/**
+ * Indirect Indexed (zp),Y for WRITING instructions - always 6 cycles
+ * See `abxw`.
+ */
+export function izyw(this: CPU6502Interface): void {
+    const a: number = this.read(this.PC++);
+    const paddr: number = (this.read((a + 1) & 0xff) << 8) | this.read(a);
+    this.addr = paddr + this.Y;
+    this.cycles += 6;
+}
+
+/**
  * Relative - 2 cycles
  * Used for branches, signed 8-bit offset from PC
  */

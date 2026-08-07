@@ -85,6 +85,10 @@ export interface CPU6502Interface {
     abs(): void;
     abx(): void;
     aby(): void;
+    /** Fixed-cost indexed modes used by writing instructions (no page-cross penalty) */
+    abxw(): void;
+    abyw(): void;
+    izyw(): void;
     rel(): void;
 
     // Special operations
