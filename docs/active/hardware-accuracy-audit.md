@@ -3,7 +3,13 @@
 **Date:** 2026-08-06 · **Scope:** every emulated IC in `src/core/` + `wasm-cpu/src/`, checked
 against manufacturer documentation and the Apple 1 hardware description.
 
-This is a findings document. Nothing here has been fixed. Each finding records what the real
+> **Status: all findings closed.** Fixed on branch `fix/hw-accuracy` as LCD work-item
+> `hw-accuracy` (`docs/lcd/work/hw-accuracy/`), which carries the acceptance criteria, plan and
+> task breakdown. The summary table's Status column records where each finding landed. Three
+> deviations were kept deliberately and are listed under "Intentional deviations" — they are
+> decisions, not omissions.
+
+This was a findings document. Each finding records what the real
 part does, what we do, how it was measured, which engine is affected, and whether real Apple 1
 software can observe it.
 
@@ -23,23 +29,23 @@ entries are code-read, not measured — marked accordingly.
 
 ## Summary, ranked by whether Apple 1 software can observe it
 
-| #   | IC       | Finding                                                                                                                                                                | JS  | WASM        | Observable?                 |
-| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ----------- | --------------------------- |
-| 1   | PIA 6820 | Powers up pre-initialised (`CRB=$04`, `DDRB=$7F`) instead of all-zero, so WOZMON's `STY $D012` writes to ORB and pushes a spurious `$7F` at the display on every reset | ✗   | ✗ (shared)  | Yes — every reset           |
-| 2   | PIA 6820 | Reading Data Register A clears only IRQA1; the datasheet clears IRQA1 **and** IRQA2                                                                                    | ✗   | ✗ (shared)  | Yes, if CA2 interrupts used |
-| 3   | PIA 6820 | Reading the _DDR_ also clears IRQA1; on real hardware a DDR read touches no flags                                                                                      | ✗?  | ✗? (shared) | Yes, if CA2/DDR paths used  |
-| 4   | 6502     | Decimal mode is not implemented at all in the Rust core — ADC/SBC ignore the D flag                                                                                    | ok  | ✗           | Yes — engines disagree      |
-| 5   | 6502     | JS `(zp,X)` does not wrap the pointer inside zero page                                                                                                                 | ✗   | ok          | Only at pointer `$FF`       |
-| 6   | 6502     | JS `JMP (ind)` implements the page bug on the wrong operand, and misses the real one                                                                                   | ✗   | ok          | Only at page-edge vectors   |
-| 7   | 6502     | JS `BRK` clears D — that is 65C02 behaviour; NMOS 6502 leaves D alone                                                                                                  | ✗   | ok          | Yes, if BRK used in decimal |
-| 8   | 6502     | Store/RMW indexed instructions charge a conditional page-cross cycle; real ones are fixed-cost                                                                         | ✗   | ok          | Timing only                 |
-| 9   | 6502     | Reset clears A/X/Y and sets S=$FF; real reset leaves A/X/Y alone and decrements S by 3                                                                                 | ✗   | ✗           | Rarely                      |
-| 10  | 6502     | NMI triggers on the _release_ edge, not the assertion edge                                                                                                             | ✗   | n/a         | Not on Apple 1 (NMI unused) |
-| 11  | 6502     | Six illegal RMW opcodes write the wrong value back to memory; `ANC` is wrong outright                                                                                  | ✗   | absent      | No                          |
-| 12  | Bus      | Exact-range decode — no PIA mirroring across `$D000-$DFFF`; unmapped reads return `$00`                                                                                | ✗   | partial     | Yes, for mirror-using code  |
-| 13  | Terminal | Display handshake is faked via a synthetic PB7 setter; the real CB2-output/CB1-pulse path is unimplemented (`TODO` in PIA6820)                                         | ✗   | ✗ (shared)  | Timing/structure            |
-| 14  | Terminal | Accepts ASCII 32–126, so lowercase renders; the 2513 is a 64-glyph uppercase-only ROM                                                                                  | ✗   | ✗ (shared)  | Yes, for lowercase output   |
-| 15  | RAM      | Powers up all zeros; real DRAM powers up with indeterminate contents                                                                                                   | ✗   | ✗           | No                          |
+| #   | IC       | Finding                                                                                                                                                                | JS  | WASM        | Observable?                 | Status |
+| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ----------- | --------------------------- | --- |
+| 1   | PIA 6820 | Powers up pre-initialised (`CRB=$04`, `DDRB=$7F`) instead of all-zero, so WOZMON's `STY $D012` writes to ORB and pushes a spurious `$7F` at the display on every reset | ✗   | ✗ (shared)  | Yes — every reset           | fixed · AC-1..3 |
+| 2   | PIA 6820 | Reading Data Register A clears only IRQA1; the datasheet clears IRQA1 **and** IRQA2                                                                                    | ✗   | ✗ (shared)  | Yes, if CA2 interrupts used | fixed · AC-4 |
+| 3   | PIA 6820 | Reading the _DDR_ also clears IRQA1; on real hardware a DDR read touches no flags                                                                                      | ✗?  | ✗? (shared) | Yes, if CA2/DDR paths used  | fixed · AC-5 |
+| 4   | 6502     | Decimal mode is not implemented at all in the Rust core — ADC/SBC ignore the D flag                                                                                    | ok  | ✗           | Yes — engines disagree      | fixed · AC-6 |
+| 5   | 6502     | JS `(zp,X)` does not wrap the pointer inside zero page                                                                                                                 | ✗   | ok          | Only at pointer `$FF`       | fixed · AC-7 |
+| 6   | 6502     | JS `JMP (ind)` implements the page bug on the wrong operand, and misses the real one                                                                                   | ✗   | ok          | Only at page-edge vectors   | fixed · AC-8 |
+| 7   | 6502     | JS `BRK` clears D — that is 65C02 behaviour; NMOS 6502 leaves D alone                                                                                                  | ✗   | ok          | Yes, if BRK used in decimal | fixed · AC-9 |
+| 8   | 6502     | Store/RMW indexed instructions charge a conditional page-cross cycle; real ones are fixed-cost                                                                         | ✗   | ok          | Timing only                 | fixed · AC-10 |
+| 9   | 6502     | Reset clears A/X/Y and sets S=$FF; real reset leaves A/X/Y alone and decrements S by 3                                                                                 | ✗   | ✗           | Rarely                      | fixed · AC-12 |
+| 10  | 6502     | NMI triggers on the _release_ edge, not the assertion edge                                                                                                             | ✗   | n/a         | Not on Apple 1 (NMI unused) | fixed · AC-13 |
+| 11  | 6502     | Six illegal RMW opcodes write the wrong value back to memory; `ANC` is wrong outright                                                                                  | ✗   | absent      | No                          | fixed · AC-14 |
+| 12  | Bus      | Exact-range decode — no PIA mirroring across `$D000-$DFFF`; unmapped reads return `$00`                                                                                | ✗   | partial     | Yes, for mirror-using code  | fixed · AC-15/16 |
+| 13  | Terminal | Display handshake is faked via a synthetic PB7 setter; the real CB2-output/CB1-pulse path is unimplemented (`TODO` in PIA6820)                                         | ✗   | ✗ (shared)  | Timing/structure            | fixed · AC-17 |
+| 14  | Terminal | Accepts ASCII 32–126, so lowercase renders; the 2513 is a 64-glyph uppercase-only ROM                                                                                  | ✗   | ✗ (shared)  | Yes, for lowercase output   | fixed · AC-11 |
+| 15  | RAM      | Powers up all zeros; real DRAM powers up with indeterminate contents                                                                                                   | ✗   | ✗           | No                          | kept · D-012 |
 
 Legend: ✗ = deviates, ✗? = deviates under the standard reading of the datasheet, but I could not
 confirm it in a primary source (see Open questions), ok = matches the real part, "shared" = the
@@ -401,7 +407,7 @@ rule 5. Unrelated to hardware accuracy but worth sweeping while the file is open
   (finding 3) assumes the former, which is the standard reading but I did not find it stated
   negatively in a primary document.
 
-## Suggested order, if these get fixed
+## Fix order used
 
 1. PIA reset state (findings 1–3) — one component, highest observability, and it currently masks
    other init bugs. Needs care: fixing the power-on state means WOZMON's `STY $D012` starts
@@ -414,8 +420,14 @@ rule 5. Unrelated to hardware accuracy but worth sweeping while the file is open
 5. Terminal character set and the stale baud comment (finding 14) — cheap.
 6. Everything else is latent or cosmetic.
 
-Each of these should get a real test in `src/**/__tests__/` rather than the throwaway probes
-used here, and CPU changes need both engines updated together per the parity invariant.
+Each finding has a real test in `src/**/__tests__/` rather than the throwaway probes used here —
+17 acceptance criteria across five files, plus a system-level boot test. The Rust core cannot be
+reached by `yarn test:ci`, so its decimal mode and undocumented instruction set were verified by
+driving `WasmSystem` in a browser; those results are recorded in the work-item JOURNAL.
+
+One outcome worth noting beyond the findings list: with the undocumented set implemented, the
+Rust dispatch covers all 256 opcodes, and the compiler now enforces that — the wildcard arm that
+silently charged 2 cycles for an unimplemented opcode is gone.
 
 ## Sources
 

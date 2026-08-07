@@ -13,8 +13,8 @@
 - **Lane:** Deep
 - **Goal:** Bring the emulated core ICs into agreement with the original hardware, closing the 15
   deviations recorded in `docs/active/hardware-accuracy-audit.md`.
-- **Next action:** T8 browser boot check (Tier 1 gate), then `lcd:redgreen-loop` for Tier 2 [T10]
-- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 22:48
+- **Next action:** open the PR — audit PASS, gate green, all 54 tasks done
+- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 23:18
 
 ## STEPS
 
@@ -26,14 +26,14 @@
 - [x] S4 — tasks.md written; 54 tasks, 7 parallel-eligible
 - [x] S5 — 17 failing tests generated, one per (AC × surface); 16 red, AC-6 green on arrival
 - [x] S6 — Tier 1 PIA power-on + IRQ flags [T1–T7] green in 2 iterations, 0 reverts
-- [ ] S6b — Tier 1 browser boot check [T8] — gates Tier 2 ← next
-- [ ] S7 — Tier 2 Rust decimal mode [T9–T10] + browser verify [T11]
-- [ ] S8 — Tier 3 TypeScript CPU correctness: (zp,X), JMP (ind), BRK/D [T12–T16]
-- [ ] S9 — Tier 4 store/RMW fixed cycle counts [T17–T21]
-- [ ] S10 — Tier 5 terminal 64-glyph folding [T22–T23] + browser verify [T24]
-- [ ] S11 — Tier 6 tail: reset, NMI, undocumented opcodes, bus mirroring, unmapped read,
+- [x] S6b — Tier 1 browser boot check [T8] — gates Tier 2 ← next
+- [x] S7 — Tier 2 Rust decimal mode [T9–T10] + browser verify [T11]
+- [x] S8 — Tier 3 TypeScript CPU correctness: (zp,X), JMP (ind), BRK/D [T12–T16]
+- [x] S9 — Tier 4 store/RMW fixed cycle counts [T17–T21]
+- [x] S10 — Tier 5 terminal 64-glyph folding [T22–T23] + browser verify [T24]
+- [x] S11 — Tier 6 tail: reset, NMI, undocumented opcodes, bus mirroring, unmapped read,
       handshake pacing, cosmetics [T25–T52] + browser verify [T34]
-- [ ] S12 — audit gate [T-audit], full suite [T-final], then PR
+- [x] S12 — audit gate [T-audit], full suite [T-final], then PR
 
 ## DECISIONS (this work-item)
 
@@ -174,6 +174,18 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   the stack pointer it had already captured. Its intent (JSR pushes PC-1 high-then-low, S drops by
   two) is unchanged. The plan predicted PIA and DisplayLogic fallout but not this one — a reminder
   that a reset-semantics change reaches further than the component it lives in.
+- 2026-08-06 23:18 — Tiers 2-6 complete; audit PASS. All 17 ACs green, `yarn test:ci` 784 passing,
+  `yarn wasm:check` clean, WASM release builds at 129 KB.
+  Browser verification of what CI cannot reach: decimal mode and the full undocumented instruction
+  set driven against the real `WasmSystem` — every value matched the TypeScript expectation exactly.
+  Boot confirmed on the WASM engine (cycles advancing ~1MHz, no console errors). Character-set fold
+  confirmed by importing the shipped module in the browser.
+  **Honest gap:** four attempts to inject synthetic KeyboardEvents into the hidden focus input never
+  reached the emulator, so the end-to-end keyboard→display path was not exercised. Verified the fold
+  via the shipped module instead — same code, one integration hop short. Recorded in `audit.md`
+  rather than quietly counted as done.
+  Two unplanned regressions, both predicted in class if not in name: a JSR test hardcoding stack
+  addresses, and the two display/bus tests the plan did name. 2 boundary refines, 1 hook denial.
 
 ## DEEP PIPELINE (Deep lane only)
 
