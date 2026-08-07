@@ -1,7 +1,7 @@
 # JOURNAL — tw4-cleanup
 
 > **The resume anchor.** The block between the `lcd-resume:v1` markers below is the _entire_
-> cold-start payload. `/stid-lcd:resume` reads MAP.md + this block + DECISIONS headers and nothing
+> cold-start payload. `/lcd:resume` reads MAP.md + this block + DECISIONS headers and nothing
 > else. Keep NOW and STEPS current as you work. Everything below the `---` is history/detail.
 
 <!-- lcd-resume:v1 -->

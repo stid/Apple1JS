@@ -6,9 +6,60 @@
 > one `superseded by D-NNN`. Work-item-local decisions live in that item's `JOURNAL.md`; mirror
 > here only the ones that outlive the work item.
 
-<!-- Next id: D-008 -->
+<!-- Next id: D-011 -->
 
 ---
+
+## D-010 · 2026-06-20 · Published at `apple1.stid.me` via Cloudflare; deploy config stays out of the repo
+
+- **Context:** The demo moved off Netlify to a Cloudflare-hosted subdomain. Cloudflare Pages build
+  settings carry account-specific detail.
+- **Decision:** Publish at <https://apple1.stid.me/> (canonical link in `index.html`, demo link in
+  `README.md`); Netlify is retired (badge removed). The deployment playbook and account IDs are
+  **deliberately not in this public repo** — `docs/active/cloudflare-migration-plan.md` is
+  gitignored and lives in the maintainer's private vault. Consequently the repo contains no
+  `wrangler.toml`, `_headers`, `_redirects`, or `functions/`, and `.github/workflows/` has no deploy
+  job: the site stays a plain static build with **no** new zone or surface to map. (PRs #188, #192.)
+- **Alternatives rejected:** committing the Cloudflare config for reproducibility — leaks account
+  detail in a public repo; staying on Netlify — superseded by the subdomain rollout.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-009 · 2026-05-30 · WASM core correctness is verified in a browser, not CI
+
+- **Context:** A Rust core change has no automated proof. Native `cargo test` panics on the
+  `CPU6502::new()` / `WasmSystem::initialize()` path (they call wasm-bindgen imports), so
+  `yarn wasm:test` only covers the pure `bus.rs`/`ram.rs`/`rom.rs` components; the Node-vitest
+  engine-parity suites load the wasm-pack "web" build via `fetch()`, absent in Node, so they
+  `skipIf` and skip in CI.
+- **Decision:** Accept manual browser verification as the real check for the WASM core. A Rust core
+  change gets `cargo check` + a (skipped) parity test in CI, plus in-browser verification. Because
+  the emulator runs a continuous worker/rAF loop the page never reaches `document_idle`, so
+  idle-gated screenshot/page-text tooling times out — drive and inspect via in-page JS, and sample
+  transient UI (toasts, ~4s) inside a **single** in-page async loop rather than across tool
+  round-trips.
+- **Alternatives rejected:** native Rust tests on the CPU/`WasmSystem` path — they panic, so they
+  encode a false green; a headless-browser CI job — declined, this is a public repo with no CI
+  budget for it.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-008 · 2026-05-30 · markdownlint is per-file only; repo-wide `lint:md:fix` is forbidden
+
+- **Context:** `yarn lint:md:fix` rewrites every markdown file in the repo. It corrupts the LCD
+  machine block in `.claude/rules/lcd-conventions.md` (`__tests__` → `**tests**`,
+  `src/**/*` → `src/\*_/_`) and reflows nested lists, because prettier wants 4-space indentation
+  and markdownlint MD007 wants 2-space. md-lint is **not** in CI, so the breakage is silent — and
+  `lcd-doctor.sh` still passes, since it checks that machine-block keys are present, not that their
+  values are valid.
+- **Decision:** Lint markdown per-file only — `npx markdownlint-cli2 --fix "<file.md>"` on the files
+  actually edited — and never run the repo-wide fix. `maintenance-bundle` in the conventions block
+  deliberately uses the read-only `yarn lint:md`.
+- **Alternatives rejected:** the repo-wide `lint:md:fix` (the corruption source); reconciling
+  prettier and MD007 by configuring one to match the other — not attempted; the per-file rule is
+  cheaper than owning that config fight.
+- **Scope:** project-wide
+- **Status:** active
 
 ## D-007 · 2026-05-30 · Tailwind v4 follow-up: cssnano dropped; semantic alias tokens added
 
