@@ -6,9 +6,23 @@
 > one `superseded by D-NNN`. Work-item-local decisions live in that item's `JOURNAL.md`; mirror
 > here only the ones that outlive the work item.
 
-<!-- Next id: D-014 -->
+<!-- Next id: D-015 -->
 
 ---
+
+## D-014 · 2026-08-06 · Bus mirroring is an offset mask on a widened range, not overlapping ranges
+
+- **Context:** The Apple 1 decodes addresses partially, so the peripheral adapter repeats through
+  a whole 4K bank. `Bus.validate()` rejects overlapping mappings, which looked like it forced a
+  choice between accurate decoding and that guard.
+- **Decision:** A mapping may carry an optional offset mask. The mirrored device's range widens to
+  cover the repeat, and the decoded offset becomes `(address - base) & mask`. No ranges overlap, so
+  `validate()` keeps rejecting genuine mapping mistakes and every existing mapping keeps its exact
+  semantics.
+- **Alternatives rejected:** Relax `validate()` to permit overlaps with precedence rules — strictly
+  more machinery, and it deletes a guard that catches real errors.
+- **Scope:** project-wide
+- **Status:** active
 
 ## D-013 · 2026-08-06 · Dual-engine parity covers undocumented opcodes, not just documented ones
 
