@@ -71,4 +71,36 @@ describe('Apple 1 boot — hardware accuracy', () => {
         // And the CPU is running the monitor, not jammed somewhere in RAM.
         expect(apple1.cpu.PC, 'PC should be inside the monitor ROM').toBeGreaterThanOrEqual(0xff00);
     });
+    test('a keystroke echoes back to the display', async () => {
+        // The full input path: key -> KeyboardLogic -> PIA port A + CA1 strobe
+        // -> WOZMON's keyboard poll -> ECHO -> display. This is what broke when
+        // the display handshake started querying the CPU engine mid-execution.
+        let sendKey: ((v: number) => Promise<unknown>) | undefined;
+        const keyboard: IoComponent = {
+            write: async () => undefined,
+            wire: (o) => {
+                sendKey = o.write as (v: number) => Promise<unknown>;
+            },
+            reset: () => undefined,
+        };
+        const video = new RecordingVideo(new WebCRTVideo());
+        const apple1 = new Apple1({ video, keyboard, useDualEngine: false });
+
+        const spin = async (ms: number) => {
+            const end = Date.now() + ms;
+            while (Date.now() < end) {
+                apple1.cpu.performBulkSteps(5000);
+                await new Promise((r) => setTimeout(r, 1));
+            }
+        };
+
+        await spin(300);
+        const afterBoot = video.received.length;
+
+        await sendKey?.(0x41); // 'A'
+        await spin(600);
+
+        expect(video.received.slice(afterBoot), 'the keystroke should echo').toContain(0xc1);
+    });
+
 });

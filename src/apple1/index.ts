@@ -292,6 +292,8 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
     bus: Bus;
     cpu: CPU6502;
     cpuEngine?: ICPUEngine; // Optional dual-engine CPU
+    /** Engine cycle count sampled between chunks — see wireCycleProvider below. */
+    private engineCycleSnapshot = 0;
     clock: Clock;
     useDualEngine: boolean;
 
@@ -416,15 +418,29 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
         // The busy line is held for a fixed number of CPU cycles rather than a
         // wall-clock duration, so the terminal's ~60 characters/second holds
         // regardless of how fast the host runs.
+        //
+        // CRITICAL: this callback runs inside a bus read/write, and on the WASM
+        // engine a bus access is a callback *out of* a running WASM function.
+        // Calling back into WASM from there trips wasm-bindgen's borrow guard
+        // ("recursive use of an object detected which would lead to unsafe
+        // aliasing in rust") and kills the whole I/O path. So the engine's cycle
+        // count is snapshotted between chunks and read here as a plain number —
+        // never fetched from the engine while it is executing.
         this.pia.wireCycleProvider(() =>
-            this.cpuEngine ? this.cpuEngine.getMetrics().totalCycles : this.cpu.getCompletedCycles(),
+            this.cpuEngine ? this.engineCycleSnapshot : this.cpu.getCompletedCycles(),
         );
 
         // Subscribe the appropriate engine to the Clock
         if (this.cpuEngine) {
             // Use DualEngine when available - this ensures metrics are properly tracked
             const engine = this.cpuEngine; // Capture reference to avoid TS error
-            this.clock.subscribe((steps: number) => engine.performBulkSteps(steps));
+            this.clock.subscribe((steps: number) => {
+                engine.performBulkSteps(steps);
+                // Safe here: we are outside the engine call, so querying it
+                // cannot re-enter WASM. Chunks are far shorter than one video
+                // field, so this stays fine-grained enough for the handshake.
+                this.engineCycleSnapshot = engine.getMetrics().totalCycles;
+            });
             // Note: DualEngine initialization is deferred to startLoop() to ensure it completes before execution
         } else {
             // Use regular CPU when DualEngine is not enabled

@@ -73,6 +73,7 @@
 - `src/core/__tests__/PIA6820.vitest.test.ts`
 - `src/core/__tests__/Bus.vitest.test.ts`
 - `src/core/__tests__/CPU6502-JumpCall.vitest.test.ts`
+- `src/core/cpu-engines/__tests__/wasm-memory-bridge-reentrancy.vitest.test.ts`
 - `src/apple1/index.ts`
 - `src/apple1/DisplayLogic.ts`
 - `src/apple1/WebCRTVideo.ts`
