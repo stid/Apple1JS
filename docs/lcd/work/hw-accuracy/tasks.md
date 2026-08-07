@@ -87,11 +87,11 @@
 - [x] **T40**: Write failing test named `AC-16: an unanswered address reads the floating-bus value` in `src/core/__tests__/Bus-hw-accuracy.vitest.test.ts`
 - [x] **T41**: Modify `src/core/Bus.ts` — return the floating-bus value for an unmapped read, matching the Rust core. Passes T40
 - [x] **T42**: Modify `src/core/__tests__/Bus.vitest.test.ts` — update the case asserting `0` for a non-existent address space
-- [x] **T43**: Write failing test named `AC-17 (RENDER): display busy is held for emulated time` in `src/apple1/__tests__/DisplayLogic-hw-accuracy.vitest.test.ts` — busy stays asserted until the emulated cycle deadline passes and does not depend on host scheduling
-- [x] **T44**: Modify `src/apple1/DisplayLogic.ts` — record a busy deadline in emulated cycles instead of bracketing a host await
-- [x] **T45**: Modify `src/core/PIA6820.ts` — derive PB7 from the wired cycle provider
-- [x] **T46**: Modify `src/apple1/index.ts` — wire the engine's cycle count into the display path. Passes T43
-- [x] **T47**: Modify `src/apple1/__tests__/DisplayLogic.vitest.test.ts` — the case asserting PB7 is clear the moment a write returns becomes cycle-dependent
+- [~] **T43** (withdrawn with AC-17): Write failing test named `AC-17 (RENDER): display busy is held for emulated time` in `src/apple1/__tests__/DisplayLogic-hw-accuracy.vitest.test.ts` — busy stays asserted until the emulated cycle deadline passes and does not depend on host scheduling
+- [~] **T44** (withdrawn with AC-17): Modify `src/apple1/DisplayLogic.ts` — record a busy deadline in emulated cycles instead of bracketing a host await
+- [~] **T45** (withdrawn with AC-17): Modify `src/core/PIA6820.ts` — derive PB7 from the wired cycle provider
+- [~] **T46** (withdrawn with AC-17): Modify `src/apple1/index.ts` — wire the engine's cycle count into the display path. Passes T43
+- [~] **T47** (withdrawn with AC-17): Modify `src/apple1/__tests__/DisplayLogic.vitest.test.ts` — the case asserting PB7 is clear the moment a write returns becomes cycle-dependent
 - [x] **T48** [P]: Modify `src/apple1/KeyboardLogic.ts` — remove the three `console.log` calls
 - [x] **T49** [P]: Modify `src/apple1/constants/system.ts` — delete the unused 500 µs constant and correct the stale baud comment
 - [x] **T50** [P]: Modify `src/apple1/const.ts` — correct the same stale baud comment
@@ -131,7 +131,7 @@ loop if the cycle provider is not wired before the deadline logic goes live.
 - `AC-14` → T30, T31, T32, T33, T34
 - `AC-15` → T35, T36, T37, T38, T39
 - `AC-16` → T40, T41, T42
-- `AC-17 (RENDER)` → T43, T44, T45, T46, T47
+- `AC-17` → withdrawn after implementation; see spec.md Out of scope
 
 Tasks with no AC linkback are plan-mandated housekeeping rather than acceptance criteria: T7, T42
 and T47 update tests whose premises the ACs invalidate; T48–T51 clear rule violations and dead

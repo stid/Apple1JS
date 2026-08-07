@@ -103,4 +103,6 @@ describe('Apple 1 boot — hardware accuracy', () => {
         expect(video.received.slice(afterBoot), 'the keystroke should echo').toContain(0xc1);
     });
 
+
+
 });

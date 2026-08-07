@@ -7,7 +7,8 @@ against manufacturer documentation and the Apple 1 hardware description.
 > `hw-accuracy` (`docs/lcd/work/hw-accuracy/`), which carries the acceptance criteria, plan and
 > task breakdown. The summary table's Status column records where each finding landed. Three
 > deviations were kept deliberately and are listed under "Intentional deviations" — they are
-> decisions, not omissions.
+> decisions, not omissions. Finding 13 (display handshake timing) was fixed and then **reverted**;
+> the reason is recorded in §7.2 and is worth reading before anyone attempts it again.
 
 This was a findings document. Each finding records what the real
 part does, what we do, how it was measured, which engine is affected, and whether real Apple 1
@@ -43,7 +44,7 @@ entries are code-read, not measured — marked accordingly.
 | 10  | 6502     | NMI triggers on the _release_ edge, not the assertion edge                                                                                                             | ✗   | n/a         | Not on Apple 1 (NMI unused) | fixed · AC-13 |
 | 11  | 6502     | Six illegal RMW opcodes write the wrong value back to memory; `ANC` is wrong outright                                                                                  | ✗   | absent      | No                          | fixed · AC-14 |
 | 12  | Bus      | Exact-range decode — no PIA mirroring across `$D000-$DFFF`; unmapped reads return `$00`                                                                                | ✗   | partial     | Yes, for mirror-using code  | fixed · AC-15/16 |
-| 13  | Terminal | Display handshake is faked via a synthetic PB7 setter; the real CB2-output/CB1-pulse path is unimplemented (`TODO` in PIA6820)                                         | ✗   | ✗ (shared)  | Timing/structure            | fixed · AC-17 |
+| 13  | Terminal | Display handshake is faked via a synthetic PB7 setter; the real CB2-output/CB1-pulse path is unimplemented (`TODO` in PIA6820)                                         | ✗   | ✗ (shared)  | Timing/structure            | kept · see §7.2 |
 | 14  | Terminal | Accepts ASCII 32–126, so lowercase renders; the 2513 is a 64-glyph uppercase-only ROM                                                                                  | ✗   | ✗ (shared)  | Yes, for lowercase output   | fixed · AC-11 |
 | 15  | RAM      | Powers up all zeros; real DRAM powers up with indeterminate contents                                                                                                   | ✗   | ✗           | No                          | kept · D-012 |
 
@@ -353,6 +354,16 @@ On real hardware, writing a character clears the PIA's CB2 _output_, which drive
 a 3.5 µs pulse on CB1 releases it. We model none of that — `DisplayLogic` calls a synthetic
 `pia.setPB7DisplayStatus()` (`src/apple1/DisplayLogic.ts:35`, `:41`) that pokes a private field,
 while the CB2 output logic the real path depends on is the empty `TODO` from section 1.4.
+
+**Attempted and reverted.** Holding the busy line for a fixed number of emulated cycles was
+implemented, shipped to a branch, and backed out. Two things broke. The clock only exposes the
+emulated cycle count at chunk boundaries — never mid-chunk, and on the WASM engine it cannot be
+read during execution at all without tripping wasm-bindgen's borrow guard — so the display became
+quantised to the chunk rate and character echo stuttered. And an absolute cycle deadline cannot
+survive `reset()`, which zeroes the cycle counter on both engines: a deadline set before a reset
+sat unreachably in the future and stranded the monitor mid-line. A real fix needs the clock to
+expose emulated time continuously, which is an execution-architecture change. Until then this
+stands as an accepted deviation.
 
 The functional result is close, but the busy window is governed by the host event loop rather
 than emulated time. Measured:

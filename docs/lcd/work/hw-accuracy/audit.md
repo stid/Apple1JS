@@ -1,6 +1,6 @@
 # Audit: hw-accuracy
 
-**Run:** 2026-08-06 23:18 · **Branch:** `fix/hw-accuracy` · **Result: PASS** (0 MISSING, 0 BLOCKED)
+**Re-run after AC-17 withdrawal.** **Run:** 2026-08-06 23:18 · **Branch:** `fix/hw-accuracy` · **Result: PASS** (0 MISSING, 0 BLOCKED)
 
 Every (AC × surface) pair from `spec.md` has a passing test carrying its literal token, and every
 non-`none` surface in `plan.md`'s cross-path matrix resolves to an existing handler.
@@ -25,7 +25,7 @@ non-`none` surface in `plan.md`'s cross-path matrix resolves to an existing hand
 | AC-14 | none | `AC-14:` | `src/core/cpu6502/instructions.ts` + Rust set | PASS (browser-verified) |
 | AC-15 | none | `AC-15:` | `src/core/Bus.ts`, `src/apple1/index.ts` | PASS |
 | AC-16 | none | `AC-16:` | `src/core/Bus.ts` | PASS |
-| AC-17 | RENDER | `AC-17 (RENDER):` | `src/apple1/DisplayLogic.ts` | PASS |
+| AC-17 | — | withdrawn | — | WITHDRAWN — see spec.md |
 
 ## Browser verification (what CI structurally cannot prove)
 

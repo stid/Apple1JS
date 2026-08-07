@@ -119,9 +119,13 @@ it reaches the adapter register that address selects.
 value returned is the one a floating bus produces on this machine, and both engines return the
 same value.
 
-**AC-17** (surfaces: RENDER): Given a character is written to the display, when the busy
-indication is polled, then it remains asserted for the emulated time one character takes to reach
-the screen and its duration does not vary with host machine speed or scheduling.
+**AC-17** — _withdrawn after implementation._ It required the display busy line to be held for
+emulated rather than host time. Delivered, then reverted: the clock only exposes the emulated
+cycle count at chunk boundaries — never mid-chunk, and on the second engine it cannot be read
+during execution at all — so a cycle-based deadline quantises the display to the chunk rate and
+makes character echo stutter. It also could not survive the processor's cycle counter returning to
+zero on reset, which stranded the monitor mid-line. The deviation it targeted is recorded as
+accepted instead. See Out of scope.
 
 ## Out of scope
 
@@ -138,9 +142,11 @@ the screen and its duration does not vary with host machine speed or scheduling.
 - **Address decoding beyond the peripheral adapter's mirror.** Any mirroring of memory regions is
   left alone; only the adapter's repeat is modelled, because that is the case documented well
   enough to implement without guessing.
-- **The adapter's second control-line output modes.** The display handshake will be corrected by
-  pacing it from emulated time rather than by modelling the control-line mechanism the real board
-  uses. The mechanism stays unmodelled and recorded as such.
+- **The display handshake's timing source (was AC-17).** The busy line stays host-paced. Pacing it
+  from emulated time was implemented and then reverted — see AC-17 above. A correct fix needs the
+  clock to expose emulated time continuously rather than per chunk, which is a change to the
+  execution architecture and well beyond this work-item. The adapter's control-line output modes
+  likewise stay unmodelled.
 - **Backspace handling in the display.** A deliberate usability addition the original lacks; it
   stays.
 - **The processor clock frequency question.** Sources disagree between one megahertz and the

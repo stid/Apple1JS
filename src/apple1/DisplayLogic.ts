@@ -1,7 +1,6 @@
 import PIA6820 from '../core/PIA6820';
 const RESET_CODE = -255;
 import { IoWriter, WireOptions } from '../core/types';
-import { DISPLAY_FIELD_CYCLES } from './constants/system';
 
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high
@@ -30,12 +29,22 @@ class DisplayLogic implements IoWriter {
             return;
         }
         
-        // Hold the busy line for the emulated time one character takes to
-        // reach the screen — a full video field. It expires on CPU cycles, so
-        // the handshake does not drift with host speed or event-loop timing.
-        this.pia.setPB7BusyForCycles(DISPLAY_FIELD_CYCLES);
+        // Set PB7 to indicate display is busy (hardware-controlled input pin)
+        this.pia.setPB7DisplayStatus(true);
 
         await this.wireWrite?.(char);
+
+        // Clear PB7 to indicate display is ready.
+        //
+        // Known deviation (hardware-accuracy audit, finding 13): on real
+        // hardware the busy line is held for one video field (~16.7ms) of
+        // machine time. Here it is held for as long as the write takes on the
+        // host. Pacing it from emulated cycles was tried and reverted: the
+        // Clock only exposes the cycle count at chunk boundaries — never
+        // mid-chunk, and on the WASM engine it cannot be read mid-execution at
+        // all — so a cycle deadline quantises the display to the chunk rate and
+        // makes echo stutter. Host pacing is the lesser inaccuracy.
+        this.pia.setPB7DisplayStatus(false);
     }
 
     wire({ reset, write }: WireOptions): void {

@@ -13,8 +13,8 @@
 - **Lane:** Deep
 - **Goal:** Bring the emulated core ICs into agreement with the original hardware, closing the 15
   deviations recorded in `docs/active/hardware-accuracy-audit.md`.
-- **Next action:** open the PR — audit PASS, gate green, all 54 tasks done
-- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 23:18
+- **Next action:** maintainer to confirm keyboard input in the browser; PR #213 is open
+- **Branch:** fix/hw-accuracy · **Updated:** 2026-08-06 23:40
 
 ## STEPS
 
@@ -187,6 +187,21 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   rather than quietly counted as done.
   Two unplanned regressions, both predicted in class if not in name: a JSR test hardcoding stack
   addresses, and the two display/bus tests the plan did name. 2 boundary refines, 1 hook denial.
+- 2026-08-06 23:40 — **AC-17 withdrawn after two regressions it caused, both maintainer-reported.**
+  (1) The cycle provider queried the engine from inside a bus callback. On WASM a bus access is a
+  callback out of running WASM, so that re-entered wasm-bindgen and threw "recursive use of an
+  object" on every PIA access — display and keyboard dead. Fixed by snapshotting between chunks,
+  and guarded by a new Node test against the real bridge.
+  (2) Even fixed, the deadline is absolute and `reset()` zeroes the cycle counter on both engines,
+  so a deadline set before a reset sat unreachable and stranded the monitor after the `\` prompt
+  with the cursor at row 0 col 1 — the longer the session, the longer the stall. Underneath that,
+  the clock only exposes emulated cycles at chunk boundaries, so the display quantises to the chunk
+  rate and echo stutters regardless.
+  Reverted to the host-paced handshake, which worked. Finding 13 is now an accepted deviation with
+  the reason recorded in the audit so nobody repeats this. A real fix needs the clock to expose
+  emulated time continuously — an execution-architecture change, not a work-item.
+  Lesson recorded: during the original verification, keystrokes not reaching the emulator was
+  written off as browser-tooling noise. It was the bug. A failed verification is a signal.
 
 ## DEEP PIPELINE (Deep lane only)
 

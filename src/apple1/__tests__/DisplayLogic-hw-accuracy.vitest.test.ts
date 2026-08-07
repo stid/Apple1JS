@@ -2,8 +2,12 @@
  * LCD Deep phase 4 — hw-accuracy (AC-3, AC-17)
  *
  * RENDER surface — the display path. From
- * `docs/active/hardware-accuracy-audit.md` findings 1 and 13.
- * Plan cross-path matrix binds both to `src/apple1/DisplayLogic.ts`.
+ * `docs/active/hardware-accuracy-audit.md` finding 1.
+ *
+ * AC-17 (cycle-paced display busy) was withdrawn: see spec.md Out of scope.
+ * Pacing the handshake from emulated cycles quantised the display to the
+ * clock's chunk rate, because the cycle count is only observable at chunk
+ * boundaries. Finding 13 stands as an accepted deviation.
  */
 import { describe, test, expect, beforeEach } from 'vitest';
 import DisplayLogic from '../DisplayLogic';
@@ -37,26 +41,4 @@ describe('DisplayLogic — hardware accuracy', () => {
         expect(written, 'startup sequence must not reach the display').toEqual([]);
     });
 
-    test('AC-17 (RENDER): display busy is held for emulated time', async () => {
-        // The real terminal needs a full video field per character. Busy must
-        // be released by emulated cycles elapsing, never by host scheduling.
-        let emulatedCycles = 0;
-        pia.wireCycleProvider(() => emulatedCycles);
-        pia.write(0x3, 0x04); // select ORB so writes reach the display
-
-        await displayLogic.write(0xc1);
-
-        expect(pia.read(0x2) & 0x80, 'busy immediately after the write').toBe(0x80);
-
-        // Host turns of the event loop must not release it.
-        await Promise.resolve();
-        await Promise.resolve();
-        expect(pia.read(0x2) & 0x80, 'still busy after host microtasks').toBe(0x80);
-
-        emulatedCycles = 1000;
-        expect(pia.read(0x2) & 0x80, 'still busy part-way through the field').toBe(0x80);
-
-        emulatedCycles = 30_000;
-        expect(pia.read(0x2) & 0x80, 'released once the field has elapsed').toBe(0x00);
-    });
 });

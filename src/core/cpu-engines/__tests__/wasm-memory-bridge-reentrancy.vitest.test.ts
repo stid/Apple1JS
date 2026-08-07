@@ -19,9 +19,10 @@
  * touched during execution, then drives the real production bridge. Anything a
  * device does on the bus path must stay on the JavaScript side.
  *
- * Regression: the display handshake once read the engine's cycle count inside
- * `PIA6820.readPortB`, which broke the WASM engine while leaving every Node
- * test green.
+ * Regression this guards against: a display-handshake change once read the
+ * engine's cycle count inside `PIA6820.readPortB`. It broke the WASM engine
+ * completely — display and keyboard both dead — while every Node test stayed
+ * green, because the WASM engine does not run here.
  */
 import { describe, test, expect, beforeEach } from 'vitest';
 import Bus from '../../Bus';
@@ -75,13 +76,9 @@ describe('WASM memory bridge — re-entrancy', () => {
         pia.write(0x1, 0xa7); // CRA -> select ORA
         pia.write(0x3, 0xa7); // CRB -> select ORB
 
-        // Wired the way Apple1 wires it: the cycle count is a value sampled
-        // between chunks, never fetched from the engine mid-execution.
-        let snapshot = 0;
-        pia.wireCycleProvider(() => snapshot);
-        // Keep the snapshot fresh the way the clock subscriber does.
+        // Nothing on the bus path may query the engine. Apple1 wires no such
+        // dependency today; this fixture exists to keep it that way.
         engine.runChunk(() => {});
-        snapshot = engine.getTotalCycles();
     });
 
     test('a bus read through the bridge does not re-enter the engine', () => {
@@ -121,7 +118,10 @@ describe('WASM memory bridge — re-entrancy', () => {
     test('the guard itself is real — a device that queries the engine would fail', () => {
         // Proves the three tests above are load-bearing rather than vacuous: if
         // anything on the bus path asks the engine for state, it throws.
-        pia.wireCycleProvider(() => engine.getTotalCycles());
+        // Simulate a device that reaches for engine state during a bus access —
+        // the shape of the regression this file exists to prevent.
+        const rogue = { read: () => engine.getTotalCycles() & 0xff, write: () => {} };
+        setBusForWasm(new Bus([{ addr: [0xd000, 0xdfff], component: rogue, name: 'Rogue' }]));
         expect(() => {
             engine.runChunk(() => {
                 wasmMemoryBridge.readByte(0xd012);
