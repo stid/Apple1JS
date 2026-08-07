@@ -101,6 +101,13 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
     // Hardware-controlled input pins (separate from ORB register)
     private pb7InputState = false; // Display busy/ready status (controlled by display hardware)
 
+    // Emulated-time display handshake. The real terminal needs a full video
+    // field per character; holding the busy line for a wall-clock duration
+    // would make the handshake drift with host speed, so it is expressed in
+    // CPU cycles and read back from a wired cycle source.
+    private cycleProvider?: () => number;
+    private pb7BusyUntilCycle = 0;
+
     // I/O connections
     private ioA?: IoComponent;
     private ioB?: IoComponent;
@@ -379,6 +386,36 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
     }
 
     /**
+     * Wire the source of emulated time used by the display handshake.
+     * Without one the PIA falls back to the plain level flag below.
+     */
+    wireCycleProvider(getCycles: () => number): void {
+        this.cycleProvider = getCycles;
+    }
+
+    /**
+     * Hold the display-busy line for `cycles` of EMULATED time. Unlike
+     * `setPB7DisplayStatus` this needs no matching release — it expires when
+     * the CPU has executed that many cycles, so the handshake is independent
+     * of host scheduling.
+     */
+    setPB7BusyForCycles(cycles: number): void {
+        if (!this.cycleProvider) {
+            this.setPB7DisplayStatus(true);
+            return;
+        }
+        this.pb7BusyUntilCycle = this.cycleProvider() + cycles;
+        this.notificationBatch.add('pb7');
+        this.scheduleNotification();
+    }
+
+    /** True while the display is still consuming a character. */
+    private isDisplayBusy(): boolean {
+        if (this.pb7InputState) return true;
+        return this.cycleProvider !== undefined && this.cycleProvider() < this.pb7BusyUntilCycle;
+    }
+
+    /**
      * Set PB7 input state (controlled by display hardware in Apple 1)
      * This simulates the display circuit controlling the PB7 line directly
      */
@@ -524,6 +561,7 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
         // Since we're loading a saved state, any pending display operation would have been lost anyway,
         // so it's safe to mark the display as ready.
         this.pb7InputState = false;
+        this.pb7BusyUntilCycle = 0;
 
         this.notifySubscribers();
     }
@@ -612,6 +650,7 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
 
         // Reset hardware-controlled input pins
         this.pb7InputState = false; // Display ready (not busy)
+        this.pb7BusyUntilCycle = 0;
 
         this.stats = {
             reads: 0,
@@ -777,7 +816,7 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
         // Bit 7 is special - it's the display ready status controlled by display hardware
         if ((this.ddrb & 0x80) === 0) {
             // Bit 7 is input, read the hardware-controlled state
-            result |= this.pb7InputState ? 0x80 : 0x00;
+            result |= this.isDisplayBusy() ? 0x80 : 0x00;
         }
 
         return result;

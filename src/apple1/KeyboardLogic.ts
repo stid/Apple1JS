@@ -13,9 +13,7 @@ class KeyboardLogic implements IoWriter {
     }
 
     async write(char: number): Promise<void> {
-        console.log('[KeyboardLogic] write called with:', char);
         if (char === RESET_CODE) {
-            console.log('[KeyboardLogic] Reset code detected, calling reset()');
             this.reset();
         } else {
             // Ensure CRA bit 2 is set to access Output Register A
@@ -44,7 +42,6 @@ class KeyboardLogic implements IoWriter {
     }
 
     reset(): void {
-        console.log('[KeyboardLogic] reset() called, wireResetCallback exists:', !!this.wireResetCallback);
         this.wireResetCallback?.();
     }
 }

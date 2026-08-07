@@ -39,13 +39,21 @@ const STEP_INTERVAL = CPU_STEP_INTERVAL_MS;
 const MHZ_CPU_SPEED = CPU_SPEED_MHZ;
 
 // $FF00-$FFFF 256 Bytes ROM
+const PIA_MIRROR_START = PIA_START & 0xf000;
+const PIA_MIRROR_END = PIA_MIRROR_START + 0x0fff;
+// $FF00-$FFFF 256 Bytes ROM
 const ROM_ADDR: [number, number] = [ROM_START, ROM_END];
 // $0000-$0FFF 4KB Standard RAM
 const RAM_BANK1_ADDR: [number, number] = [RAM_BANK1_START, RAM_BANK1_END];
 // $E000-$EFFF 4KB Extended RAM
 const RAM_BANK2_ADDR: [number, number] = [RAM_BANK2_START, RAM_BANK2_END];
-// $D010-$D013 PIA (6821) [KBD & DSP]
-const PIA_ADDR: [number, number] = [PIA_START, PIA_END];
+// $D010-$D013 PIA (6821) [KBD & DSP], repeated through $D000-$DFFF.
+// The board decodes only enough address lines to place the PIA in its 4K
+// block, so its four registers repeat every four bytes across the whole
+// block — $D014, $D110 and $DFF2 all reach the chip on real hardware.
+// PIA_START/PIA_END remain the canonical base range for display purposes.
+const PIA_ADDR: [number, number] = [PIA_MIRROR_START, PIA_MIRROR_END];
+const PIA_MIRROR_MASK = PIA_END - PIA_START; // 0x03 — four registers
 
 /**
  * Apple1 state interface for serialization/deserialization
@@ -336,7 +344,7 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
             // Base Apple 1 was shipped with BANK 1 only.
             // It was possible to add more ram, especially it was needed to execute BASIC
             { addr: RAM_BANK2_ADDR, component: this.ramBank2, name: 'RAM_BANK_2' },
-            { addr: PIA_ADDR, component: this.pia, name: 'PIA6820' },
+            { addr: PIA_ADDR, component: this.pia, name: 'PIA6820', mirrorMask: PIA_MIRROR_MASK },
         ];
         // Annotate all bus-mapped components
         this.busMapping.forEach(({ component, addr, name }) => annotateAddress(component, addr, name));
@@ -403,6 +411,14 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
         this.clock = new Clock(MHZ_CPU_SPEED, STEP_INTERVAL);
         this.clock.name = 'System Clock';
         loggingService.info('Apple1', 'Apple 1 emulator initialized');
+
+        // Give the PIA a source of emulated time for the display handshake.
+        // The busy line is held for a fixed number of CPU cycles rather than a
+        // wall-clock duration, so the terminal's ~60 characters/second holds
+        // regardless of how fast the host runs.
+        this.pia.wireCycleProvider(() =>
+            this.cpuEngine ? this.cpuEngine.getMetrics().totalCycles : this.cpu.getCompletedCycles(),
+        );
 
         // Subscribe the appropriate engine to the Clock
         if (this.cpuEngine) {

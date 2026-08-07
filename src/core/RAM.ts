@@ -96,6 +96,13 @@ class RAM extends VersionedStatefulComponentBase<RAMState> implements IoAddressa
             addressName: self.__addressName,
         };
     }
+    /**
+     * Note: real Apple 1 dynamic memory powers up with indeterminate contents.
+     * This emulator deliberately powers up cleared — see DECISIONS D-012.
+     * Determinism keeps saved states reproducible, the suite stable and the
+     * debugger's memory view meaningful, and no original software observes the
+     * difference. Recorded as an intentional deviation, not an oversight.
+     */
     constructor(byteSize: number = DEFAULT_RAM_BANK_SIZE) {
         super();
         this.data = new Uint8Array(byteSize);

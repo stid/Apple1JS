@@ -3,6 +3,20 @@ import type { IInspectableComponent, InspectableData, InspectableChild, BusSpace
 import { BusError } from './errors';
 import { Formatters } from '../utils/formatters';
 
+/**
+ * The value a floating Apple 1 data bus reads back when no device answers.
+ */
+const OPEN_BUS = 0xff;
+
+/**
+ * Offset of `address` within its mapping, honouring partial decoding.
+ * Without a mask this is plain exact decoding.
+ */
+function decodeOffset(space: BusSpaceType, address: number): number {
+    const offset = address - space.addr[0];
+    return space.mirrorMask === undefined ? offset : offset & space.mirrorMask;
+}
+
 class Bus implements IInspectableComponent {
     id = 'bus';
     type = 'Bus';
@@ -175,7 +189,8 @@ class Bus implements IInspectableComponent {
      */
     read(address: number): number {
         const addrInstance = this.findInstanceWithAddress(address);
-        return addrInstance ? addrInstance.component.read(address - addrInstance.addr[0]) : 0;
+        // Nothing drives an unmapped address, so the bus floats high.
+        return addrInstance ? addrInstance.component.read(decodeOffset(addrInstance, address)) : OPEN_BUS;
     }
 
     /**
@@ -186,7 +201,7 @@ class Bus implements IInspectableComponent {
     write(address: number, value: number): void {
         const addrInstance = this.findInstanceWithAddress(address);
         if (addrInstance) {
-            addrInstance.component.write(address - addrInstance.addr[0], value);
+            addrInstance.component.write(decodeOffset(addrInstance, address), value);
         }
     }
 

@@ -18,6 +18,20 @@ export interface BusSpaceType {
     addr: [number, number];
     component: IoAddressable;
     name: string;
+    /**
+     * Optional offset mask for partially-decoded devices.
+     *
+     * The Apple 1 decodes only enough address lines to place a device, so a
+     * chip repeats through the rest of its block — the PIA answers throughout
+     * `$D000-$DFFF`, not just at `$D010-$D013`. Widen `addr` to cover the
+     * repeat and set the mask to the device's register count minus one; the
+     * decoded offset becomes `(address - addr[0]) & mirrorMask`.
+     *
+     * Omitted means exact decoding (`address - addr[0]`), so existing mappings
+     * are unaffected. This keeps mirroring out of the overlap rules that
+     * `validate()` enforces.
+     */
+    mirrorMask?: number;
 }
 
 /**

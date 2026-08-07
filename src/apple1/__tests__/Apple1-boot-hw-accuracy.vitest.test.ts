@@ -17,7 +17,7 @@
 import { describe, test, expect } from 'vitest';
 import Apple1 from '../index';
 import WebCRTVideo from '../WebCRTVideo';
-import type { IoComponent, WireOptions } from '../../core/types';
+import type { IoComponent } from '../../core/types';
 import type { VideoState } from '../TSTypes';
 
 /** Wraps the real video and records every byte the system sends it. */
@@ -28,8 +28,9 @@ class RecordingVideo implements IoComponent<VideoState> {
         if (typeof value === 'number') this.received.push(value);
         await this.inner.write(value as number);
     }
-    wire(options: WireOptions): void {
-        this.inner.wire(options);
+    wire(): void {
+        // WebCRTVideo takes no wiring options — it is a pure output device.
+        this.inner.wire();
     }
     reset(): void {
         this.inner.reset();

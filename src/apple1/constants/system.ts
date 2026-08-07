@@ -9,8 +9,11 @@ export const CPU_STEP_INTERVAL_MS = 30; // CPU stepping interval in milliseconds
 // Display constants
 export const DISPLAY_COLUMNS = 40;
 export const DISPLAY_ROWS = 24;
-export const DISPLAY_DELAY_MS = 17; // ~300 baud equivalent
-export const DISPLAY_PROCESSING_TIME_US = 500; // Real Apple 1 display processing time
+export const DISPLAY_DELAY_MS = 17; // one NTSC video field — ~60 characters/second
+// The terminal stores characters in recirculating shift registers, so the
+// processor waits a full video field (~16.7ms) for the target position to come
+// round again. At ~1MHz that is roughly this many CPU cycles.
+export const DISPLAY_FIELD_CYCLES = 17_000;
 
 // Character codes
 export const CHAR_BACKSPACE = 95; // Underscore character used as backspace

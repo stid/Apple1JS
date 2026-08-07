@@ -1,6 +1,7 @@
 import PIA6820 from '../core/PIA6820';
 const RESET_CODE = -255;
 import { IoWriter, WireOptions } from '../core/types';
+import { DISPLAY_FIELD_CYCLES } from './constants/system';
 
 // DSP b6..b0 are outputs, b7 is input
 //     CB2 goes low when data is written, returns high when CB1 goes high
@@ -29,14 +30,12 @@ class DisplayLogic implements IoWriter {
             return;
         }
         
-        // Set PB7 to indicate display is busy (hardware-controlled input pin)
-        this.pia.setPB7DisplayStatus(true);
-        
+        // Hold the busy line for the emulated time one character takes to
+        // reach the screen — a full video field. It expires on CPU cycles, so
+        // the handshake does not drift with host speed or event-loop timing.
+        this.pia.setPB7BusyForCycles(DISPLAY_FIELD_CYCLES);
+
         await this.wireWrite?.(char);
-        
-        // Clear PB7 to indicate display is ready
-        // In real hardware, this would take ~500 microseconds
-        this.pia.setPB7DisplayStatus(false);
     }
 
     wire({ reset, write }: WireOptions): void {
