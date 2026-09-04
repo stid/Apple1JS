@@ -7,6 +7,9 @@
  * values, so the two can never drift again. The non-token-derived extras
  * (glow box-shadows, animations, keyframes) are intentionally NOT covered here.
  */
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Config } from 'tailwindcss';
 import { tokenDerivedTheme } from '../tailwind-tokens';
@@ -91,5 +94,36 @@ describe('token ↔ Tailwind parity', () => {
         expect((resolved.colors?.surface as Record<string, string>)?.hover).toBe('#334155');
         expect((resolved.colors?.surface as Record<string, string>)?.sunken).toBe('#000000');
         expect((resolved.colors?.text as Record<string, string>)?.disabled).toBe('#6B7280');
+    });
+
+    // `py-xxs` was used by four components before `spacing.xxs` existed; Tailwind
+    // silently emitted no CSS for it (zero vertical padding on badges).
+    it('exposes the spacing.xxs repair token', () => {
+        expect(tokenDerivedTheme.spacing.xxs, 'spacing.xxs').toBe('0.125rem');
+        expect(resolved.spacing?.xxs).toBe('0.125rem');
+    });
+
+    // Reverse guard: every named spacing suffix a component uses must be a token.
+    // Tailwind's JIT drops unknown utilities without warning, so a typo or a
+    // missing token is invisible to the build and only shows up as broken layout.
+    it('every named spacing class used in components resolves to a token', () => {
+        const tokenKeys = new Set(Object.keys(tokenDerivedTheme.spacing));
+        const builtin = new Set(['auto', 'px']);
+        const classPattern = /(?<![\w-])-?(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-x|space-y)-([a-z]+)(?![\w-])/g;
+        const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'components');
+        const files = readdirSync(componentsDir, { recursive: true, encoding: 'utf8' }).filter(
+            (f) => f.endsWith('.tsx') && !f.includes('__tests__')
+        );
+        const unknown = new Set<string>();
+        for (const file of files) {
+            const source = readFileSync(join(componentsDir, file), 'utf8');
+            for (const match of source.matchAll(classPattern)) {
+                const suffix = match[1];
+                if (!tokenKeys.has(suffix) && !builtin.has(suffix)) {
+                    unknown.add(`${file}: ${match[0]}`);
+                }
+            }
+        }
+        expect([...unknown]).toEqual([]);
     });
 });
