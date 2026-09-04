@@ -474,7 +474,8 @@ impl CPU6502 {
 impl CPU6502 {
     /// Read a byte from memory using internal Bus (for WasmSystem)
     pub(crate) fn read_byte_from_bus(&mut self, bus: &crate::Bus, address: u16) -> u8 {
-        self.cycles += 1;
+        // Cycles are accounted per instruction by the opcode arms (the same
+        // model as the JS engine); a bus access must not add to the count.
         let data = bus.read(address);
         self.last_addr = address;
         self.last_data = data;
@@ -483,7 +484,6 @@ impl CPU6502 {
 
     /// Write a byte to memory using internal Bus (for WasmSystem)
     pub(crate) fn write_byte_to_bus(&mut self, bus: &mut crate::Bus, address: u16, value: u8) {
-        self.cycles += 1;
         self.last_addr = address;
         self.last_data = value;
         bus.write(address, value);

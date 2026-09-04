@@ -8,28 +8,33 @@
 
 <!-- lcd-resume:v1 -->
 ## NOW
+
 - **Lane:** Standard
 - **Goal:** WASM engine reports the same per-instruction cycle count as the JS engine (issue #215): drop the `+= 1` in the two bus helpers so only the per-arm documented totals count.
-- **Next action:** S2 — drop the helper increments in cpu.rs, rebuild WASM, parity → GREEN
-- **Branch:** fix/wasm-cycle-double-count  ·  **Updated:** 2026-09-03 23:20
+- **Next action:** open PR (closes #215)
+- **Branch:** fix/wasm-cycle-double-count  ·  **Updated:** 2026-09-03 23:55
 
 ## STEPS
+
 - [x] S1 — Test first: `compareEngines` in engine-parity also asserts the per-step returned cycles match; add a documented-cycle battery (NOP, LDA modes incl. `(zp),Y` page-cross, STA abs,X, JSR/RTS, branch taken/not/page-cross, INC abs). Run against real WASM via `yarn dev:vite` → RED (WASM ≈ 2×). Done: 23 failures, NOP=3 LDA#=4 LDAzp=6.
-- [ ] S2 — Remove `self.cycles += 1` from `read_byte_from_bus` / `write_byte_to_bus` in `wasm-cpu/src/cpu.rs`; `cargo check`; `yarn wasm:build:release`; parity suite → GREEN.  ← next
-- [ ] S3 — Update memory/docs that describe the double count (memory `wasm-cycle-double-count`, `docs/active/wasm-performance.md` if it mentions it); bump `src/version.ts` (fix/ → patch); `yarn test:ci`; PR closing #215.
+- [x] S2 — Remove `self.cycles += 1` from `read_byte_from_bus` / `write_byte_to_bus` in `wasm-cpu/src/cpu.rs`; `cargo check`; `yarn wasm:build:release`; parity suite → GREEN (27/27; all 9 engine suites 75/75 vs real WASM).
+- [x] S3 — Update memory/docs that describe the double count (memory `wasm-cycle-double-count`, `docs/active/wasm-performance.md` if it mentions it); bump `src/version.ts` (fix/ → patch); `yarn test:ci`; PR closing #215.
 
 ## DECISIONS (this work-item)
+
 - Model = "per-arm totals only" (issue option 2): smallest diff, matches the JS reference engine, and the JS engine's IRQ/NMI handlers also add a flat 7 with un-counted pushes — so after the fix the interrupt paths agree too.
 - Cycle parity is asserted on the *returned* `performSingleStep()` value (the `ICPUEngine` contract) rather than on internal counters — it is what `Clock` budgets against.
 
 ## OPEN QUESTIONS
+
 - none
 
 ## EDIT BOUNDARY (paths this work may touch)
+
 - `wasm-cpu/src/cpu.rs`
 - `src/core/cpu-engines/__tests__/engine-parity.vitest.test.ts`
 - `src/version.ts`
-- `docs/active/wasm-performance.md` (only if it describes the inflated count)
+- `docs/active/wasm-performance.md`, `CLAUDE.md` (throughput ratio was measured with the inflated count)
 <!-- /lcd-resume -->
 
 ---
@@ -38,3 +43,5 @@
 
 - 2026-09-03 23:20 — Triage → Standard (2 signals). Cause confirmed in `cpu.rs:476-490` (helpers add 1 per access) + every arm adds the full documented count. JS engine (`src/core/cpu6502/core.ts`) counts only per-arm totals; its bus read/write helpers do not touch `cycles`.
 - 2026-09-03 23:40 — S1 done. Real-WASM run (yarn dev:vite on :3000): 23/27 parity tests RED on cycles only; state assertions still pass.
+- 2026-09-03 23:50 — S2 done: two `+= 1` removed from `cpu.rs` bus helpers; `cargo check` clean; WASM release rebuilt; parity 27/27, all engine suites 75/75 against real WASM; `yarn test:ci` 818 passed with the server up (parity suites ran for real).
+- 2026-09-03 23:55 — S3: re-ran `BENCH=1` benchmark with honest counting → WASM 443 M vs JS 56 M cycles/s = 7.8× (instr/s 8.5×). Old "14×" was inflated by the bug. Updated `wasm-performance.md` + CLAUDE.md. Version 4.51.12.

@@ -2,19 +2,23 @@
 
 ## Summary
 
-The WASM 6502 engine is **~14× faster than the JS engine** on raw throughput. Earlier
+The WASM 6502 engine is **~8× faster than the JS engine** on raw throughput. Earlier
 observations of "160 IPS" were a **metrics defect**, not an engine problem, compounded by
 `yarn dev` loading an unoptimized debug WASM build.
 
-| Build / engine              | cycles/sec | effective MHz |  vs JS |
-| --------------------------- | ---------: | ------------: | -----: |
-| JS (`CPU6502`)              |      ~50 M |       ~50 MHz |     1× |
-| WASM `--dev` (debug)        |      ~67 M |       ~67 MHz | ~1.35× |
-| WASM `--release`            |     ~644 M |      ~644 MHz | ~12.9× |
-| WASM `--release` + wasm-opt |     ~708 M |      ~708 MHz | ~14.3× |
+| Build / engine              | cycles/sec | effective MHz | vs JS |
+| --------------------------- | ---------: | ------------: | ----: |
+| JS (`CPU6502`)              |      ~56 M |       ~56 MHz |    1× |
+| WASM `--release` + wasm-opt |     ~443 M |      ~443 MHz | ~7.8× |
 
-(Apple M-series, headless benchmark, RAM-only `LDA/STA/LDA/JMP` loop. Absolute numbers vary by
-machine; the **ratio** is the durable result.)
+(Apple M-series, headless benchmark, RAM-only `LDA #/STA zp/LDA zp/JMP` loop = 11 cycles per 4
+instructions. Absolute numbers vary by machine; the **ratio** is the durable result.)
+
+The "~14×" figure this doc used to quote was measured while the WASM engine **over-reported
+cycles** (issue #215: bus helpers and opcode arms both counted, ~1.8× on this loop). The
+instruction rate, which the defect never touched, gives the same answer: ~161 M vs ~18.8 M
+instr/s ≈ 8.5×. The debug (`--dev`) and no-wasm-opt rows were dropped rather than re-measured;
+their old values (~67 M / ~644 M) carry the same inflation.
 
 In the running app **both engines are throttled by the `Clock` to the Apple-1's ~1 MHz target**, so
 both show ~331 K IPS at ~100%. WASM's advantage is **headroom** — lower CPU/battery cost at 1 MHz,
