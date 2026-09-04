@@ -73,7 +73,7 @@ shadows it).
 Full detail: `docs/active/wasm-performance.md`. Key facts:
 
 - **Raw throughput** (cycles/sec & IPS) is measured **headless** (`BENCH=1`
-  benchmark). WASM ≈ 14× JS.
+  benchmark). WASM ≈ 8× JS (the older "14×" predates the #215 cycle-count fix).
 - ⚠️ **In-app IPS is throttle-locked** by the `Clock` to ~1MHz (both engines
   ~331K) — it does NOT show the WASM gain. Never compare engines by in-app IPS.
 - **Host CPU / headroom** (`hostMillisPerSecond`) is the in-app signal of the
