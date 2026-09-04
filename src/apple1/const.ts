@@ -12,6 +12,6 @@ export const CR = CHAR_CARRIAGE_RETURN; // Carriage Return
 export const ESC = CHAR_ESCAPE; // ESC key
 export const CLEAR = CHAR_CLEAR_SCREEN;
 
-export const DISPLAY_DELAY = DISPLAY_DELAY_MS; // Around 300 baud
+export const DISPLAY_DELAY = DISPLAY_DELAY_MS; // one video field — ~60 characters/second
 
 export const B7 = BIT_7_MASK;

@@ -101,6 +101,7 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
     // Hardware-controlled input pins (separate from ORB register)
     private pb7InputState = false; // Display busy/ready status (controlled by display hardware)
 
+
     // I/O connections
     private ioA?: IoComponent;
     private ioB?: IoComponent;
@@ -130,14 +131,14 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
         // Initialize PIA registers to proper Apple 1 state
         this.ora = 0x00;
         this.orb = 0x00;
-        // Apple 1 specific DDR configuration:
-        // Port A: all inputs (keyboard)
+        // MC6821: the RES line clears every register to zero. The Apple 1's
+        // port configuration (DDRB = $7F, CRA/CRB bit 2 set) is not a power-on
+        // state — WOZMON writes it at $FF02-$FF0E. Seeding it here misroutes
+        // that write to ORB and pushes a stray $7F at the display on reset.
         this.ddra = 0x00;
-        // Port B: bits 0-6 outputs (display data), bit 7 input (display status)
-        this.ddrb = 0x7f;
-        // Set CRA and CRB bit 2 to access Output Registers (not DDR)
-        this.cra = 0x04; // Bit 2 = 1 to access ORA
-        this.crb = 0x04; // Bit 2 = 1 to access ORB
+        this.ddrb = 0x00;
+        this.cra = 0x00;
+        this.crb = 0x00;
 
         // Initialize control lines
         this.ca1 = false;
@@ -186,10 +187,16 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
         let result: number;
         switch (address) {
             case REG_ORA_DDRA:
-                // Clear CA1 interrupt flag when reading port A
-                this.cra &= ~(1 << CR_IRQ1);
-                // Return DDR or Output Register based on CRA bit 2
-                result = this.cra & (1 << CR_DDR_ACCESS) ? this.readPortA() : this.ddra;
+                if (this.cra & (1 << CR_DDR_ACCESS)) {
+                    // Reading Peripheral Data Register A clears BOTH port-A
+                    // interrupt flags (IRQA1 and IRQA2), per the MC6821 datasheet.
+                    this.cra &= ~((1 << CR_IRQ1) | (1 << CR_IRQ2));
+                    result = this.readPortA();
+                } else {
+                    // A Data Direction Register read is a different access and
+                    // leaves the interrupt flags alone.
+                    result = this.ddra;
+                }
                 break;
 
             case REG_CRA:
@@ -197,10 +204,14 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
                 break;
 
             case REG_ORB_DDRB:
-                // Clear CB1 interrupt flag when reading port B
-                this.crb &= ~(1 << CR_IRQ1);
-                // Return DDR or Output Register based on CRB bit 2
-                result = this.crb & (1 << CR_DDR_ACCESS) ? this.readPortB() : this.ddrb;
+                if (this.crb & (1 << CR_DDR_ACCESS)) {
+                    // Same rule on port B: a Peripheral Data Register read
+                    // clears both IRQB1 and IRQB2.
+                    this.crb &= ~((1 << CR_IRQ1) | (1 << CR_IRQ2));
+                    result = this.readPortB();
+                } else {
+                    result = this.ddrb;
+                }
                 break;
 
             case REG_CRB:
@@ -582,14 +593,14 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
     resetState(): void {
         this.ora = 0x00;
         this.orb = 0x00;
-        // Apple 1 specific DDR configuration:
-        // Port A: all inputs (keyboard)
+        // MC6821: the RES line clears every register to zero. The Apple 1's
+        // port configuration (DDRB = $7F, CRA/CRB bit 2 set) is not a power-on
+        // state — WOZMON writes it at $FF02-$FF0E. Seeding it here misroutes
+        // that write to ORB and pushes a stray $7F at the display on reset.
         this.ddra = 0x00;
-        // Port B: bits 0-6 outputs (display data), bit 7 input (display status)
-        this.ddrb = 0x7f;
-        // Set CRA and CRB bit 2 to access Output Registers (not DDR)
-        this.cra = 0x04; // Bit 2 = 1 to access ORA
-        this.crb = 0x04; // Bit 2 = 1 to access ORB
+        this.ddrb = 0x00;
+        this.cra = 0x00;
+        this.crb = 0x00;
 
         this.ca1 = false;
         this.ca2 = false;

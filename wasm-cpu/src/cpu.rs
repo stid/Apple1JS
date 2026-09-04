@@ -92,13 +92,16 @@ impl CPU6502 {
         let high = bus.read(0xFFFD) as u16;
         self.pc = (high << 8) | low;
 
-        self.a = 0;
-        self.x = 0;
-        self.y = 0;
-        self.s = 0xFF;
-        self.status = flags::UNUSED | flags::INTERRUPT;
+        // Reset performs three *fake* stack reads: it pushes nothing, but the
+        // stack pointer still decrements three times. A/X/Y and the flags are
+        // untouched apart from setting I — on the NMOS part D is simply left
+        // undefined, which is why WOZMON opens with CLD.
+        self.s = self.s.wrapping_sub(3);
+        self.status |= flags::UNUSED | flags::INTERRUPT;
         self.irq = false;
         self.nmi = false;
+        // A latched NMI must not survive reset.
+        self.nmi_pending = false;
         self.cycles = 0;
         self.instructions = 0;
 

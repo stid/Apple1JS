@@ -229,24 +229,139 @@ impl CPU6502 {
             // ========== Illegal/Undocumented Opcodes ==========
             // (Partial support - commonly used ones)
             // TODO: Implement Bus-aware versions of illegal opcodes
-            // opcodes::LAX_ZP => self.lax_zp_bus(bus),
-            // opcodes::LAX_ZPY => self.lax_zpy_bus(bus),
-            // opcodes::LAX_ABS => self.lax_abs_bus(bus),
-            // opcodes::LAX_ABY => self.lax_aby_bus(bus),
-            // opcodes::LAX_IZX => self.lax_izx_bus(bus),
-            // opcodes::LAX_IZY => self.lax_izy_bus(bus),
 
-            // opcodes::SAX_ZP => self.sax_zp_bus(bus),
-            // opcodes::SAX_ZPY => self.sax_zpy_bus(bus),
-            // opcodes::SAX_ABS => self.sax_abs_bus(bus),
-            // opcodes::SAX_IZX => self.sax_izx_bus(bus),
 
             // For unimplemented opcodes, use NOP behavior
-            _ => {
-                #[cfg(feature = "debug")]
-                crate::console_log!("Unimplemented opcode: 0x{:02X}", opcode);
-                self.cycles += 2;
+
+            // ===== Undocumented instructions (parity with the TypeScript engine, D-013) =====
+            // SLO
+            opcodes::SLO_IZX => { let a = self.get_izx_addr_bus(bus); self.slo_mem(bus, a); self.cycles += 8; }
+            opcodes::SLO_ZP => { let a = self.ill_zp(bus); self.slo_mem(bus, a); self.cycles += 5; }
+            opcodes::SLO_ABS => { let a = self.ill_abs(bus); self.slo_mem(bus, a); self.cycles += 6; }
+            opcodes::SLO_IZY => { let a = self.get_izy_addr_bus(bus); self.slo_mem(bus, a); self.cycles += 8; }
+            opcodes::SLO_ZPX => { let a = self.ill_zpx(bus); self.slo_mem(bus, a); self.cycles += 6; }
+            opcodes::SLO_ABY => { let a = self.ill_aby(bus); self.slo_mem(bus, a); self.cycles += 7; }
+            opcodes::SLO_ABX => { let a = self.ill_abx(bus); self.slo_mem(bus, a); self.cycles += 7; }
+            // RLA
+            opcodes::RLA_IZX => { let a = self.get_izx_addr_bus(bus); self.rla_mem(bus, a); self.cycles += 8; }
+            opcodes::RLA_ZP => { let a = self.ill_zp(bus); self.rla_mem(bus, a); self.cycles += 5; }
+            opcodes::RLA_ABS => { let a = self.ill_abs(bus); self.rla_mem(bus, a); self.cycles += 6; }
+            opcodes::RLA_IZY => { let a = self.get_izy_addr_bus(bus); self.rla_mem(bus, a); self.cycles += 8; }
+            opcodes::RLA_ZPX => { let a = self.ill_zpx(bus); self.rla_mem(bus, a); self.cycles += 6; }
+            opcodes::RLA_ABY => { let a = self.ill_aby(bus); self.rla_mem(bus, a); self.cycles += 7; }
+            opcodes::RLA_ABX => { let a = self.ill_abx(bus); self.rla_mem(bus, a); self.cycles += 7; }
+            // SRE
+            opcodes::SRE_IZX => { let a = self.get_izx_addr_bus(bus); self.sre_mem(bus, a); self.cycles += 8; }
+            opcodes::SRE_ZP => { let a = self.ill_zp(bus); self.sre_mem(bus, a); self.cycles += 5; }
+            opcodes::SRE_ABS => { let a = self.ill_abs(bus); self.sre_mem(bus, a); self.cycles += 6; }
+            opcodes::SRE_IZY => { let a = self.get_izy_addr_bus(bus); self.sre_mem(bus, a); self.cycles += 8; }
+            opcodes::SRE_ZPX => { let a = self.ill_zpx(bus); self.sre_mem(bus, a); self.cycles += 6; }
+            opcodes::SRE_ABY => { let a = self.ill_aby(bus); self.sre_mem(bus, a); self.cycles += 7; }
+            opcodes::SRE_ABX => { let a = self.ill_abx(bus); self.sre_mem(bus, a); self.cycles += 7; }
+            // RRA
+            opcodes::RRA_IZX => { let a = self.get_izx_addr_bus(bus); self.rra_mem(bus, a); self.cycles += 8; }
+            opcodes::RRA_ZP => { let a = self.ill_zp(bus); self.rra_mem(bus, a); self.cycles += 5; }
+            opcodes::RRA_ABS => { let a = self.ill_abs(bus); self.rra_mem(bus, a); self.cycles += 6; }
+            opcodes::RRA_IZY => { let a = self.get_izy_addr_bus(bus); self.rra_mem(bus, a); self.cycles += 8; }
+            opcodes::RRA_ZPX => { let a = self.ill_zpx(bus); self.rra_mem(bus, a); self.cycles += 6; }
+            opcodes::RRA_ABY => { let a = self.ill_aby(bus); self.rra_mem(bus, a); self.cycles += 7; }
+            opcodes::RRA_ABX => { let a = self.ill_abx(bus); self.rra_mem(bus, a); self.cycles += 7; }
+            // DCP
+            opcodes::DCP_IZX => { let a = self.get_izx_addr_bus(bus); self.dcp_mem(bus, a); self.cycles += 8; }
+            opcodes::DCP_ZP => { let a = self.ill_zp(bus); self.dcp_mem(bus, a); self.cycles += 5; }
+            opcodes::DCP_ABS => { let a = self.ill_abs(bus); self.dcp_mem(bus, a); self.cycles += 6; }
+            opcodes::DCP_IZY => { let a = self.get_izy_addr_bus(bus); self.dcp_mem(bus, a); self.cycles += 8; }
+            opcodes::DCP_ZPX => { let a = self.ill_zpx(bus); self.dcp_mem(bus, a); self.cycles += 6; }
+            opcodes::DCP_ABY => { let a = self.ill_aby(bus); self.dcp_mem(bus, a); self.cycles += 7; }
+            opcodes::DCP_ABX => { let a = self.ill_abx(bus); self.dcp_mem(bus, a); self.cycles += 7; }
+            // ISC
+            opcodes::ISC_IZX => { let a = self.get_izx_addr_bus(bus); self.isc_mem(bus, a); self.cycles += 8; }
+            opcodes::ISC_ZP => { let a = self.ill_zp(bus); self.isc_mem(bus, a); self.cycles += 5; }
+            opcodes::ISC_ABS => { let a = self.ill_abs(bus); self.isc_mem(bus, a); self.cycles += 6; }
+            opcodes::ISC_IZY => { let a = self.get_izy_addr_bus(bus); self.isc_mem(bus, a); self.cycles += 8; }
+            opcodes::ISC_ZPX => { let a = self.ill_zpx(bus); self.isc_mem(bus, a); self.cycles += 6; }
+            opcodes::ISC_ABY => { let a = self.ill_aby(bus); self.isc_mem(bus, a); self.cycles += 7; }
+            opcodes::ISC_ABX => { let a = self.ill_abx(bus); self.isc_mem(bus, a); self.cycles += 7; }
+            // SAX — store A AND X
+            opcodes::SAX_IZX => { let a = self.get_izx_addr_bus(bus); self.sax_mem(bus, a); self.cycles += 6; }
+            opcodes::SAX_ZP => { let a = self.ill_zp(bus); self.sax_mem(bus, a); self.cycles += 3; }
+            opcodes::SAX_ABS => { let a = self.ill_abs(bus); self.sax_mem(bus, a); self.cycles += 4; }
+            opcodes::SAX_ZPY => { let a = self.get_zpy_addr_bus(bus); self.sax_mem(bus, a); self.cycles += 4; }
+            // LAX — load A and X
+            opcodes::LAX_IZX => { let a = self.get_izx_addr_bus(bus); self.lax_mem(bus, a); self.cycles += 6; }
+            opcodes::LAX_ZP => { let a = self.ill_zp(bus); self.lax_mem(bus, a); self.cycles += 3; }
+            opcodes::LAX_ABS => { let a = self.ill_abs(bus); self.lax_mem(bus, a); self.cycles += 4; }
+            opcodes::LAX_IZY => { let a = self.get_izy_addr_bus(bus); let base = a.wrapping_sub(self.y as u16); self.lax_mem(bus, a); self.cycles += 5 + Self::page_cross(base, a); }
+            opcodes::LAX_ZPY => { let a = self.get_zpy_addr_bus(bus); self.lax_mem(bus, a); self.cycles += 4; }
+            opcodes::LAX_ABY => { let a = self.ill_aby(bus); let base = a.wrapping_sub(self.y as u16); self.lax_mem(bus, a); self.cycles += 4 + Self::page_cross(base, a); }
+            opcodes::LAX_IMM => { let v = self.ill_imm(bus); self.a = v; self.x = v; self.update_nz(v); self.cycles += 2; }
+            // Immediate-operand specials
+            opcodes::ANC_0B | opcodes::ANC_2B => { self.anc_imm(bus); self.cycles += 2; }
+            opcodes::ALR => { self.alr_imm(bus); self.cycles += 2; }
+            opcodes::ARR => { self.arr_imm(bus); self.cycles += 2; }
+            opcodes::XAA => { self.xaa_imm(bus); self.cycles += 2; }
+            opcodes::AXS => { self.axs_imm(bus); self.cycles += 2; }
+            opcodes::SBC_EB => { let v = self.ill_imm(bus); self.sbc_bus(v); self.cycles += 2; }
+            // Unstable store forms
+            opcodes::AHX_IZY => { let a = self.get_izy_addr_bus(bus); self.ahx_mem(bus, a); self.cycles += 6; }
+            opcodes::AHX_ABY => { let a = self.ill_aby(bus); self.ahx_mem(bus, a); self.cycles += 5; }
+            opcodes::TAS => { let a = self.ill_aby(bus); self.tas_mem(bus, a); self.cycles += 5; }
+            opcodes::SHY => { let a = self.ill_abx(bus); self.shy_mem(bus, a); self.cycles += 5; }
+            opcodes::SHX => { let a = self.ill_aby(bus); self.shx_mem(bus, a); self.cycles += 5; }
+            opcodes::LAS => { let a = self.ill_aby(bus); let base = a.wrapping_sub(self.y as u16); self.las_mem(bus, a); self.cycles += 4 + Self::page_cross(base, a); }
+            // KIL/JAM — jams the processor
+            opcodes::KIL_02
+            | opcodes::KIL_12
+            | opcodes::KIL_22
+            | opcodes::KIL_32
+            | opcodes::KIL_42
+            | opcodes::KIL_52
+            | opcodes::KIL_62
+            | opcodes::KIL_72
+            | opcodes::KIL_92
+            | opcodes::KIL_B2
+            | opcodes::KIL_D2
+            | opcodes::KIL_F2 => { self.kil_bus(); self.cycles += 2; }
+            // NOP variants: 1-byte implied, 2-byte with a discarded operand, 3-byte absolute
+            opcodes::NOP_1A
+            | opcodes::NOP_3A
+            | opcodes::NOP_5A
+            | opcodes::NOP_7A
+            | opcodes::NOP_DA
+            | opcodes::NOP_FA => { self.cycles += 2; }
+            // Zero page — 3 cycles
+            opcodes::NOP_04
+            | opcodes::NOP_44
+            | opcodes::NOP_64 => { self.pc = self.pc.wrapping_add(1); self.cycles += 3; }
+            // Zero page,X — 4 cycles
+            opcodes::NOP_14
+            | opcodes::NOP_34
+            | opcodes::NOP_54
+            | opcodes::NOP_74
+            | opcodes::NOP_D4
+            | opcodes::NOP_F4 => { self.pc = self.pc.wrapping_add(1); self.cycles += 4; }
+            // Immediate — 2 cycles
+            opcodes::NOP_80
+            | opcodes::NOP_82
+            | opcodes::NOP_89
+            | opcodes::NOP_C2
+            | opcodes::NOP_E2 => { self.pc = self.pc.wrapping_add(1); self.cycles += 2; }
+            // Absolute — 4 cycles; absolute,X — 4 plus a page-cross cycle
+            opcodes::NOP_0C => { self.pc = self.pc.wrapping_add(2); self.cycles += 4; }
+            opcodes::NOP_1C
+            | opcodes::NOP_3C
+            | opcodes::NOP_5C
+            | opcodes::NOP_7C
+            | opcodes::NOP_DC
+            | opcodes::NOP_FC => {
+                let base = self.read_word_from_bus(bus, self.pc);
+                self.pc = self.pc.wrapping_add(2);
+                self.cycles += 4 + Self::page_cross(base, base.wrapping_add(self.x as u16));
             }
+
+            // No wildcard arm: every one of the 256 opcodes is now handled, and
+            // the compiler enforces that. A future gap becomes a build error
+            // rather than a silent "+2 cycles and carry on".
         }
     }
 }

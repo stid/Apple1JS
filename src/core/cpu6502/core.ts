@@ -1,10 +1,17 @@
 /**
  * 6502 CPU Core Implementation
- * 
+ *
  * This is the main CPU class that combines all the modular components.
  */
 
-import type { IClockable, IInspectableComponent, InspectableData, IVersionedStatefulComponent, StateValidationResult, StateOptions } from '../types';
+import type {
+    IClockable,
+    IInspectableComponent,
+    InspectableData,
+    IVersionedStatefulComponent,
+    StateValidationResult,
+    StateOptions,
+} from '../types';
 import { StateError } from '../types';
 import type Bus from '../Bus';
 // Formatters imported through debug module
@@ -20,7 +27,9 @@ import * as instructions from './instructions';
 // Import debug functionality
 import * as debug from './debug';
 
-class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulComponent<CPU6502State>, CPU6502Interface {
+class CPU6502
+    implements IClockable, IInspectableComponent, IVersionedStatefulComponent<CPU6502State>, CPU6502Interface
+{
     /**
      * Current state version for the CPU6502 component
      */
@@ -31,7 +40,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
      */
     saveState(options?: StateOptions): CPU6502State {
         const opts = { includeDebugInfo: false, includeRuntimeState: false, ...options };
-        
+
         const state: CPU6502State = {
             version: CPU6502.STATE_VERSION,
             PC: this.PC,
@@ -63,8 +72,8 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
                     timestamp: Date.now(),
                     componentId: 'CPU6502',
                     instructionCount: this.instructionCount,
-                    enableProfiling: this.enableProfiling
-                }
+                    enableProfiling: this.enableProfiling,
+                },
             });
         }
 
@@ -73,8 +82,8 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
             Object.assign(state, {
                 metadata: {
                     ...state.metadata,
-                    hasExecutionHook: this.executionHook !== undefined
-                }
+                    hasExecutionHook: this.executionHook !== undefined,
+                },
             });
         }
 
@@ -86,15 +95,11 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
      */
     loadState(state: CPU6502State, options?: StateOptions): void {
         const opts = { validate: true, migrate: true, ...options };
-        
+
         if (opts.validate) {
             const validation = this.validateState(state);
             if (!validation.valid) {
-                throw new StateError(
-                    `Invalid CPU state: ${validation.errors.join(', ')}`, 
-                    'CPU6502', 
-                    'load'
-                );
+                throw new StateError(`Invalid CPU state: ${validation.errors.join(', ')}`, 'CPU6502', 'load');
             }
         }
 
@@ -123,8 +128,10 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.address = finalState.address;
         this.data = finalState.data;
         // Load interrupt state with backward compatibility
-        this.pendingIrq = typeof finalState.pendingIrq === 'boolean' ? (finalState.pendingIrq ? 1 : 0) : finalState.pendingIrq;
-        this.pendingNmi = typeof finalState.pendingNmi === 'boolean' ? (finalState.pendingNmi ? 1 : 0) : finalState.pendingNmi;
+        this.pendingIrq =
+            typeof finalState.pendingIrq === 'boolean' ? (finalState.pendingIrq ? 1 : 0) : finalState.pendingIrq;
+        this.pendingNmi =
+            typeof finalState.pendingNmi === 'boolean' ? (finalState.pendingNmi ? 1 : 0) : finalState.pendingNmi;
         // Load cycle-accurate timing state (optional, for backward compatibility)
         this.cycleAccurateMode = finalState.cycleAccurateMode ?? true;
         this.currentInstructionCycles = finalState.currentInstructionCycles ?? 0;
@@ -167,18 +174,18 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
     // Interrupt state
     pendingIrq: number = 0;
     pendingNmi: number = 0;
-    
+
     // Cached values for performance
     readonly stackBase: number = 0x100;
-    
+
     // Performance monitoring (optional)
     instructionCount: number = 0;
     profileData: Map<number, { count: number; cycles: number }> = new Map();
     enableProfiling: boolean = false;
-    
+
     // Execution hook for debugging (breakpoints, etc)
     private executionHook: ((pc: number) => boolean) | undefined;
-    
+
     // Cycle-accurate timing mode for debugging
     cycleAccurateMode: boolean = false; // Disabled by default to prevent memory leaks
     private busAccesses: Array<{ address: number; type: 'read' | 'write'; value?: number }> = [];
@@ -192,7 +199,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.A = 0;
         this.X = 0;
         this.Y = 0;
-        this.S = 0xFF; // Stack pointer starts at top of stack page
+        this.S = 0xff; // Stack pointer starts at top of stack page
         this.N = 0;
         this.Z = 0;
         this.C = 0;
@@ -217,20 +224,16 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
     ////////////////////////////////////////////////////////////////////////////////
 
     reset(): void {
-        this.A = 0;
-        this.X = 0;
-        this.Y = 0;
-        this.S = 0xFF; // Stack pointer starts at top of stack page
-        this.N = 0;
-        this.Z = 0; // Zero flag not set after reset
-        this.C = 0;
-        this.V = 0;
+        // The reset sequence performs three *fake* stack reads — it pushes
+        // nothing, but the stack pointer still decrements three times. It does
+        // not touch A/X/Y or any flag except I; on the NMOS part D is simply
+        // left undefined, which is why WOZMON opens with CLD.
+        this.S = (this.S - 3) & 0xff;
         this.I = 1; // Interrupts disabled after reset
-        this.D = 0;
 
         this.data = 0;
         this.address = 0;
-        
+
         // Clear interrupt state
         this.irq = 0;
         this.nmi = 0;
@@ -262,9 +265,9 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
                 errors.push(`${field} must be a number`);
             } else {
                 const value = s[field] as number;
-                if (field === 'PC' && (value < 0 || value > 0xFFFF)) {
+                if (field === 'PC' && (value < 0 || value > 0xffff)) {
                     errors.push('PC must be between 0 and 0xFFFF');
-                } else if (['A', 'X', 'Y', 'S', 'opcode', 'data'].includes(field) && (value < 0 || value > 0xFF)) {
+                } else if (['A', 'X', 'Y', 'S', 'opcode', 'data'].includes(field) && (value < 0 || value > 0xff)) {
                     errors.push(`${field} must be between 0 and 0xFF`);
                 }
             }
@@ -339,24 +342,24 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
 
     performSingleStep(): number {
         const startCycles = this.cycles;
-        
+
         // Initialize cycle-accurate timing if enabled
         if (this.cycleAccurateMode) {
             this.busAccesses = [];
             this.currentInstructionCycles = 0;
         }
-        
+
         // Check execution hook (for breakpoints, etc)
         if (this.executionHook && !this.executionHook(this.PC)) {
             // Hook returned false - halt execution without advancing
             return 0;
         }
-        
+
         // Check for interrupts before executing next instruction
         this.checkInterrupts();
-        
+
         this.opcode = this.read(this.PC++);
-        
+
         // Optional performance profiling
         if (this.enableProfiling) {
             this.instructionCount++;
@@ -367,21 +370,21 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
                 this.profileData.set(this.opcode, { count: 1, cycles: 0 });
             }
         }
-        
+
         CPU6502op[this.opcode](this);
-        
+
         // Update cycle-accurate timing
         if (this.cycleAccurateMode) {
             this.currentInstructionCycles = this.cycles - startCycles;
         }
-        
+
         // Update cycle profiling
         if (this.enableProfiling) {
             const cyclesUsed = this.cycles - startCycles;
             const profile = this.profileData.get(this.opcode)!;
             profile.cycles += cyclesUsed;
         }
-        
+
         return this.cycles - startCycles;
     }
 
@@ -400,7 +403,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
     read(address: number): number {
         this.address = address;
         this.data = this.bus.read(address);
-        
+
         // Track bus access for cycle-accurate timing
         if (this.cycleAccurateMode) {
             this.busAccesses.push({ address, type: 'read', value: this.data });
@@ -409,7 +412,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
                 this.busAccesses.shift(); // Remove oldest entry
             }
         }
-        
+
         return this.data;
     }
 
@@ -417,7 +420,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.address = address;
         this.data = value;
         this.bus.write(address, value);
-        
+
         // Track bus access for cycle-accurate timing
         if (this.cycleAccurateMode) {
             this.busAccesses.push({ address, type: 'write', value });
@@ -442,7 +445,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
             this.instructionCount = 0;
         }
     }
-    
+
     /**
      * Clear profiling data without disabling profiling
      */
@@ -450,21 +453,21 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.profileData.clear();
         this.instructionCount = 0;
     }
-    
+
     /**
      * Get performance profiling data
      */
     getProfilingData(): { [opcode: string]: { count: number; cycles: number; avgCycles: number } } {
         return debug.getProfilingData(this.profileData);
     }
-    
+
     /**
      * Get summary performance statistics
      */
     getPerformanceStats(): { instructionCount: number; totalInstructions: number; profilingEnabled: boolean } {
         return debug.getPerformanceStats(this.instructionCount, this.profileData, this.enableProfiling);
     }
-    
+
     /**
      * Enable or disable cycle-accurate timing mode for debugging
      */
@@ -474,21 +477,21 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
             this.busAccesses = [];
         }
     }
-    
+
     /**
      * Get cycle-accurate timing mode status
      */
     getCycleAccurateMode(): boolean {
         return this.cycleAccurateMode;
     }
-    
+
     /**
      * Get detailed bus access history for current instruction (when cycle-accurate mode is enabled)
      */
     getBusAccessHistory(): Array<{ address: number; type: 'read' | 'write'; value?: number }> {
         return [...this.busAccesses];
     }
-    
+
     /**
      * Set execution hook for debugging (e.g., breakpoints)
      * The hook is called before each instruction fetch with the current PC.
@@ -497,7 +500,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
     setExecutionHook(hook?: (pc: number) => boolean): void {
         this.executionHook = hook ?? undefined;
     }
-    
+
     /**
      * Get current instruction cycle count (when cycle-accurate mode is enabled)
      */
@@ -513,118 +516,313 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
     // Addressing modes - call imported functions with this context
     ////////////////////////////////////////////////////////////////////////////////
 
-    izx(): void { addressing.izx.call(this); }
-    izy(): void { addressing.izy.call(this); }
-    ind(): void { addressing.ind.call(this); }
-    zp(): void { addressing.zp.call(this); }
-    zpx(): void { addressing.zpx.call(this); }
-    zpy(): void { addressing.zpy.call(this); }
-    imp(): void { addressing.imp.call(this); }
-    imm(): void { addressing.imm.call(this); }
-    abs(): void { addressing.abs.call(this); }
-    abx(): void { addressing.abx.call(this); }
-    aby(): void { addressing.aby.call(this); }
-    rel(): void { addressing.rel.call(this); }
-    rmw(): void { addressing.rmw.call(this); }
-    branch(taken: boolean): void { addressing.branch.call(this, taken); }
+    izx(): void {
+        addressing.izx.call(this);
+    }
+    izy(): void {
+        addressing.izy.call(this);
+    }
+    ind(): void {
+        addressing.ind.call(this);
+    }
+    zp(): void {
+        addressing.zp.call(this);
+    }
+    zpx(): void {
+        addressing.zpx.call(this);
+    }
+    zpy(): void {
+        addressing.zpy.call(this);
+    }
+    imp(): void {
+        addressing.imp.call(this);
+    }
+    imm(): void {
+        addressing.imm.call(this);
+    }
+    abs(): void {
+        addressing.abs.call(this);
+    }
+    abx(): void {
+        addressing.abx.call(this);
+    }
+    aby(): void {
+        addressing.aby.call(this);
+    }
+    abxw(): void {
+        addressing.abxw.call(this);
+    }
+    abyw(): void {
+        addressing.abyw.call(this);
+    }
+    izyw(): void {
+        addressing.izyw.call(this);
+    }
+    rel(): void {
+        addressing.rel.call(this);
+    }
+    rmw(): void {
+        addressing.rmw.call(this);
+    }
+    branch(taken: boolean): void {
+        addressing.branch.call(this, taken);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
     // Instructions - call imported functions with this context
     ////////////////////////////////////////////////////////////////////////////////
 
-    adc(): void { instructions.adc.call(this); }
-    and(): void { instructions.and.call(this); }
-    asl(): void { instructions.asl.call(this); }
-    asla(): void { instructions.asla.call(this); }
-    bit(): void { instructions.bit.call(this); }
-    brk(): void { instructions.brk.call(this); }
-    bcc(): void { instructions.bcc.call(this); }
-    bcs(): void { instructions.bcs.call(this); }
-    beq(): void { instructions.beq.call(this); }
-    bne(): void { instructions.bne.call(this); }
-    bmi(): void { instructions.bmi.call(this); }
-    bpl(): void { instructions.bpl.call(this); }
-    bvc(): void { instructions.bvc.call(this); }
-    bvs(): void { instructions.bvs.call(this); }
-    clc(): void { instructions.clc.call(this); }
-    cld(): void { instructions.cld.call(this); }
-    cli(): void { instructions.cli.call(this); }
-    clv(): void { instructions.clv.call(this); }
-    cmp(): void { instructions.cmp.call(this); }
-    cpx(): void { instructions.cpx.call(this); }
-    cpy(): void { instructions.cpy.call(this); }
-    dec(): void { instructions.dec.call(this); }
-    dex(): void { instructions.dex.call(this); }
-    dey(): void { instructions.dey.call(this); }
-    eor(): void { instructions.eor.call(this); }
-    inc(): void { instructions.inc.call(this); }
-    inx(): void { instructions.inx.call(this); }
-    iny(): void { instructions.iny.call(this); }
-    jmp(): void { instructions.jmp.call(this); }
-    jsr(): void { instructions.jsr.call(this); }
-    lda(): void { instructions.lda.call(this); }
-    ldx(): void { instructions.ldx.call(this); }
-    ldy(): void { instructions.ldy.call(this); }
-    ora(): void { instructions.ora.call(this); }
-    rol(): void { instructions.rol.call(this); }
-    rola(): void { instructions.rola.call(this); }
-    ror(): void { instructions.ror.call(this); }
-    rora(): void { instructions.rora.call(this); }
-    lsr(): void { instructions.lsr.call(this); }
-    lsra(): void { instructions.lsra.call(this); }
-    nop(): void { instructions.nop.call(this); }
-    pha(): void { instructions.pha.call(this); }
-    php(): void { instructions.php.call(this); }
-    pla(): void { instructions.pla.call(this); }
-    plp(): void { instructions.plp.call(this); }
-    rti(): void { instructions.rti.call(this); }
-    rts(): void { instructions.rts.call(this); }
-    sbc(): void { instructions.sbc.call(this); }
-    sec(): void { instructions.sec.call(this); }
-    sed(): void { instructions.sed.call(this); }
-    sei(): void { instructions.sei.call(this); }
-    slo(): void { instructions.slo.call(this); }
-    sta(): void { instructions.sta.call(this); }
-    stx(): void { instructions.stx.call(this); }
-    sty(): void { instructions.sty.call(this); }
-    tax(): void { instructions.tax.call(this); }
-    tay(): void { instructions.tay.call(this); }
-    tsx(): void { instructions.tsx.call(this); }
-    txa(): void { instructions.txa.call(this); }
-    txs(): void { instructions.txs.call(this); }
-    tya(): void { instructions.tya.call(this); }
+    adc(): void {
+        instructions.adc.call(this);
+    }
+    and(): void {
+        instructions.and.call(this);
+    }
+    asl(): void {
+        instructions.asl.call(this);
+    }
+    asla(): void {
+        instructions.asla.call(this);
+    }
+    bit(): void {
+        instructions.bit.call(this);
+    }
+    brk(): void {
+        instructions.brk.call(this);
+    }
+    bcc(): void {
+        instructions.bcc.call(this);
+    }
+    bcs(): void {
+        instructions.bcs.call(this);
+    }
+    beq(): void {
+        instructions.beq.call(this);
+    }
+    bne(): void {
+        instructions.bne.call(this);
+    }
+    bmi(): void {
+        instructions.bmi.call(this);
+    }
+    bpl(): void {
+        instructions.bpl.call(this);
+    }
+    bvc(): void {
+        instructions.bvc.call(this);
+    }
+    bvs(): void {
+        instructions.bvs.call(this);
+    }
+    clc(): void {
+        instructions.clc.call(this);
+    }
+    cld(): void {
+        instructions.cld.call(this);
+    }
+    cli(): void {
+        instructions.cli.call(this);
+    }
+    clv(): void {
+        instructions.clv.call(this);
+    }
+    cmp(): void {
+        instructions.cmp.call(this);
+    }
+    cpx(): void {
+        instructions.cpx.call(this);
+    }
+    cpy(): void {
+        instructions.cpy.call(this);
+    }
+    dec(): void {
+        instructions.dec.call(this);
+    }
+    dex(): void {
+        instructions.dex.call(this);
+    }
+    dey(): void {
+        instructions.dey.call(this);
+    }
+    eor(): void {
+        instructions.eor.call(this);
+    }
+    inc(): void {
+        instructions.inc.call(this);
+    }
+    inx(): void {
+        instructions.inx.call(this);
+    }
+    iny(): void {
+        instructions.iny.call(this);
+    }
+    jmp(): void {
+        instructions.jmp.call(this);
+    }
+    jsr(): void {
+        instructions.jsr.call(this);
+    }
+    lda(): void {
+        instructions.lda.call(this);
+    }
+    ldx(): void {
+        instructions.ldx.call(this);
+    }
+    ldy(): void {
+        instructions.ldy.call(this);
+    }
+    ora(): void {
+        instructions.ora.call(this);
+    }
+    rol(): void {
+        instructions.rol.call(this);
+    }
+    rola(): void {
+        instructions.rola.call(this);
+    }
+    ror(): void {
+        instructions.ror.call(this);
+    }
+    rora(): void {
+        instructions.rora.call(this);
+    }
+    lsr(): void {
+        instructions.lsr.call(this);
+    }
+    lsra(): void {
+        instructions.lsra.call(this);
+    }
+    nop(): void {
+        instructions.nop.call(this);
+    }
+    pha(): void {
+        instructions.pha.call(this);
+    }
+    php(): void {
+        instructions.php.call(this);
+    }
+    pla(): void {
+        instructions.pla.call(this);
+    }
+    plp(): void {
+        instructions.plp.call(this);
+    }
+    rti(): void {
+        instructions.rti.call(this);
+    }
+    rts(): void {
+        instructions.rts.call(this);
+    }
+    sbc(): void {
+        instructions.sbc.call(this);
+    }
+    sec(): void {
+        instructions.sec.call(this);
+    }
+    sed(): void {
+        instructions.sed.call(this);
+    }
+    sei(): void {
+        instructions.sei.call(this);
+    }
+    slo(): void {
+        instructions.slo.call(this);
+    }
+    sta(): void {
+        instructions.sta.call(this);
+    }
+    stx(): void {
+        instructions.stx.call(this);
+    }
+    sty(): void {
+        instructions.sty.call(this);
+    }
+    tax(): void {
+        instructions.tax.call(this);
+    }
+    tay(): void {
+        instructions.tay.call(this);
+    }
+    tsx(): void {
+        instructions.tsx.call(this);
+    }
+    txa(): void {
+        instructions.txa.call(this);
+    }
+    txs(): void {
+        instructions.txs.call(this);
+    }
+    tya(): void {
+        instructions.tya.call(this);
+    }
 
     // Illegal/undocumented instructions
-    isc(): void { instructions.isc.call(this); }
-    anc(): void { instructions.anc.call(this); }
-    rla(): void { instructions.rla.call(this); }
-    sre(): void { instructions.sre.call(this); }
-    alr(): void { instructions.alr.call(this); }
-    rra(): void { instructions.rra.call(this); }
-    sax(): void { instructions.sax.call(this); }
-    lax(): void { instructions.lax.call(this); }
-    arr(): void { instructions.arr.call(this); }
-    shy(): void { instructions.shy.call(this); }
-    dcp(): void { instructions.dcp.call(this); }
-    las(): void { instructions.las.call(this); }
-    ahx(): void { instructions.ahx.call(this); }
-    shx(): void { instructions.shx.call(this); }
-    kil(): void { instructions.kil.call(this); }
-    tas(): void { instructions.tas.call(this); }
-    axs(): void { instructions.axs.call(this); }
-    xaa(): void { instructions.xaa.call(this); }
+    isc(): void {
+        instructions.isc.call(this);
+    }
+    anc(): void {
+        instructions.anc.call(this);
+    }
+    rla(): void {
+        instructions.rla.call(this);
+    }
+    sre(): void {
+        instructions.sre.call(this);
+    }
+    alr(): void {
+        instructions.alr.call(this);
+    }
+    rra(): void {
+        instructions.rra.call(this);
+    }
+    sax(): void {
+        instructions.sax.call(this);
+    }
+    lax(): void {
+        instructions.lax.call(this);
+    }
+    arr(): void {
+        instructions.arr.call(this);
+    }
+    shy(): void {
+        instructions.shy.call(this);
+    }
+    dcp(): void {
+        instructions.dcp.call(this);
+    }
+    las(): void {
+        instructions.las.call(this);
+    }
+    ahx(): void {
+        instructions.ahx.call(this);
+    }
+    shx(): void {
+        instructions.shx.call(this);
+    }
+    kil(): void {
+        instructions.kil.call(this);
+    }
+    tas(): void {
+        instructions.tas.call(this);
+    }
+    axs(): void {
+        instructions.axs.call(this);
+    }
+    xaa(): void {
+        instructions.xaa.call(this);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
     // Interrupt handling
     ////////////////////////////////////////////////////////////////////////////////
-    
+
     /**
      * Updates IRQ pending state based on current IRQ line and I flag
      */
     updateIrqPending(): void {
-        this.pendingIrq = this.irq && (this.I === 0) ? 1 : 0;
+        this.pendingIrq = this.irq && this.I === 0 ? 1 : 0;
     }
-    
+
     /**
      * Sets the IRQ line state
      */
@@ -632,19 +830,21 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.irq = state ? 1 : 0;
         this.updateIrqPending();
     }
-    
+
     /**
-     * Sets the NMI line state  
+     * Sets the NMI line state
      */
     setNmi(state: boolean): void {
-        // NMI is edge-triggered (triggers on falling edge)
+        // NMI is edge-triggered: it latches when the line becomes ASSERTED
+        // (the falling edge on the physical pin, which `state === true`
+        // represents here). Releasing the line latches nothing.
         const previousNmi = this.nmi;
         this.nmi = state ? 1 : 0;
-        if (previousNmi && !state) {
+        if (!previousNmi && state) {
             this.pendingNmi = 1;
         }
     }
-    
+
     /**
      * Checks for pending interrupts and handles them
      */
@@ -657,11 +857,11 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
             this.handleIrq();
             this.pendingIrq = 0;
         }
-        
+
         // Update IRQ pending state based on current IRQ line and I flag
         this.updateIrqPending();
     }
-    
+
     /**
      * Handles IRQ interrupt
      */
@@ -671,7 +871,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.S = (this.S - 1) & 0xff;
         this.write(this.stackBase + this.S, this.PC & 0xff);
         this.S = (this.S - 1) & 0xff;
-        
+
         // Push status register to stack (with B flag clear)
         let status = 0;
         status |= this.N ? 0x80 : 0;
@@ -684,17 +884,17 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         status |= this.C ? 0x01 : 0;
         this.write(this.S + 0x100, status);
         this.S = (this.S - 1) & 0xff;
-        
+
         // Set interrupt disable flag
         this.I = 1;
-        
+
         // Jump to IRQ vector at $FFFE/$FFFF
         this.PC = (this.read(0xffff) << 8) | this.read(0xfffe);
-        
+
         // IRQ takes 7 cycles
         this.cycles += 7;
     }
-    
+
     /**
      * Handles NMI interrupt
      */
@@ -704,7 +904,7 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         this.S = (this.S - 1) & 0xff;
         this.write(this.stackBase + this.S, this.PC & 0xff);
         this.S = (this.S - 1) & 0xff;
-        
+
         // Push status register to stack (with B flag clear)
         let status = 0;
         status |= this.N ? 0x80 : 0;
@@ -717,13 +917,13 @@ class CPU6502 implements IClockable, IInspectableComponent, IVersionedStatefulCo
         status |= this.C ? 0x01 : 0;
         this.write(this.S + 0x100, status);
         this.S = (this.S - 1) & 0xff;
-        
+
         // Set interrupt disable flag
         this.I = 1;
-        
+
         // Jump to NMI vector at $FFFA/$FFFB
         this.PC = (this.read(0xfffb) << 8) | this.read(0xfffa);
-        
+
         // NMI takes 7 cycles
         this.cycles += 7;
     }

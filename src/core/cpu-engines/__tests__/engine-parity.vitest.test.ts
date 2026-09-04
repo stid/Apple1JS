@@ -251,6 +251,29 @@ describe.skipIf(!wasmRuntimeAvailable)('CPU Engine Parity Tests', () => {
     });
 
     describe('Arithmetic Operations', () => {
+        it('decimal ARR keeps the carry-in in the rotated result', () => {
+            // Absolute values on BOTH engines: the pre-fix implementation
+            // returned A=$00 here on each of them, so a parity-only check
+            // would have passed against the bug.
+            compareEngines(
+                [
+                    0xf8, // SED
+                    0x38, // SEC
+                    0xa9,
+                    0xff, // LDA #$FF
+                    0x6b,
+                    0x00, // ARR #$00
+                ],
+                4,
+                (regs) => {
+                    expect(regs.A).toBe(0x80);
+                    expect(regs.C).toBe(0);
+                    expect(regs.N).toBe(1);
+                    expect(regs.Z).toBe(0);
+                },
+            );
+        });
+
         it('ADC without carry', () => {
             compareEngines(
                 [

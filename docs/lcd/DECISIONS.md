@@ -6,9 +6,84 @@
 > one `superseded by D-NNN`. Work-item-local decisions live in that item's `JOURNAL.md`; mirror
 > here only the ones that outlive the work item.
 
-<!-- Next id: D-011 -->
+<!-- Next id: D-015 -->
 
 ---
+
+## D-015 · 2026-08-06 · Nothing on the bus path may call into the WASM engine
+
+- **Context:** On the WASM engine a bus access is a callback *out of* running WASM — the Rust CPU is
+  inside a `&mut self` export and calls the JavaScript bridge. Anything that then calls back into
+  the engine trips wasm-bindgen's borrow guard ("recursive use of an object detected which would
+  lead to unsafe aliasing in rust"), which kills every I/O access: display and keyboard both dead.
+  A display-handshake change did exactly this and shipped, because the WASM engine is not exercised
+  by the Node suite and all 784 tests stayed green.
+- **Decision:** Devices reached through the bus — the PIA above all — must complete a read or write
+  using only JavaScript-side state. Any value sourced from the engine has to be sampled between
+  clock chunks and read as a plain number. Guarded by
+  `src/core/cpu-engines/__tests__/wasm-memory-bridge-reentrancy.vitest.test.ts`, which drives the
+  real bridge with a stand-in that throws the way the borrow guard does.
+- **Alternatives rejected:** Relying on review or on the browser check — the failure is invisible to
+  CI and was in fact mistaken for browser-tooling noise the first time it appeared.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-014 · 2026-08-06 · Bus mirroring is an offset mask on a widened range, not overlapping ranges
+
+- **Context:** The Apple 1 decodes addresses partially, so the peripheral adapter repeats through
+  a whole 4K bank. `Bus.validate()` rejects overlapping mappings, which looked like it forced a
+  choice between accurate decoding and that guard.
+- **Decision:** A mapping may carry an optional offset mask. The mirrored device's range widens to
+  cover the repeat, and the decoded offset becomes `(address - base) & mask`. No ranges overlap, so
+  `validate()` keeps rejecting genuine mapping mistakes and every existing mapping keeps its exact
+  semantics.
+- **Alternatives rejected:** Relax `validate()` to permit overlaps with precedence rules — strictly
+  more machinery, and it deletes a guard that catches real errors.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-013 · 2026-08-06 · Dual-engine parity covers undocumented opcodes, not just documented ones
+
+- **Context:** The hardware-accuracy audit found the reference engine implements ~18 undocumented
+  6502 instructions (7 of them incorrectly) while the second engine implements none. The parity
+  invariant could be honoured either by scoping it to documented instructions or by making both
+  engines implement the full set.
+- **Decision:** Parity is literal. Undocumented instructions are corrected in the first engine and
+  implemented in the second, so any program produces identical state on both.
+- **Alternatives rejected:** Scope the invariant to documented instructions and record the gap —
+  cheaper, but leaves the fuzz-parity harness permanently unable to distinguish a real regression
+  from a known divergence. Remove them from the first engine — parity by subtraction, and a
+  feature downgrade.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-012 · 2026-08-06 · Power-on memory stays uniformly cleared — a deliberate deviation
+
+- **Context:** Real dynamic memory powers up indeterminate; both engines clear it. Reproducing
+  that would surface uninitialised-memory bugs but break byte-for-byte reproducibility.
+- **Decision:** Memory continues to power up cleared. Recorded as an intentional deviation in the
+  hardware-accuracy audit rather than fixed.
+- **Alternatives rejected:** Seeded pseudo-random fill — reproducible, but invalidates existing
+  memory-view and saved-state tests for a finding no real software observes. A configuration
+  switch — two code paths to keep tested, for the same finding.
+- **Scope:** project-wide
+- **Status:** active
+
+## D-011 · 2026-08-06 · The reference oracle is per-behaviour, not per-engine
+
+- **Context:** The project has treated the first engine as the reference oracle for parity. The
+  hardware-accuracy audit measured the opposite on four points — zero-page pointer wrapping, the
+  indirect-jump page bug, the software-interrupt effect on the decimal flag, and indexed store
+  timing — where the second engine matches the datasheet and the first does not. The second engine
+  meanwhile has no decimal arithmetic at all.
+- **Decision:** Neither engine is authoritative by default. The datasheet is the oracle; when the
+  engines disagree, the documentation decides which one moves. The first engine keeps its role as
+  the always-available fallback and the one testable in CI, which is a separate property from
+  being correct.
+- **Alternatives rejected:** Keep the first engine authoritative — would have propagated four
+  measured defects into the second engine in the name of parity.
+- **Scope:** project-wide
+- **Status:** active
 
 ## D-010 · 2026-06-20 · Published at `apple1.stid.me` via Cloudflare; deploy config stays out of the repo
 
@@ -92,7 +167,7 @@
 - **Alternatives rejected:** the upgrade tool's CSS-first `@theme` inlining — hardcodes token
   values and orphans the adapter + parity test (a token-SSOT downgrade); `@tailwindcss/vite` —
   Rolldown plugin-hook friction under Vite 8. The **CSS-first `@theme` rewrite is deferred** as a
-  future modernization (re-architect `tokens.ts` to _emit_ `@theme`, unifying Tailwind utilities
+  future modernization (re-architect `tokens.ts` to *emit* `@theme`, unifying Tailwind utilities
   and runtime inline styles on one set of CSS variables) — not needed; we are fully on v4.
 - **Scope:** project-wide
 - **Status:** active

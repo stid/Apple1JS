@@ -1,6 +1,6 @@
 /**
  * 6502 CPU Instructions
- * 
+ *
  * This module implements all instructions for the 6502 processor.
  * Instructions are responsible for executing operations and setting flags.
  */
@@ -21,50 +21,58 @@ function setNZCFlags(cpu: CPU6502Interface, value: number): void {
 
 // Arithmetic Instructions
 
-export function adc(this: CPU6502Interface): void {
-    const v: number = this.read(this.addr);
-    const c: number = this.C ? 1 : 0;
-    const r: number = this.A + v + c;
-    if (this.D) {
-        let al: number = (this.A & 0x0f) + (v & 0x0f) + c;
+/**
+ * ADC core, shared by ADC and the undocumented RRA.
+ * NMOS semantics: A and C are BCD in decimal mode; N/Z/V come from the binary result.
+ */
+function adcValue(cpu: CPU6502Interface, v: number): void {
+    const c: number = cpu.C ? 1 : 0;
+    const r: number = cpu.A + v + c;
+    if (cpu.D) {
+        let al: number = (cpu.A & 0x0f) + (v & 0x0f) + c;
         if (al > 9) al += 6;
-        let ah: number = (this.A >> 4) + (v >> 4) + (al > 15 ? 1 : 0);
-        this.Z = (r & 0xff) === 0 ? 1 : 0;
-        this.N = (ah & 8) !== 0 ? 1 : 0;
-        this.V = (~(this.A ^ v) & (this.A ^ (ah << 4)) & 0x80) !== 0 ? 1 : 0;
+        let ah: number = (cpu.A >> 4) + (v >> 4) + (al > 15 ? 1 : 0);
+        cpu.Z = (r & 0xff) === 0 ? 1 : 0;
+        cpu.N = (ah & 8) !== 0 ? 1 : 0;
+        cpu.V = (~(cpu.A ^ v) & (cpu.A ^ (ah << 4)) & 0x80) !== 0 ? 1 : 0;
         if (ah > 9) ah += 6;
-        this.C = ah > 15 ? 1 : 0;
-        this.A = ((ah << 4) | (al & 15)) & 0xff;
+        cpu.C = ah > 15 ? 1 : 0;
+        cpu.A = ((ah << 4) | (al & 15)) & 0xff;
     } else {
-        this.Z = (r & 0xff) === 0 ? 1 : 0;
-        this.N = (r & 0x80) !== 0 ? 1 : 0;
-        this.V = (~(this.A ^ v) & (this.A ^ r) & 0x80) !== 0 ? 1 : 0;
-        this.C = (r & 0x100) !== 0 ? 1 : 0;
-        this.A = r & 0xff;
+        cpu.Z = (r & 0xff) === 0 ? 1 : 0;
+        cpu.N = (r & 0x80) !== 0 ? 1 : 0;
+        cpu.V = (~(cpu.A ^ v) & (cpu.A ^ r) & 0x80) !== 0 ? 1 : 0;
+        cpu.C = (r & 0x100) !== 0 ? 1 : 0;
+        cpu.A = r & 0xff;
     }
 }
 
-export function sbc(this: CPU6502Interface): void {
-    const v: number = this.read(this.addr);
-    const c: number = 1 - (this.C ? 1 : 0);
-    const r: number = this.A - v - c;
-    if (this.D) {
-        let al: number = (this.A & 0x0f) - (v & 0x0f) - c;
+/** SBC core, shared by SBC and the undocumented ISC. */
+function sbcValue(cpu: CPU6502Interface, v: number): void {
+    const c: number = 1 - (cpu.C ? 1 : 0);
+    const r: number = cpu.A - v - c;
+    cpu.Z = (r & 0xff) === 0 ? 1 : 0;
+    cpu.N = (r & 0x80) !== 0 ? 1 : 0;
+    cpu.V = ((cpu.A ^ v) & (cpu.A ^ r) & 0x80) !== 0 ? 1 : 0;
+    cpu.C = (r & 0x100) !== 0 ? 0 : 1;
+    if (cpu.D) {
+        let al: number = (cpu.A & 0x0f) - (v & 0x0f) - c;
         if (al < 0) al -= 6;
-        let ah: number = (this.A >> 4) - (v >> 4) - (al < 0 ? 1 : 0);
-        this.Z = (r & 0xff) === 0 ? 1 : 0;
-        this.N = (r & 0x80) !== 0 ? 1 : 0;
-        this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) !== 0 ? 1 : 0;
-        this.C = (r & 0x100) !== 0 ? 0 : 1;
+        let ah: number = (cpu.A >> 4) - (v >> 4) - (al < 0 ? 1 : 0);
         if (ah < 0) ah -= 6;
-        this.A = ((ah << 4) | (al & 15)) & 0xff;
+        cpu.A = ((ah << 4) | (al & 15)) & 0xff;
     } else {
-        this.Z = (r & 0xff) === 0 ? 1 : 0;
-        this.N = (r & 0x80) !== 0 ? 1 : 0;
-        this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) !== 0 ? 1 : 0;
-        this.C = (r & 0x100) !== 0 ? 0 : 1;
-        this.A = r & 0xff;
+        cpu.A = r & 0xff;
     }
+}
+
+
+export function adc(this: CPU6502Interface): void {
+    adcValue(this, this.read(this.addr));
+}
+
+export function sbc(this: CPU6502Interface): void {
+    sbcValue(this, this.read(this.addr));
 }
 
 // Logical Instructions
@@ -87,9 +95,9 @@ export function eor(this: CPU6502Interface): void {
 export function bit(this: CPU6502Interface): void {
     this.tmp = this.read(this.addr);
     // Optimized flag setting using bit operations
-    this.N = (this.tmp >> 7) & 1;        // Extract bit 7 directly
-    this.V = (this.tmp >> 6) & 1;        // Extract bit 6 directly
-    this.Z = (this.tmp & this.A) === 0 ? 1 : 0;  // Z flag logic unchanged
+    this.N = (this.tmp >> 7) & 1; // Extract bit 7 directly
+    this.V = (this.tmp >> 6) & 1; // Extract bit 6 directly
+    this.Z = (this.tmp & this.A) === 0 ? 1 : 0; // Z flag logic unchanged
 }
 
 // Shift and Rotate Instructions
@@ -271,7 +279,9 @@ export function brk(this: CPU6502Interface): void {
     this.write((this.stackBase || 0x100) + this.S, v);
     this.S = (this.S - 1) & 0xff;
     this.I = 1;
-    this.D = 0;
+    // NMOS 6502: BRK, IRQ and NMI do not affect the decimal flag. Clearing it
+    // here is 65C02 behaviour. WOZMON's `CLD` at $FF00 exists precisely because
+    // the real part leaves D undefined across a reset.
     this.PC = (this.read(0xffff) << 8) | this.read(0xfffe);
     this.cycles += 5;
 }
@@ -433,56 +443,43 @@ export function nop(this: CPU6502Interface): void {
 // Illegal/Undocumented Instructions
 
 export function slo(this: CPU6502Interface): void {
-    this.tmp = this.read(this.addr) << 1;
-    this.tmp |= this.A;
-    setNZCFlags(this, this.tmp);
-    this.A = this.tmp & 0xff;
+    // ASL the memory operand, then ORA it into A.
+    const shifted = this.read(this.addr) << 1;
+    this.C = (shifted & 0x100) !== 0 ? 1 : 0;
+    this.tmp = shifted & 0xff;
+    this.A |= this.tmp;
+    setNZFlags(this, this.A);
 }
 
 export function isc(this: CPU6502Interface): void {
-    const v = (this.read(this.addr) + 1) & 0xff;
-    const c = 1 - (this.C ? 1 : 0);
-    const r = this.A - v - c;
-    if (this.D) {
-        let al = (this.A & 0x0f) - (v & 0x0f) - c;
-        if (al > 0x80) al -= 6;
-        let ah = (this.A >> 4) - (v >> 4) - (al > 0x80 ? 1 : 0);
-        this.Z = (r & 0xff) === 0 ? 1 : 0;
-        this.N = (r & 0x80) !== 0 ? 1 : 0;
-        this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) !== 0 ? 1 : 0;
-        this.C = (r & 0x100) !== 0 ? 0 : 1;
-        if (ah > 0x80) ah -= 6;
-        this.A = ((ah << 4) | (al & 15)) & 0xff;
-    } else {
-        this.Z = (r & 0xff) === 0 ? 1 : 0;
-        this.N = (r & 0x80) !== 0 ? 1 : 0;
-        this.V = ((this.A ^ v) & (this.A ^ r) & 0x80) !== 0 ? 1 : 0;
-        this.C = (r & 0x100) !== 0 ? 0 : 1;
-        this.A = r & 0xff;
-    }
+    // INC the memory operand, then SBC it from A.
+    this.tmp = (this.read(this.addr) + 1) & 0xff;
+    sbcValue(this, this.tmp);
 }
 
 export function anc(this: CPU6502Interface): void {
-    this.tmp = this.read(this.addr);
-    this.tmp |= (this.tmp & 0x80 & (this.A & 0x80)) << 1;
-    this.Z = (this.tmp & 0xff) === 0 ? 1 : 0;
-    this.N = (this.tmp & 0x80) !== 0 ? 1 : 0;
-    this.C = (this.tmp & 0x100) !== 0 ? 1 : 0;
-    this.A = this.tmp & 0xff;
+    // AND immediate, then copy the resulting sign bit into carry.
+    this.A &= this.read(this.addr);
+    setNZFlags(this, this.A);
+    this.C = this.N;
 }
 
 export function rla(this: CPU6502Interface): void {
-    this.tmp = (this.A << 1) | (this.C ? 1 : 0);
-    setNZCFlags(this, this.tmp);
-    this.A = this.tmp & 0xff;
+    // ROL the memory operand, then AND it into A.
+    const rotated = (this.read(this.addr) << 1) | (this.C ? 1 : 0);
+    this.C = (rotated & 0x100) !== 0 ? 1 : 0;
+    this.tmp = rotated & 0xff;
+    this.A &= this.tmp;
+    setNZFlags(this, this.A);
 }
 
 export function sre(this: CPU6502Interface): void {
+    // LSR the memory operand, then EOR it into A.
     const v = this.read(this.addr);
-    this.tmp = ((v & 1) << 8) | (v >> 1);
-    this.tmp ^= this.A;
-    setNZCFlags(this, this.tmp);
-    this.A = this.tmp & 0xff;
+    this.C = v & 1;
+    this.tmp = v >> 1;
+    this.A ^= this.tmp;
+    setNZFlags(this, this.A);
 }
 
 export function alr(this: CPU6502Interface): void {
@@ -493,9 +490,11 @@ export function alr(this: CPU6502Interface): void {
 }
 
 export function rra(this: CPU6502Interface): void {
-    this.tmp = ((this.A & 1) << 8) | ((this.C ? 1 : 0) << 7) | (this.A >> 1);
-    setNZCFlags(this, this.tmp);
-    this.A = this.tmp & 0xff;
+    // ROR the memory operand, then ADC it into A.
+    const v = this.read(this.addr);
+    this.tmp = ((this.C ? 1 : 0) << 7) | (v >> 1);
+    this.C = v & 1;
+    adcValue(this, this.tmp);
 }
 
 export function sax(this: CPU6502Interface): void {
@@ -508,23 +507,32 @@ export function lax(this: CPU6502Interface): void {
 }
 
 export function arr(this: CPU6502Interface): void {
-    this.tmp = this.read(this.addr) & this.A;
-    this.C = (this.tmp & 0x80) !== 0 ? 1 : 0;
-    this.V = (((this.tmp >> 7) & 1) ^ ((this.tmp >> 6) & 1)) !== 0 ? 1 : 0;
+    // AND immediate, then ROR A. Carry comes from pre-rotate bit 7 and overflow
+    // from pre-rotate bits 7^6 — equivalently post-rotate bit 6 and bit 6^5.
+    const t = this.read(this.addr) & this.A;
+    const carryIn = this.C ? 0x80 : 0;
+    this.V = (((t >> 7) & 1) ^ ((t >> 6) & 1)) !== 0 ? 1 : 0;
+    this.tmp = (t >> 1) | carryIn;
     if (this.D) {
-        let al = (this.tmp & 0x0f) + (this.tmp & 1);
-        if (al > 5) al += 6;
-        const ah = ((this.tmp >> 4) & 0x0f) + ((this.tmp >> 4) & 1);
-        if (ah > 5) {
-            al += 6;
+        // NMOS decimal ARR (VICE / "No More Secrets"): N and Z come from the
+        // rotated value, then the BCD fix-ups adjust that rotated value in
+        // place. The nibble tests look at the pre-rotate byte.
+        setNZFlags(this, this.tmp);
+        if ((t & 0x0f) + (t & 0x01) > 0x05) {
+            this.tmp = (this.tmp & 0xf0) | ((this.tmp + 0x06) & 0x0f);
+        }
+        if ((t & 0xf0) + (t & 0x10) > 0x50) {
+            this.tmp = (this.tmp & 0x0f) | ((this.tmp + 0x60) & 0xf0);
             this.C = 1;
         } else {
             this.C = 0;
         }
-        this.tmp = (ah << 4) | al;
+        this.A = this.tmp & 0xff;
+        return;
     }
-    setNZFlags(this, this.tmp);
+    this.C = (t & 0x80) !== 0 ? 1 : 0;
     this.A = this.tmp & 0xff;
+    setNZFlags(this, this.A);
 }
 
 export function shy(this: CPU6502Interface): void {
@@ -533,10 +541,11 @@ export function shy(this: CPU6502Interface): void {
 }
 
 export function dcp(this: CPU6502Interface): void {
+    // DEC the memory operand, then CMP it against A.
     this.tmp = (this.read(this.addr) - 1) & 0xff;
-    this.tmp = this.A - this.tmp;
-    setNZFlags(this, this.tmp);
-    this.C = (this.tmp & 0x100) === 0 ? 1 : 0;
+    const result = this.A - this.tmp;
+    setNZFlags(this, result);
+    this.C = (result & 0x100) === 0 ? 1 : 0;
 }
 
 export function las(this: CPU6502Interface): void {

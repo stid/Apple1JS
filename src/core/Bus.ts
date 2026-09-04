@@ -3,6 +3,20 @@ import type { IInspectableComponent, InspectableData, InspectableChild, BusSpace
 import { BusError } from './errors';
 import { Formatters } from '../utils/formatters';
 
+/**
+ * The value a floating Apple 1 data bus reads back when no device answers.
+ */
+const OPEN_BUS = 0xff;
+
+/**
+ * Offset of `address` within its mapping, honouring partial decoding.
+ * Without a mask this is plain exact decoding.
+ */
+function decodeOffset(space: BusSpaceType, address: number): number {
+    const offset = address - space.addr[0];
+    return space.mirrorMask === undefined ? offset : offset & space.mirrorMask;
+}
+
 class Bus implements IInspectableComponent {
     id = 'bus';
     type = 'Bus';
@@ -171,11 +185,13 @@ class Bus implements IInspectableComponent {
     /**
      * Read a value from a specific address.
      * @param address - The memory address to read from.
-     * @returns The value at the specified address, or 0 if the address is not found.
+     * @returns The value at the specified address, or the floating-bus value
+     *          when no device answers.
      */
     read(address: number): number {
         const addrInstance = this.findInstanceWithAddress(address);
-        return addrInstance ? addrInstance.component.read(address - addrInstance.addr[0]) : 0;
+        // Nothing drives an unmapped address, so the bus floats high.
+        return addrInstance ? addrInstance.component.read(decodeOffset(addrInstance, address)) : OPEN_BUS;
     }
 
     /**
@@ -186,7 +202,7 @@ class Bus implements IInspectableComponent {
     write(address: number, value: number): void {
         const addrInstance = this.findInstanceWithAddress(address);
         if (addrInstance) {
-            addrInstance.component.write(address - addrInstance.addr[0], value);
+            addrInstance.component.write(decodeOffset(addrInstance, address), value);
         }
     }
 

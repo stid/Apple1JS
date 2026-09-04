@@ -206,11 +206,17 @@ class CRTVideo implements IoComponent<VideoState>, PubSub<WebCrtVideoSubFuncVide
                     this.onChar('_');
                 }
                 break;
-            default:
-                if (bitChar >= 13) {
-                    this.onChar(String.fromCharCode(bitChar));
+            default: {
+                // The Signetics 2513 holds 64 glyphs ($20-$5F) and has no
+                // lowercase. Codes $60-$7F reach it with bit 5 ignored, which
+                // folds lowercase onto uppercase (and ` { | } ~ DEL onto
+                // @ [ \ ] ^ _). Anything outside the repertoire is not drawn.
+                const glyph = bitChar >= 0x60 ? bitChar - 0x20 : bitChar;
+                if (glyph >= 0x20 && glyph <= 0x5f) {
+                    this.onChar(String.fromCharCode(glyph));
                 }
                 break;
+            }
             case appleConstants.CLEAR:
                 // Not implemented
                 break;
