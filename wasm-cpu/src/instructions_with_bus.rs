@@ -315,25 +315,27 @@ impl CPU6502 {
         let v = self.ill_imm(bus);
         let t = self.a & v;
         let carry_in: u8 = if self.get_flag(flags::CARRY) { 0x80 } else { 0 };
-        self.set_flag(flags::CARRY, (t & 0x80) != 0);
         self.set_flag(flags::OVERFLOW, (((t >> 7) & 1) ^ ((t >> 6) & 1)) != 0);
         let mut result = (t >> 1) | carry_in;
         if self.get_flag(flags::DECIMAL) {
-            // Matches the TypeScript engine's decimal adjustment so the two
-            // stay in agreement on this opcode.
-            let mut al = (t & 0x0f) + (t & 1);
-            if al > 5 {
-                al += 6;
+            // NMOS decimal ARR (VICE / "No More Secrets"), mirrored in the
+            // TypeScript engine: N and Z come from the rotated value, then the
+            // BCD fix-ups adjust that rotated value in place. The nibble tests
+            // look at the pre-rotate byte.
+            self.update_nz(result);
+            if (t & 0x0f) + (t & 0x01) > 0x05 {
+                result = (result & 0xf0) | (result.wrapping_add(0x06) & 0x0f);
             }
-            let ah = ((t >> 4) & 0x0f) + ((t >> 4) & 1);
-            if ah > 5 {
-                al += 6;
+            if (t as u16 & 0xf0) + (t as u16 & 0x10) > 0x50 {
+                result = (result & 0x0f) | (result.wrapping_add(0x60) & 0xf0);
                 self.set_flag(flags::CARRY, true);
             } else {
                 self.set_flag(flags::CARRY, false);
             }
-            result = (ah << 4) | (al & 0x0f);
+            self.a = result;
+            return;
         }
+        self.set_flag(flags::CARRY, (t & 0x80) != 0);
         self.a = result;
         self.update_nz(result);
     }

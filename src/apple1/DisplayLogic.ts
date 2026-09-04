@@ -32,19 +32,25 @@ class DisplayLogic implements IoWriter {
         // Set PB7 to indicate display is busy (hardware-controlled input pin)
         this.pia.setPB7DisplayStatus(true);
 
-        await this.wireWrite?.(char);
-
-        // Clear PB7 to indicate display is ready.
-        //
-        // Known deviation (hardware-accuracy audit, finding 13): on real
-        // hardware the busy line is held for one video field (~16.7ms) of
-        // machine time. Here it is held for as long as the write takes on the
-        // host. Pacing it from emulated cycles was tried and reverted: the
-        // Clock only exposes the cycle count at chunk boundaries — never
-        // mid-chunk, and on the WASM engine it cannot be read mid-execution at
-        // all — so a cycle deadline quantises the display to the chunk rate and
-        // makes echo stutter. Host pacing is the lesser inaccuracy.
-        this.pia.setPB7DisplayStatus(false);
+        try {
+            await this.wireWrite?.(char);
+        } finally {
+            // Clear PB7 to indicate display is ready — even when the video sink
+            // rejects. PIA6820.write does not await this call, so a rejection
+            // that skipped the clear would leave PB7 busy and strand the
+            // monitor's ECHO loop until the next reset.
+            //
+            // Known deviation (hardware-accuracy audit, finding 13): on real
+            // hardware the busy line is held for one video field (~16.7ms) of
+            // machine time. Here it is held for as long as the write takes on
+            // the host. Pacing it from emulated cycles was tried and reverted:
+            // the Clock only exposes the cycle count at chunk boundaries —
+            // never mid-chunk, and on the WASM engine it cannot be read
+            // mid-execution at all — so a cycle deadline quantises the display
+            // to the chunk rate and makes echo stutter. Host pacing is the
+            // lesser inaccuracy.
+            this.pia.setPB7DisplayStatus(false);
+        }
     }
 
     wire({ reset, write }: WireOptions): void {

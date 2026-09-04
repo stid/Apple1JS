@@ -257,4 +257,29 @@ describe('CPU6502 — hardware accuracy', () => {
         expect(cpu.A, 'ANC #$FF with A=$81').toBe(0x81);
         expect(cpu.C, 'carry set when bit 7 of the result is set').toBe(1);
     });
+
+    test('decimal ARR adjusts the rotated value and keeps ROR-phase flags', () => {
+        // NMOS behaviour (VICE / "No More Secrets"): in decimal mode ARR still
+        // rotates A AND #imm through the carry, takes N from the incoming carry
+        // and Z from the rotated value, then applies the BCD fix-ups to that
+        // rotated value. Replacing the rotated value with a fix-up built from
+        // the pre-rotate byte loses the carry-in — the bug these inputs catch.
+        const arr = (a: number, imm: number, c: number) => {
+            cpu.reset();
+            cpu.PC = 0x0200;
+            cpu.D = 1;
+            cpu.A = a;
+            cpu.C = c;
+            load(0x0200, 0x6b, imm); // ARR #imm
+            cpu.performSingleStep();
+            return { a: cpu.A, c: cpu.C, n: cpu.N, z: cpu.Z };
+        };
+
+        // t = $00 with carry in: the carry rotates into bit 7 and survives.
+        expect(arr(0xff, 0x00, 1), 'ARR #$00 with C=1').toEqual({ a: 0x80, c: 0, n: 1, z: 0 });
+        // Low-nibble fix-up applies +6 to the rotated $07, not to the source.
+        expect(arr(0x0f, 0x0f, 0), 'ARR #$0F low-nibble fix-up').toEqual({ a: 0x0d, c: 0, n: 0, z: 0 });
+        // High-nibble fix-up applies +$60 to the rotated $78 and sets carry.
+        expect(arr(0xf0, 0xf0, 0), 'ARR #$F0 high-nibble fix-up').toEqual({ a: 0xd8, c: 1, n: 0, z: 0 });
+    });
 });

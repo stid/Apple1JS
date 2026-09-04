@@ -208,6 +208,16 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
   my own tests were vacuous — the ANC assertion passed against the exact bug it was written for, and
   the NMI test passed with the edge check removed. KIL deferred with a recorded reason.
   D-015 added: nothing on the bus path may call into the WASM engine.
+- 2026-09-03 — Second review round (4 comments). Decimal ARR was wrong on both engines: the BCD
+  fix-up rebuilt the result from the pre-rotate byte instead of adjusting the rotated value, so a
+  carry-in was lost and N/Z came from the wrong phase. Fixed per the NMOS model (VICE) on both
+  engines; the JS test and a new real-WASM parity case assert absolute values, and both failed
+  against the old code (A=$00 where $80 is right). `DisplayLogic.write` now clears PB7 in a
+  `finally` so a rejecting video sink cannot strand the ECHO loop; the PB7 test now observes the
+  busy state mid-write through a deferred promise. Rust cycle accounting for the new opcode arms
+  was flagged as double-counting — true, but `read_byte_from_bus` has always incremented `cycles`
+  and every documented arm adds its full count on top, so the new arms match the engine-wide
+  convention. Fixing the model is an engine-wide change, tracked as a follow-up issue.
 
 ## DEEP PIPELINE (Deep lane only)
 

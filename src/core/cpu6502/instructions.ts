@@ -511,21 +511,26 @@ export function arr(this: CPU6502Interface): void {
     // from pre-rotate bits 7^6 — equivalently post-rotate bit 6 and bit 6^5.
     const t = this.read(this.addr) & this.A;
     const carryIn = this.C ? 0x80 : 0;
-    this.C = (t & 0x80) !== 0 ? 1 : 0;
     this.V = (((t >> 7) & 1) ^ ((t >> 6) & 1)) !== 0 ? 1 : 0;
     this.tmp = (t >> 1) | carryIn;
     if (this.D) {
-        let al = (t & 0x0f) + (t & 1);
-        if (al > 5) al += 6;
-        const ah = ((t >> 4) & 0x0f) + ((t >> 4) & 1);
-        if (ah > 5) {
-            al += 6;
+        // NMOS decimal ARR (VICE / "No More Secrets"): N and Z come from the
+        // rotated value, then the BCD fix-ups adjust that rotated value in
+        // place. The nibble tests look at the pre-rotate byte.
+        setNZFlags(this, this.tmp);
+        if ((t & 0x0f) + (t & 0x01) > 0x05) {
+            this.tmp = (this.tmp & 0xf0) | ((this.tmp + 0x06) & 0x0f);
+        }
+        if ((t & 0xf0) + (t & 0x10) > 0x50) {
+            this.tmp = (this.tmp & 0x0f) | ((this.tmp + 0x60) & 0xf0);
             this.C = 1;
         } else {
             this.C = 0;
         }
-        this.tmp = (ah << 4) | (al & 0x0f);
+        this.A = this.tmp & 0xff;
+        return;
     }
+    this.C = (t & 0x80) !== 0 ? 1 : 0;
     this.A = this.tmp & 0xff;
     setNZFlags(this, this.A);
 }

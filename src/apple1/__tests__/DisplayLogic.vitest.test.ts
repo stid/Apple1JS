@@ -11,15 +11,34 @@ describe('DisplayLogic', function () {
         displayLogic = new DisplayLogic(pia);
     });
 
-    test('Should write character to PIA and manage display status', async function () {
+    test('Should hold PB7 busy while the wired write is pending, then release it', async function () {
         // Set up PIA to access Output Register B (CRB bit 2 = 1)
         pia.write(3, 0x04);
+        let release!: () => void;
+        displayLogic.wire({
+            write: () =>
+                new Promise<void>((resolve) => {
+                    release = resolve;
+                }),
+        });
 
-        await displayLogic.write(65);
+        const pending = displayLogic.write(65);
+        // Observed mid-write: an implementation that never raises PB7, or
+        // drops it before the sink resolves, fails here.
+        expect(pia.read(2) & 0x80, 'PB7 busy while the write is pending').toBe(0x80);
 
-        // Check that the display status was managed (PB7 should be back to ready state)
-        const portBValue = pia.read(2);
-        expect(portBValue & 0x80).toBe(0x00); // PB7 should be 0 (ready state)
+        release();
+        await pending;
+        expect(pia.read(2) & 0x80, 'PB7 ready once the write resolved').toBe(0x00);
+    });
+
+    test('Should release PB7 even when the wired write rejects', async function () {
+        pia.write(3, 0x04);
+        displayLogic.wire({ write: () => Promise.reject(new Error('video sink failed')) });
+
+        await expect(displayLogic.write(65)).rejects.toThrow('video sink failed');
+        // A rejected sink must not strand the monitor's ECHO loop on a busy display.
+        expect(pia.read(2) & 0x80, 'PB7 must not stay busy after a failed write').toBe(0x00);
     });
 
     test('Should call wired write callback with correct value', async function () {
