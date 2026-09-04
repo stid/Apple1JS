@@ -213,7 +213,7 @@ exact oracle, not a quality threshold. `plan.md`'s Constitution check states thi
 
 > Phase tracker for the Deep-lane pipeline. Files live beside this JOURNAL.
 
-`spec.md ✅  plan.md ✅  tasks.md ✅  tests ✅  red-green ⬜  audit.md ⬜`
+`spec.md ✅  plan.md ✅  tasks.md ✅  tests ✅  red-green ✅  audit.md ✅`
 
 <!-- mark ✅ done · ⏳ in progress · ⬜ not started -->
 
