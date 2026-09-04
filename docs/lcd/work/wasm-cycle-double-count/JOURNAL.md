@@ -11,7 +11,7 @@
 
 - **Lane:** Standard
 - **Goal:** WASM engine reports the same per-instruction cycle count as the JS engine (issue #215): drop the `+= 1` in the two bus helpers so only the per-arm documented totals count.
-- **Next action:** open PR (closes #215)
+- **Next action:** done — PR #218 open (closes #215); after merge, rebase whichever of #216/#217 is still open for `src/version.ts`
 - **Branch:** fix/wasm-cycle-double-count  ·  **Updated:** 2026-09-03 23:55
 
 ## STEPS
@@ -45,3 +45,4 @@
 - 2026-09-03 23:40 — S1 done. Real-WASM run (yarn dev:vite on :3000): 23/27 parity tests RED on cycles only; state assertions still pass.
 - 2026-09-03 23:50 — S2 done: two `+= 1` removed from `cpu.rs` bus helpers; `cargo check` clean; WASM release rebuilt; parity 27/27, all engine suites 75/75 against real WASM; `yarn test:ci` 818 passed with the server up (parity suites ran for real).
 - 2026-09-03 23:55 — S3: re-ran `BENCH=1` benchmark with honest counting → WASM 443 M vs JS 56 M cycles/s = 7.8× (instr/s 8.5×). Old "14×" was inflated by the bug. Updated `wasm-performance.md` + CLAUDE.md. Version 4.51.12.
+- 2026-09-04 00:05 — PR #218 opened. Closeout appended (no surface declared → audit n/a).
