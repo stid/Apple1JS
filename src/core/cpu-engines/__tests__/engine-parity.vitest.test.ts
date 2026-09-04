@@ -101,10 +101,14 @@ describe.skipIf(!wasmRuntimeAvailable)('CPU Engine Parity Tests', () => {
         jsEngine.setRegisters({ PC: 0x0000 });
         wasmEngine.setRegisters({ PC: 0x0000 });
 
-        // Execute the same number of cycles on both
+        // Execute the same number of instructions on both. Each step must also
+        // report the same cycle count: `Clock` budgets against this value, so a
+        // divergence here means the engines run at different emulated speeds
+        // even when their state agrees (#215).
         for (let i = 0; i < cycles; i++) {
-            jsEngine.performSingleStep();
-            wasmEngine.performSingleStep();
+            const jsCycles = jsEngine.performSingleStep();
+            const wasmCycles = wasmEngine.performSingleStep();
+            expect(wasmCycles, `cycles reported at step ${i}`).toBe(jsCycles);
         }
 
         // Get final state from both engines
@@ -540,6 +544,81 @@ describe.skipIf(!wasmRuntimeAvailable)('CPU Engine Parity Tests', () => {
             expect(dualEngine.read(0xefff)).toBe(0xb2);
 
             dualEngine.cleanup();
+        });
+    });
+    /**
+     * Reported cycle counts against the documented 6502 timings (#215).
+     *
+     * The JS engine is the reference for state, but for cycles both engines
+     * are held to the datasheet: a test that only compared the two would pass
+     * if they were wrong in the same way. Before #215 the WASM engine counted
+     * every bus access AND the per-instruction total, reporting ~2x.
+     */
+    describe('Cycle count parity (#215)', () => {
+        function reportedCycles(program: number[], setup?: (write: (addr: number, value: number) => void) => void) {
+            if (!wasmEngine) {
+                throw new Error('WASM engine expected but failed to initialize');
+            }
+            jsEngine.reset();
+            wasmEngine.reset();
+            const write = (addr: number, value: number) => {
+                bus.write(addr, value);
+                wasmEngine!.write(addr, value);
+            };
+            program.forEach((byte, i) => write(i, byte));
+            setup?.(write);
+            jsEngine.setRegisters({ PC: 0x0000 });
+            wasmEngine.setRegisters({ PC: 0x0000 });
+            return { js: () => jsEngine.performSingleStep(), wasm: () => wasmEngine!.performSingleStep() };
+        }
+
+        function expectCycles(program: number[], expected: number[], setup?: (write: (addr: number, value: number) => void) => void) {
+            const step = reportedCycles(program, setup);
+            const js = expected.map(() => step.js());
+            const wasm = expected.map(() => step.wasm());
+            expect(js, 'JS engine cycles').toEqual(expected);
+            expect(wasm, 'WASM engine cycles').toEqual(expected);
+        }
+
+        it('implied and immediate: NOP=2, LDA #=2', () => {
+            expectCycles([0xea, 0xa9, 0x01], [2, 2]);
+        });
+
+        it('LDA zp=3, LDA abs=4', () => {
+            expectCycles([0xa5, 0x10, 0xad, 0x34, 0x12], [3, 4]);
+        });
+
+        it('LDA abs,X: 4 without page cross, 5 with', () => {
+            // LDX #$01; LDA $1234,X ; LDX #$20; LDA $12F0,X ($1310 crosses)
+            expectCycles([0xa2, 0x01, 0xbd, 0x34, 0x12, 0xa2, 0x20, 0xbd, 0xf0, 0x12], [2, 4, 2, 5]);
+        });
+
+        it('LDA (zp),Y: 5 without page cross, 6 with', () => {
+            // ($20) -> $1210. LDY #$00; LDA ($20),Y ; LDY #$F0; LDA ($20),Y ($1300 crosses)
+            expectCycles([0xa0, 0x00, 0xb1, 0x20, 0xa0, 0xf0, 0xb1, 0x20], [2, 5, 2, 6], (write) => {
+                write(0x20, 0x10);
+                write(0x21, 0x12);
+            });
+        });
+
+        it('STA abs,X always 5; INC abs 6', () => {
+            expectCycles([0x9d, 0x34, 0x12, 0xee, 0x34, 0x12], [5, 6]);
+        });
+
+        it('JSR=6, RTS=6', () => {
+            // JSR $0010 ; at $0010: RTS
+            expectCycles([0x20, 0x10, 0x00], [6, 6], (write) => write(0x10, 0x60));
+        });
+
+        it('branch: 2 not taken, 3 taken, 4 taken across a page', () => {
+            // LDA #$00; BNE +2 (not taken) ; LDX #$01; BNE +0 (taken, same page)
+            expectCycles([0xa9, 0x00, 0xd0, 0x02, 0xa2, 0x01, 0xd0, 0x00], [2, 2, 2, 3]);
+            // LDX #$01; BNE -$14 (from $0004 to $FFF0 crosses a page)
+            expectCycles([0xa2, 0x01, 0xd0, 0xec], [2, 4]);
+        });
+
+        it('stack: PHA=3, PLA=4', () => {
+            expectCycles([0x48, 0x68], [3, 4]);
         });
     });
 });
