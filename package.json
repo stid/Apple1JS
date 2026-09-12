@@ -48,10 +48,10 @@
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",
         "@types/node": "^25.9.1",
-        "@types/react": "^19.2.17",
-        "@types/react-dom": "^19.1.6",
-        "@typescript-eslint/eslint-plugin": "^8.61.1",
-        "@typescript-eslint/parser": "^8.61.1",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@typescript-eslint/eslint-plugin": "^8.70.0",
+        "@typescript-eslint/parser": "^8.70.0",
         "@vitejs/plugin-react": "6.1.1",
         "@vitest/ui": "^4.1.9",
         "eslint": "^9.39.4",
@@ -75,8 +75,8 @@
     },
     "dependencies": {
         "comlink": "^4.4.2",
-        "react": "19.2.8",
-        "react-dom": "19.2.8",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
         "waait": "^1.0.5"
     }
 }
