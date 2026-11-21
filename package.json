@@ -52,7 +52,7 @@
         "@types/react-dom": "^19.1.6",
         "@typescript-eslint/eslint-plugin": "^8.61.1",
         "@typescript-eslint/parser": "^8.61.1",
-        "@vitejs/plugin-react": "6.1.1",
+        "@vitejs/plugin-react": "6.3.0",
         "@vitest/ui": "^4.1.9",
         "eslint": "^9.39.4",
         "eslint-config-prettier": "^10.1.5",
@@ -70,13 +70,13 @@
         "tailwindcss": "^4.3.1",
         "terser": "^5.43.1",
         "typescript": "^6.0.3",
-        "vite": "8.2.2",
+        "vite": "8.3.8",
         "vitest": "^4.1.9"
     },
     "dependencies": {
         "comlink": "^4.4.2",
-        "react": "19.2.8",
-        "react-dom": "19.2.8",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
         "waait": "^1.0.5"
     }
 }
