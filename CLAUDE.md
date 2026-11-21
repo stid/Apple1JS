@@ -47,7 +47,7 @@ yarn wasm:test            # cd wasm-cpu && cargo test
 yarn test                 # all tests, including engine-parity tests
 ```
 
-Toolchain: rustc 1.70+ (have 1.89.0), wasm-pack 0.12+ (have 0.13.1).
+Toolchain: rustc 1.70+ (have 1.100.0), wasm-pack 0.12+ (have 0.15.1).
 Local `wasm-pack` builds need the rustup toolchain bin on PATH (Homebrew rustc
 shadows it).
 
