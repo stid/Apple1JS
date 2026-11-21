@@ -12,6 +12,9 @@ export default defineConfig({
         exclude: ['node_modules', 'dist', 'build'],
         testTimeout: 10000, // 10 second timeout per test
         hookTimeout: 10000, // 10 second timeout for hooks
+        // jsdom setup dominated the run under the default pool (one environment per file).
+        // vmThreads creates it once per worker and keeps per-file isolation.
+        pool: 'vmThreads',
         maxWorkers: 2, // Limit parallel test workers (minWorkers removed in Vitest 4)
         coverage: {
             provider: 'v8',
