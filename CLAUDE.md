@@ -40,7 +40,7 @@ yarn wasm:build:release                           # 5. build WASM (release = spe
 ## Engine Development Commands
 
 ```bash
-yarn wasm:build:release   # speed-first release build (~75KB) — what yarn dev ships
+yarn wasm:build:release   # speed-first release build (~85KB) — what yarn dev ships
 yarn wasm:build:dev       # debug build, ~10x slower — Rust debugging only
 yarn wasm:check           # cd wasm-cpu && cargo check (quick rebuild)
 yarn wasm:test            # cd wasm-cpu && cargo test
@@ -73,13 +73,15 @@ shadows it).
 Full detail: `docs/active/wasm-performance.md`. Key facts:
 
 - **Raw throughput** (cycles/sec & IPS) is measured **headless** (`BENCH=1`
-  benchmark). WASM ≈ 5.5× JS (2026-11; it was 8× before the #238 toolchain
-  refresh, and the older "14×" predates the #215 cycle-count fix).
+  benchmark). WASM ≈ 6.4× JS there (2026-11, after the bus-decode rewrite), but
+  vitest slows the JS engine: against a bundled JS build the ratio is ≈ 3.7×.
+  Older figures (5.5×, 8×, "14×") predate that rewrite, the #238 toolchain
+  refresh and the #215 cycle-count fix respectively.
 - ⚠️ **In-app IPS is throttle-locked** by the `Clock` to ~1MHz (both engines
   ~331K) — it does NOT show the WASM gain. Never compare engines by in-app IPS.
 - **Host CPU / headroom** (`hostMillisPerSecond`) is the in-app signal of the
   real difference: WASM costs ~3–4× less at the same IPS.
-- **WASM binary**: ~75KB release (**speed-first** `opt-level = 3` + `-O3`
+- **WASM binary**: ~85KB release (**speed-first** `opt-level = 3` + `-O3`
   wasm-opt). It is small because only `WasmSystem` is exported to JS, so unused
   code is stripped; the size says nothing about the optimization level. Size-first
   (`opt-level = "z"`) is an abandoned strategy: check `Cargo.toml`, not the byte

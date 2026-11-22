@@ -94,9 +94,8 @@ wasm-cpu/               # Rust source (build from here)
 └── src/
     ├── lib.rs         # Entry point & exports
     ├── cpu.rs         # 6502 CPU implementation
-    ├── ram.rs         # WASM RAM module
-    ├── rom.rs         # WASM ROM module
-    ├── bus.rs         # WASM Bus module
+    ├── rom.rs         # ROM flash-image loader
+    ├── bus.rs         # WASM Bus: address map and the RAM/ROM bytes
     ├── instructions.rs # 6502 instruction implementations
     └── opcodes.rs     # Opcode dispatch table
 

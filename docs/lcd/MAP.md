@@ -73,7 +73,7 @@ tool, not a product surface.
 - **Bump `src/version.ts`** before every PR (single source of truth; patch/minor/major per branch prefix).
 - **Stateful/inspectable contracts** (`IVersionedStatefulComponent`, `IInspectableComponent`) are
   scoped to the **core/IO layer**, not React presentational components.
-- **WASM build is speed-first** (`opt-level = 3`, ~75KB); don't restore the abandoned size-first
+- **WASM build is speed-first** (`opt-level = 3`, ~85KB); don't restore the abandoned size-first
   (<100 KB) target without approval.
 - **markdownlint is per-file only** — `npx markdownlint-cli2 --fix "<file.md>"` on the files you
   actually edited. **Never** the repo-wide `yarn lint:md:fix`: it corrupts the machine block in

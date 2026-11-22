@@ -14,3 +14,4 @@
 2026-11-21 · board-activity · 5 signals · Deep · hard:yes · risk:yes
 2026-11-21 · board-activity · closeout · Deep · audit: PASS (first run) · re-routes: 0 · interventions: 1 (counter type reworked after the AC-11 measurement)
 2026-11-21 · engine-hot-paths · 3 signals · Standard · hard:no · risk:no
+2026-11-21 · engine-hot-paths · closeout · Standard · audit: n/a (no surface declared) · re-routes: 0 · interventions: 0
