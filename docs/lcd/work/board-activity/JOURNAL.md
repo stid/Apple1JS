@@ -10,7 +10,7 @@
 - **Lane:** Deep
 - **Goal:** Board live activity (issue #247): each bus-addressed part shows its read/write rate
   and lights up with its traces, with identical counts on both CPU engines.
-- **Next action:** open the PR (owner go-ahead pending). Everything else is done and pushed.
+- **Next action:** done — PR #254 awaits CI, review and merge.
 - **Branch:** feat/board-activity · **Updated:** 2026-11-22 00:15
 
 ## STEPS
@@ -22,7 +22,7 @@
 - [x] T10–T13 — Board: rates module, rate line, lit parts and traces
 - [x] T14–T17 — version 4.54.0, browser check, benchmark (AC-11), docs
 - [x] T-audit (PASS, first run), T-final (green)
-- [ ] open the PR ← next
+- [x] PR #254 opened
 
 ## DECISIONS (this work-item)
 
