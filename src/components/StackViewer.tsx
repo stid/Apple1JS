@@ -8,13 +8,18 @@ import { loggingService } from '../services/LoggingService';
 interface StackViewerProps {
     workerManager: WorkerManager;
     stackPointer?: number; // Current stack pointer value
+    /**
+     * S at the start of the current run (see DualEngine.stackBase). The stack is
+     * the bytes between S and this; without it the depth cannot be known.
+     */
+    stackBase?: number | undefined;
 }
 
 interface StackMemoryData {
     [address: string]: number;
 }
 
-const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer = 0xff }) => {
+const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer = 0xff, stackBase }) => {
     const [stackData, setStackData] = useState<StackMemoryData>({});
 
     // 6502 stack is at $0100-$01FF
@@ -44,26 +49,36 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
         return () => clearInterval(interval);
     }, [workerManager]);
 
-    // Show only the active portion of the stack (from SP to FF)
-    const renderStackEntries = () => {
-        const entries = [];
+    // S points at the next free byte, so the last byte pushed is at S+1 and the
+    // live stack runs from there up to the base. A base below S is a sampling
+    // skew between the two polled values; treat it as empty.
+    const depth = stackBase === undefined ? null : Math.max(0, stackBase - stackPointer);
+    const topOfStack = stackPointer + 1;
 
-        // Stack grows downward, so we show from current SP up to FF
-        for (let offset = stackPointer; offset <= 0xff; offset++) {
+    const renderStackEntries = () => {
+        if (depth === null) {
+            return <div className="text-center text-text-secondary text-xs py-2">Stack base not available</div>;
+        }
+        if (depth === 0) {
+            return <div className="text-center text-text-secondary text-xs py-2">Stack is empty</div>;
+        }
+
+        const entries = [];
+        for (let offset = topOfStack; offset <= stackPointer + depth; offset++) {
             const addr = STACK_BASE + offset;
-            const addrKey = Formatters.hexWord(addr);
-            const value = stackData[addrKey] ?? 0;
-            const isCurrent = offset === stackPointer;
+            const value = stackData[Formatters.hexWord(addr)] ?? 0;
+            const isTop = offset === topOfStack;
 
             entries.push(
                 <div
                     key={addr}
+                    data-testid={isTop ? 'stack-top' : undefined}
                     className={`flex justify-between items-center px-2 py-1 text-xs font-mono border-b border-border-subtle ${
-                        isCurrent ? 'bg-info/20 border-info' : 'hover:bg-surface-hover/50'
+                        isTop ? 'bg-info/20 border-info' : 'hover:bg-surface-hover/50'
                     }`}
                 >
                     <span className="flex items-center gap-2">
-                        {isCurrent && <span className="text-info">→</span>}
+                        {isTop && <span className="text-info">→</span>}
                         <AddressLink
                             address={addr}
                             format="hex4"
@@ -78,25 +93,13 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
                 </div>,
             );
         }
-
-        // If stack is empty (SP = FF), show a message
-        if (stackPointer === 0xff) {
-            entries.push(
-                <div key="empty" className="text-center text-text-secondary text-xs py-2">
-                    Stack is empty
-                </div>,
-            );
-        }
-
         return entries;
     };
 
-    // Calculate stack usage
-    const stackUsage = 0xff - stackPointer;
-    const stackPercentage = (stackUsage / 0xff) * 100;
+    const stackPercentage = ((depth ?? 0) / 0xff) * 100;
 
     return (
-        <div className="h-full flex flex-col" style={{ minHeight: 0 }}>
+        <div className="flex flex-col">
             {/* Stack Info Header */}
             <div className="mb-sm">
                 <div className="flex justify-between items-center mb-xs">
@@ -104,10 +107,12 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
                     <span className="text-xs font-mono text-data-value">{Formatters.hexByte(stackPointer)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-xs">
-                    <span className="text-xs text-text-secondary">Usage</span>
-                    <span className="text-xs font-mono">{stackUsage} / 255 bytes</span>
+                    <span className="text-xs text-text-secondary">Depth</span>
+                    <span className="text-xs font-mono" data-testid="stack-depth">
+                        {depth === null ? 'unknown' : `${depth} ${depth === 1 ? 'byte' : 'bytes'}`}
+                    </span>
                 </div>
-                {/* Stack usage bar */}
+                {/* Stack depth bar, against the 255 bytes the page can hold */}
                 <div className="w-full h-1.5 bg-surface-secondary rounded-full overflow-hidden">
                     <div
                         className={`h-full transition-all ${
@@ -118,8 +123,11 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
                 </div>
             </div>
 
-            {/* Stack Contents */}
-            <div className="flex-1 overflow-auto bg-surface-secondary rounded-md border border-border-subtle">
+            {/* Stack contents: scrolls inside the card instead of stretching it */}
+            <div
+                data-testid="stack-entries"
+                className="max-h-80 overflow-auto bg-surface-secondary rounded-md border border-border-subtle"
+            >
                 <div className="sticky top-0 bg-surface-secondary border-b border-border-primary px-2 py-1">
                     <div className="flex justify-between text-xs text-text-secondary">
                         <span>Address</span>
@@ -129,11 +137,11 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
                 <div>{renderStackEntries()}</div>
             </div>
 
-            {/* Stack Operations Info */}
+            {/* Legend */}
             <div className="mt-sm text-xs text-text-secondary">
                 <div className="flex items-center gap-2">
                     <span className="text-info">→</span>
-                    <span>Current SP</span>
+                    <span>Top of stack (last byte pushed)</span>
                 </div>
             </div>
         </div>

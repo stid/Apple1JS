@@ -224,14 +224,17 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
                             <PerformanceMetrics workerManager={workerManager} />
 
                             {/* Stack View */}
-                            <div className="card flex flex-col" style={{ minHeight: '400px' }}>
-                                <h3 className="card-title mb-sm flex-none">Stack</h3>
-                                <div className="flex-1" style={{ minHeight: 0 }}>
-                                    <StackViewer
-                                        workerManager={workerManager}
-                                        stackPointer={getNumericDebugValue(debugInfo.cpu?.REG_S, 0xff)}
-                                    />
-                                </div>
+                            <div className="card">
+                                <h3 className="card-title mb-sm">Stack</h3>
+                                <StackViewer
+                                    workerManager={workerManager}
+                                    stackPointer={getNumericDebugValue(debugInfo.cpu?.REG_S, 0xff)}
+                                    stackBase={
+                                        debugInfo.cpu?.STACK_BASE === undefined
+                                            ? undefined
+                                            : getNumericDebugValue(debugInfo.cpu.STACK_BASE, 0xff)
+                                    }
+                                />
                             </div>
                         </div>
                     </div>
