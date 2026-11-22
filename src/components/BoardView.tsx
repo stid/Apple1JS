@@ -14,6 +14,14 @@ import {
     type BoardPart,
     type BoardTrace,
 } from './board/boardModel';
+import {
+    computeBoardActivity,
+    isPartActive,
+    isTraceActive,
+    rateLabel,
+    readActivitySample,
+} from './board/boardActivity';
+import type { BoardActivitySample } from '../apple1/types/worker-messages';
 
 interface BoardViewProps {
     /** Structure of the running machine, as returned by the worker. */
@@ -48,11 +56,12 @@ const busLabelClass = {
 } as const;
 
 /** The lines of text inside a part, vertically centred as a block. */
-const PartText: React.FC<{ part: BoardPart; dim?: boolean }> = ({ part, dim = false }) => {
+const PartText: React.FC<{ part: BoardPart; dim?: boolean; rate?: string | undefined }> = ({ part, dim = false, rate }) => {
     const lines = [
         { text: part.label, className: dim ? 'fill-text-tertiary' : 'fill-text-primary font-semibold text-xs' },
         { text: part.detail, className: dim ? 'fill-text-tertiary' : 'fill-text-secondary' },
         { text: part.address, className: 'fill-data-address' },
+        { text: rate, className: 'fill-text-secondary' },
     ].filter((line): line is { text: string; className: string } => line.text !== undefined);
     const centerX = part.x + part.w / 2;
     const firstBaseline = part.y + part.h / 2 - ((lines.length - 1) * LINE_HEIGHT) / 2 + 4;
@@ -61,7 +70,7 @@ const PartText: React.FC<{ part: BoardPart; dim?: boolean }> = ({ part, dim = fa
         <>
             {lines.map((line, index) => (
                 <text
-                    key={line.text}
+                    key={index}
                     x={centerX}
                     y={firstBaseline + index * LINE_HEIGHT}
                     textAnchor="middle"
@@ -77,10 +86,14 @@ const PartText: React.FC<{ part: BoardPart; dim?: boolean }> = ({ part, dim = fa
 interface PartProps {
     part: BoardPart;
     selected: boolean;
+    /** Accessed during the last sample interval. */
+    active: boolean;
+    /** Read/write rate line, for parts on the address bus. */
+    rate?: string | undefined;
     onSelect: (part: BoardPart) => void;
 }
 
-const InteractivePart: React.FC<PartProps> = ({ part, selected, onSelect }) => {
+const InteractivePart: React.FC<PartProps> = ({ part, selected, active, rate, onSelect }) => {
     const pinY = [part.y + 1.5, part.y + part.h - 1.5];
     return (
         <g
@@ -88,6 +101,7 @@ const InteractivePart: React.FC<PartProps> = ({ part, selected, onSelect }) => {
             tabIndex={0}
             aria-pressed={selected}
             aria-label={part.label}
+            data-active={active}
             className="group cursor-pointer focus:outline-hidden"
             onClick={() => onSelect(part)}
             onKeyDown={(event) => {
@@ -119,8 +133,17 @@ const InteractivePart: React.FC<PartProps> = ({ part, selected, onSelect }) => {
                 className={
                     selected
                         ? 'fill-surface-primary stroke-text-accent'
-                        : 'fill-surface-primary stroke-border-secondary group-hover:fill-surface-hover group-focus-visible:stroke-text-accent'
+                        : `fill-surface-primary group-hover:fill-surface-hover group-focus-visible:stroke-text-accent ${
+                              active ? 'stroke-semantic-success' : 'stroke-border-secondary'
+                          }`
                 }
+            />
+            {/* Activity lamp: a second cue besides the outline, and the only one on a selected part. */}
+            <circle
+                cx={part.x + part.w - 10}
+                cy={part.y + 11}
+                r={3}
+                className={active ? 'fill-semantic-success' : 'fill-surface-quaternary'}
             />
             {part.kind === 'chip' &&
                 pinY.map((y) => (
@@ -136,7 +159,7 @@ const InteractivePart: React.FC<PartProps> = ({ part, selected, onSelect }) => {
                         className="stroke-text-tertiary"
                     />
                 ))}
-            <PartText part={part} />
+            <PartText part={part} rate={rate} />
         </g>
     );
 };
@@ -176,6 +199,18 @@ const BoardView: React.FC<BoardViewProps> = ({ root, workerManager }) => {
     const node = useMemo(() => (selectedNodeId ? findNode(root, selectedNodeId) : undefined), [root, selectedNodeId]);
     const fields = useMemo(() => (node ? describeNode(node, debugInfo) : []), [node, debugInfo]);
 
+    // Each poll delivers a new tree with a new sample. Rates come from the last
+    // two, so the previous one is kept in state, updated while rendering.
+    const sample = useMemo(() => readActivitySample(root), [root]);
+    const [samples, setSamples] = useState<{
+        previous: BoardActivitySample | undefined;
+        current: BoardActivitySample | undefined;
+    }>({ previous: undefined, current: sample });
+    if (samples.current !== sample) {
+        setSamples({ previous: samples.current, current: sample });
+    }
+    const activity = useMemo(() => computeBoardActivity(samples.previous, samples.current), [samples]);
+
     return (
         <div className="flex flex-col h-full overflow-auto gap-md">
             <div className="flex items-center justify-between gap-md flex-wrap">
@@ -194,6 +229,10 @@ const BoardView: React.FC<BoardViewProps> = ({ root, workerManager }) => {
                             className="w-3 h-3 rounded-sm border border-dashed border-border-secondary bg-surface-secondary"
                         />
                         not emulated
+                    </span>
+                    <span className="inline-flex items-center gap-xs">
+                        <span aria-hidden="true" className="w-2 h-2 rounded-full bg-semantic-success" />
+                        in use
                     </span>
                 </div>
             </div>
@@ -248,17 +287,22 @@ const BoardView: React.FC<BoardViewProps> = ({ root, workerManager }) => {
                 ))}
 
                 <g aria-hidden="true">
-                    {BOARD_TRACES.map((trace) => (
-                        <line
-                            key={trace.id}
-                            x1={trace.x1}
-                            y1={trace.y1}
-                            x2={trace.x2}
-                            y2={trace.y2}
-                            strokeWidth={trace.trunk ? 3 : 2}
-                            className={`${traceClass[trace.bus]} ${trace.trunk ? '' : 'opacity-60'}`}
-                        />
-                    ))}
+                    {BOARD_TRACES.map((trace) => {
+                        const lit = isTraceActive(activity, trace, BOARD_PARTS);
+                        return (
+                            <line
+                                key={trace.id}
+                                data-trace={trace.id}
+                                data-active={lit}
+                                x1={trace.x1}
+                                y1={trace.y1}
+                                x2={trace.x2}
+                                y2={trace.y2}
+                                strokeWidth={trace.trunk ? 3 : 2}
+                                className={`${traceClass[trace.bus]} ${lit ? '' : 'opacity-40'}`}
+                            />
+                        );
+                    })}
                     {BUS_LABELS.map((label) => (
                         <text
                             key={label.bus}
@@ -279,6 +323,8 @@ const BoardView: React.FC<BoardViewProps> = ({ root, workerManager }) => {
                             key={part.id}
                             part={part}
                             selected={part.nodeId === selectedNodeId}
+                            active={isPartActive(activity, part)}
+                            rate={rateLabel(sample, activity, part)}
                             onSelect={(next) => setSelectedPartId(next.id)}
                         />
                     ),

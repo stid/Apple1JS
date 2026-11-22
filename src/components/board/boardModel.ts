@@ -51,6 +51,8 @@ export interface BoardTrace {
     y2: number;
     /** The bus itself, as opposed to a stub from a part to the bus. */
     trunk?: boolean;
+    /** Id of the part this trace serves; it lights up with that part. */
+    part?: string;
 }
 
 export const BOARD_REGIONS: readonly BoardRegion[] = [
@@ -207,29 +209,31 @@ const DATA_Y = 476;
 const ROW1_BOTTOM = 404;
 const ROW2_TOP = 520;
 
-const stub = (id: string, bus: 'address' | 'data', x: number, toRow2 = false): BoardTrace => {
+/** A stub between a part and one of the buses; its id is `<part>-<bus>`. */
+const stub = (part: string, bus: 'address' | 'data', x: number, toRow2 = false): BoardTrace => {
     const busY = bus === 'address' ? ADDRESS_Y : DATA_Y;
+    const id = `${part}-${bus}`;
     return toRow2
-        ? { id, bus, x1: x, y1: busY, x2: x, y2: ROW2_TOP }
-        : { id, bus, x1: x, y1: ROW1_BOTTOM, x2: x, y2: busY };
+        ? { id, bus, part, x1: x, y1: busY, x2: x, y2: ROW2_TOP }
+        : { id, bus, part, x1: x, y1: ROW1_BOTTOM, x2: x, y2: busY };
 };
 
 export const BOARD_TRACES: readonly BoardTrace[] = [
     { id: 'address-bus', bus: 'address', x1: 208, y1: ADDRESS_Y, x2: 940, y2: ADDRESS_Y, trunk: true },
     { id: 'data-bus', bus: 'data', x1: 208, y1: DATA_Y, x2: 940, y2: DATA_Y, trunk: true },
-    { id: 'clock-cpu', bus: 'control', x1: 176, y1: 368, x2: 208, y2: 368 },
-    { id: 'decoder-pia', bus: 'control', x1: 656, y1: 368, x2: 704, y2: 368 },
-    stub('cpu-address', 'address', 280),
-    stub('cpu-data', 'data', 376),
-    stub('decoder-address', 'address', 568),
-    stub('pia-address', 'address', 768),
-    stub('pia-data', 'data', 872),
-    stub('ram1-address', 'address', 268, true),
-    stub('ram1-data', 'data', 348, true),
-    stub('ram2-address', 'address', 516, true),
-    stub('ram2-data', 'data', 596, true),
-    stub('rom-address', 'address', 764, true),
-    stub('rom-data', 'data', 852, true),
+    { id: 'clock-cpu', bus: 'control', part: 'cpu', x1: 176, y1: 368, x2: 208, y2: 368 },
+    { id: 'decoder-pia', bus: 'control', part: 'pia', x1: 656, y1: 368, x2: 704, y2: 368 },
+    stub('cpu', 'address', 280),
+    stub('cpu', 'data', 376),
+    stub('decoder', 'address', 568),
+    stub('pia', 'address', 768),
+    stub('pia', 'data', 872),
+    stub('ram1', 'address', 268, true),
+    stub('ram1', 'data', 348, true),
+    stub('ram2', 'address', 516, true),
+    stub('ram2', 'data', 596, true),
+    stub('rom', 'address', 764, true),
+    stub('rom', 'data', 852, true),
 ];
 
 export const BUS_LABELS = [
