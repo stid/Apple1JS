@@ -19,6 +19,9 @@ shipped binary is byte-identical in size to a manual `wasm-opt -O3` of the unopt
 the configuration is intact; the likely cause is code generation in the newer rustc/wasm-opt, which
 has not been confirmed.
 
+After the 2026-11 dead-code removal (only `WasmSystem` is exported to JS now) the release binary
+is ~75 KB and throughput is unchanged to slightly better: ~374 M cycles/s, 5.6× JS.
+
 (Apple M-series, headless benchmark, RAM-only `LDA #/STA zp/LDA zp/JMP` loop = 11 cycles per 4
 instructions. Absolute numbers vary by machine; the **ratio** is the durable result.)
 

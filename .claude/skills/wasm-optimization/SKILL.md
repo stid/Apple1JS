@@ -8,7 +8,7 @@ description: Auto-activates when discussing WASM performance, binary size, or op
 This skill activates when discussing WebAssembly performance optimization for the Apple1JS CPU emulator.
 
 > **Optimization goal: SPEED, not size.** The project deliberately chose `opt-level = 3` + `-O3`
-> wasm-opt to reach ~5.5× JS raw throughput, accepting a larger binary (~127KB release) in the
+> wasm-opt to reach ~5.5× JS raw throughput, at ~75KB release in the
 > trade. Older docs that say "<100KB" / "90KB" / `opt-level = "z"` describe an **abandoned
 > size-first strategy** — do not restore it without explicit user approval (it reverses the perf
 > win). See `docs/active/wasm-performance.md`.
@@ -55,8 +55,8 @@ This skill activates when discussing WebAssembly performance optimization for th
     ls -lh src/wasm/apple1_cpu_wasm_bg.wasm
     ```
 
-    Expected: **~127KB** release (speed-first). A drop toward ~90 KB likely means someone
-    reverted to `opt-level = "z"` and gave back the speed.
+    Expected: **~75KB** release (speed-first). Size does not tell you the optimization level:
+    check `opt-level = 3` in `Cargo.toml` (a switch to `"z"` gives back the speed).
 
 ### Performance Optimization
 

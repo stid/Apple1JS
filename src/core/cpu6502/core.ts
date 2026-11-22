@@ -136,7 +136,6 @@ class CPU6502
         this.cycleAccurateMode = finalState.cycleAccurateMode ?? false;
         this.currentInstructionCycles = finalState.currentInstructionCycles ?? 0;
 
-        // Note: markStateClean is optional from state dirty tracking mixin
     }
 
     getInspectable(): InspectableData {
@@ -241,7 +240,6 @@ class CPU6502
         this.pendingNmi = 0;
 
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
-        // Note: markStateClean is optional from state dirty tracking mixin
     }
 
     /**

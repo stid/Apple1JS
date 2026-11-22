@@ -69,6 +69,4 @@ export type {
 export {
     StateManager,
     StateError,
-    withStateDirtyTracking,
-    dirtyOnCall
 } from './state';

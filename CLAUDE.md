@@ -40,7 +40,7 @@ yarn wasm:build:release                           # 5. build WASM (release = spe
 ## Engine Development Commands
 
 ```bash
-yarn wasm:build:release   # speed-first release build (~127KB) — what yarn dev ships
+yarn wasm:build:release   # speed-first release build (~75KB) — what yarn dev ships
 yarn wasm:build:dev       # debug build, ~10x slower — Rust debugging only
 yarn wasm:check           # cd wasm-cpu && cargo check (quick rebuild)
 yarn wasm:test            # cd wasm-cpu && cargo test
@@ -79,9 +79,11 @@ Full detail: `docs/active/wasm-performance.md`. Key facts:
   ~331K) — it does NOT show the WASM gain. Never compare engines by in-app IPS.
 - **Host CPU / headroom** (`hostMillisPerSecond`) is the in-app signal of the
   real difference: WASM costs ~3–4× less at the same IPS.
-- **WASM binary**: ~127KB release (**speed-first** `opt-level = 3` + `-O3`
-  wasm-opt). The old "<100KB / 90KB" target was an abandoned size-first strategy
-  — don't restore it without approval.
+- **WASM binary**: ~75KB release (**speed-first** `opt-level = 3` + `-O3`
+  wasm-opt). It is small because only `WasmSystem` is exported to JS, so unused
+  code is stripped; the size says nothing about the optimization level. Size-first
+  (`opt-level = "z"`) is an abandoned strategy: check `Cargo.toml`, not the byte
+  count, and don't restore it without approval.
 
 ## Essential Context
 
@@ -176,9 +178,12 @@ git push
   components (`Actions`, `RegisterRow`, …) must NOT implement them.
 - **Formatting**: use the `Formatters` utility (e.g. `Formatters.hexWord(addr)`)
   — never manual `toString(16)`.
-- **Worker communication**: type-safe via
-  `sendWorkerMessage(worker, WORKER_MESSAGES.SET_BREAKPOINT, address)`. Messages
-  defined in `src/apple1/types/worker-messages.ts`.
+- **Worker communication**: Comlink only. The UI calls `WorkerManager` methods
+  (`workerManager.setBreakpoint(address)`); the worker side is `IWorkerAPI`
+  (`src/apple1/types/worker-api.ts`) implemented by `WorkerAPI`. Data shapes live
+  in `src/apple1/types/worker-messages.ts`. A new call needs all four places:
+  `IWorkerAPI`, `WorkerAPI`, the Comlink wrapper in `Apple.worker.comlink.ts`,
+  and `WorkerManager` (plus the mock in `src/test-support/mocks`).
 - **Component inspection**: emulated-hardware classes implement
   `IInspectableComponent`; return structured data from `getInspectable()` for
   debugger visibility. React components _consume_ the inspectable tree (they don't

@@ -21,14 +21,6 @@ const workerState = new WorkerState();
 // Create the worker API instance
 const workerAPI = new WorkerAPI(workerState);
 
-// Export for backwards compatibility during migration
-export const video = workerState.video;
-export const keyboard = workerState.keyboard;
-
-// Clean up on worker termination
-globalThis.addEventListener('beforeunload', () => {
-    workerState.cleanup();
-});
 
 /**
  * Enhanced WorkerAPI with Comlink event handling

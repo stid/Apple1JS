@@ -24,6 +24,7 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
               with:
                   targets: wasm32-unknown-unknown
+                  components: clippy
 
             - name: Cache Rust dependencies
               uses: actions/cache@v6
@@ -60,6 +61,9 @@ jobs:
             - name: Rust tests
               # Native: the CPU core runs against stand-ins for the JS imports.
               run: cd wasm-cpu && cargo test
+
+            - name: Rust lint
+              run: cd wasm-cpu && cargo clippy --all-targets --target wasm32-unknown-unknown -- -D warnings
 
             - name: Install JS dependencies
               run: yarn install --frozen-lockfile

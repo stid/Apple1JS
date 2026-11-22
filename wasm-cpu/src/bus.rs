@@ -5,7 +5,6 @@
  * Provides efficient routing between RAM, ROM, and I/O devices.
  */
 
-use wasm_bindgen::prelude::*;
 use crate::ram::RAM;
 use crate::rom::ROM;
 
@@ -27,7 +26,6 @@ pub struct AddressRange {
 }
 
 /// Bus component that manages memory mapping
-#[wasm_bindgen]
 pub struct Bus {
     /// RAM component (typically 0x0000-0x0FFF and 0xE000-0xEFFF for Apple 1)
     ram: Option<RAM>,
@@ -39,10 +37,8 @@ pub struct Bus {
     region_cache: Vec<MemoryRegion>,
 }
 
-#[wasm_bindgen]
 impl Bus {
     /// Create a new Bus instance
-    #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         let mut bus = Bus {
             ram: None,
@@ -87,8 +83,6 @@ impl Bus {
             }
             MemoryRegion::IO => {
                 // Delegate to JavaScript for I/O devices
-                #[cfg(feature = "debug")]
-                crate::console_log!("WASM Bus: I/O Read at ${:04X}", address);
                 crate::bus_read(address)
             }
             MemoryRegion::Unmapped => {
@@ -120,33 +114,6 @@ impl Bus {
         }
     }
     
-    /// Add an address mapping
-    pub fn add_mapping(&mut self, start: u16, end: u16, region_type: String) {
-        let region = match region_type.as_str() {
-            "RAM" => MemoryRegion::RAM,
-            "ROM" => MemoryRegion::ROM,
-            "IO" => MemoryRegion::IO,
-            _ => MemoryRegion::Unmapped,
-        };
-        
-        self.mappings.push(AddressRange {
-            start,
-            end,
-            region,
-        });
-        
-        // Update cache
-        for addr in start..=end {
-            self.region_cache[addr as usize] = region;
-        }
-    }
-    
-    /// Clear all mappings
-    pub fn clear_mappings(&mut self) {
-        self.mappings.clear();
-        self.region_cache.fill(MemoryRegion::Unmapped);
-    }
-    
     /// Get mapping info for debugging
     pub fn get_mapping_info(&self) -> String {
         let mut info = String::new();
@@ -161,75 +128,20 @@ impl Bus {
         info
     }
 
-    /// Get RAM memory pointer for JavaScript access
-    /// Returns 0 if RAM is not set
-    pub fn get_ram_ptr(&self) -> usize {
-        self.ram.as_ref().map_or(0, |ram| ram.get_memory_ptr() as usize)
-    }
-
     /// Get RAM memory length
     pub fn get_ram_len(&self) -> usize {
         self.ram.as_ref().map_or(0, |ram| ram.get_memory_len())
     }
 
-    /// Get ROM memory pointer for JavaScript access
-    /// Returns 0 if ROM is not set
-    pub fn get_rom_ptr(&self) -> usize {
-        self.rom.as_ref().map_or(0, |rom| rom.get_memory_ptr() as usize)
-    }
-
-    /// Get ROM memory length
-    pub fn get_rom_len(&self) -> usize {
-        self.rom.as_ref().map_or(0, |rom| rom.get_memory_len())
-    }
-
-    /// Check if RAM is initialized
-    pub fn has_ram(&self) -> bool {
-        self.ram.is_some()
-    }
-
-    /// Check if ROM is initialized
-    pub fn has_rom(&self) -> bool {
-        self.rom.is_some()
-    }
 }
 
 // Internal implementation
 impl Bus {
-    /// Get reference to RAM for internal Rust use
-    /// Returns None if RAM is not set
-    #[allow(dead_code)]
-    pub(crate) fn get_ram(&self) -> Option<&RAM> {
-        self.ram.as_ref()
-    }
-
-    /// Get mutable reference to RAM for internal Rust use
-    /// Returns None if RAM is not set
-    #[allow(dead_code)]
-    pub(crate) fn get_ram_mut(&mut self) -> Option<&mut RAM> {
-        self.ram.as_mut()
-    }
-
-    /// Get reference to ROM for internal Rust use
-    /// Returns None if ROM is not set
-    #[allow(dead_code)]
-    pub(crate) fn get_rom(&self) -> Option<&ROM> {
-        self.rom.as_ref()
-    }
-
-    /// Get mutable reference to ROM for internal Rust use
-    /// Returns None if ROM is not set
-    #[allow(dead_code)]
-    pub(crate) fn get_rom_mut(&mut self) -> Option<&mut ROM> {
-        self.rom.as_mut()
-    }
 
     /// Set up default Apple 1 memory mappings
     fn setup_default_mappings(&mut self) {
         // RAM at 0x0000-0x0FFF (4KB)
-        for addr in 0x0000..=0x0FFF {
-            self.region_cache[addr] = MemoryRegion::RAM;
-        }
+        self.region_cache[0x0000..=0x0FFF].fill(MemoryRegion::RAM);
         self.mappings.push(AddressRange {
             start: 0x0000,
             end: 0x0FFF,
@@ -241,9 +153,7 @@ impl Bus {
         // chip in its 4K bank, so its four registers repeat every four bytes.
         // The full address is forwarded to the JavaScript bus, which applies
         // the offset mask — this side only has to route the whole block to I/O.
-        for addr in 0xD000..=0xDFFF {
-            self.region_cache[addr] = MemoryRegion::IO;
-        }
+        self.region_cache[0xD000..=0xDFFF].fill(MemoryRegion::IO);
         self.mappings.push(AddressRange {
             start: 0xD000,
             end: 0xDFFF,
@@ -251,9 +161,7 @@ impl Bus {
         });
         
         // Extended RAM at 0xE000-0xEFFF (4KB, for BASIC)
-        for addr in 0xE000..=0xEFFF {
-            self.region_cache[addr] = MemoryRegion::RAM;
-        }
+        self.region_cache[0xE000..=0xEFFF].fill(MemoryRegion::RAM);
         self.mappings.push(AddressRange {
             start: 0xE000,
             end: 0xEFFF,
@@ -261,9 +169,7 @@ impl Bus {
         });
         
         // ROM at 0xFF00-0xFFFF (256 bytes, WOZ Monitor)
-        for addr in 0xFF00..=0xFFFF {
-            self.region_cache[addr] = MemoryRegion::ROM;
-        }
+        self.region_cache[0xFF00..=0xFFFF].fill(MemoryRegion::ROM);
         self.mappings.push(AddressRange {
             start: 0xFF00,
             end: 0xFFFF,
@@ -271,43 +177,6 @@ impl Bus {
         });
     }
     
-    /// Direct read for internal use (no bounds checking)
-    #[allow(dead_code)]
-    #[inline(always)]
-    pub(crate) fn read_direct(&self, address: u16) -> u8 {
-        match self.region_cache[address as usize] {
-            MemoryRegion::RAM => {
-                self.ram.as_ref().map_or(0xFF, |ram| ram.read(address))
-            }
-            MemoryRegion::ROM => {
-                self.rom.as_ref().map_or(0xFF, |rom| rom.read(address - 0xFF00))
-            }
-            MemoryRegion::IO => crate::bus_read(address),
-            MemoryRegion::Unmapped => 0xFF,
-        }
-    }
-
-    /// Direct write for internal use (no bounds checking)
-    #[allow(dead_code)]
-    #[inline(always)]
-    pub(crate) fn write_direct(&mut self, address: u16, value: u8) {
-        match self.region_cache[address as usize] {
-            MemoryRegion::RAM => {
-                if let Some(ref mut ram) = self.ram {
-                    ram.write(address, value);
-                }
-            }
-            MemoryRegion::ROM => {
-                // ROM writes ignored
-            }
-            MemoryRegion::IO => {
-                crate::bus_write(address, value);
-            }
-            MemoryRegion::Unmapped => {
-                // Unmapped writes ignored
-            }
-        }
-    }
 }
 
 #[cfg(test)]
