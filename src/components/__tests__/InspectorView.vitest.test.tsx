@@ -82,7 +82,7 @@ describe('InspectorView component', () => {
         
         expect(screen.getByText('Apple1')).toBeInTheDocument();
         expect(screen.getByText('Test Apple1')).toBeInTheDocument();
-        expect(screen.getByText('Architecture Tree')).toBeInTheDocument(); // Section header
+        expect(screen.getByText('Architecture tree')).toBeInTheDocument(); // Section header
     });
 
     it('should render child components in architecture tree', () => {
@@ -113,7 +113,7 @@ describe('InspectorView component', () => {
         expect(screen.queryByText('Live Data')).not.toBeInTheDocument();
         
         // But should have the new architecture tree structure
-        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
+        expect(screen.getByText('Architecture tree')).toBeInTheDocument();
         expect(screen.getByText('Apple1')).toBeInTheDocument();
     });
 
@@ -123,7 +123,7 @@ describe('InspectorView component', () => {
         renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Just verify the component renders without errors
-        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
+        expect(screen.getByText('Architecture tree')).toBeInTheDocument();
     });
 
     it('should add event listener for worker messages', () => {
@@ -132,7 +132,7 @@ describe('InspectorView component', () => {
         renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Just verify the component renders without errors
-        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
+        expect(screen.getByText('Architecture tree')).toBeInTheDocument();
     });
 
     it('should integrate debug data into architecture tree components', () => {
@@ -183,7 +183,7 @@ describe('InspectorView component', () => {
         renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
 
         // Should still show architecture tree
-        expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
+        expect(screen.getByText('Architecture tree')).toBeInTheDocument();
         expect(screen.getByText('Apple1')).toBeInTheDocument();
     });
 
@@ -323,7 +323,7 @@ describe('InspectorView component', () => {
         it('should render profiling section with toggle button', () => {
             renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
-            expect(screen.getByText('CPU Performance Profiling')).toBeInTheDocument();
+            expect(screen.getByText('Performance profiling')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /Enable Profiling/i })).toBeInTheDocument();
         });
 
@@ -358,7 +358,7 @@ describe('InspectorView component', () => {
             });
             
             // Should show updating state
-            expect(screen.getByText('Updating...')).toBeInTheDocument();
+            expect(screen.getByText('Updating…')).toBeInTheDocument();
             
             // Resolve the promise
             await act(async () => {
@@ -367,7 +367,7 @@ describe('InspectorView component', () => {
             });
             
             // Should no longer show updating
-            expect(screen.queryByText('Updating...')).not.toBeInTheDocument();
+            expect(screen.queryByText('Updating…')).not.toBeInTheDocument();
         });
 
         it('should sync with worker profiling state', () => {
@@ -474,7 +474,6 @@ describe('InspectorView component', () => {
             
             const toggleButton = screen.getByRole('button', { name: /Enable Profiling/i });
             expect(toggleButton).toBeDisabled();
-            expect(toggleButton).toHaveClass('cursor-not-allowed');
         });
     });
 });

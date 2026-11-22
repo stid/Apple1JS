@@ -3,9 +3,9 @@ import { useToast, type ToastVariant } from '../contexts/ToastContext';
 
 // Token-backed per-variant styling (mirrors the RunStateBadge variant-map pattern).
 const VARIANT_CLASSES: Record<ToastVariant, string> = {
-    success: 'bg-success/20 text-success border-success/40',
-    error: 'bg-error/20 text-error border-error/40',
-    info: 'bg-info/20 text-info border-info/40',
+    success: 'text-success border-success/60',
+    error: 'text-error border-error/60',
+    info: 'text-info border-info/60',
 };
 
 /**
@@ -29,7 +29,7 @@ const ToastContainer: React.FC = () => {
                     aria-live="polite"
                     data-testid="toast"
                     data-variant={toast.variant}
-                    className={`pointer-events-auto flex items-center gap-sm rounded-lg border px-md py-sm text-xs font-mono shadow-lg ${VARIANT_CLASSES[toast.variant]}`}
+                    className={`pointer-events-auto flex items-center gap-sm rounded-md border bg-surface-primary px-md py-sm text-sm shadow-lg ${VARIANT_CLASSES[toast.variant]}`}
                 >
                     <span className="flex-1">{toast.message}</span>
                     <button

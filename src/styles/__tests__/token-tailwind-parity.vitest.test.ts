@@ -75,25 +75,41 @@ describe('token ↔ Tailwind parity', () => {
         expect(component.clock).toBe(designTokens.colors.componentColors.Clock);
     });
 
+    // stid design system (Catppuccin Mocha): these are the values the retheme is
+    // anchored on. Page = base, cards = surface0, accent = peach.
     it('locks key hex values against accidental edits', () => {
-        expect(tokenDerivedTheme.colors['data-address']).toBe('#34D399');
-        expect((tokenDerivedTheme.colors.component as Record<string, string>).cpu).toBe('#EF4444');
-        expect((tokenDerivedTheme.colors.surface as Record<string, string>).primary).toBe('#1E293B');
+        const surface = tokenDerivedTheme.colors.surface as Record<string, string>;
+        const text = tokenDerivedTheme.colors.text as Record<string, string>;
+        expect(surface.base, 'surface.base').toBe('#1e1e2e');
+        expect(surface.primary, 'surface.primary').toBe('#313244');
+        expect(text.primary, 'text.primary').toBe('#cdd6f4');
+        expect(text.accent, 'text.accent').toBe('#fab387');
+        expect(tokenDerivedTheme.colors['data-address']).toBe('#89b4fa');
+        expect(tokenDerivedTheme.colors['data-value']).toBe('#a6e3a1');
+        expect((tokenDerivedTheme.colors.component as Record<string, string>).cpu).toBe('#f38ba8');
     });
 
-    // v4-cleanup: tokens that repair previously-dead component classes
-    // (`bg-surface-hover`, `text-text-disabled`) and replace hardcoded translucent
-    // blacks (`bg-black/{40,20}` → `bg-surface-sunken/{40,20}`).
+    // Tokens that repair previously-dead component classes (`bg-surface-hover`,
+    // `text-text-disabled`) and the recessed-well surface.
     it('exposes the surface.hover / surface.sunken / text.disabled repair tokens', () => {
         const surface = tokenDerivedTheme.colors.surface as Record<string, string>;
         const text = tokenDerivedTheme.colors.text as Record<string, string>;
-        expect(surface.hover, 'surface.hover').toBe('#334155');
-        expect(surface.sunken, 'surface.sunken').toBe('#000000');
-        expect(text.disabled, 'text.disabled').toBe('#6B7280');
+        expect(surface.hover, 'surface.hover').toBe('#45475a');
+        expect(surface.sunken, 'surface.sunken').toBe('#11111b');
+        expect(text.disabled, 'text.disabled').toBe('#6c7086');
         // and they must be wired into the resolved Tailwind theme, not just the adapter
-        expect((resolved.colors?.surface as Record<string, string>)?.hover).toBe('#334155');
-        expect((resolved.colors?.surface as Record<string, string>)?.sunken).toBe('#000000');
-        expect((resolved.colors?.text as Record<string, string>)?.disabled).toBe('#6B7280');
+        expect((resolved.colors?.surface as Record<string, string>)?.hover).toBe('#45475a');
+        expect((resolved.colors?.surface as Record<string, string>)?.sunken).toBe('#11111b');
+        expect((resolved.colors?.text as Record<string, string>)?.disabled).toBe('#6c7086');
+    });
+
+    it('derives the sans family and the square-ish radii from tokens', () => {
+        expect(resolved.fontFamily?.sans).toEqual(designTokens.typography.fontFamily.sans);
+        expect(designTokens.typography.fontFamily.sans).toContain('Geist');
+        expect(designTokens.typography.fontFamily.mono).toContain('Geist Mono');
+        expect(resolved.borderRadius?.sm).toBe('3px');
+        expect(resolved.borderRadius?.md).toBe('5px');
+        expect(resolved.borderRadius?.lg).toBe('8px');
     });
 
     // `py-xxs` was used by four components before `spacing.xxs` existed; Tailwind
@@ -109,10 +125,11 @@ describe('token ↔ Tailwind parity', () => {
     it('every named spacing class used in components resolves to a token', () => {
         const tokenKeys = new Set(Object.keys(tokenDerivedTheme.spacing));
         const builtin = new Set(['auto', 'px']);
-        const classPattern = /(?<![\w-])-?(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-x|space-y)-([a-z]+)(?![\w-])/g;
+        const classPattern =
+            /(?<![\w-])-?(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-x|space-y)-([a-z]+)(?![\w-])/g;
         const componentsDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'components');
         const files = readdirSync(componentsDir, { recursive: true, encoding: 'utf8' }).filter(
-            (f) => f.endsWith('.tsx') && !f.includes('__tests__')
+            (f) => f.endsWith('.tsx') && !f.includes('__tests__'),
         );
         const unknown = new Set<string>();
         for (const file of files) {

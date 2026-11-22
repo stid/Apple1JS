@@ -8,7 +8,7 @@ describe('Info', () => {
         render(<Info />);
         expect(screen.getByText(/FIRST START/i)).toBeInTheDocument();
         expect(screen.getByText(/TEST PROGRAM/i)).toBeInTheDocument();
-        expect(screen.getByText(/BASIC/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'BASIC' })).toBeInTheDocument();
         expect(screen.getByText(/APPLE 30th ANNIVERSARY/i)).toBeInTheDocument();
         expect(screen.getByText(/LIST MEMORY ADDRESS/i)).toBeInTheDocument();
         expect(screen.getByText(/OPERATION MANUAL/i)).toBeInTheDocument();
@@ -17,7 +17,7 @@ describe('Info', () => {
     });
     it('renders manual and github links', () => {
         render(<Info />);
-        expect(screen.getByText(/apple1\.chez\.com/i)).toHaveAttribute('href');
+        expect(screen.getByText(/archive\.org\/details\/Apple-1_Operation_Manual/i)).toHaveAttribute('href');
         expect(screen.getByText(/github\.com\/stid\/Apple1JS/i)).toHaveAttribute('href');
     });
 });

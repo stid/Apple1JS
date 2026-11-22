@@ -23,10 +23,10 @@ describe('Actions component (settings panel)', () => {
 
     it('renders the retained settings controls', () => {
         render(<Actions {...props} />);
-        expect(screen.getByText('SUPPORT BACKSPACE [ON]')).toBeInTheDocument();
-        expect(screen.getByText('CYCLE TIMING [ACCURATE]')).toBeInTheDocument();
-        expect(screen.getByText('SAVE STATE')).toBeInTheDocument();
-        expect(screen.getByText('LOAD STATE')).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: /Backspace/ })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: /Cycle timing/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save state' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Load state' })).toBeInTheDocument();
     });
 
     it('no longer renders execution or engine controls (they live in the bar)', () => {
@@ -36,25 +36,34 @@ describe('Actions component (settings panel)', () => {
         expect(screen.queryByText(/ENGINE/i)).toBeNull();
     });
 
-    it('calls onBS and toggles its label by supportBS', () => {
+    it('calls onBS and reports its state by supportBS', () => {
         const { rerender } = render(<Actions {...props} />);
-        fireEvent.click(screen.getByText('SUPPORT BACKSPACE [ON]'));
+        const backspace = screen.getByRole('switch', { name: /Backspace/ });
+        expect(backspace).toHaveAttribute('aria-checked', 'true');
+        expect(backspace).toHaveTextContent('on');
+        fireEvent.click(backspace);
         expect(props.onBS).toHaveBeenCalledTimes(1);
+        expect(props.onRefocus).toHaveBeenCalledTimes(1);
         rerender(<Actions {...props} supportBS={false} />);
-        expect(screen.getByText('SUPPORT BACKSPACE [OFF]')).toBeInTheDocument();
+        expect(backspace).toHaveAttribute('aria-checked', 'false');
+        expect(backspace).toHaveTextContent('off');
     });
 
-    it('calls onCycleAccurateTiming and toggles its label', () => {
+    it('calls onCycleAccurateTiming and reports its mode', () => {
         const { rerender } = render(<Actions {...props} />);
-        fireEvent.click(screen.getByText('CYCLE TIMING [ACCURATE]'));
+        const timing = screen.getByRole('switch', { name: /Cycle timing/ });
+        expect(timing).toHaveAttribute('aria-checked', 'true');
+        expect(timing).toHaveTextContent('accurate');
+        fireEvent.click(timing);
         expect(props.onCycleAccurateTiming).toHaveBeenCalledTimes(1);
         rerender(<Actions {...props} cycleAccurateTiming={false} />);
-        expect(screen.getByText('CYCLE TIMING [FAST]')).toBeInTheDocument();
+        expect(timing).toHaveAttribute('aria-checked', 'false');
+        expect(timing).toHaveTextContent('fast');
     });
 
-    it('calls onSaveState and onRefocus when SAVE STATE is clicked', () => {
+    it('calls onSaveState and onRefocus when Save state is clicked', () => {
         render(<Actions {...props} />);
-        fireEvent.click(screen.getByText('SAVE STATE'));
+        fireEvent.click(screen.getByRole('button', { name: 'Save state' }));
         expect(props.onSaveState).toHaveBeenCalledTimes(1);
         expect(props.onRefocus).toHaveBeenCalledTimes(1);
     });
@@ -68,20 +77,20 @@ describe('Actions component (settings panel)', () => {
         expect(props.onRefocus).toHaveBeenCalledTimes(1);
     });
 
-    it('triggers the hidden file input when LOAD STATE is clicked', () => {
+    it('triggers the hidden file input when Load state is clicked', () => {
         const { container } = render(<Actions {...props} />);
         const input = container.querySelector('input[type="file"]') as HTMLInputElement;
         const clickSpy = vi.spyOn(input, 'click');
-        fireEvent.click(screen.getByText('LOAD STATE'));
+        fireEvent.click(screen.getByRole('button', { name: 'Load state' }));
         expect(clickSpy).toHaveBeenCalledTimes(1);
         clickSpy.mockRestore();
     });
 
-    it('colours SUPPORT BACKSPACE by its ON/OFF state', () => {
+    it('colours the Backspace readout by its ON/OFF state', () => {
         const { rerender } = render(<Actions {...props} supportBS={true} />);
-        expect(screen.getByText('SUPPORT BACKSPACE [ON]')).toHaveClass('text-toggle-active');
+        expect(screen.getByText('on')).toHaveClass('text-toggle-active');
         rerender(<Actions {...props} supportBS={false} />);
-        expect(screen.getByText('SUPPORT BACKSPACE [OFF]')).toHaveClass('text-toggle-inactive');
+        expect(screen.getByText('off')).toHaveClass('text-toggle-inactive');
     });
 
     it('renders the file input with correct attributes', () => {

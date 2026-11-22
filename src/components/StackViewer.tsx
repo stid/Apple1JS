@@ -100,15 +100,15 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
             {/* Stack Info Header */}
             <div className="mb-sm">
                 <div className="flex justify-between items-center mb-xs">
-                    <span className="text-xs text-text-secondary">Stack Pointer:</span>
+                    <span className="text-xs text-text-secondary">Stack pointer</span>
                     <span className="text-xs font-mono text-data-value">{Formatters.hexByte(stackPointer)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-xs">
-                    <span className="text-xs text-text-secondary">Usage:</span>
+                    <span className="text-xs text-text-secondary">Usage</span>
                     <span className="text-xs font-mono">{stackUsage} / 255 bytes</span>
                 </div>
                 {/* Stack usage bar */}
-                <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-surface-secondary rounded-full overflow-hidden">
                     <div
                         className={`h-full transition-all ${
                             stackPercentage > 80 ? 'bg-error' : stackPercentage > 60 ? 'bg-warning' : 'bg-success'
@@ -119,8 +119,8 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
             </div>
 
             {/* Stack Contents */}
-            <div className="flex-1 overflow-auto bg-surface-sunken/20 rounded-sm border border-border-subtle">
-                <div className="sticky top-0 bg-surface-primary border-b border-border-primary px-2 py-1">
+            <div className="flex-1 overflow-auto bg-surface-secondary rounded-md border border-border-subtle">
+                <div className="sticky top-0 bg-surface-secondary border-b border-border-primary px-2 py-1">
                     <div className="flex justify-between text-xs text-text-secondary">
                         <span>Address</span>
                         <span>Value</span>

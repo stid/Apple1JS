@@ -1,14 +1,12 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/geist-mono/wght.css';
 
 @config '../tailwind.config.ts';
 
 /*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+  Tailwind v4 defaults border-color to `currentcolor`. A bare `border` utility
+  falls back to the design system hairline instead.
 */
 @layer base {
   *,
@@ -16,7 +14,119 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-border-primary, currentcolor);
+  }
+}
+
+/* ---- stid design system: shared UI atoms -------------------------------- */
+
+/* Buttons: 28px, radius md, medium weight. Pair `btn` with one variant. */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-xs h-7 px-[10px] rounded-md border border-transparent;
+  @apply font-sans text-sm font-medium whitespace-nowrap select-none cursor-pointer no-underline;
+  transition:
+    background-color 140ms,
+    border-color 140ms,
+    color 140ms,
+    transform 80ms;
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  &:disabled {
+    @apply opacity-45 cursor-not-allowed;
+  }
+}
+@utility btn-primary {
+  @apply bg-text-accent text-text-on-accent hover:bg-text-accent-hover;
+}
+@utility btn-secondary {
+  @apply bg-surface-primary text-text-primary border-border-secondary;
+  &:hover:not(:disabled) {
+    @apply bg-surface-hover border-surface-quaternary;
+  }
+}
+@utility btn-ghost {
+  @apply bg-transparent text-text-secondary;
+  &:hover:not(:disabled) {
+    @apply bg-surface-primary text-text-primary;
+  }
+}
+@utility btn-danger {
+  @apply bg-transparent text-error border-error/60;
+  &:hover:not(:disabled) {
+    @apply bg-error/15 border-error;
+  }
+}
+
+/* Card: bordered raised surface. No shadow; depth comes from the surface ramp. */
+@utility card {
+  @apply bg-surface-primary border border-border-primary rounded-lg p-md;
+}
+@utility card-title {
+  @apply font-sans text-base font-semibold tracking-tight text-text-primary;
+}
+
+/* Mono eyebrow / overline label: reads like a code comment. */
+@utility eyebrow {
+  @apply font-mono text-2xs font-medium tracking-caps uppercase text-text-tertiary;
+}
+
+/* Recessed well for code, key caps and raw data. */
+@utility well {
+  @apply bg-surface-sunken border border-border-subtle rounded-sm font-mono;
+}
+
+/* Badge: small mono status chip. Colour comes from the caller. */
+@utility badge {
+  @apply inline-flex items-center gap-xs h-5 px-sm rounded-sm border border-transparent;
+  @apply font-mono text-2xs font-medium leading-none whitespace-nowrap;
+}
+
+/* Text field for addresses and other mono input. */
+@utility field {
+  @apply h-7 px-sm bg-surface-sunken text-text-primary border border-border-secondary rounded-md font-mono text-sm;
+  transition:
+    border-color 140ms,
+    box-shadow 140ms;
+  &:focus {
+    @apply border-text-accent outline-hidden;
+    box-shadow: 0 0 0 3px rgba(250, 179, 135, 0.14);
+  }
+}
+
+/* Segmented control: container + segments. */
+@utility segmented {
+  @apply inline-flex items-center gap-xxs p-xxs bg-surface-secondary border border-border-primary rounded-md;
+}
+@utility segment {
+  @apply inline-flex items-center justify-center h-6 px-[10px] rounded-sm font-sans text-xs font-medium text-text-secondary cursor-pointer;
+  transition:
+    background-color 140ms,
+    color 140ms;
+  &:hover:not(:disabled):not([aria-pressed='true']):not([aria-selected='true']) {
+    @apply text-text-primary;
+  }
+  &[aria-pressed='true'],
+  &[aria-selected='true'] {
+    @apply bg-surface-primary text-text-accent;
+  }
+  &:disabled:not([aria-pressed='true']) {
+    @apply opacity-45 cursor-not-allowed;
+  }
+}
+
+/* Underline tab for the primary navigation. */
+@utility tab {
+  @apply inline-flex items-center h-9 px-sm -mb-px border-b-2 border-transparent font-sans text-sm font-medium text-text-secondary cursor-pointer;
+  transition:
+    color 140ms,
+    border-color 140ms;
+  &:hover {
+    @apply text-text-primary;
+  }
+  &[aria-selected='true'] {
+    @apply text-text-accent border-text-accent;
   }
 }
 
@@ -136,38 +246,53 @@
     0 0 2px rgba(0, 255, 0, 0.5);
 }
 
-/* Define custom styles for the base layer */
+/* Document defaults — stid design system (dark, Catppuccin Mocha) */
 @layer base {
-  /* Body styles */
-  body {
-    @apply bg-black;        /* Background color */
-    @apply text-gray-400;    /* Text color */
-    @apply text-sm;          /* Text size */
-    @apply font-mono;        /* Font family */
-    @apply overflow-auto lg:overflow-hidden;  /* Allow scrolling on mobile, prevent on desktop */
+  html {
+    color-scheme: dark;
   }
-  
+
+  body {
+    @apply bg-surface-base text-text-primary text-sm font-sans;
+    @apply overflow-auto lg:overflow-hidden; /* Allow scrolling on mobile, prevent on desktop */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv11' 1; /* Geist: single-storey a */
+  }
+
   /* Root app container */
   #app {
     @apply min-h-screen lg:h-screen lg:overflow-hidden;
   }
 
-  /* Link styles */
+  /* Mono is for data. Ligatures off and tabular digits so columns line up. */
+  code,
+  kbd,
+  samp,
+  pre,
+  .font-mono {
+    font-feature-settings:
+      'liga' 0,
+      'calt' 0,
+      'clig' 0;
+    font-variant-numeric: tabular-nums;
+  }
+
   a {
-    @apply text-phosphor-secondary;       /* Text color - using phosphor secondary for links */
-    @apply hover:text-phosphor-primary;   /* Hover text color - brighter on hover */
-    @apply visited:text-phosphor-secondary; /* Visited text color - same as default */
+    @apply text-text-accent hover:text-text-accent-hover;
   }
 
-  /* Heading 3 styles */
-  h3 {
-    @apply mt-4 mb-1;        /* Margins */
-    @apply font-bold;        /* Font weight */
+  ::selection {
+    background: rgba(245, 194, 231, 0.28);
   }
 
-  /* Paragraph styles */
-  p {
-    @apply text-slate-500;   /* Text color */
+  ::placeholder {
+    @apply text-text-disabled;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-text-accent);
+    outline-offset: 2px;
   }
 }
 

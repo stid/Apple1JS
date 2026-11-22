@@ -32,11 +32,11 @@ const FLAGS: ReadonlyArray<{ glyph: string; field?: string }> = [
 const flagChipClass = (state: 'set' | 'clear' | 'unused'): string => {
     switch (state) {
         case 'set':
-            return 'border-success bg-success/20 text-success';
+            return 'border-success/60 bg-success/15 text-success';
         case 'unused':
             return 'border-border-subtle text-text-disabled';
         default:
-            return 'border-border-primary text-text-secondary';
+            return 'border-border-secondary text-text-secondary';
     }
 };
 
@@ -44,11 +44,11 @@ const CpuStateCardComponent: React.FC<CpuStateCardProps> = ({ debugInfo, workerM
     const cpu = debugInfo.cpu;
 
     return (
-        <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
+        <div className="card">
             {/* Header: title + clickable PC pill */}
             <div className="flex items-center justify-between mb-sm">
-                <h3 className="text-base font-semibold tracking-wide text-text-accent">CPU State</h3>
-                <span className="inline-flex items-center gap-xs rounded-md border border-border-primary bg-data-value/5 px-sm py-xs text-xs font-mono">
+                <h3 className="card-title">CPU state</h3>
+                <span className="inline-flex items-center gap-xs rounded-sm border border-border-secondary bg-surface-secondary px-sm py-xs text-xs font-mono">
                     <span className="text-text-secondary">PC</span>
                     {cpu?.REG_PC ? (
                         <AddressLink
@@ -65,15 +65,15 @@ const CpuStateCardComponent: React.FC<CpuStateCardProps> = ({ debugInfo, workerM
             </div>
 
             {/* Register rail */}
-            <div className="grid grid-cols-4 rounded-lg border border-border-primary overflow-hidden">
+            <div className="grid grid-cols-4 rounded-md border border-border-secondary overflow-hidden">
                 {REGISTERS.map((reg, i) => (
                     <div
                         key={reg.label}
-                        className={`flex flex-col items-center gap-xs py-sm bg-surface-secondary/40 ${
+                        className={`flex flex-col items-center gap-xs py-sm bg-surface-secondary ${
                             i > 0 ? 'border-l border-border-primary' : ''
                         }`}
                     >
-                        <span className="text-xs uppercase tracking-wide text-text-secondary">{reg.label}</span>
+                        <span className="eyebrow">{reg.label}</span>
                         <span className="text-sm font-mono font-bold text-data-value">
                             {getDebugValueOrDefault(cpu?.[reg.field], reg.def)}
                         </span>
@@ -83,14 +83,14 @@ const CpuStateCardComponent: React.FC<CpuStateCardProps> = ({ debugInfo, workerM
 
             {/* Status flags */}
             <div className="mt-sm">
-                <div className="text-xs tracking-wide text-text-secondary mb-xs">FLAGS</div>
+                <div className="eyebrow mb-xs">FLAGS</div>
                 <div className="flex gap-xs">
                     {FLAGS.map((flag, i) => {
                         const state = !flag.field ? 'unused' : cpu?.[flag.field] === 'SET' ? 'set' : 'clear';
                         return (
                             <span
                                 key={`${flag.glyph}-${i}`}
-                                className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-mono font-bold text-xs ${flagChipClass(
+                                className={`inline-flex items-center justify-center w-7 h-7 rounded-sm border font-mono font-bold text-xs ${flagChipClass(
                                     state,
                                 )}`}
                             >
@@ -103,7 +103,7 @@ const CpuStateCardComponent: React.FC<CpuStateCardProps> = ({ debugInfo, workerM
 
             {/* Cycle counter (de-emphasized label, status-colored value) */}
             <div className="flex items-center justify-between mt-sm pt-sm border-t border-border-subtle">
-                <span className="text-xs text-text-secondary">cycles</span>
+                <span className="eyebrow">cycles</span>
                 <span className="text-sm font-mono text-data-status">
                     {getDebugValueOrDefault(cpu?.HW_CYCLES, '0')}
                 </span>

@@ -9,7 +9,7 @@
  */
 import { designTokens } from './tokens';
 
-const { colors, spacing, typography } = designTokens;
+const { colors, spacing, typography, borderRadius, boxShadow } = designTokens;
 
 export const tokenDerivedTheme = {
     colors: {
@@ -47,6 +47,7 @@ export const tokenDerivedTheme = {
 
         // Surface colors
         surface: {
+            base: colors.surface.base,
             primary: colors.surface.primary,
             secondary: colors.surface.secondary,
             tertiary: colors.surface.tertiary,
@@ -70,6 +71,8 @@ export const tokenDerivedTheme = {
             secondary: colors.text.secondary,
             tertiary: colors.text.tertiary,
             accent: colors.text.accent,
+            'accent-hover': colors.text.accentHover,
+            'on-accent': colors.text.onAccent,
             muted: colors.text.muted,
             disabled: colors.text.disabled,
         },
@@ -88,8 +91,11 @@ export const tokenDerivedTheme = {
     },
 
     fontFamily: {
+        sans: typography.fontFamily.sans,
         mono: typography.fontFamily.mono,
     },
+    borderRadius: { ...borderRadius },
+    boxShadow: { ...boxShadow },
     spacing: { ...spacing },
     fontSize: { ...typography.fontSize },
     // Tailwind's Config type wants string values; tokens store these as numbers.

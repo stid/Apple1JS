@@ -25,6 +25,12 @@ interface DebuggerLayoutProps {
 
 type DebugView = 'overview' | 'memory' | 'disassembly';
 
+const DEBUG_VIEWS: Array<{ id: DebugView; label: string }> = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'memory', label: 'Memory' },
+    { id: 'disassembly', label: 'Disassembly' },
+];
+
 // Guard for the persisted view pref: reject valid-JSON-but-invalid values from localStorage.
 const isDebugView = (v: unknown): v is DebugView => v === 'overview' || v === 'memory' || v === 'disassembly';
 
@@ -89,38 +95,21 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
 
     return (
         <div className="flex flex-col h-full">
-            {/* View Selector - Styled as subtle tabs */}
-            <div className="flex gap-xs mb-md border-b border-border-subtle pb-sm">
-                <button
-                    className={`px-md py-xs text-xs font-medium transition-all border-b-2 ${
-                        activeView === 'overview'
-                            ? 'text-text-accent border-text-accent'
-                            : 'text-text-secondary border-transparent hover:text-text-primary'
-                    }`}
-                    onClick={() => setActiveView('overview')}
-                >
-                    Overview
-                </button>
-                <button
-                    className={`px-md py-xs text-xs font-medium transition-all border-b-2 ${
-                        activeView === 'memory'
-                            ? 'text-text-accent border-text-accent'
-                            : 'text-text-secondary border-transparent hover:text-text-primary'
-                    }`}
-                    onClick={() => setActiveView('memory')}
-                >
-                    Memory
-                </button>
-                <button
-                    className={`px-md py-xs text-xs font-medium transition-all border-b-2 ${
-                        activeView === 'disassembly'
-                            ? 'text-text-accent border-text-accent'
-                            : 'text-text-secondary border-transparent hover:text-text-primary'
-                    }`}
-                    onClick={() => setActiveView('disassembly')}
-                >
-                    Disassembly
-                </button>
+            {/* View selector: a segmented control, one level below the primary tabs */}
+            <div className="flex-none mb-md">
+                <div className="segmented" role="tablist" aria-label="Debugger views">
+                    {DEBUG_VIEWS.map((view) => (
+                        <button
+                            key={view.id}
+                            role="tab"
+                            aria-selected={activeView === view.id}
+                            className="segment"
+                            onClick={() => setActiveView(view.id)}
+                        >
+                            {view.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Content Area */}
@@ -142,8 +131,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
                             <ExecutionCard debugInfo={debugInfo} />
 
                             {/* Memory Map Quick Reference */}
-                            <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                                <h3 className="text-sm font-medium text-text-accent mb-sm">Memory Map</h3>
+                            <div className="card">
+                                <h3 className="card-title mb-sm">Memory map</h3>
                                 <div className="space-y-xs text-xs font-mono">
                                     <div className="flex justify-between">
                                         <span className="text-text-secondary">Zero Page:</span>
@@ -235,11 +224,8 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
                             <PerformanceMetrics workerManager={workerManager} />
 
                             {/* Stack View */}
-                            <div
-                                className="bg-surface-primary rounded-lg p-md border border-border-primary flex flex-col"
-                                style={{ minHeight: '400px' }}
-                            >
-                                <h3 className="text-sm font-medium text-text-accent mb-sm flex-none">Stack</h3>
+                            <div className="card flex flex-col" style={{ minHeight: '400px' }}>
+                                <h3 className="card-title mb-sm flex-none">Stack</h3>
                                 <div className="flex-1" style={{ minHeight: 0 }}>
                                     <StackViewer
                                         workerManager={workerManager}

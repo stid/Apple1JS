@@ -215,7 +215,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         const componentCard = (
             <div
                 key={node.id}
-                className="bg-surface-overlay border border-border-subtle rounded-lg p-md mb-sm"
+                className="bg-surface-secondary border border-border-subtle rounded-md p-md mb-sm"
                 style={{ marginLeft: `${depth * 16}px` }}
             >
                 <div className="flex items-center justify-between mb-sm">
@@ -330,11 +330,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         <div className="flex flex-col h-full overflow-auto space-y-md">
             {/* Engine Status Section */}
             {engineStatus && (
-                <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                    <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
-                        <span className="mr-2">⚡</span>
-                        CPU Engine Status
-                    </h3>
+                <section className="card">
+                    <h3 className="card-title mb-md">CPU engine</h3>
                     <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
                         <RegisterRow label="Active Engine" value={engineStatus.currentEngine} type="status" />
                         <RegisterRow label="Available" value={engineStatus.availableEngines.join(', ')} type="status" />
@@ -351,24 +348,18 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             )}
 
             {/* Performance Section */}
-            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
+            <section className="card">
                 <div className="flex items-center justify-between mb-md">
-                    <h3 className="text-sm font-medium text-text-accent flex items-center">
-                        <span className="mr-2">🔥</span>
-                        CPU Performance Profiling
-                    </h3>
+                    <h3 className="card-title">Performance profiling</h3>
                     <button
                         onClick={handleProfilingToggle}
                         disabled={profilingPending || !workerManager}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            profilingPending
-                                ? 'bg-border-secondary text-text-disabled cursor-wait'
-                                : profilingEnabled
-                                  ? 'bg-success text-white hover:bg-success/80'
-                                  : 'bg-border-primary text-text-secondary hover:bg-border-secondary'
-                        } ${!workerManager ? 'cursor-not-allowed opacity-50' : ''}`}
+                        aria-pressed={profilingEnabled}
+                        className={`btn ${profilingEnabled ? 'btn-primary' : 'btn-secondary'} ${
+                            profilingPending ? 'cursor-wait' : ''
+                        }`}
                     >
-                        {profilingPending ? 'Updating...' : profilingEnabled ? 'Disable Profiling' : 'Enable Profiling'}
+                        {profilingPending ? 'Updating…' : profilingEnabled ? 'Disable profiling' : 'Enable profiling'}
                     </button>
                 </div>
 
@@ -391,7 +382,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                                 </div>
 
                                 {perfData.topOpcodes && perfData.topOpcodes.length > 0 && (
-                                    <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
+                                    <div className="bg-surface-secondary rounded-md p-md border border-border-subtle">
                                         <div className="text-sm font-medium text-text-secondary mb-sm">
                                             Top Instructions
                                         </div>
@@ -415,7 +406,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                                 )}
                             </>
                         ) : (
-                            <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
+                            <div className="bg-surface-secondary rounded-md p-md border border-border-subtle">
                                 <div className="text-sm text-text-secondary text-center">
                                     {profilingPending
                                         ? 'Initializing profiler...'
@@ -427,12 +418,9 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 )}
             </section>
 
-            {/* CPU Registers Section */}
-            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
-                    <span className="mr-2">⚙️</span>
-                    CPU Registers
-                </h3>
+            {/* CPU registers Section */}
+            <section className="card">
+                <h3 className="card-title mb-md">CPU registers</h3>
                 <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
                     {workerManager ? (
                         <RegisterRow
@@ -458,11 +446,8 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             </section>
 
             {/* Memory & I/O Section */}
-            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
-                    <span className="mr-2">💾</span>
-                    Memory & I/O
-                </h3>
+            <section className="card">
+                <h3 className="card-title mb-md">Memory & I/O</h3>
                 <div className="space-y-sm">
                     {workerManager ? (
                         <>
@@ -519,13 +504,10 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 </div>
             </section>
 
-            {/* Architecture Tree Section */}
-            <section className="bg-surface-primary rounded-lg p-md border border-border-primary">
-                <h3 className="text-sm font-medium text-text-accent mb-md flex items-center">
-                    <span className="mr-2">🏗️</span>
-                    Architecture Tree
-                </h3>
-                <div className="bg-surface-overlay rounded-lg p-md border border-border-subtle">
+            {/* Architecture tree Section */}
+            <section className="card">
+                <h3 className="card-title mb-md">Architecture tree</h3>
+                <div className="bg-surface-secondary rounded-md p-md border border-border-subtle">
                     <div className="space-y-sm">{renderArchComponent(archRoot)}</div>
                 </div>
             </section>

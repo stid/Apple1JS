@@ -119,34 +119,34 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     return (
         <div
             ref={containerRef}
-            className={`h-full flex flex-col bg-surface-primary rounded-lg border border-border-primary ${className}`}
+            className={`h-full flex flex-col bg-surface-secondary rounded-lg border border-border-primary overflow-hidden ${className}`}
         >
             {/* Controls Header */}
             <div className="p-sm border-b border-border-subtle shrink-0">
                 <div className="flex flex-wrap items-center gap-sm">
                     {/* Address Navigation */}
                     <div className="flex items-center gap-xs">
-                        <label className="text-xs text-text-secondary">Addr:</label>
+                        <label className="eyebrow">Addr</label>
                         <input
                             type="text"
                             value={addressInput}
                             onChange={handleAddressChange}
                             onKeyDown={handleAddressSubmit}
-                            className="bg-surface-sunken/40 border border-border-primary text-data-address px-2 py-1 w-20 font-mono text-xs rounded-sm transition-colors focus:border-border-accent focus:outline-hidden"
+                            className="field w-20 text-data-address"
                             placeholder="0000"
                             maxLength={4}
                         />
                         <div className="flex gap-xs">
                             <button
                                 onClick={onNavigateUp}
-                                className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
+                                className="btn btn-secondary w-7 px-0"
                                 title="Previous page (↑)"
                             >
                                 ↑
                             </button>
                             <button
                                 onClick={onNavigateDown}
-                                className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
+                                className="btn btn-secondary w-7 px-0"
                                 title="Next page (↓)"
                             >
                                 ↓
@@ -175,8 +175,8 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
             </div>
 
             {/* Table Content */}
-            <div ref={contentRef} className="flex-1 bg-surface-sunken/20 overflow-hidden">
-                <table className="w-full">
+            <div ref={contentRef} className="flex-1 overflow-hidden">
+                <table className="w-full font-mono text-sm">
                     {renderTableHeader()}
                     <tbody>{renderTableRows()}</tbody>
                 </table>

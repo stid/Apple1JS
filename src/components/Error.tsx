@@ -27,9 +27,9 @@ class ErrorBoundary extends Component<Props, State> {
 
         if (hasError) {
             return (
-                <div className="bg-red-100 p-4">
-                    <h1 className="text-red-600 text-xl font-semibold mb-2">Oops! Something went wrong</h1>
-                    <p className="text-red-500">Please try refreshing the page.</p>
+                <div className="m-md p-md rounded-lg border border-error/60 bg-error/15">
+                    <h1 className="text-error text-lg font-semibold tracking-tight mb-2">Something went wrong</h1>
+                    <p className="text-text-secondary">Reload the page to restart the emulator.</p>
                 </div>
             );
         }

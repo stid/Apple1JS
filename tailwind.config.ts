@@ -20,9 +20,11 @@ const config: Config = {
             letterSpacing: tokenDerivedTheme.letterSpacing,
             colors: tokenDerivedTheme.colors,
             spacing: tokenDerivedTheme.spacing,
+            borderRadius: tokenDerivedTheme.borderRadius,
 
             // Non-token-derived presentation extras (see tokens.ts boxShadow.green)
             boxShadow: {
+                ...tokenDerivedTheme.boxShadow,
                 'glow-green': '0 0 20px rgba(0, 255, 0, 0.3)',
                 'glow-subtle': '0 0 10px rgba(0, 255, 0, 0.1)',
             },

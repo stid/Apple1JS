@@ -4,6 +4,7 @@ import InspectorView from './InspectorView';
 import DebuggerLayout from './DebuggerLayout';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
+import { designTokens } from '../styles/tokens';
 import Actions from './Actions';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { useToast } from '../contexts/ToastContext';
@@ -185,7 +186,7 @@ const AppContentInner = ({
     }, [rightTab, workerManager]);
 
     const handleSaveState = useCallback(
-        async (e: React.MouseEvent<HTMLAnchorElement>) => {
+        async (e: React.MouseEvent<HTMLButtonElement>) => {
             e.preventDefault();
             try {
                 // Get state from WorkerManager
@@ -240,9 +241,15 @@ const AppContentInner = ({
         [workerManager, showToast],
     );
 
+    const tabs: Array<{ id: RightTab; label: string }> = [
+        { id: 'info', label: 'Info' },
+        { id: 'inspector', label: 'Inspector' },
+        { id: 'debugger', label: 'Debugger' },
+    ];
+
     return (
         <div
-            className="flex flex-col lg:flex-row w-full h-full gap-0 lg:gap-3 p-1 sm:p-1 md:px-2 md:py-1"
+            className="flex flex-col lg:flex-row w-full h-full gap-md lg:gap-lg p-md"
             onClick={(e) => {
                 // Refocus hidden input when clicking on the background
                 if (e.target === e.currentTarget) {
@@ -250,22 +257,38 @@ const AppContentInner = ({
                 }
             }}
         >
-            {/* Left column: CRT, Actions */}
-            <div
-                className="flex-none flex flex-col items-center bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md mx-auto lg:mx-0"
-                style={{ maxWidth: '538px' }}
-            >
+            {/* Left column: the machine — CRT in a terminal window, settings below */}
+            <div className="flex-none flex flex-col gap-md mx-auto lg:mx-0" style={{ maxWidth: '538px' }}>
                 <div
-                    className="w-full flex justify-center"
-                    onClick={() => {
-                        // Always refocus when clicking anywhere in the CRT area
-                        focusHiddenInput();
-                    }}
-                    role="presentation"
+                    className="rounded-lg border border-border-secondary bg-surface-sunken overflow-hidden"
+                    // Token lg shadow: the terminal window is the one raised object on the page.
+                    style={{ boxShadow: designTokens.boxShadow.lg }}
                 >
-                    <CRTWorker workerManager={workerManager} />
+                    <div className="flex items-center gap-sm h-9 px-sm bg-surface-secondary border-b border-border-primary">
+                        <div className="flex gap-[7px] flex-none" aria-hidden="true">
+                            <span className="w-[11px] h-[11px] rounded-full bg-error" />
+                            <span className="w-[11px] h-[11px] rounded-full bg-warning" />
+                            <span className="w-[11px] h-[11px] rounded-full bg-success" />
+                        </div>
+                        <span className="font-mono text-xs text-text-secondary bg-surface-primary px-sm py-xxs rounded-sm truncate">
+                            apple-1 — wozmon
+                        </span>
+                        <span className="ml-auto font-mono text-2xs text-text-tertiary whitespace-nowrap">
+                            40×24 · 1 MHz
+                        </span>
+                    </div>
+                    <div
+                        className="w-full flex justify-center p-sm"
+                        onClick={() => {
+                            // Always refocus when clicking anywhere in the CRT area
+                            focusHiddenInput();
+                        }}
+                        role="presentation"
+                    >
+                        <CRTWorker workerManager={workerManager} />
+                    </div>
                 </div>
-                <div className="mt-md w-full">
+                <div className="w-full px-xs">
                     <Actions
                         supportBS={supportBS}
                         onBS={useCallback(
@@ -292,59 +315,36 @@ const AppContentInner = ({
                 </div>
             </div>
 
-            {/* Right column */}
-            <div className="flex-1 bg-surface-overlay rounded-xl shadow-lg border border-border-primary p-md flex flex-col mt-1 lg:mt-0 overflow-hidden">
-                <div className="flex-none flex items-center justify-between gap-sm flex-wrap mb-md">
-                    <div className="flex gap-sm">
-                        <button
-                            className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
-                                rightTab === 'info'
-                                    ? 'bg-text-accent text-black border-text-accent'
-                                    : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
-                            }`}
-                            onClick={() => {
-                                setRightTab('info');
-                                focusHiddenInput();
-                            }}
-                        >
-                            Info
-                        </button>
-                        <button
-                            className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
-                                rightTab === 'inspector'
-                                    ? 'bg-text-accent text-black border-text-accent'
-                                    : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
-                            }`}
-                            onClick={() => {
-                                setRightTab('inspector');
-                                focusHiddenInput();
-                            }}
-                        >
-                            Inspector
-                        </button>
-                        <button
-                            className={`px-md py-sm rounded-lg font-mono text-xs tracking-wide transition-colors border font-medium ${
-                                rightTab === 'debugger'
-                                    ? 'bg-text-accent text-black border-text-accent'
-                                    : 'bg-text-accent/10 text-text-accent border-text-accent/30 hover:bg-text-accent/20 hover:border-text-accent'
-                            }`}
-                            onClick={() => {
-                                setRightTab('debugger');
-                                focusHiddenInput();
-                            }}
-                        >
-                            Debugger
-                        </button>
+            {/* Right column: toolbar (tabs + execution bar) over the active view */}
+            <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                <div className="flex-none flex items-end justify-between gap-x-md gap-y-sm flex-wrap border-b border-border-primary mb-md">
+                    <div className="flex gap-sm" role="tablist" aria-label="Views">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                role="tab"
+                                aria-selected={rightTab === tab.id}
+                                className="tab"
+                                onClick={() => {
+                                    setRightTab(tab.id);
+                                    focusHiddenInput();
+                                }}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
                     {/* Always-visible execution bar: the single home for run-state +
                         run/pause/step/reset + engine switch, regardless of which tab is shown. */}
-                    <ExecutionControlsCluster
-                        workerManager={workerManager}
-                        currentEngine={engineStatus?.currentEngine ?? 'WASM'}
-                        wasmAvailable={engineStatus?.availableEngines.includes('WASM') ?? false}
-                        isSwitchingEngine={isSwitchingEngine}
-                        onEngineSwitch={handleEngineSwitch}
-                    />
+                    <div className="pb-xs">
+                        <ExecutionControlsCluster
+                            workerManager={workerManager}
+                            currentEngine={engineStatus?.currentEngine ?? 'WASM'}
+                            wasmAvailable={engineStatus?.availableEngines.includes('WASM') ?? false}
+                            isSwitchingEngine={isSwitchingEngine}
+                            onEngineSwitch={handleEngineSwitch}
+                        />
+                    </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
                     {rightTab === 'info' && (

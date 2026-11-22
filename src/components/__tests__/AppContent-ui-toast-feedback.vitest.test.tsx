@@ -66,7 +66,7 @@ describe('AppContent toast feedback', () => {
     // AC-1 (RENDER): a successful save surfaces a confirmation message.
     it('AC-1 (RENDER): save success shows a confirmation toast', async () => {
         renderApp(wm);
-        fireEvent.click(screen.getByText('SAVE STATE'));
+        fireEvent.click(screen.getByText('Save state'));
         expect(await screen.findByText(/saved/i)).toBeInTheDocument();
     });
 
@@ -74,7 +74,7 @@ describe('AppContent toast feedback', () => {
     it('AC-2 (RENDER): save failure shows an error toast and no window.alert', async () => {
         vi.mocked(wm.saveState).mockRejectedValueOnce(new Error('disk full'));
         renderApp(wm);
-        fireEvent.click(screen.getByText('SAVE STATE'));
+        fireEvent.click(screen.getByText('Save state'));
         expect(await screen.findByText(/failed to save/i)).toBeInTheDocument();
         expect(alertSpy).not.toHaveBeenCalled();
     });

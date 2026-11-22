@@ -64,7 +64,7 @@ describe('InspectorView — WASM engine parity', () => {
     it('AC-2 (RENDER): profiling toggle enabled in WASM mode', async () => {
         renderInspector();
         // Wait for the async engine-status fetch to mark WASM active.
-        await screen.findByText('CPU Performance Profiling');
+        await screen.findByText('Performance profiling');
 
         const toggle = screen.getByRole('button', { name: /Profiling/i });
         // Parity with the JS engine: the button is operable, not a disabled
@@ -83,7 +83,7 @@ describe('InspectorView — WASM engine parity', () => {
             },
         };
         renderInspector();
-        await screen.findByText('CPU Performance Profiling');
+        await screen.findByText('Performance profiling');
 
         expect(screen.getAllByText('HW_ADDR:').length).toBeGreaterThanOrEqual(1);
         // The engine-provided values must be reflected, not fixed placeholders.
@@ -93,7 +93,7 @@ describe('InspectorView — WASM engine parity', () => {
 
     it('AC-5 (RENDER): no degradation banner in WASM mode', async () => {
         renderInspector();
-        await screen.findByText('CPU Performance Profiling');
+        await screen.findByText('Performance profiling');
 
         expect(screen.queryByText(/WASM engine active/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/limited support/i)).not.toBeInTheDocument();

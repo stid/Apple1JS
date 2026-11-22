@@ -3,6 +3,39 @@
 > **One rule:** `src/styles/tokens.ts` is the single source of truth. Tailwind is
 > _derived_ from it; components use Tailwind classes. No hardcoded hex (except CRT).
 
+## Visual language: the stid design system
+
+The UI follows the stid design system (a private Claude Design artifact; the values it
+defines are copied into `tokens.ts`, which stays the source of truth for this repo):
+
+- **Colour:** Catppuccin Mocha, dark only. Page = base, cards = surface0, toolbars and
+  tables = mantle, wells = crust. Accent is **Peach** and is reserved for interaction:
+  active tab, links, focus, ON toggles. Green is for data values and run state.
+- **Type:** Geist for UI and prose, Geist Mono for data (addresses, bytes, registers,
+  code, key caps). Both are self-hosted through `@fontsource-variable/*`. Mono is opt-in
+  with `font-mono`; the body is sans.
+- **Shape:** square-ish radii (`rounded-sm` 3px chips and inputs, `rounded-md` 5px
+  buttons, `rounded-lg` 8px cards). Hairline borders separate surfaces; the only shadow
+  is on the CRT terminal window.
+- **Copy:** sentence case, no emoji. Section eyebrows read like comments (`// wozmon`).
+
+### Shared atoms
+
+Defined once in `src/index.css` as Tailwind `@utility` classes, built from the tokens:
+
+| Class                                               | Use                                                  |
+| --------------------------------------------------- | ---------------------------------------------------- |
+| `btn` + `btn-primary` / `-secondary` / `-ghost` / `-danger` | Buttons (28px high)                          |
+| `card`, `card-title`                                | Bordered raised panel and its heading                |
+| `eyebrow`                                           | Uppercase mono overline label                        |
+| `well`                                              | Recessed block for code and key caps                 |
+| `badge`                                             | Small mono status chip; colour comes from the caller |
+| `field`                                             | Mono text input                                      |
+| `segmented` + `segment`                             | Segmented control; active via `aria-pressed/selected` |
+| `tab`                                               | Underline tab for the primary navigation             |
+
+Reach for these before writing a new one-off class string.
+
 ## The canonical idiom
 
 Style components with **Tailwind utility classes** that are backed by design tokens:
@@ -12,7 +45,7 @@ Style components with **Tailwind utility classes** that are backed by design tok
 <div className="bg-surface-primary border border-border-primary text-data-address" />
 
 // ❌ Not this (banned by ESLint)
-<div style={{ backgroundColor: '#1E293B', color: '#34D399' }} />
+<div style={{ backgroundColor: '#313244', color: '#a6e3a1' }} />
 ```
 
 There is no token-function API (`color()`, `styles`, `buttonVariants`) — it was
@@ -49,28 +82,28 @@ in `src/**` so colors can't sneak back in outside the token file.
 | `colors.success` / `warning` / `error` / `info`                | `text-success`, `bg-warning`, `border-error` (also `semantic-*`) |
 | `colors.toggleActive` / `toggleInactive`                       | `text-toggle-active`, `bg-toggle-inactive` (stateful ON/OFF)     |
 | `colors.phosphor.*`                                            | `text-phosphor-primary`, `bg-phosphor-glow`                      |
-| `colors.surface.{primary…quaternary,overlay}`                  | `bg-surface-primary`, `bg-surface-overlay`                       |
+| `colors.surface.{base,primary…quaternary,overlay,sunken}`      | `bg-surface-base`, `bg-surface-primary`, `bg-surface-sunken`     |
 | `colors.border.{primary,secondary,accent,subtle}`              | `border-border-primary`, `border-border-accent`                  |
 | `colors.text.{primary,secondary,tertiary,accent,muted}`        | `text-text-primary`, `text-text-muted`                           |
+| `colors.text.{accentHover,onAccent}`                           | `text-text-accent-hover`, `text-text-on-accent`                  |
 | `colors.componentColors.{RAM,ROM,Bus,CPU,…}`                   | `text-component-ram`, `text-component-cpu`, … (see below)        |
 | `spacing.{xs…xxxl}`                                            | `p-md`, `gap-sm`, `mb-lg`                                        |
-| `typography.fontSize.{xs…xl}`                                  | `text-xs`, `text-base`                                           |
+| `typography.fontSize.{2xs…xl}`                                 | `text-2xs`, `text-xs`, `text-base`                               |
+| `borderRadius.{sm,md,lg,xl,full}`                              | `rounded-sm`, `rounded-md`, `rounded-lg`                         |
+| `boxShadow.{sm,md,lg}`                                         | `shadow-sm`, `shadow-md`, `shadow-lg`                            |
 | `typography.fontWeight.*` / `lineHeight.*` / `letterSpacing.*` | `font-medium`, `leading-tight`, `tracking-wide`                  |
-| `typography.fontFamily.mono`                                   | `font-mono` (token-backed app-wide)                              |
+| `typography.fontFamily.{sans,mono}`                            | `font-sans` (body default), `font-mono` (data)                   |
 
 ### Naming notes (deliberate, not drift)
 
-- **`background` vs `surface`:** tokens keep a `background` group _and_ a `surface`
-  group. Tailwind derives from `surface` (`surface.primary == background.surface == #1E293B`).
-  `background.*` exists only as reference; prefer `surface-*` classes.
 - **componentColors are PascalCase → lowercase:** token keys are component type names
   (`RAM`, `ROM`, `Bus`, `CPU`, `CPU6502`, `PIA6820`, `IoComponent`, `Clock`); the adapter
   maps them to `component-{ram,rom,bus,cpu,pia,io,clock}`. `CPU` and `CPU6502` share one
   value and both collapse to `component-cpu`. `InspectorView.getComponentColor` mirrors
   this map for runtime `node.type` → class lookups.
 - **`toggle-active` / `toggle-inactive` carry state, not just a hue:** use them when a
-  control's colour should reflect a boolean ON/OFF (e.g. the `SUPPORT BACKSPACE` and
-  `CYCLE TIMING` buttons in `Actions.tsx`) — blue when enabled, neutral gray when off.
+  control's colour should reflect a boolean ON/OFF (e.g. the Backspace and Cycle timing
+  switches in `Actions.tsx`) — peach when enabled, neutral gray when off.
   Keep them distinct from `success` (momentary command buttons) and `warning` (reserved
   for genuine alerts), so a single colour never means two different things in one view.
 
