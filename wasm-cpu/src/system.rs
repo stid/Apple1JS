@@ -348,6 +348,57 @@ mod tests {
         assert_eq!(system.read_memory(0xFF00), 0xEA); // NOP we flashed
     }
 
+    /// Build a system with a 64KB RAM and a NOP-filled ROM, then place `program`
+    /// at $0300 and point PC at it.
+    fn system_with_program(program: &[u8]) -> WasmSystem {
+        let mut system = WasmSystem::new();
+        let mut rom_data = vec![0x00, 0xFF];
+        rom_data.extend_from_slice(&[0xEA; 256]);
+        system.initialize(0x10000, rom_data).unwrap();
+        for (i, byte) in program.iter().enumerate() {
+            system.write_memory(0x0300 + i as u16, *byte);
+        }
+        system.cpu.pc = 0x0300;
+        system
+    }
+
+    #[test]
+    fn test_adc_decimal_overflow_follows_adjusted_high_nibble() {
+        use crate::cpu::flags;
+
+        // NMOS 6502, D=1: $79 + $00 + C. The binary sum is $7A (no signed
+        // overflow), but the BCD-adjusted high nibble is 8, so the real chip
+        // (and the TypeScript reference engine) sets V along with N.
+        let mut system = system_with_program(&[0x69, 0x00]); // ADC #$00
+        system.cpu.a = 0x79;
+        system.cpu.status = flags::DECIMAL | flags::CARRY | flags::UNUSED;
+
+        assert_eq!(system.step(), 2);
+
+        assert_eq!(system.cpu.a, 0x80);
+        assert!(system.cpu.get_flag(flags::OVERFLOW), "V must be set");
+        assert!(system.cpu.get_flag(flags::NEGATIVE), "N must be set");
+        assert!(!system.cpu.get_flag(flags::CARRY), "C must be clear");
+        assert!(!system.cpu.get_flag(flags::ZERO), "Z must be clear");
+    }
+
+    #[test]
+    fn test_adc_binary_overflow_unchanged() {
+        use crate::cpu::flags;
+
+        // Guard for the binary path: $50 + $50 = $A0 overflows into the sign bit.
+        let mut system = system_with_program(&[0x69, 0x50]);
+        system.cpu.a = 0x50;
+        system.cpu.status = flags::UNUSED;
+
+        system.step();
+
+        assert_eq!(system.cpu.a, 0xA0);
+        assert!(system.cpu.get_flag(flags::OVERFLOW));
+        assert!(system.cpu.get_flag(flags::NEGATIVE));
+        assert!(!system.cpu.get_flag(flags::CARRY));
+    }
+
     // NOTE: last_addr/last_data tracking (get_last_addr/get_last_data) is
     // exercised on the CPU execution path (step_with_bus), which cannot run
     // under native `cargo test` — CPU6502::new() and initialize() call

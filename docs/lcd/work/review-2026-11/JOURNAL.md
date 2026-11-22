@@ -11,8 +11,8 @@
 - **Lane:** Standard
 - **Goal:** Address every finding of the 2026-11-21 project health review as six stacked PRs
   (each branch is cut from the previous one; each bumps `src/version.ts`).
-- **Next action:** S3 — `fix/wasm-adc-decimal-overflow` (cut from `fix/real-checks`); add `cargo test` to CI there
-- **Branch:** fix/real-checks · **Updated:** 2026-11-21
+- **Next action:** S4 — `fix/debugger-correctness` (cut from `fix/wasm-adc-decimal-overflow`)
+- **Branch:** fix/wasm-adc-decimal-overflow · **Updated:** 2026-11-21
 
 ## STEPS
 
@@ -22,7 +22,7 @@
       `no-console` lint rule (+ route existing calls through LoggingService), keep
       `console.error`/`warn` in prod bundles, CI: release WASM, `yarn build`, `cargo test`, clippy,
       frozen lockfile, single run per PR.
-- [ ] S3 `fix/wasm-adc-decimal-overflow` — native stubs for the wasm-bindgen imports so CPU code
+- [x] S3 `fix/wasm-adc-decimal-overflow` — native stubs for the wasm-bindgen imports so CPU code
       runs under `cargo test`; failing ADC decimal V test; fix; parity suite vs real WASM.
 - [ ] S4 `fix/debugger-correctness` — tests first, on a real `Apple1` + `WorkerAPI`: resume on a
       breakpoint, double clock loop on load, clock tick exception, run-to-cursor transient
@@ -74,3 +74,7 @@
   inert (64.7% passed a 90% floor) then proven live at the top level (99% fails). `no-console`
   rule added, 30 calls routed through LoggingService, 5 debug logs deleted. Prod bundles now keep
   console.warn/error (2 each in main and worker; was 1 and 0). Husky 9 hook rejects a bad message.
+- 2026-11-21 — S2 done, PR #240 (one follow-up commit: a test asserted the old console format).
+  S3: native host stand-ins in `lib.rs` → `cargo test` 12/3 fail becomes 15 pass; new decimal ADC
+  test RED on V only, GREEN after moving the V computation into each branch (17 pass). Parity
+  suite vs real WASM (`yarn dev:vite`): 28/28 incl. the new decimal ADC case. `cargo test` in CI.

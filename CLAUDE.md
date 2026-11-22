@@ -133,12 +133,13 @@ yarn test:coverage # coverage
 
 Test guidelines: `docs/active/cpu_test_guidelines.md`.
 
-**WASM core tests need a real browser.** Don't add native Rust tests on the CPU/`WasmSystem`
-path — `CPU6502::new()` / `WasmSystem::initialize()` call wasm-bindgen imports that panic under
-native `cargo test` (`yarn wasm:test` only runs the pure `bus.rs`/`ram.rs`/`rom.rs` component
-tests). The Node-vitest engine-parity suites load the wasm-pack "web" build via `fetch()` (absent
-in Node), so they `skipIf`/**skip in CI**. A Rust core change therefore gets `cargo check` + a
-skipped parity test — verify actual WASM behavior in a browser (see the test guidelines).
+**Rust CPU logic is testable natively.** `wasm-cpu/src/lib.rs` swaps the wasm-bindgen imports
+for native stand-ins outside `wasm32` (I/O reads 0, writes ignored), so `yarn wasm:test` runs
+`WasmSystem`/CPU code and **runs in CI**. Write the failing Rust test first for any instruction
+change (pattern: `system_with_program` in `system.rs`). Two limits remain: anything returning a
+`JsValue` (`get_cpu_state`, `get_metrics`) still panics natively, so assert on `system.cpu.*`
+fields; and the Node-vitest engine-parity suites load the wasm-pack "web" build via `fetch()`
+(absent in Node), so they `skipIf`/**skip in CI**.
 
 **Run the parity suite against real WASM locally.** Those suites skip only because the
 `fetch()` has nothing to serve. Start `yarn dev:vite` in another shell and `yarn vitest run

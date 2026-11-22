@@ -113,13 +113,10 @@ impl CPU6502 {
         let carry = if self.get_flag(flags::CARRY) { 1 } else { 0 };
         let result = (self.a as u16) + (value as u16) + carry;
 
-        // Check for overflow
-        let overflow = ((self.a ^ result as u8) & (value ^ result as u8) & 0x80) != 0;
-        self.set_flag(flags::OVERFLOW, overflow);
-
         if self.get_flag(flags::DECIMAL) {
-            // NMOS 6502 packed BCD: A and C come from the decimal-adjusted
-            // result, while N/Z/V follow the binary result computed above.
+            // NMOS 6502 packed BCD: A and C come from the decimal-adjusted result,
+            // Z from the binary sum, and N/V from the high nibble after the low
+            // nibble fix-up but before its own adjustment (matches the TS engine).
             let mut al = (self.a & 0x0F) + (value & 0x0F) + carry as u8;
             if al > 9 {
                 al += 6;
@@ -127,12 +124,16 @@ impl CPU6502 {
             let mut ah = (self.a >> 4) as u16 + (value >> 4) as u16 + if al > 15 { 1 } else { 0 };
             self.set_flag(flags::ZERO, (result as u8) == 0);
             self.set_flag(flags::NEGATIVE, (ah & 8) != 0);
+            let overflow = (!(self.a ^ value) & (self.a ^ ((ah << 4) as u8)) & 0x80) != 0;
+            self.set_flag(flags::OVERFLOW, overflow);
             if ah > 9 {
                 ah += 6;
             }
             self.set_flag(flags::CARRY, ah > 15);
             self.a = (((ah as u8) << 4) | (al & 0x0F)) as u8;
         } else {
+            let overflow = ((self.a ^ result as u8) & (value ^ result as u8) & 0x80) != 0;
+            self.set_flag(flags::OVERFLOW, overflow);
             self.set_flag(flags::CARRY, result > 0xFF);
             self.a = result as u8;
             self.update_nz(self.a);

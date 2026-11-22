@@ -57,6 +57,10 @@ jobs:
                   cd wasm-cpu
                   wasm-pack build --release --target web --out-dir ../src/wasm
 
+            - name: Rust tests
+              # Native: the CPU core runs against stand-ins for the JS imports.
+              run: cd wasm-cpu && cargo test
+
             - name: Install JS dependencies
               run: yarn install --frozen-lockfile
 

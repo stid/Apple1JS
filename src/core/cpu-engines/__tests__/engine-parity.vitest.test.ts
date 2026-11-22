@@ -278,6 +278,29 @@ describe.skipIf(!wasmRuntimeAvailable)('CPU Engine Parity Tests', () => {
             );
         });
 
+        it('decimal ADC takes V from the adjusted high nibble', () => {
+            // $79 + $00 + C in decimal mode: the binary sum ($7A) has no signed
+            // overflow, so an engine deriving V from it reports V=0. The NMOS
+            // chip sets V from the high nibble after the low-nibble fix-up.
+            compareEngines(
+                [
+                    0xf8, // SED
+                    0x38, // SEC
+                    0xa9,
+                    0x79, // LDA #$79
+                    0x69,
+                    0x00, // ADC #$00
+                ],
+                4,
+                (regs) => {
+                    expect(regs.A).toBe(0x80);
+                    expect(regs.V).toBe(1);
+                    expect(regs.N).toBe(1);
+                    expect(regs.C).toBe(0);
+                },
+            );
+        });
+
         it('ADC without carry', () => {
             compareEngines(
                 [

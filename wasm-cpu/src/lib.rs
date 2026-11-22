@@ -29,6 +29,7 @@ pub use system::WasmSystem;
 // pub use wasm_bindgen_rayon::init_thread_pool;
 
 // Console logging for debugging
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -50,6 +51,30 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["globalThis", "wasmMemoryBridge"])]
     fn writeByte(address: u16, value: u8);
 }
+
+// Native stand-ins for the JS imports above. wasm-bindgen imports panic when
+// called outside a WASM host, which used to make every CPU / WasmSystem code path
+// untestable under `cargo test`. With these, the CPU core runs natively: logging
+// is a no-op and the I/O block ($D000-$DFFF, the only region that crosses to JS)
+// reads as zero and ignores writes.
+#[cfg(not(target_arch = "wasm32"))]
+mod native_host {
+    pub fn log(_s: &str) {}
+    #[allow(dead_code)]
+    pub fn error(_s: &str) {}
+    pub fn now() -> f64 {
+        0.0
+    }
+    #[allow(non_snake_case)]
+    pub fn readByte(_address: u16) -> u8 {
+        0
+    }
+    #[allow(non_snake_case)]
+    pub fn writeByte(_address: u16, _value: u8) {}
+}
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(unused_imports)]
+use native_host::{error, log, now, readByte, writeByte};
 
 // Export memory bridge functions for internal use
 pub(crate) fn bus_read(address: u16) -> u8 {

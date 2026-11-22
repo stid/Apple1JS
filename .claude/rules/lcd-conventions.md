@@ -57,9 +57,9 @@ Key meanings:
 - **Never commit to `master`** — always a feature branch (`feat/ fix/ refactor/ docs/ test/ chore/`).
 - **Dual-engine parity** — JS and WASM 6502 engines must stay feature-equal; test **both** for every
   engine change. The JS engine is the reference oracle / always-available fallback.
-  _Verified in a browser, not CI_: native `cargo test` panics on the `CPU6502::new()` /
-  `WasmSystem::initialize()` path, and the Node parity suites `skipIf` and skip in CI — so the
-  red-green loop cannot prove a Rust core change; `cargo check` + manual browser verification does.
+  Rust CPU logic runs under native `cargo test` (`yarn wasm:test`, in CI) via the native host
+  stand-ins in `wasm-cpu/src/lib.rs`. JS↔WASM _parity_ is still proven outside CI: the Node parity
+  suites `skipIf` unless `yarn dev:vite` is serving the WASM build.
 - **markdownlint per-file only** — never the repo-wide `yarn lint:md:fix`; it corrupts the machine
   block above. The `maintenance-bundle` deliberately uses the read-only `yarn lint:md`.
 - **No `any` types** (strict mode); **no `console.log`** (use `LoggingService`); **no hardcoded
