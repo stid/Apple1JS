@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useEffect } from 'react';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { Formatters } from '../utils/formatters';
 import type { WorkerManager } from '../services/WorkerManager';
+import { loggingService } from '../services/LoggingService';
 
 /**
  * AddressLink - Clickable address component with context menu
@@ -108,7 +109,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
         try {
           await workerManager.runToAddress(address);
         } catch (error) {
-          console.error('Failed to run to address:', error);
+          loggingService.error('AddressLink', `Failed to run to address: ${error}`);
         }
         safeRemoveMenu();
       };

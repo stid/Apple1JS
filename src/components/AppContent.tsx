@@ -178,7 +178,9 @@ const AppContentInner = ({
     // Sync debugger active state with worker
     useEffect(() => {
         const isDebuggerActive = rightTab === 'debugger';
-        workerManager.setDebuggerActive(isDebuggerActive).catch(console.error);
+        workerManager.setDebuggerActive(isDebuggerActive).catch((error: unknown) => {
+            loggingService.error('AppContent', `Failed to set debugger active: ${error}`);
+        });
     }, [rightTab, workerManager]);
 
     const handleSaveState = useCallback(

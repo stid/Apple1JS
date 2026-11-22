@@ -3,6 +3,7 @@ import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { getNumericDebugValue } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from './WorkerDataContext';
+import { loggingService } from '../services/LoggingService';
 
 export type ExecutionState = 'running' | 'paused' | 'stepping';
 
@@ -67,7 +68,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             try {
                 callback(event);
             } catch (error) {
-                console.error('Navigation event callback error:', error);
+                loggingService.error('EmulationContext', `Navigation event callback error: ${error}`);
             }
         });
     }, []);
@@ -137,7 +138,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     }
                 }
             } catch (error) {
-                console.warn('Failed to get initial state:', error);
+                loggingService.warn('EmulationContext', `Failed to get initial state: ${error}`);
             }
         };
 
@@ -167,7 +168,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
-            console.error('Failed to pause emulation:', error);
+            loggingService.error('EmulationContext', `Failed to pause emulation: ${error}`);
         }
     }, [workerManager, emitNavigationEvent]);
 
@@ -175,7 +176,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         try {
             await workerManager.resumeEmulation();
         } catch (error) {
-            console.error('Failed to resume emulation:', error);
+            loggingService.error('EmulationContext', `Failed to resume emulation: ${error}`);
         }
     }, [workerManager]);
 
@@ -194,7 +195,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
-            console.error('Failed to step:', error);
+            loggingService.error('EmulationContext', `Failed to step: ${error}`);
         }
     }, [workerManager, emitNavigationEvent]);
 
@@ -215,7 +216,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
-            console.error('Failed to step over:', error);
+            loggingService.error('EmulationContext', `Failed to step over: ${error}`);
         }
     }, [workerManager, emitNavigationEvent]);
 
@@ -224,7 +225,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             try {
                 await workerManager.runToAddress(address);
             } catch (error) {
-                console.error('Failed to run to address:', error);
+                loggingService.error('EmulationContext', `Failed to run to address: ${error}`);
             }
         },
         [workerManager],
@@ -245,7 +246,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     }
                 }
             } catch (error) {
-                console.error('Failed to toggle breakpoint:', error);
+                loggingService.error('EmulationContext', `Failed to toggle breakpoint: ${error}`);
             }
         },
         [workerManager, breakpoints],
@@ -273,7 +274,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     }
                 });
             } catch (error) {
-                console.warn('Failed to subscribe to debug info, will retry:', error);
+                loggingService.warn('EmulationContext', `Failed to subscribe to debug info, will retry: ${error}`);
                 // Retry after a short delay
                 if (mounted) {
                     setTimeout(trySubscribe, 100);
@@ -305,7 +306,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             await workerManager.clearAllBreakpoints();
             setBreakpoints(new Set());
         } catch (error) {
-            console.error('Failed to clear all breakpoints:', error);
+            loggingService.error('EmulationContext', `Failed to clear all breakpoints: ${error}`);
         }
     }, [workerManager]);
 

@@ -4,6 +4,7 @@ import { WorkerAPI } from './WorkerAPI';
 import type { VideoData } from './types/video';
 import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
+import { loggingService } from '../services/LoggingService';
 
 /**
  * Comlink-based worker implementation for Apple1JS.
@@ -91,7 +92,7 @@ class ComlinkWorkerAPI implements IWorkerAPI {
                 }
             });
         } catch (error) {
-            console.error('Error setting up video update subscription:', error);
+            loggingService.error('AppleWorker', `Error setting up video update subscription: ${error}`);
             throw error;
         }
     }

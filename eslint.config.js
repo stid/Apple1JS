@@ -63,6 +63,9 @@ export default [
             'react-hooks/rules-of-hooks': 'error',
             'react-hooks/exhaustive-deps': 'warn',
             'react/react-in-jsx-scope': 'off',
+            // All logging goes through LoggingService (CLAUDE.md rule 5). The service
+            // itself and test files are exempted below.
+            'no-console': 'error',
             // Ban raw hex colors — the design system is the single source of
             // truth. Use a design token (src/styles/tokens.ts) or a token-derived
             // Tailwind class. CRT display files and tokens.ts are allowlisted
@@ -81,6 +84,13 @@ export default [
             react: {
                 version: 'detect',
             },
+        },
+    },
+    {
+        // The one place allowed to talk to the console directly.
+        files: ['src/services/LoggingService.ts'],
+        rules: {
+            'no-console': 'off',
         },
     },
     {
@@ -114,6 +124,7 @@ export default [
             ...jest.configs.recommended.rules,
             // Tests legitimately assert on raw hex token values (parity guard).
             'no-restricted-syntax': 'off',
+            'no-console': 'off',
         },
         languageOptions: {
             globals: {

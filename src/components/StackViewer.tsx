@@ -3,6 +3,7 @@ import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import type { WorkerManager } from '../services/WorkerManager';
+import { loggingService } from '../services/LoggingService';
 
 interface StackViewerProps {
     workerManager: WorkerManager;
@@ -34,7 +35,7 @@ const StackViewer: React.FC<StackViewerProps> = ({ workerManager, stackPointer =
                     setStackData(newStackData);
                 }
             } catch (error) {
-                console.error('Error reading stack memory:', error);
+                loggingService.error('StackViewer', `Error reading stack memory: ${error}`);
             }
         };
 

@@ -28,10 +28,13 @@ export default defineConfig({
         minify: 'terser',
         terserOptions: {
             compress: {
-                drop_console: true,
+                // Strip chatter but keep console.warn/error: LoggingService writes
+                // through the console, so dropping everything made production
+                // failures (a WASM load error, say) invisible.
+                drop_console: ['log', 'info', 'debug'],
                 drop_debugger: true,
             },
-        } as any,
+        },
         rollupOptions: {
             output: {
                 // Vite 8 bundles with Rolldown, which requires manualChunks to be a

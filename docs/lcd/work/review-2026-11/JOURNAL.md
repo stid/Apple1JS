@@ -11,14 +11,14 @@
 - **Lane:** Standard
 - **Goal:** Address every finding of the 2026-11-21 project health review as six stacked PRs
   (each branch is cut from the previous one; each bumps `src/version.ts`).
-- **Next action:** S2 — `fix/real-checks` (cut from `chore/review-cleanup`)
-- **Branch:** chore/review-cleanup · **Updated:** 2026-11-21
+- **Next action:** S3 — `fix/wasm-adc-decimal-overflow` (cut from `fix/real-checks`); add `cargo test` to CI there
+- **Branch:** fix/real-checks · **Updated:** 2026-11-21
 
 ## STEPS
 
 - [x] S1 `chore/review-cleanup` — no behaviour change: untrack `wasm-cpu/src/wasm/`, drop unused
       packages and dead scripts, stale `.gitignore` entries, stale docs (Jest, 14×, WASM size).
-- [ ] S2 `fix/real-checks` — coverage provider + valid thresholds, husky 9 wiring for commitlint,
+- [x] S2 `fix/real-checks` — coverage provider + valid thresholds, husky 9 wiring for commitlint,
       `no-console` lint rule (+ route existing calls through LoggingService), keep
       `console.error`/`warn` in prod bundles, CI: release WASM, `yarn build`, `cargo test`, clippy,
       frozen lockfile, single run per PR.
@@ -41,6 +41,14 @@
   `.claude/README.md` (the review called them leftovers; that was wrong).
 - `@testing-library/dom` stays: it is a peer dependency of `@testing-library/react`.
 
+- CI keeps `on: [push, pull_request]`: the `tests` commit status is posted with `github.sha`,
+  which on a `pull_request` event is the merge commit, so the push run is what marks the PR head.
+  The review's "runs twice" point is withdrawn.
+- `cargo test` joins CI in S3 (it fails until the native stubs land); clippy `-D warnings` in S6
+  (18 warnings today, most of them in code S6 deletes).
+- Coverage thresholds are floors just under measured values (all 64.7% lines, core 68%), not the
+  old aspirational 90% that never ran.
+
 ## OPEN QUESTIONS
 
 - Unmerged remote branches `functional-play`, `gh-pages`, `claude/todo-implementation-Vwp6R`:
@@ -62,3 +70,7 @@
 - 2026-11-21 — Triage → Standard (5 signals; scored Deep by count, rounded down: six independent
   revertible PRs, no single feature spec). Review evidence: gate green (792 tests), coverage
   command broken, `cargo test` 12 pass / 3 fail, main bundle contains the emulation core.
+- 2026-11-21 — S1 done, PR #239. S2: coverage provider installed; `global:` threshold key proven
+  inert (64.7% passed a 90% floor) then proven live at the top level (99% fails). `no-console`
+  rule added, 30 calls routed through LoggingService, 5 debug logs deleted. Prod bundles now keep
+  console.warn/error (2 each in main and worker; was 1 and 0). Husky 9 hook rejects a bad message.

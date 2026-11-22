@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useRe
 import { WorkerDataSync } from '../services/WorkerDataSync';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import type { WorkerManager } from '../services/WorkerManager';
+import { loggingService } from '../services/LoggingService';
 
 interface WorkerDataContextType {
     // Debug info
@@ -77,7 +78,7 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     const subscribeToDebugInfo = useCallback((callback: (data: FilteredDebugData) => void) => {
         if (!dataSyncRef.current) {
             // This should not happen now that we initialize synchronously
-            console.error('WorkerDataSync is null - this should not happen');
+            loggingService.error('WorkerDataContext', 'WorkerDataSync is null - this should not happen');
             return () => {};
         }
         return dataSyncRef.current.subscribeToDebugInfo(callback);
@@ -86,7 +87,7 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     const subscribeToBreakpoints = useCallback((callback: (data: number[]) => void) => {
         if (!dataSyncRef.current) {
             // This should not happen now that we initialize synchronously
-            console.error('WorkerDataSync is null - this should not happen');
+            loggingService.error('WorkerDataContext', 'WorkerDataSync is null - this should not happen');
             return () => {};
         }
         return dataSyncRef.current.subscribeToBreakpoints(callback);
@@ -95,7 +96,7 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     const subscribeToMemoryRange = useCallback((start: number, length: number, callback: (data: number[]) => void) => {
         if (!dataSyncRef.current) {
             // This should not happen now that we initialize synchronously
-            console.error('WorkerDataSync is null - this should not happen');
+            loggingService.error('WorkerDataContext', 'WorkerDataSync is null - this should not happen');
             return () => {};
         }
         return dataSyncRef.current.subscribeToMemoryRange(start, length, callback);

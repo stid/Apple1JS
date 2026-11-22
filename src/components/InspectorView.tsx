@@ -9,6 +9,7 @@ import { useWorkerData } from '../contexts/WorkerDataContext';
 import type { EngineStatusData } from '../apple1/types/worker-messages';
 
 import type { InspectableData } from '../core/types/components';
+import { loggingService } from '../services/LoggingService';
 
 interface InspectorViewProps {
     root: IInspectableComponent;
@@ -65,7 +66,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
                 await workerManager.getDebugInfo();
             }
         } catch (error) {
-            console.error('Failed to toggle CPU profiling:', error);
+            loggingService.error('InspectorView', `Failed to toggle CPU profiling: ${error}`);
             // Revert state on error
             setProfilingEnabled(!newProfilingState);
         } finally {

@@ -1,4 +1,5 @@
 import type { EmulatorState } from '../apple1/TSTypes';
+import { loggingService } from './LoggingService';
 
 /**
  * Service for persisting and restoring emulator state
@@ -44,7 +45,7 @@ export class StatePersistenceService {
 
             return wrapper.state;
         } catch (error) {
-            console.error('Failed to load state from local storage:', error);
+            loggingService.error('StatePersistenceService', `Failed to load state from local storage: ${error}`);
             return null;
         }
     }
@@ -136,7 +137,7 @@ export class StatePersistenceService {
                     name: 'Auto-save'
                 });
             } catch (error) {
-                console.error('Failed to parse local storage state:', error);
+                loggingService.error('StatePersistenceService', `Failed to parse local storage state: ${error}`);
             }
         }
         

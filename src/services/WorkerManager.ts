@@ -9,6 +9,7 @@ import type {
     EngineStatusData,
     EngineComparisonData,
 } from '../apple1/types/worker-messages';
+import { loggingService } from './LoggingService';
 // CONFIG no longer needed since Comlink is the only implementation
 
 /**
@@ -25,7 +26,6 @@ export class WorkerManager {
     private messageHandlers: Map<WORKER_MESSAGES, (data: unknown) => void> = new Map();
 
     constructor() {
-        console.log('WorkerManager: Using Comlink mode');
     }
 
     /**
@@ -204,14 +204,12 @@ export class WorkerManager {
     async onVideoUpdate(callback: (data: VideoData) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
             try {
-                console.log('WorkerManager: Setting up video update subscription');
                 // Proxy the callback for cross-boundary communication
                 const proxiedCallback = Comlink.proxy(callback);
                 const unsubscribe = await this.comlinkAPI.onVideoUpdate(proxiedCallback);
-                console.log('WorkerManager: Video update subscription successful');
                 return unsubscribe;
             } catch (error) {
-                console.error('WorkerManager: Error setting up video update subscription:', error);
+                loggingService.error('WorkerManager', `Error setting up video update subscription: ${error}`);
                 throw error;
             }
         }

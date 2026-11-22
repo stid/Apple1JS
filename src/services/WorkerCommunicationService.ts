@@ -7,6 +7,7 @@ import {
     sendWorkerMessageWithRequest,
     isWorkerMessage
 } from '../apple1/types/worker-messages';
+import { loggingService } from './LoggingService';
 
 /**
  * Service abstraction for Worker communication
@@ -32,7 +33,7 @@ export class WorkerCommunicationService {
             
             // Validate message format
             if (!isWorkerMessage(data)) {
-                console.warn('Received invalid worker message:', data);
+                loggingService.warn('WorkerCommunicationService', `Received invalid worker message: ${data}`);
                 return;
             }
             

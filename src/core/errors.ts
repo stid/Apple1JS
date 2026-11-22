@@ -79,6 +79,8 @@ export class ErrorHandler {
             
             ErrorHandler.loggingService.error('ErrorHandler', errorMessage);
         } else {
+            // No logging service registered yet: the console is the only sink left.
+            // eslint-disable-next-line no-console
             console.error(error);
         }
 

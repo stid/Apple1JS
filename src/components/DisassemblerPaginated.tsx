@@ -8,6 +8,7 @@ import { Formatters } from '../utils/formatters';
 import { useEmulation } from '../contexts/EmulationContext';
 import { REFRESH_RATES } from '../constants/ui';
 import type { WorkerManager } from '../services/WorkerManager';
+import { loggingService } from '../services/LoggingService';
 
 interface DisassemblerProps {
     workerManager: WorkerManager;
@@ -304,7 +305,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                         }
                     }
                 } catch (error) {
-                    console.error('Failed to fetch memory:', error);
+                    loggingService.error('DisassemblerPaginated', `Failed to fetch memory: ${error}`);
                 }
                 return;
             }
@@ -320,7 +321,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                     setLines(disassembly.slice(0, targetRows));
                 }
             } catch (error) {
-                console.error('Failed to fetch memory:', error);
+                loggingService.error('DisassemblerPaginated', `Failed to fetch memory: ${error}`);
             }
         },
         [workerManager, disassembleMemory, actualVisibleRows],
@@ -447,7 +448,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                 }
             })
             .catch((error) => {
-                console.error('Failed to navigate up:', error);
+                loggingService.error('DisassemblerPaginated', `Failed to navigate up: ${error}`);
             });
     }, [viewStartAddress, actualVisibleRows, navigateTo, disassembleMemory, workerManager, lines.length]);
 

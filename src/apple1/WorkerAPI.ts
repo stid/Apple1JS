@@ -506,7 +506,6 @@ export class WorkerAPI implements IWorkerAPI {
     // ========== Input ==========
 
     keyDown(key: string): void {
-        console.log('[WorkerAPI] keyDown called with key:', key);
         this.workerState.keyboard.write(key);
     }
 
