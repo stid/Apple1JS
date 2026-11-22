@@ -41,7 +41,8 @@ describe('Main component', () => {
 
         // Check root div has correct layout classes
         const rootDiv = container.firstChild as HTMLElement;
-        expect(rootDiv).toHaveClass('w-full', 'h-screen', 'flex', 'flex-col', 'overflow-hidden');
+        // Fixed to the viewport from lg up; below that the page scrolls.
+        expect(rootDiv).toHaveClass('w-full', 'min-h-screen', 'lg:h-screen', 'flex', 'flex-col', 'lg:overflow-hidden');
 
         // Header sits on the sunken toolbar surface with a hairline below
         const header = screen.getByRole('banner');
@@ -49,7 +50,7 @@ describe('Main component', () => {
 
         // Check content container
         const contentDiv = rootDiv.children[1] as HTMLElement;
-        expect(contentDiv).toHaveClass('flex-1', 'flex', 'overflow-hidden', 'min-h-0');
+        expect(contentDiv).toHaveClass('flex-1', 'flex', 'lg:overflow-hidden', 'min-h-0');
     });
 
     it('should display version from version.ts as a badge', () => {

@@ -9,7 +9,7 @@ interface MainProps {
 
 const Main: React.FC<MainProps> = ({ workerManager }) => {
     return (
-        <div className="w-full h-screen flex flex-col overflow-hidden">
+        <div className="w-full min-h-screen lg:h-screen flex flex-col lg:overflow-hidden">
             <header className="shrink-0 w-full bg-surface-secondary border-b border-border-primary h-11 px-md flex items-center justify-between gap-md">
                 <div className="flex items-baseline gap-sm min-w-0">
                     <h1 className="text-base font-semibold tracking-tight text-text-primary whitespace-nowrap">
@@ -39,7 +39,7 @@ const Main: React.FC<MainProps> = ({ workerManager }) => {
                     </span>
                 </div>
             </header>
-            <div className="flex-1 flex overflow-hidden min-h-0">
+            <div className="flex-1 flex lg:overflow-hidden min-h-0">
                 <App workerManager={workerManager} />
             </div>
         </div>

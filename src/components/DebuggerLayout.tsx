@@ -95,14 +95,14 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
 
     return (
         <div className="flex flex-col h-full">
-            {/* View selector: a segmented control, one level below the primary tabs */}
+            {/* View selector: a segmented control, one level below the primary tabs.
+                Plain pressed buttons in a group: Tab reaches each one, no arrow-key contract. */}
             <div className="flex-none mb-md">
-                <div className="segmented" role="tablist" aria-label="Debugger views">
+                <div className="segmented" role="group" aria-label="Debugger views">
                     {DEBUG_VIEWS.map((view) => (
                         <button
                             key={view.id}
-                            role="tab"
-                            aria-selected={activeView === view.id}
+                            aria-pressed={activeView === view.id}
                             className="segment"
                             onClick={() => setActiveView(view.id)}
                         >

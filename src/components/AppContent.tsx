@@ -247,9 +247,31 @@ const AppContentInner = ({
         { id: 'debugger', label: 'Debugger' },
     ];
 
+    // Tablist keyboard pattern: arrows / Home / End move the selection and keep focus
+    // on the tab. A pointer click still hands focus back to the CRT (see onClick).
+    const handleTabListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const current = tabs.findIndex((tab) => tab.id === rightTab);
+        const targets: Record<string, number> = {
+            ArrowRight: (current + 1) % tabs.length,
+            ArrowLeft: (current - 1 + tabs.length) % tabs.length,
+            Home: 0,
+            End: tabs.length - 1,
+        };
+        const next = targets[e.key];
+        if (next === undefined) {
+            return;
+        }
+        e.preventDefault();
+        const nextTab = tabs[next];
+        if (nextTab) {
+            setRightTab(nextTab.id);
+            (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+        }
+    };
+
     return (
         <div
-            className="flex flex-col lg:flex-row w-full h-full gap-md lg:gap-lg p-md"
+            className="flex flex-col lg:flex-row w-full lg:h-full gap-md lg:gap-lg p-md"
             onClick={(e) => {
                 // Refocus hidden input when clicking on the background
                 if (e.target === e.currentTarget) {
@@ -258,9 +280,14 @@ const AppContentInner = ({
             }}
         >
             {/* Left column: the machine — CRT in a terminal window, settings below */}
-            <div className="flex-none flex flex-col gap-md mx-auto lg:mx-0" style={{ maxWidth: '538px' }}>
+            {/* From lg up the page is viewport-locked, so a short window scrolls this column
+                instead of clipping it; below lg the whole page scrolls. */}
+            <div
+                className="flex-none flex flex-col gap-md mx-auto lg:mx-0 lg:overflow-y-auto"
+                style={{ maxWidth: '538px' }}
+            >
                 <div
-                    className="rounded-lg border border-border-secondary bg-surface-sunken overflow-hidden"
+                    className="shrink-0 rounded-lg border border-border-secondary bg-surface-sunken overflow-hidden"
                     // Token lg shadow: the terminal window is the one raised object on the page.
                     style={{ boxShadow: designTokens.boxShadow.lg }}
                 >
@@ -316,14 +343,15 @@ const AppContentInner = ({
             </div>
 
             {/* Right column: toolbar (tabs + execution bar) over the active view */}
-            <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+            <div className="flex-none h-[80vh] min-h-[480px] lg:flex-1 lg:h-auto lg:min-h-0 min-w-0 flex flex-col overflow-hidden">
                 <div className="flex-none flex items-end justify-between gap-x-md gap-y-sm flex-wrap border-b border-border-primary mb-md">
-                    <div className="flex gap-sm" role="tablist" aria-label="Views">
+                    <div className="flex gap-sm" role="tablist" aria-label="Views" onKeyDown={handleTabListKeyDown}>
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 role="tab"
                                 aria-selected={rightTab === tab.id}
+                                tabIndex={rightTab === tab.id ? 0 : -1}
                                 className="tab"
                                 onClick={() => {
                                     setRightTab(tab.id);

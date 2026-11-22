@@ -409,6 +409,47 @@ describe('AppContent', () => {
             focusSpy.mockRestore();
         });
 
+        it('gives the Views tabs a roving tabindex on the selected tab', () => {
+            window.localStorage.clear(); // the selected tab is persisted; start from the default (Info)
+            const { getByRole } = render(<AppContent workerManager={mockWorkerManager} />);
+
+            expect(getByRole('tab', { name: 'Info' })).toHaveAttribute('tabindex', '0');
+            expect(getByRole('tab', { name: 'Inspector' })).toHaveAttribute('tabindex', '-1');
+            expect(getByRole('tab', { name: 'Debugger' })).toHaveAttribute('tabindex', '-1');
+        });
+
+        it('moves between Views tabs with the arrow keys and keeps focus on the tab', () => {
+            window.localStorage.clear(); // the selected tab is persisted; start from the default (Info)
+            const { getByRole } = render(<AppContent workerManager={mockWorkerManager} />);
+            const info = getByRole('tab', { name: 'Info' });
+            const inspector = getByRole('tab', { name: 'Inspector' });
+            const debuggerTab = getByRole('tab', { name: 'Debugger' });
+
+            act(() => {
+                info.focus();
+                fireEvent.keyDown(info, { key: 'ArrowRight' });
+            });
+            expect(inspector).toHaveAttribute('aria-selected', 'true');
+            expect(inspector).toHaveFocus(); // not handed to the CRT's hidden input
+
+            act(() => {
+                fireEvent.keyDown(inspector, { key: 'End' });
+            });
+            expect(debuggerTab).toHaveAttribute('aria-selected', 'true');
+            expect(debuggerTab).toHaveFocus();
+
+            act(() => {
+                fireEvent.keyDown(debuggerTab, { key: 'ArrowRight' }); // wraps
+            });
+            expect(info).toHaveAttribute('aria-selected', 'true');
+            expect(info).toHaveFocus();
+
+            act(() => {
+                fireEvent.keyDown(info, { key: 'ArrowLeft' }); // wraps back
+            });
+            expect(debuggerTab).toHaveFocus();
+        });
+
         it('should handle onChange events properly (controlled input)', () => {
             render(<AppContent workerManager={mockWorkerManager} />);
 
