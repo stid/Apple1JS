@@ -1,5 +1,6 @@
 // Emulator state type for save/load
 import type { EmulatorState, PIAState, VideoState } from './TSTypes';
+import type { BoardActivitySample } from './types/worker-messages';
 import type { StateValidationResult, StateOptions, StateBase } from '../core/types';
 import { StateError } from '../core/types';
 import { VersionedStatefulComponentBase } from '../core/base/VersionedStatefulComponentBase';
@@ -229,6 +230,36 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
         return children;
     }
     /**
+     * Folds the active engine's per-page access counts into totals per part.
+     * Every Apple 1 mapping starts and ends on a page boundary, so a part's
+     * total is the sum of its pages.
+     */
+    private sampleActivity(): BoardActivitySample {
+        const pages = this.cpuEngine ? this.cpuEngine.getPageActivity() : this.cpu.pageActivity;
+        const mapped: Array<[string, [number, number]]> = [
+            [this.rom.id, ROM_ADDR],
+            [this.ramBank1.id, RAM_BANK1_ADDR],
+            [this.ramBank2.id, RAM_BANK2_ADDR],
+            [this.pia.id, PIA_ADDR],
+        ];
+        const parts: BoardActivitySample['parts'] = {};
+        for (const [id, [start, end]] of mapped) {
+            let reads = 0;
+            let writes = 0;
+            for (let page = start >> 8; page <= end >> 8; page++) {
+                reads += pages[page];
+                writes += pages[256 + page];
+            }
+            parts[id] = { reads, writes };
+        }
+        let accesses = 0;
+        for (let slot = 0; slot < pages.length; slot++) {
+            accesses += pages[slot];
+        }
+        return { sampledAt: performance.now(), accesses, parts };
+    }
+
+    /**
      * Returns a serializable architecture view of the Apple1 and its children, suitable for inspectors.
      */
     getInspectable() {
@@ -246,6 +277,7 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
             name: 'Apple 1',
             cpuSpeedMHz: MHZ_CPU_SPEED,
             stepIntervalMs: STEP_INTERVAL,
+            activity: this.sampleActivity(),
             romAddress: ROM_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),
             ramBank1Address: RAM_BANK1_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),
             ramBank2Address: RAM_BANK2_ADDR.map((v) => '0x' + Formatters.hex(v, 0)).join(' - '),

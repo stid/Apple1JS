@@ -104,3 +104,16 @@ export interface ClockData {
     frequency: number;
     totalCycles: number;
 }
+
+/**
+ * Bus traffic since the active engine's last reset, carried on the root of the
+ * machine tree. The Board compares two samples to get rates.
+ */
+export interface BoardActivitySample {
+    /** Worker clock (performance.now()) when the sample was taken, in ms. */
+    sampledAt: number;
+    /** Every bus access the CPU made, mapped or not. */
+    accesses: number;
+    /** Reads and writes per bus-addressed part, keyed by inspectable node id. */
+    parts: Record<string, { reads: number; writes: number }>;
+}
