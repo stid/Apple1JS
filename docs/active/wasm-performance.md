@@ -8,8 +8,16 @@ observations of "160 IPS" were a **metrics defect**, not an engine problem, comp
 
 | Build / engine              | cycles/sec | effective MHz | vs JS |
 | --------------------------- | ---------: | ------------: | ----: |
-| JS (`CPU6502`)              |      ~56 M |       ~56 MHz |    1× |
-| WASM `--release` + wasm-opt |     ~443 M |      ~443 MHz | ~7.8× |
+| JS (`CPU6502`)              |      ~67 M |       ~67 MHz |    1× |
+| WASM `--release` + wasm-opt |     ~366 M |      ~366 MHz | ~5.5× |
+
+Measured 2026-11-21 (three runs: 5.39×, 5.48×, 5.61×) with rustc 1.100.0, wasm-pack 0.15.1 and
+wasm-opt 133. The previous measurement (2026-09, before the #238 toolchain refresh) was ~56 M JS
+/ ~443 M WASM = 7.8×: JS has become about 20% faster and WASM about 17% slower. The release
+binary also shrank from ~155 KB to ~127 KB over the same refresh. `-O3` is still applied (the
+shipped binary is byte-identical in size to a manual `wasm-opt -O3` of the unoptimized build), so
+the configuration is intact; the likely cause is code generation in the newer rustc/wasm-opt, which
+has not been confirmed.
 
 (Apple M-series, headless benchmark, RAM-only `LDA #/STA zp/LDA zp/JMP` loop = 11 cycles per 4
 instructions. Absolute numbers vary by machine; the **ratio** is the durable result.)

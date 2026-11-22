@@ -206,7 +206,7 @@ appear in the debugger, NOT to the React presentation layer.
       `IInspectableComponent` (`getInspectable()`).
 - **Do NOT implement the contracts** on:
   - React components in `src/components/**`. They render the UI and _consume_ the
-      inspectable tree (typically as an `apple1Instance: IInspectableComponent` prop);
+      inspectable tree as plain data fetched from the worker (`getInspectableTree()`);
       they hold only ephemeral view state via hooks/contexts, which is not the
       versioned-hardware state these contracts describe.
   - Purely presentational / stateless helpers (e.g. `Actions`, `RegisterRow`,
@@ -237,9 +237,9 @@ state or produce an inspectable node, so the contracts are **N/A** for every one
 
 | Component                                                                                         | Role                                                                    |          Contracts apply?          |
 | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | :--------------------------------: |
-| `App`                                                                                             | Root shell, passes `apple1Instance` prop                                |        N/A (presentational)        |
+| `App`                                                                                             | Root shell (error boundary, providers)                                  |        N/A (presentational)        |
 | `AppContent`                                                                                      | Orchestration; calls worker `saveState`/`loadState` (delegates to core) |   N/A (no owned versioned state)   |
-| `Main`                                                                                            | Layout, threads `apple1Instance` prop                                   |        N/A (presentational)        |
+| `Main`                                                                                            | Layout (header, version)                                                |        N/A (presentational)        |
 | `Actions`                                                                                         | Button + ref file-load control                                          |          N/A (stateless)           |
 | `AddressLink` / `SmartAddress`                                                                    | Address rendering / navigation                                          |        N/A (presentational)        |
 | `CompactCpuRegisters` / `RegisterRow`                                                             | Register display                                                        |        N/A (presentational)        |

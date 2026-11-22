@@ -137,6 +137,16 @@ describe('WorkerAPI debugger control (review-2026-11)', () => {
         expect(bus.read(KBDCR) & 0x80).toBe(0);
     });
 
+    it('exposes the machine structure of the running system as plain data', () => {
+        const tree = api.getInspectableTree();
+
+        // Must survive the trip to the main thread.
+        expect(() => globalThis.structuredClone(tree)).not.toThrow();
+        expect(tree.type).toBe('Apple1');
+        const childTypes = (tree.children ?? []).map((child) => child.type);
+        expect(childTypes).toEqual(expect.arrayContaining(['Bus', 'Clock']));
+    });
+
     it('loadState does not start a second clock loop', () => {
         const startLoop = vi.spyOn(state.apple1.clock, 'startLoop').mockResolvedValue();
         vi.spyOn(state.apple1, 'startLoop').mockResolvedValue();

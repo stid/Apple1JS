@@ -43,7 +43,7 @@ Compare performance between JS and WASM CPU engine implementations.
 
 ## Expected Results
 
-- WASM raw throughput ≈ 14× JS (headless; the ratio is durable, absolute numbers vary by machine)
+- WASM raw throughput ≈ 5.5× JS (headless; the ratio is durable, absolute numbers vary by machine)
 - WASM costs ~3–4× less Host CPU at the same throttled in-app IPS
 - WASM should use ~50% less memory
 - Engine switch time should be <10ms

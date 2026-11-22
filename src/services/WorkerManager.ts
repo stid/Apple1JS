@@ -10,6 +10,7 @@ import type {
     EngineComparisonData,
 } from '../apple1/types/worker-messages';
 import { loggingService } from './LoggingService';
+import type { InspectableData } from '../core/types/components';
 // CONFIG no longer needed since Comlink is the only implementation
 
 /**
@@ -149,6 +150,10 @@ export class WorkerManager {
 
     async writeMemory(address: number, value: number): Promise<void> {
         await this.call((api) => api.writeMemory(address, value));
+    }
+
+    async getInspectableTree(): Promise<InspectableData> {
+        return this.callOrThrow((api) => api.getInspectableTree());
     }
 
     async getDebugInfo(): Promise<FilteredDebugData | void> {

@@ -4,7 +4,6 @@
  * — "Status" must not denote a second (or third) concept.
  */
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import type { IInspectableComponent } from '../../core/types/components';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
@@ -35,7 +34,6 @@ describe('DebuggerLayout CPU State panel', () => {
                 <EmulationProvider workerManager={workerManager}>
                     <DebuggerNavigationProvider>
                         <DebuggerLayout
-                            root={{} as IInspectableComponent}
                             workerManager={workerManager}
                             memoryViewAddress={0x0000}
                             setMemoryViewAddress={vi.fn()}

@@ -10,9 +10,9 @@ import { useToast } from '../contexts/ToastContext';
 import { EmulationProvider } from '../contexts/EmulationContext';
 import ExecutionControlsCluster from './ExecutionControlsCluster';
 import { WorkerDataProvider } from '../contexts/WorkerDataContext';
-import { IInspectableComponent } from '../core/types';
+import type { InspectableData } from '../core/types/components';
+import { useEngineStatus } from '../hooks/useEngineStatus';
 import type { WorkerManager } from '../services/WorkerManager';
-import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { useUnmountSafe } from '../hooks/useUnmountSafe';
 import { useLocalStorageState } from '../hooks/useLocalStorageState';
@@ -21,7 +21,6 @@ import type { EmulatorState } from '../apple1/types/emulator-state';
 
 type Props = {
     workerManager: WorkerManager;
-    apple1Instance?: IInspectableComponent | null;
 };
 
 type RightTab = 'info' | 'inspector' | 'debugger';
@@ -41,7 +40,6 @@ interface AppContentInnerProps extends Props {
 
 const AppContentInner = ({
     workerManager,
-    apple1Instance,
     rightTab,
     setRightTab,
     pendingNavigation,
@@ -49,7 +47,9 @@ const AppContentInner = ({
 }: AppContentInnerProps): JSX.Element => {
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
-    const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
+    const { status: engineStatus, refresh: refreshEngineStatus } = useEngineStatus(workerManager);
+    // Structure of the machine running in the worker, for the Inspector.
+    const [machineTree, setMachineTree] = useState<InspectableData | null>(null);
     const [isSwitchingEngine, setIsSwitchingEngine] = useState<boolean>(false);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
     const { subscribeToNavigation } = useDebuggerNavigation();
@@ -80,28 +80,28 @@ const AppContentInner = ({
         }
     }, []);
 
-    // Poll the active CPU engine so the under-CRT toggle stays in sync with the
-    // debugger's EngineSwitcher (either surface can trigger a switch). Mirrors
-    // the 2s cadence used by EngineSwitcher.
+    // The Inspector describes the machine in the worker. Fetched when the tab
+    // opens (and again on an engine switch, which changes what is running), so
+    // the tree and its stats belong to the system that is actually executing.
     useEffect(() => {
+        if (rightTab !== 'inspector') {
+            return;
+        }
         let cancelled = false;
-        const fetchStatus = async () => {
-            try {
-                const status = await workerManager.getEngineStatus();
+        workerManager
+            .getInspectableTree()
+            .then((tree) => {
                 if (!cancelled) {
-                    setEngineStatus(status);
+                    setMachineTree(tree);
                 }
-            } catch (error) {
-                loggingService.error('AppContent', `Failed to get engine status: ${error}`);
-            }
-        };
-        fetchStatus();
-        const interval = setInterval(fetchStatus, 2000);
+            })
+            .catch((error: unknown) => {
+                loggingService.error('AppContent', `Failed to get the machine structure: ${error}`);
+            });
         return () => {
             cancelled = true;
-            clearInterval(interval);
         };
-    }, [workerManager]);
+    }, [workerManager, rightTab, engineStatus?.currentEngine]);
 
     const handleEngineSwitch = useCallback(async () => {
         if (isSwitchingEngine || !engineStatus) {
@@ -111,8 +111,7 @@ const AppContentInner = ({
         setIsSwitchingEngine(true);
         try {
             await workerManager.switchEngine(target);
-            const status = await workerManager.getEngineStatus();
-            setEngineStatus(status);
+            await refreshEngineStatus();
             loggingService.info('AppContent', `Switched to ${target} engine`);
             showToast(`Switched to ${target} engine`, 'success');
         } catch (error) {
@@ -121,7 +120,7 @@ const AppContentInner = ({
         } finally {
             setIsSwitchingEngine(false);
         }
-    }, [workerManager, engineStatus, isSwitchingEngine, showToast]);
+    }, [workerManager, engineStatus, isSwitchingEngine, showToast, refreshEngineStatus]);
 
     const handleKeyDown = useCallback(
         async (e: KeyboardEvent) => {
@@ -353,18 +352,17 @@ const AppContentInner = ({
                             <Info />
                         </div>
                     )}
-                    {rightTab === 'inspector' && apple1Instance && (
+                    {rightTab === 'inspector' && machineTree && (
                         <div className="overflow-auto h-full">
-                            <InspectorView root={apple1Instance} workerManager={workerManager} />
+                            <InspectorView root={machineTree} workerManager={workerManager} />
                         </div>
                     )}
-                    {rightTab === 'inspector' && !apple1Instance && (
-                        <div className="p-4 text-red-400">Inspector not available - Apple1 instance not connected.</div>
+                    {rightTab === 'inspector' && !machineTree && (
+                        <div className="p-md text-text-secondary">Reading the machine structure…</div>
                     )}
-                    {rightTab === 'debugger' && apple1Instance && (
+                    {rightTab === 'debugger' && (
                         <div className="h-full" style={{ overflow: 'hidden' }}>
                             <DebuggerLayout
-                                root={apple1Instance}
                                 workerManager={workerManager}
                                 initialNavigation={pendingNavigation}
                                 onNavigationHandled={() => setPendingNavigation(null)}
@@ -374,9 +372,6 @@ const AppContentInner = ({
                                 setDisassemblerAddress={setDisassemblerAddress}
                             />
                         </div>
-                    )}
-                    {rightTab === 'debugger' && !apple1Instance && (
-                        <div className="p-4 text-red-400">Debugger not available - Apple1 instance not connected.</div>
                     )}
                 </div>
             </div>
@@ -404,7 +399,7 @@ const AppContentInner = ({
     );
 };
 
-export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Element => {
+export const AppContent = ({ workerManager }: Props): JSX.Element => {
     const [rightTab, setRightTab] = useLocalStorageState<RightTab>('apple1js_ui_rightTab', 'info', isRightTab);
     const [pendingNavigation, setPendingNavigation] = useState<{
         address: number;
@@ -440,7 +435,6 @@ export const AppContent = ({ workerManager, apple1Instance }: Props): JSX.Elemen
             >
                 <AppContentInner
                     workerManager={workerManager}
-                    {...(apple1Instance !== undefined && { apple1Instance })}
                     rightTab={rightTab}
                     setRightTab={setRightTab}
                     pendingNavigation={pendingNavigation}

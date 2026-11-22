@@ -1,16 +1,14 @@
 import React from 'react';
 import App from './App';
-import { IInspectableComponent } from '../core/types';
 import { APP_VERSION } from '../version';
 import { designTokens } from '../styles/tokens';
 import type { WorkerManager } from '../services/WorkerManager';
 
 interface MainProps {
     workerManager: WorkerManager;
-    apple1Instance: IInspectableComponent | null;
 }
 
-const Main: React.FC<MainProps> = ({ workerManager, apple1Instance }) => {
+const Main: React.FC<MainProps> = ({ workerManager }) => {
     return (
         <div className="w-full h-screen flex flex-col overflow-hidden">
             <header
@@ -24,7 +22,7 @@ const Main: React.FC<MainProps> = ({ workerManager, apple1Instance }) => {
                 </h1>
             </header>
             <div className="flex-1 flex overflow-hidden min-h-0 py-lg">
-                <App workerManager={workerManager} apple1Instance={apple1Instance} />
+                <App workerManager={workerManager} />
             </div>
         </div>
     );

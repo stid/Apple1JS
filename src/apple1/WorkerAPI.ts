@@ -13,6 +13,7 @@ import type {
 import type { EngineMetrics } from './types/worker-api';
 import { loggingService } from '../services/LoggingService';
 import { Formatters } from '../utils/formatters';
+import type { InspectableData } from '../core/types/components';
 
 // Note: postMessage no longer needed - using callbacks instead
 
@@ -561,6 +562,12 @@ export class WorkerAPI implements IWorkerAPI {
     }
 
     // ========== Debug Information ==========
+
+    getInspectableTree(): InspectableData {
+        // A JSON round trip guarantees the result is plain data: it has to cross
+        // to the main thread, and a stray function would fail the clone there.
+        return JSON.parse(JSON.stringify(this.workerState.apple1.getInspectable())) as InspectableData;
+    }
 
     getDebugInfo(): FilteredDebugData {
         const { clock, cpu, pia, bus } = this.workerState.apple1;

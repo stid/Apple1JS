@@ -10,7 +10,6 @@ interface WorkerDataContextType {
     subscribeToDebugInfo: (callback: (data: FilteredDebugData) => void) => () => void;
     
     // Breakpoints
-    breakpoints: number[];
     subscribeToBreakpoints: (callback: (data: number[]) => void) => () => void;
     
     // Memory ranges
@@ -45,7 +44,6 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
         Bus: {},
         clock: {}
     });
-    const [breakpoints, setBreakpoints] = useState<number[]>([]);
     const dataSyncRef = useRef<WorkerDataSync | null>(null);
     
     // Initialize WorkerDataSync synchronously
@@ -61,15 +59,9 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
             setDebugInfo(data);
         });
         
-        // Subscribe to breakpoints updates
-        const unsubscribeBreakpoints = dataSync.subscribeToBreakpoints((data) => {
-            setBreakpoints(data);
-        });
-        
         // Cleanup
         return () => {
             unsubscribeDebug();
-            unsubscribeBreakpoints();
             dataSync.dispose();
             dataSyncRef.current = null;
         };
@@ -128,7 +120,6 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
     
     const value: WorkerDataContextType = useMemo(() => ({
         debugInfo,
-        breakpoints,
         subscribeToDebugInfo,
         subscribeToBreakpoints,
         subscribeToMemoryRange,
@@ -136,7 +127,7 @@ export const WorkerDataProvider: React.FC<WorkerDataProviderProps> = ({ workerMa
         refreshDebugInfo,
         refreshBreakpoints,
         refreshMemoryRange,
-    }), [debugInfo, breakpoints, subscribeToDebugInfo, subscribeToBreakpoints, 
+    }), [debugInfo, subscribeToDebugInfo, subscribeToBreakpoints, 
         subscribeToMemoryRange, setDebuggerActive, refreshDebugInfo, 
         refreshBreakpoints, refreshMemoryRange]);
     

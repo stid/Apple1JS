@@ -53,6 +53,12 @@ export class WorkerDataSync {
     
     // Emulation state
     private isPaused = false;
+
+    // How many debug views (Inspector, Debugger) are on screen. Debug info is
+    // only polled while this is non-zero.
+    private activeDebugViews = 0;
+    // Serialized form of the last payload handed to subscribers.
+    private lastDebugInfoJson: string | null = null;
     
     // Cleanup functions
     private statusUnsubscribe: (() => void) | null = null;
@@ -80,6 +86,11 @@ export class WorkerDataSync {
             const result = await this.workerManager.onEmulationStatus((status) => {
                 this.isPaused = status === 'paused';
                 this.updatePollingIntervals();
+                // A pause (button, breakpoint, run-to-cursor) is when the PC
+                // matters to everyone, poll or no poll: fetch it once.
+                if (this.isPaused && this.debugInfoSubscribers.size > 0) {
+                    void this.fetchDebugInfo();
+                }
             });
             
             // Store unsubscribe function if available
@@ -95,20 +106,20 @@ export class WorkerDataSync {
      * Update polling intervals based on current state
      */
     private updatePollingIntervals(): void {
-        // Update debug info polling interval
-        if (this.debugInfoSubscribers.size > 0) {
-            this.stopDebugInfoPolling();
+        this.stopDebugInfoPolling();
+        if (this.debugInfoSubscribers.size > 0 && this.activeDebugViews > 0) {
             this.startDebugInfoPolling();
         }
     }
     
     /**
-     * Set debugger active state
+     * A debug view came on screen (true) or left it (false). Calls are counted,
+     * so two views can overlap during a tab switch without stopping the poll.
+     * With no view open nothing reads the data, so nothing is fetched: this used
+     * to poll 4-10 times a second for the whole life of the app.
      */
     public setDebuggerActive(active: boolean): void {
-        // Note: active parameter is not used yet, but kept for API compatibility
-        void active;
-        // Just update polling intervals based on paused state
+        this.activeDebugViews = Math.max(0, this.activeDebugViews + (active ? 1 : -1));
         this.updatePollingIntervals();
     }
     
@@ -125,9 +136,9 @@ export class WorkerDataSync {
     public subscribeToDebugInfo(callback: DataSubscriber<FilteredDebugData>): () => void {
         this.debugInfoSubscribers.add(callback);
         
-        // Start polling if this is the first subscriber
+        // Start polling if this is the first subscriber (and a view needs it)
         if (this.debugInfoSubscribers.size === 1) {
-            this.startDebugInfoPolling();
+            this.updatePollingIntervals();
         }
         
         // Send cached data immediately if available
@@ -303,7 +314,16 @@ export class WorkerDataSync {
                 throw new Error('No debug info received');
             }
             
-            
+
+            // A paused machine returns the same payload on every poll. Handing
+            // subscribers a fresh but identical object re-rendered the whole
+            // debugger each time, so only a real change is passed on.
+            const json = JSON.stringify(data);
+            if (json === this.lastDebugInfoJson) {
+                return;
+            }
+            this.lastDebugInfoJson = json;
+
             // Update cache
             this.debugInfoCache = {
                 data,
@@ -448,6 +468,8 @@ export class WorkerDataSync {
         
         // Clear cache
         this.debugInfoCache = null;
+        this.lastDebugInfoJson = null;
+        this.activeDebugViews = 0;
         this.breakpointsCache = null;
         this.memoryCache.clear();
         

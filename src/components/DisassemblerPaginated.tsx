@@ -6,7 +6,6 @@ import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { useEmulation } from '../contexts/EmulationContext';
-import { REFRESH_RATES } from '../constants/ui';
 import type { WorkerManager } from '../services/WorkerManager';
 import { loggingService } from '../services/LoggingService';
 import { isTypingInField } from '../utils/keyboard-focus';
@@ -390,19 +389,6 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
             }
         };
     }, [workerManager]);
-
-    // Request debug info periodically when paused
-    useEffect(() => {
-        if (!isPaused) return;
-
-        const requestDebugInfo = async () => {
-            await workerManager.getDebugInfo();
-        };
-
-        requestDebugInfo();
-        const interval = setInterval(requestDebugInfo, REFRESH_RATES.FAST);
-        return () => clearInterval(interval);
-    }, [workerManager, isPaused]);
 
     // Navigation handlers
     const handleNavigateUp = useCallback(() => {

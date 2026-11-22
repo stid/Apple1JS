@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { getNumericDebugValue } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
@@ -56,7 +56,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [currentPC, setCurrentPC] = useState(0);
     // Get debug info from WorkerDataContext
-    const { debugInfo, subscribeToDebugInfo, setDebuggerActive } = useWorkerData();
+    const { debugInfo, subscribeToDebugInfo } = useWorkerData();
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
 
     // Navigation event subscribers
@@ -292,15 +292,6 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         };
     }, [subscribeToDebugInfo]);
 
-    // Update debugger active state based on context
-    useEffect(() => {
-        // This context is typically used when debugger UI is visible
-        setDebuggerActive(true);
-        return () => {
-            setDebuggerActive(false);
-        };
-    }, [setDebuggerActive]);
-
     const clearAllBreakpoints = useCallback(async () => {
         try {
             await workerManager.clearAllBreakpoints();
@@ -310,23 +301,44 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         }
     }, [workerManager]);
 
-    const value: EmulationContextType = {
-        isPaused,
-        executionState,
-        currentPC,
-        debugInfo,
-        breakpoints,
-        pause,
-        resume,
-        step,
-        stepOver,
-        runToAddress,
-        toggleBreakpoint,
-        clearAllBreakpoints,
-        subscribeToNavigationEvents,
-        ...(onBreakpointHit !== undefined && { onBreakpointHit }),
-        ...(onRunToCursorSet !== undefined && { onRunToCursorSet }),
-    };
+    // Memoized: this provider re-renders on every debug-info update, and a
+    // fresh object each time re-rendered every consumer with it.
+    const value: EmulationContextType = useMemo(
+        () => ({
+            isPaused,
+            executionState,
+            currentPC,
+            debugInfo,
+            breakpoints,
+            pause,
+            resume,
+            step,
+            stepOver,
+            runToAddress,
+            toggleBreakpoint,
+            clearAllBreakpoints,
+            subscribeToNavigationEvents,
+            ...(onBreakpointHit !== undefined && { onBreakpointHit }),
+            ...(onRunToCursorSet !== undefined && { onRunToCursorSet }),
+        }),
+        [
+            isPaused,
+            executionState,
+            currentPC,
+            debugInfo,
+            breakpoints,
+            pause,
+            resume,
+            step,
+            stepOver,
+            runToAddress,
+            toggleBreakpoint,
+            clearAllBreakpoints,
+            subscribeToNavigationEvents,
+            onBreakpointHit,
+            onRunToCursorSet,
+        ],
+    );
 
     return <EmulationContext.Provider value={value}>{children}</EmulationContext.Provider>;
 };

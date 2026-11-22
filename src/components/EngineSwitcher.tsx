@@ -1,33 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { WorkerManager } from '../services/WorkerManager';
-import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import Spinner from './Spinner';
+import { useEngineStatus } from '../hooks/useEngineStatus';
 
 interface EngineSwitcherProps {
     workerManager: WorkerManager;
 }
 
 const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
-    const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
+    const { status: engineStatus, refresh: refreshEngineStatus } = useEngineStatus(workerManager);
     const [isSwitching, setIsSwitching] = useState(false);
-
-    // Fetch engine status on mount and periodically
-    useEffect(() => {
-        const fetchStatus = async () => {
-            try {
-                const status = await workerManager.getEngineStatus();
-                setEngineStatus(status);
-            } catch (error) {
-                loggingService.error('EngineSwitcher', `Failed to get engine status: ${error}`);
-            }
-        };
-
-        fetchStatus();
-        const interval = setInterval(fetchStatus, 2000); // Update every 2 seconds
-
-        return () => clearInterval(interval);
-    }, [workerManager]);
 
     // Handle engine switching
     const handleEngineSwitch = useCallback(
@@ -37,9 +20,8 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
             setIsSwitching(true);
             try {
                 await workerManager.switchEngine(targetEngine);
-                // Fetch updated status
-                const status = await workerManager.getEngineStatus();
-                setEngineStatus(status);
+                // Shared status: the under-CRT toggle updates with this one.
+                await refreshEngineStatus();
                 loggingService.info('EngineSwitcher', `Switched to ${targetEngine} engine`);
             } catch (error) {
                 loggingService.error('EngineSwitcher', `Failed to switch engine: ${error}`);
@@ -47,7 +29,7 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
                 setIsSwitching(false);
             }
         },
-        [workerManager, engineStatus, isSwitching],
+        [workerManager, engineStatus, isSwitching, refreshEngineStatus],
     );
 
     if (!engineStatus) {

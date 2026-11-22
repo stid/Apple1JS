@@ -8,7 +8,7 @@ description: Auto-activates when discussing WASM performance, binary size, or op
 This skill activates when discussing WebAssembly performance optimization for the Apple1JS CPU emulator.
 
 > **Optimization goal: SPEED, not size.** The project deliberately chose `opt-level = 3` + `-O3`
-> wasm-opt to reach ~14× JS raw throughput, accepting a larger binary (~127KB release) in the
+> wasm-opt to reach ~5.5× JS raw throughput, accepting a larger binary (~127KB release) in the
 > trade. Older docs that say "<100KB" / "90KB" / `opt-level = "z"` describe an **abandoned
 > size-first strategy** — do not restore it without explicit user approval (it reverses the perf
 > win). See `docs/active/wasm-performance.md`.
@@ -98,7 +98,7 @@ BENCH=1 npx vitest run src/core/cpu-engines/__tests__/wasm-benchmark.vitest.test
 
 Key metrics:
 
-- **Raw cycles/sec & instructions/sec** (headless benchmark): the true throughput; WASM ≈ 14× JS.
+- **Raw cycles/sec & instructions/sec** (headless benchmark): the true throughput; WASM ≈ 5.5× JS.
 - **Host CPU / headroom** (in-app): WASM costs ~3–4× less host CPU at the same throttled IPS.
 - **Memory**: WASM heap usage vs JS memory.
 

@@ -11,8 +11,8 @@
 - **Lane:** Standard
 - **Goal:** Address every finding of the 2026-11-21 project health review as six stacked PRs
   (each branch is cut from the previous one; each bumps `src/version.ts`).
-- **Next action:** S5 — `refactor/inspector-and-polling` (cut from `fix/debugger-correctness`)
-- **Branch:** fix/debugger-correctness · **Updated:** 2026-11-21
+- **Next action:** S6 — `refactor/dead-code` (cut from `refactor/inspector-and-polling`)
+- **Branch:** refactor/inspector-and-polling · **Updated:** 2026-11-21
 
 ## STEPS
 
@@ -28,7 +28,7 @@
       breakpoint, double clock loop on load, clock tick exception, run-to-cursor transient
       breakpoint, WASM double I/O write, migrate-before-validate, awaited loadState, inspector
       placeholder values, disassembler key guard.
-- [ ] S5 `refactor/inspector-and-polling` — remove the main-thread `Apple1`; inspector tree from
+- [x] S5 `refactor/inspector-and-polling` — remove the main-thread `Apple1`; inspector tree from
       the worker; gate debug polling; memoize contexts; one engine-status source.
 - [ ] S6 `refactor/dead-code` — UI, core and Rust dead code; unused Cargo deps.
 - [ ] S7 — GitHub housekeeping: superseded Dependabot PRs, merged remote branches.
@@ -54,7 +54,15 @@
 - JS `performBulkSteps` budget check is `<` like Rust (was `<=`: one extra instruction per
   batch, and one instruction executed before reset at construction).
 
+- Not done, on measurement: a direct lookup table in `Bus` gives the JS engine +10% (67 → 74 MHz
+  headless) and would remove the cache stats the inspector shows; per-byte WASM `readRange` costs
+  well under a millisecond per save. Neither is worth the change.
+- `PerformanceMetrics` keeps its own 1s engine-status sampler (it builds a history at a
+  configurable rate); the other three consumers share `useEngineStatus`.
+
 ## OPEN QUESTIONS
+- WASM throughput is 5.5× JS today, 7.8× in 2026-09. `-O3` is confirmed applied; cause is
+  presumably the #238 toolchain refresh (rustc 1.100 / wasm-opt 133). Unconfirmed, not chased.
 
 - Unmerged remote branches `functional-play`, `gh-pages`, `claude/todo-implementation-Vwp6R`:
   delete or keep? (owner decision; not touched)
@@ -90,3 +98,11 @@
   `yarn dev:vite` serving, the same worker tests pass on the real WASM engine (848 total).
   Not done here, moved to S6: Rust B-flag on IRQ/NMI push, `(zp),Y` double read, reset cycle
   counter parity, WASM state transfer gaps.
+- 2026-11-21 — S4 done, PR #242. S5: main-thread `Apple1` removed (main chunk 226 → 110 KB,
+  gzip 60 → 28 KB; emulator modules in it 34 → 3); Inspector reads `getInspectableTree()` from the
+  worker. Debug polling gated by visible debug views + unchanged-payload skip + one fetch on
+  pause. Shared `useEngineStatus`. Browser check on WASM: 0 debug polls on Info tab, 8 per 2s on
+  Inspector/Debugger; one poke to $D012 prints one char; resume on a breakpoint at $FF2C advances
+  one 7-cycle loop; arrows navigate the disassembler with the emulator input focused; console
+  clean. Found that the S1 "14×" doc replacement had silently not applied; fixed here and the
+  PR #239 description corrected.

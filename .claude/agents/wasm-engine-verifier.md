@@ -63,7 +63,7 @@ Check the memory bridge integrity:
 > engines to the Apple-1's ~1MHz target, so both report ~331K IPS by design. Comparing in-app
 > IPS will wrongly conclude "no speedup". There are two correct signals instead:
 >
-> - **Raw throughput** (the real ~14× gain) is only visible **unthrottled, headless**:
+> - **Raw throughput** (the real ~5.5× gain) is only visible **unthrottled, headless**:
 >   `BENCH=1 npx vitest run src/core/cpu-engines/__tests__/wasm-benchmark.vitest.test.ts`.
 > - **In-app**, the always-on signal is **Host CPU** (`hostMillisPerSecond` in `EngineMetrics`):
 >   host wall-clock ms spent executing per emulated second, shown as load% + "N× headroom" in

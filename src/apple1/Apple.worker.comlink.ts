@@ -73,6 +73,7 @@ class ComlinkWorkerAPI implements IWorkerAPI {
 
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
+    getInspectableTree = () => this.api.getInspectableTree();
 
     // Event subscription methods - forward to underlying WorkerAPI
     // Note: Callbacks are already proxied by WorkerManager

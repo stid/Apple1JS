@@ -61,6 +61,7 @@ export function createMockWorkerManager(): WorkerManager {
         // Memory Operations
         readMemoryRange: vi.fn().mockResolvedValue(new Array(256).fill(0)),
         writeMemory: vi.fn().mockResolvedValue(undefined),
+        getInspectableTree: vi.fn().mockResolvedValue({ id: 'apple1', type: 'Apple1', name: 'Apple 1', children: [] }),
         getDebugInfo: vi.fn().mockResolvedValue({ 
             CPU: {
                 pc: 0x0000, 

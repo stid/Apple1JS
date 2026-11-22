@@ -6,7 +6,6 @@ import EngineSwitcher from './EngineSwitcher';
 import PerformanceMetrics from './PerformanceMetrics';
 import CpuStateCard from './CpuStateCard';
 import ExecutionCard from './ExecutionCard';
-import { IInspectableComponent } from '../core/types';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
 import { useWorkerData } from '../contexts/WorkerDataContext';
 import { getNumericDebugValue } from '../utils/debug-helpers';
@@ -15,7 +14,6 @@ import AddressLink from './AddressLink';
 import type { WorkerManager } from '../services/WorkerManager';
 
 interface DebuggerLayoutProps {
-    root: IInspectableComponent;
     workerManager: WorkerManager;
     initialNavigation?: { address: number; target: 'memory' | 'disassembly' } | null;
     onNavigationHandled?: () => void;

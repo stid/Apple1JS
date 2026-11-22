@@ -18,6 +18,9 @@ export const REFRESH_RATES = {
 
     /** Very slow refresh for background monitoring */
     BACKGROUND: 5000,
+
+    /** Shared engine-status poll (useEngineStatus) */
+    ENGINE_STATUS: 2000,
 } as const;
 
 // Debug component specific rates
