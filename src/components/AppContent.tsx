@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from 'react';
 import Info from './Info';
-import InspectorView from './InspectorView';
+import BoardView from './BoardView';
+import PerformanceView from './PerformanceView';
 import DebuggerLayout from './DebuggerLayout';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
@@ -24,15 +25,16 @@ type Props = {
     workerManager: WorkerManager;
 };
 
-type RightTab = 'info' | 'inspector' | 'debugger';
+type RightTab = 'info' | 'board' | 'debugger' | 'performance';
 
 // Guards for persisted UI prefs: reject valid-JSON-but-invalid values from localStorage.
 const isNumber = (v: unknown): v is number => typeof v === 'number';
-const isRightTab = (v: unknown): v is RightTab => v === 'info' || v === 'inspector' || v === 'debugger';
+const isRightTab = (v: unknown): v is RightTab =>
+    v === 'info' || v === 'board' || v === 'debugger' || v === 'performance';
 
 interface AppContentInnerProps extends Props {
-    rightTab: 'info' | 'inspector' | 'debugger';
-    setRightTab: React.Dispatch<React.SetStateAction<'info' | 'inspector' | 'debugger'>>;
+    rightTab: RightTab;
+    setRightTab: React.Dispatch<React.SetStateAction<RightTab>>;
     pendingNavigation: { address: number; target: 'memory' | 'disassembly' } | null;
     setPendingNavigation: React.Dispatch<
         React.SetStateAction<{ address: number; target: 'memory' | 'disassembly' } | null>
@@ -49,7 +51,7 @@ const AppContentInner = ({
     const [supportBS, setSupportBS] = useState<boolean>(CONFIG.CRT_SUPPORT_BS);
     const [cycleAccurateTiming, setCycleAccurateTiming] = useState<boolean>(true);
     const { status: engineStatus, refresh: refreshEngineStatus } = useEngineStatus(workerManager);
-    // Structure of the machine running in the worker, for the Inspector.
+    // Structure of the machine running in the worker, for the Board.
     const [machineTree, setMachineTree] = useState<InspectableData | null>(null);
     const [isSwitchingEngine, setIsSwitchingEngine] = useState<boolean>(false);
     const hiddenInputRef = useRef<HTMLInputElement>(null);
@@ -81,11 +83,11 @@ const AppContentInner = ({
         }
     }, []);
 
-    // The Inspector describes the machine in the worker. Fetched when the tab
+    // The Board describes the machine in the worker. Fetched when the tab
     // opens (and again on an engine switch, which changes what is running), so
     // the tree and its stats belong to the system that is actually executing.
     useEffect(() => {
-        if (rightTab !== 'inspector') {
+        if (rightTab !== 'board') {
             return;
         }
         let cancelled = false;
@@ -243,8 +245,9 @@ const AppContentInner = ({
 
     const tabs: Array<{ id: RightTab; label: string }> = [
         { id: 'info', label: 'Info' },
-        { id: 'inspector', label: 'Inspector' },
+        { id: 'board', label: 'Board' },
         { id: 'debugger', label: 'Debugger' },
+        { id: 'performance', label: 'Performance' },
     ];
 
     // Tablist keyboard pattern: arrows / Home / End move the selection and keep focus
@@ -380,14 +383,13 @@ const AppContentInner = ({
                             <Info />
                         </div>
                     )}
-                    {rightTab === 'inspector' && machineTree && (
-                        <div className="overflow-auto h-full">
-                            <InspectorView root={machineTree} workerManager={workerManager} />
-                        </div>
+                    {rightTab === 'board' && machineTree && (
+                        <BoardView root={machineTree} workerManager={workerManager} />
                     )}
-                    {rightTab === 'inspector' && !machineTree && (
+                    {rightTab === 'board' && !machineTree && (
                         <div className="p-md text-text-secondary">Reading the machine structure…</div>
                     )}
+                    {rightTab === 'performance' && <PerformanceView workerManager={workerManager} />}
                     {rightTab === 'debugger' && (
                         <div className="h-full" style={{ overflow: 'hidden' }}>
                             <DebuggerLayout

@@ -2,8 +2,6 @@ import React, { useEffect } from 'react';
 import DisassemblerPaginated from './DisassemblerPaginated';
 import MemoryViewerPaginated from './MemoryViewerPaginated';
 import StackViewer from './StackViewer';
-import EngineSwitcher from './EngineSwitcher';
-import PerformanceMetrics from './PerformanceMetrics';
 import CpuStateCard from './CpuStateCard';
 import ExecutionCard from './ExecutionCard';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
@@ -121,9 +119,6 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
                             {/* Execution controls now live in the always-visible bar
                                 (ExecutionControlsCluster) — not duplicated here. */}
 
-                            {/* Engine Switcher */}
-                            <EngineSwitcher workerManager={workerManager} />
-
                             {/* CPU State */}
                             <CpuStateCard debugInfo={debugInfo} workerManager={workerManager} />
 
@@ -220,9 +215,6 @@ const DebuggerLayout: React.FC<DebuggerLayoutProps> = ({
 
                         {/* Right Column */}
                         <div className="space-y-md">
-                            {/* Performance Metrics */}
-                            <PerformanceMetrics workerManager={workerManager} />
-
                             {/* Stack View */}
                             <div className="card">
                                 <h3 className="card-title mb-sm">Stack</h3>
