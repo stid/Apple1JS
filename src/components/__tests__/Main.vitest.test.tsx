@@ -58,6 +58,12 @@ describe('Main component', () => {
         expect(screen.getByText(`v${APP_VERSION}`)).toHaveClass('badge');
     });
 
+    it('links the author credit to stid.me', () => {
+        render(<Main workerManager={mockWorkerManager} />);
+
+        expect(screen.getByRole('link', { name: 'stid' })).toHaveAttribute('href', 'https://stid.me');
+    });
+
     it('links to the source repository', () => {
         render(<Main workerManager={mockWorkerManager} />);
 

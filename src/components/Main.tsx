@@ -19,7 +19,10 @@ const Main: React.FC<MainProps> = ({ workerManager }) => {
                         apple1js
                     </h1>
                     <span className="font-mono text-xs text-text-tertiary truncate">
-                        apple-1 emulator · 6502 · by stid
+                        apple-1 emulator · 6502 · by{' '}
+                        <a href="https://stid.me" target="_blank" rel="noopener noreferrer">
+                            stid
+                        </a>
                     </span>
                 </div>
                 <div className="flex items-center gap-md flex-none">
