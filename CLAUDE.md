@@ -40,7 +40,7 @@ yarn wasm:build:release                           # 5. build WASM (release = spe
 ## Engine Development Commands
 
 ```bash
-yarn wasm:build:release   # speed-first release build (~155KB) — what yarn dev ships
+yarn wasm:build:release   # speed-first release build (~127KB) — what yarn dev ships
 yarn wasm:build:dev       # debug build, ~10x slower — Rust debugging only
 yarn wasm:check           # cd wasm-cpu && cargo check (quick rebuild)
 yarn wasm:test            # cd wasm-cpu && cargo test
@@ -78,7 +78,7 @@ Full detail: `docs/active/wasm-performance.md`. Key facts:
   ~331K) — it does NOT show the WASM gain. Never compare engines by in-app IPS.
 - **Host CPU / headroom** (`hostMillisPerSecond`) is the in-app signal of the
   real difference: WASM costs ~3–4× less at the same IPS.
-- **WASM binary**: ~155KB release (**speed-first** `opt-level = 3` + `-O3`
+- **WASM binary**: ~127KB release (**speed-first** `opt-level = 3` + `-O3`
   wasm-opt). The old "<100KB / 90KB" target was an abandoned size-first strategy
   — don't restore it without approval.
 

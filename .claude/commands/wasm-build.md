@@ -4,7 +4,7 @@ Build the WASM CPU module for Apple1JS dual-engine system.
 
 ## Usage
 
-- `/wasm-build` - Release build, the default (`yarn wasm:build:release`, speed-optimized, ~155KB)
+- `/wasm-build` - Release build, the default (`yarn wasm:build:release`, speed-optimized, ~127KB)
 - `/wasm-build dev` - Debug build for Rust debugging only (`yarn wasm:build:dev`) — **~10× slower,
   never benchmark or ship it**
 
@@ -21,7 +21,7 @@ Build the WASM CPU module for Apple1JS dual-engine system.
     - `apple1_cpu_wasm.d.ts`
     - `apple1_cpu_wasm_bg.wasm`
 4. Report the WASM binary size
-5. For release builds, expect **~155KB** (speed-first `opt-level = 3` + `-O3` wasm-opt). A drop
+5. For release builds, expect **~127KB** (speed-first `opt-level = 3` + `-O3` wasm-opt). A drop
    toward ~90KB means someone reverted to size-first `opt-level = "z"` — flag it, don't celebrate it.
 
 ## Expected Output

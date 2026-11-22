@@ -1,12 +1,8 @@
-dist/*
-!dist/_headers
+dist/
 node_modules
-.parcel-cache/
 *.log
 .DS_Store
-junit.xml
-# Local Netlify folder
-.netlify
+test-results/
 tmp
 
 *.tsbuildinfo

@@ -69,7 +69,7 @@ Key meanings:
   scoped to the **core/IO layer**, not React presentational components.
 - **Use the `Formatters` utility** (e.g. `Formatters.hexWord(addr)`) — never manual `toString(16)`;
   worker comms go through typed `sendWorkerMessage(...)`.
-- **WASM build is speed-first** (`opt-level = 3`, ~155 KB); don't restore the size-first (<100 KB)
+- **WASM build is speed-first** (`opt-level = 3`, ~127KB); don't restore the size-first (<100 KB)
   target without approval.
 
 <!--
