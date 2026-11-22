@@ -11,3 +11,4 @@
 2026-11-21 · stid-design-system · 3 signals · Standard · hard:no · risk:no
 2026-11-21 · board-explorer · 4 signals · Standard · hard:no · risk:no
 2026-11-21 · board-explorer · closeout · Standard · audit: PASS (test-presence) · re-routes: 0 · interventions: 0
+2026-11-21 · board-activity · 5 signals · Deep · hard:yes · risk:yes
