@@ -310,7 +310,7 @@ bytes of ROM at `$FF00`, PIA at `$D010`.
 ## 5. RAM and ROM
 
 Both engines fill RAM with zeros on construction and reset — `src/core/RAM.ts:101`, `:155` and
-`wasm-cpu/src/ram.rs:25` (`vec![0; size]`). Real Apple 1 DRAM comes up with indeterminate
+`wasm-cpu/src/bus.rs` (`set_ram` zero-fills the RAM regions). Real Apple 1 DRAM comes up with indeterminate
 contents. Low impact — WOZMON does not depend on it — but it does mean the emulator never
 reproduces the class of bugs that only appear on uninitialised memory (finding 15). Note this is
 the one place the two engines agree on a fill value: for _unmapped_ addresses they do not (§4).

@@ -2,25 +2,71 @@
 
 ## Summary
 
-The WASM 6502 engine is **~8× faster than the JS engine** on raw throughput. Earlier
-observations of "160 IPS" were a **metrics defect**, not an engine problem, compounded by
-`yarn dev` loading an unoptimized debug WASM build.
+The WASM 6502 engine is **about 6× faster than the JS engine** in the headless vitest benchmark,
+and **about 4× faster than the JS engine as it ships** (bundled). Earlier observations of
+"160 IPS" were a **metrics defect**, not an engine problem, compounded by `yarn dev` loading an
+unoptimized debug WASM build.
 
-| Build / engine              | cycles/sec | effective MHz | vs JS |
-| --------------------------- | ---------: | ------------: | ----: |
-| JS (`CPU6502`)              |      ~67 M |       ~67 MHz |    1× |
-| WASM `--release` + wasm-opt |     ~366 M |      ~366 MHz | ~5.5× |
+Measured 2026-11-21 after the bus-decode rewrite below, three runs each, on the two benchmark
+workloads (cycles/sec, vitest):
 
-Measured 2026-11-21 (three runs: 5.39×, 5.48×, 5.61×) with rustc 1.100.0, wasm-pack 0.15.1 and
-wasm-opt 133. The previous measurement (2026-09, before the #238 toolchain refresh) was ~56 M JS
-/ ~443 M WASM = 7.8×: JS has become about 20% faster and WASM about 17% slower. The release
-binary also shrank from ~155 KB to ~127 KB over the same refresh. `-O3` is still applied (the
-shipped binary is byte-identical in size to a manual `wasm-opt -O3` of the unoptimized build), so
-the configuration is intact; the likely cause is code generation in the newer rustc/wasm-opt, which
-has not been confirmed.
+| Engine                      | Tight loop | Memory sweep |
+| --------------------------- | ---------: | -----------: |
+| JS (`CPU6502`)              |      ~87 M |       ~105 M |
+| WASM `--release` + wasm-opt |     ~560 M |       ~783 M |
+| WASM / JS                   |      ~6.4× |        ~7.5× |
+
+**The vitest benchmark understates the JS engine.** The same JS engine bundled with esbuild and
+run in plain Node (the form the browser gets from the production build) does ~150 M cycles/s on
+the tight loop and ~178 M on the memory sweep, about 1.7× its vitest figure. Against those the
+WASM engine is ~3.7× and ~4.4× faster. The gap is measured; its cause is not confirmed (the
+likely one is vitest's module transform, which turns references across modules, such as the
+opcode table, into property lookups). WASM runs the same binary either way. Use the vitest
+figures to compare a change against its baseline, not as the ratio a user gets.
+
+### Bus-decode rewrite (2026-11-21)
+
+Both engines spent much of each bus access finding out which device an address belongs to.
+
+- **JS `Bus`** looked every address up in a 256-entry `Map` used as an LRU cache and fell back to
+  a binary search plus an eviction on a miss. A program touching more than 256 addresses missed
+  constantly. It now reads one entry of a 256-entry per-page table; only a page that is partly
+  mapped or shared between devices still gets the binary search (none on the Apple 1).
+- **WASM `Bus`** went through a 64K region table, an `Option` check on the RAM/ROM component, a
+  size comparison and a `Vec` bounds check. It now holds the whole address space in one
+  `[u8; 65536]` (RAM, the ROM image at `$FF00`, `0xFF` where nothing answers) with one kind per
+  page, so a RAM or ROM access is a table load and an array load with no range check.
+
+| Engine (cycles/sec)   | Workload     | Before | After | Change |
+| --------------------- | ------------ | -----: | ----: | -----: |
+| JS, vitest            | tight loop   |   68 M |  87 M |   +28% |
+| JS, vitest            | memory sweep |   35 M | 105 M |  +200% |
+| JS, bundled           | tight loop   |  105 M | 150 M |   +43% |
+| JS, bundled           | memory sweep |   38 M | 178 M |  +370% |
+| WASM                  | tight loop   |  381 M | 560 M |   +47% |
+| WASM                  | memory sweep |  470 M | 783 M |   +67% |
+
+The memory sweep was added to the benchmark for this work: the original tight loop touches ten
+addresses, so it never left the JS cache and could not show the cost of a miss. The release
+binary grew from 79 KB to 85 KB.
+
+Tried and dropped, because they measured no better or worse: a branchless N/Z flag update and a
+direct step call in the WASM run loop (560 M → 509 M on the tight loop), and a JS step loop that
+skips the debug-mode checks when none is enabled (+5% bundled, for a second copy of the step
+logic).
+
+### History of the headline ratio
+
+Before the rewrite the vitest benchmark gave ~67 M JS / ~366 M WASM = ~5.5× (2026-11-21, three
+runs: 5.39×, 5.48×, 5.61×; rustc 1.100.0, wasm-pack 0.15.1, wasm-opt 133). The measurement before
+that (2026-09, before the #238 toolchain refresh) was ~56 M JS / ~443 M WASM = 7.8×: over the
+refresh JS became about 20% faster and WASM about 17% slower, and the release binary shrank from
+~155 KB to ~127 KB. `-O3` was still applied (the shipped binary was byte-identical in size to a
+manual `wasm-opt -O3` of the unoptimized build), so the configuration was intact; the likely cause
+is code generation in the newer rustc/wasm-opt, which has not been confirmed.
 
 After the 2026-11 dead-code removal (only `WasmSystem` is exported to JS now) the release binary
-is ~75 KB and throughput is unchanged to slightly better: ~374 M cycles/s, 5.6× JS.
+was ~75 KB with throughput unchanged to slightly better: ~374 M cycles/s, 5.6× JS.
 
 ### Cost of the bus-activity counters (2026-11-21, #247)
 
@@ -40,8 +86,9 @@ accesses in eleven cycles. The release binary grew from 75.0 KB to 79.1 KB.
 A first version used a `Float64Array` on the JS engine and cost it 6.9%. A `Uint32Array` brought
 that down to the figure above, which is why the counters are 32-bit and wrap on both engines.
 
-(Apple M-series, headless benchmark, RAM-only `LDA #/STA zp/LDA zp/JMP` loop = 11 cycles per 4
-instructions. Absolute numbers vary by machine; the **ratio** is the durable result.)
+(Apple M-series, headless benchmark. The tight loop is a RAM-only `LDA #/STA zp/LDA zp/JMP` =
+11 cycles per 4 instructions; the memory sweep is a `(zp),Y` block copy over eight pages of each
+RAM bank. Absolute numbers vary by machine; the **ratio** is the durable result.)
 
 The "~14×" figure this doc used to quote was measured while the WASM engine **over-reported
 cycles** (issue #215: bus helpers and opcode arms both counted, ~1.8× on this loop). The
@@ -111,8 +158,9 @@ yarn wasm:build:release
 BENCH=1 npx vitest run src/core/cpu-engines/__tests__/wasm-benchmark.vitest.test.ts
 ```
 
-The benchmark is gated behind `BENCH` so it never runs in normal CI. It reports cycles/sec,
-instructions/sec, and the WASM/JS ratio for each engine, and prints the requested-vs-actual cycle
+The benchmark is gated behind `BENCH` so it never runs in normal CI. It runs two workloads (a
+tight loop and a memory sweep) and reports cycles/sec, instructions/sec, and the WASM/JS ratio for
+each engine, and prints the requested-vs-actual cycle
 count (so an early-break regression would be obvious).
 
 ## Build note (toolchain)

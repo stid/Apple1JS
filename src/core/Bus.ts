@@ -8,6 +8,9 @@ import { Formatters } from '../utils/formatters';
  */
 const OPEN_BUS = 0xff;
 
+/** 256-byte pages in the 64K address space. */
+const PAGE_COUNT = 256;
+
 /**
  * Offset of `address` within its mapping, honouring partial decoding.
  * Without a mask this is plain exact decoding.
@@ -23,10 +26,7 @@ class Bus implements IInspectableComponent {
     name?: string;
     private busMapping: Array<BusSpaceType>;
     private sortedAddrs: Array<BusSpaceType>;
-    private addressCache: Map<number, BusSpaceType> = new Map();
-    private readonly maxCacheSize = 256;
-    private cacheHits = 0;
-    private cacheAccesses = 0;
+    private pageTable: Array<BusSpaceType | null | undefined>;
 
     /**
      * Returns a standardized view of the Bus component.
@@ -59,19 +59,11 @@ class Bus implements IInspectableComponent {
             state: {
                 mappingCount: this.busMapping.length,
                 sorted: this.sortedAddrs.length > 0,
-                cacheSize: this.addressCache.size,
-            },
-            stats: {
-                cacheHitRate: this.getCacheHitRate().toFixed(1) + '%',
-                cacheAccesses: this.cacheAccesses,
-                cacheHits: this.cacheHits
             },
             children,
             // Backward compatibility - flat properties
             mappingCount: this.busMapping.length,
             sorted: this.sortedAddrs.length > 0,
-            cacheSize: this.addressCache.size,
-            cacheHitRate: this.getCacheHitRate(),
         };
     }
 
@@ -83,23 +75,7 @@ class Bus implements IInspectableComponent {
         this.busMapping = busMapping;
         this.sortedAddrs = this.sortAddresses(busMapping);
         this.validate();
-    }
-
-    /**
-     * Get cache hit rate for performance monitoring.
-     * @returns Cache hit rate as a percentage (0-100).
-     */
-    private getCacheHitRate(): number {
-        return this.cacheAccesses === 0 ? 0 : (this.cacheHits / this.cacheAccesses) * 100;
-    }
-
-    /**
-     * Clear the address cache.
-     */
-    clearCache(): void {
-        this.addressCache.clear();
-        this.cacheHits = 0;
-        this.cacheAccesses = 0;
+        this.pageTable = this.buildPageTable();
     }
 
     /**
@@ -130,56 +106,59 @@ class Bus implements IInspectableComponent {
     }
 
     /**
-     * Find the component instance containing the given address using cached lookup with binary search fallback.
-     * @param address - The memory address to search for.
-     * @returns The BusSpaceType object containing the address, or undefined if not found.
+     * Build the per-page decode table: for each 256-byte page, the mapping that
+     * covers all of it, `null` when no mapping touches it, or `undefined` when
+     * the page is only partly covered or shared and needs a search.
      */
-    private findInstanceWithAddress(address: number): BusSpaceType | undefined {
-        this.cacheAccesses++;
-
-        // Try cache first
-        const cached = this.addressCache.get(address);
-        if (cached && address >= cached.addr[0] && address <= cached.addr[1]) {
-            this.cacheHits++;
-            return cached;
+    private buildPageTable(): Array<BusSpaceType | null | undefined> {
+        const table: Array<BusSpaceType | null | undefined> = new Array(PAGE_COUNT);
+        for (let page = 0; page < PAGE_COUNT; page++) {
+            const first = page << 8;
+            const last = first | 0xff;
+            const touching = this.sortedAddrs.filter((space) => space.addr[0] <= last && space.addr[1] >= first);
+            if (touching.length === 0) {
+                table[page] = null;
+            } else if (touching.length === 1 && touching[0].addr[0] <= first && touching[0].addr[1] >= last) {
+                table[page] = touching[0];
+            } else {
+                table[page] = undefined;
+            }
         }
+        return table;
+    }
 
-        // Binary search fallback
+    /**
+     * Find the mapping that contains the given address.
+     *
+     * One table read settles every page that is wholly mapped or wholly empty,
+     * which on the Apple 1 is all of them. A page index outside the table (an
+     * address the CPU formed beyond $FFFF) reads `undefined` like a mixed page
+     * and falls through to the search, which finds nothing.
+     */
+    private findInstanceWithAddress(address: number): BusSpaceType | null {
+        const space = this.pageTable[address >> 8];
+        return space !== undefined ? space : this.searchMappings(address);
+    }
+
+    /** Binary search over the sorted mappings, for pages the table cannot settle. */
+    private searchMappings(address: number): BusSpaceType | null {
         let left = 0;
         let right = this.sortedAddrs.length - 1;
 
         while (left <= right) {
-            const mid = Math.floor((left + right) / 2);
+            const mid = (left + right) >> 1;
             const current = this.sortedAddrs[mid];
 
-            if (address >= current.addr[0] && address <= current.addr[1]) {
-                // Cache the result
-                this.cacheAddress(address, current);
-                return current;
-            } else if (address < current.addr[0]) {
+            if (address < current.addr[0]) {
                 right = mid - 1;
-            } else {
+            } else if (address > current.addr[1]) {
                 left = mid + 1;
+            } else {
+                return current;
             }
         }
 
-        return undefined;
-    }
-
-    /**
-     * Cache an address mapping, implementing LRU eviction when cache is full.
-     * @param address - The memory address to cache.
-     * @param busSpace - The BusSpaceType containing this address.
-     */
-    private cacheAddress(address: number, busSpace: BusSpaceType): void {
-        if (this.addressCache.size >= this.maxCacheSize) {
-            // Simple LRU: remove the first (oldest) entry
-            const firstKey = this.addressCache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.addressCache.delete(firstKey);
-            }
-        }
-        this.addressCache.set(address, busSpace);
+        return null;
     }
 
     /**
@@ -231,11 +210,6 @@ class Bus implements IInspectableComponent {
             const name: string = element.name || 'Unknown';
             result[name] = `[${from}]:[${to}]`;
         });
-        
-        // Cache performance statistics
-        result['CACHE'] = `${this.addressCache.size}/${this.maxCacheSize}`;
-        result['HIT_RATE'] = `${this.getCacheHitRate().toFixed(1)}%`;
-        result['ACCESSES'] = `${this.cacheAccesses}`;
         
         return result;
     }
