@@ -40,7 +40,7 @@ Track and record JS vs WASM performance metrics over time to monitor optimizatio
 - **Host CPU / headroom** (in-app): host ms per emulated second; the real difference at throttled IPS
 - **Cycle Accuracy**: Verify cycle counts match reference
 - **Memory Efficiency**: Heap usage during execution
-- **Binary Size**: WASM module size (~127KB release, speed-first — see note below)
+- **Binary Size**: WASM module size (~75KB release, speed-first — see note below)
 
 ## Output Format
 
@@ -58,7 +58,7 @@ Speedup    | X.Xx       | -XX%       | -XX%    | -XX%
 Target Status: [MET/NOT MET]
 - Raw WASM IPS clearly > JS (headless): [status]
 - Memory < 50% of JS: [status]
-(Binary size is ~127KB, speed-first; not a "<100KB" target anymore.)
+(Binary size is ~75KB, speed-first; not a "<100KB" target anymore.)
 ```
 
 ## Historical Tracking

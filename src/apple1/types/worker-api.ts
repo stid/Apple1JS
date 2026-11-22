@@ -272,5 +272,4 @@ export interface IWorkerState {
     isPaused: boolean;
     isStepping: boolean;
     debuggerActive: boolean;
-    debugUpdateInterval: number | null;
 }

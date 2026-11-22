@@ -5,6 +5,9 @@
  * optimized for WebAssembly execution.
  */
 
+// RAM, ROM and CPU6502 are the names of the parts, not acronyms to re-case.
+#![allow(clippy::upper_case_acronyms)]
+
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -19,14 +22,14 @@ mod ram;
 mod rom;
 mod system;
 
-// Re-exports
-pub use bus::Bus;
-pub use cpu::CPU6502;
-pub use ram::RAM;
-pub use rom::ROM;
+// `WasmSystem` is the only type exported to JavaScript. The components below
+// are internal: keeping them out of the JS API lets the compiler see (and
+// strip) what is unused, which a `#[wasm_bindgen]` export hides from it.
+pub(crate) use bus::Bus;
+pub(crate) use cpu::CPU6502;
+pub(crate) use ram::RAM;
+pub(crate) use rom::ROM;
 pub use system::WasmSystem;
-// Temporarily comment out rayon until needed
-// pub use wasm_bindgen_rayon::init_thread_pool;
 
 // Console logging for debugging
 #[cfg(target_arch = "wasm32")]
@@ -34,12 +37,6 @@ pub use system::WasmSystem;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
-
-    #[wasm_bindgen(js_namespace = console)]
-    fn error(s: &str);
-
-    #[wasm_bindgen(js_namespace = performance)]
-    fn now() -> f64;
 
     // Memory bridge functions for I/O operations
     // These are only called for I/O regions (0xD010-0xD013 PIA)
@@ -60,11 +57,6 @@ extern "C" {
 #[cfg(not(target_arch = "wasm32"))]
 mod native_host {
     pub fn log(_s: &str) {}
-    #[allow(dead_code)]
-    pub fn error(_s: &str) {}
-    pub fn now() -> f64 {
-        0.0
-    }
     #[allow(non_snake_case)]
     pub fn readByte(_address: u16) -> u8 {
         0
@@ -73,8 +65,7 @@ mod native_host {
     pub fn writeByte(_address: u16, _value: u8) {}
 }
 #[cfg(not(target_arch = "wasm32"))]
-#[allow(unused_imports)]
-use native_host::{error, log, now, readByte, writeByte};
+use native_host::{log, readByte, writeByte};
 
 // Export memory bridge functions for internal use
 pub(crate) fn bus_read(address: u16) -> u8 {
@@ -89,12 +80,6 @@ pub(crate) fn bus_write(address: u16, value: u8) {
 #[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => ($crate::log(&format_args!($($t)*).to_string()))
-}
-
-// Macro for console error
-#[macro_export]
-macro_rules! console_error {
-    ($($t:tt)*) => ($crate::error(&format_args!($($t)*).to_string()))
 }
 
 /// CPU State structure for serialization

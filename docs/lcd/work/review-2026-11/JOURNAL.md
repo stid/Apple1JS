@@ -11,8 +11,9 @@
 - **Lane:** Standard
 - **Goal:** Address every finding of the 2026-11-21 project health review as six stacked PRs
   (each branch is cut from the previous one; each bumps `src/version.ts`).
-- **Next action:** S6 — `refactor/dead-code` (cut from `refactor/inspector-and-polling`)
-- **Branch:** refactor/inspector-and-polling · **Updated:** 2026-11-21
+- **Next action:** done — PRs #239 → #244 await review and merge in order (each is based on the
+  previous branch; expect `src/version.ts` to need a rebase as they land)
+- **Branch:** refactor/dead-code · **Updated:** 2026-11-21
 
 ## STEPS
 
@@ -30,8 +31,10 @@
       placeholder values, disassembler key guard.
 - [x] S5 `refactor/inspector-and-polling` — remove the main-thread `Apple1`; inspector tree from
       the worker; gate debug polling; memoize contexts; one engine-status source.
-- [ ] S6 `refactor/dead-code` — UI, core and Rust dead code; unused Cargo deps.
-- [ ] S7 — GitHub housekeeping: superseded Dependabot PRs, merged remote branches.
+- [x] S6 `refactor/dead-code` — UI, core and Rust dead code; unused Cargo deps.
+- [x] S7 — GitHub housekeeping: seven superseded Dependabot PRs closed. Merged remote branches
+      (`add-rom-char`, `perf/reduce-debugger-overhead`, `chore/update-deps-2026-11`) NOT deleted:
+      the permission classifier denied it; needs the owner's explicit go-ahead.
 
 ## DECISIONS (this work-item)
 
@@ -60,7 +63,18 @@
 - `PerformanceMetrics` keeps its own 1s engine-status sampler (it builds a history at a
   configurable rate); the other three consumers share `useEngineStatus`.
 
+- Kept on purpose: `Apple1.saveState/applyState` and the Clock state methods (the "new" state
+  path with no production caller). Docs name them as the intended contract; choosing between the
+  two save paths changes the save-file format and is the owner's call.
+- Kept: `trigger_irq`/`clear_irq`/`trigger_nmi` on `WasmSystem` (unused from TS, but the interrupt
+  lines of the CPU and now covered by native tests).
+
 ## OPEN QUESTIONS
+- Two save/load systems: the worker uses the "deprecated" `saveEmulatorState`/`loadEmulatorState`;
+  the versioned `saveState`/`applyState` is unused in production. Which one stays?
+- Slow character output (~8 cps instead of ~60) in a freshly loaded tab while the clock reports
+  about -33% drift. Seen on master too, both engines, clears by itself. Cause not established
+  (suspect: timer starvation right after load interacting with the 17 ms host-paced display delay).
 - WASM throughput is 5.5× JS today, 7.8× in 2026-09. `-O3` is confirmed applied; cause is
   presumably the #238 toolchain refresh (rustc 1.100 / wasm-opt 133). Unconfirmed, not chased.
 
@@ -106,3 +120,12 @@
   one 7-cycle loop; arrows navigate the disassembler with the emulator input focused; console
   clean. Found that the S1 "14×" doc replacement had silently not applied; fixed here and the
   PR #239 description corrected.
+- 2026-11-21 — S5 done, PR #243. S6: 5,000+ lines of dead TS removed (services, hooks/worker,
+  `__integration__`, legacy postMessage types, unused constants); scan script stood in for knip.
+  Rust: only `WasmSystem` exported, compiler-driven sweep removed 49 dead fns, unused deps dropped
+  (Cargo.lock -553 lines), clippy clean with `-D warnings` and in CI. Native tests RED then GREEN
+  for B flag on IRQ/NMI push and the `(zp),Y` overflow at $FFFE. Release WASM 127 → 75 KB, 373 MHz.
+  779 tests pass with the real WASM served. A slow-output scare during the smoke test was bisected
+  and found to be pre-existing and transient (see OPEN QUESTIONS), not caused by this step.
+- 2026-11-21 — S6 done, PR #244, CI green on all six PRs. S7: Dependabot PRs #220 #221 #224 #229
+  #230 #231 #233 closed as superseded by #238. Closeout appended (no surface declared → audit n/a).

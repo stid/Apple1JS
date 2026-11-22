@@ -6,7 +6,6 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen, act, fireEvent } from '../../test-utils/render';
 import InspectorView from '../InspectorView';
 import { IInspectableComponent } from '../../core/types/components';
-import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
 import { WorkerDataProvider } from '../../contexts/WorkerDataContext';
 
 // Mock the WorkerDataContext
@@ -182,21 +181,6 @@ describe('InspectorView component', () => {
 
     it('should handle empty debug data gracefully', () => {
         renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
-        
-        const worker = mockWorkerManager.getWorker();
-        const addEventListener = worker?.addEventListener as Mock;
-        const messageHandler = addEventListener?.mock.calls.find(call => call[0] === 'message')?.[1];
-        
-        if (messageHandler) {
-            act(() => {
-                messageHandler({
-                    data: {
-                        type: WORKER_MESSAGES.DEBUG_INFO,
-                        data: {}
-                    }
-                });
-            });
-        }
 
         // Should still show architecture tree
         expect(screen.getByText('Architecture Tree')).toBeInTheDocument();

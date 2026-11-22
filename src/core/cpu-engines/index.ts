@@ -7,7 +7,7 @@
 export { JSEngine } from './JSEngine';
 export { WasmEngine } from './WasmEngine';
 export { DualEngine } from './DualEngine';
-export { initializeWasmModule, isWasmSupported, getWasmStatus, resetWasmModule } from './wasm-loader';
+export { initializeWasmModule, isWasmSupported } from './wasm-loader';
 
 // Re-export interface types for convenience
 export type {

@@ -173,11 +173,6 @@ export class WorkerAPI implements IWorkerAPI {
         this.workerState.apple1.clock.pause();
         this.workerState.isPaused = true;
 
-        // Update debug interval if debugger is active
-        if (this.workerState.debuggerActive) {
-            this.workerState.updateDebuggerState(true);
-        }
-
         // Notify status callbacks
         this.statusEvent.emit('paused');
     }
@@ -186,11 +181,6 @@ export class WorkerAPI implements IWorkerAPI {
         this.stepOffBreakpointUnderPC();
         this.workerState.apple1.clock.resume();
         this.workerState.isPaused = false;
-
-        // Update debug interval if debugger is active
-        if (this.workerState.debuggerActive) {
-            this.workerState.updateDebuggerState(true);
-        }
 
         // Notify status callbacks
         this.statusEvent.emit('running');
@@ -479,7 +469,8 @@ export class WorkerAPI implements IWorkerAPI {
     }
 
     setDebuggerActive(active: boolean): void {
-        this.workerState.updateDebuggerState(active);
+        // Debug data is pulled by the UI; the worker only records the flag.
+        this.workerState.debuggerActive = active;
     }
 
     // ========== CPU Engine Management ==========
