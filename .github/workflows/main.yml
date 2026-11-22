@@ -38,10 +38,16 @@ jobs:
                       ${{ runner.os }}-cargo-
 
             - name: Install wasm-pack
+              # ~/.cargo/bin is cached, so check the version, not just presence:
+              # a restored older binary would otherwise never be replaced.
+              env:
+                  WASM_PACK_VERSION: 0.15.1
               run: |
-                  if ! command -v wasm-pack &> /dev/null; then
-                      curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+                  if ! wasm-pack --version 2>/dev/null | grep -q "$WASM_PACK_VERSION"; then
+                      rm -f ~/.cargo/bin/wasm-pack
+                      curl https://wasm-bindgen.github.io/wasm-pack/installer/init.sh -sSf | sh
                   fi
+                  wasm-pack --version
 
             - name: Build WASM module
               run: |
