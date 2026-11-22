@@ -12,7 +12,8 @@ import type { WorkerManager } from '../../services/WorkerManager';
 // Stub heavy / irrelevant children; keep Actions real so SAVE/LOAD controls exist.
 vi.mock('../CRTWorker', () => ({ __esModule: true, default: () => <div data-testid="crt-worker" /> }));
 vi.mock('../Info', () => ({ __esModule: true, default: () => <div /> }));
-vi.mock('../InspectorView', () => ({ __esModule: true, default: () => <div /> }));
+vi.mock('../BoardView', () => ({ __esModule: true, default: () => <div /> }));
+vi.mock('../PerformanceView', () => ({ __esModule: true, default: () => <div /> }));
 vi.mock('../DebuggerLayout', () => ({ __esModule: true, default: () => <div /> }));
 
 // Expose the engine-switch handler through a simple button.

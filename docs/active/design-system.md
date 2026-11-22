@@ -99,7 +99,7 @@ in `src/**` so colors can't sneak back in outside the token file.
 - **componentColors are PascalCase → lowercase:** token keys are component type names
   (`RAM`, `ROM`, `Bus`, `CPU`, `CPU6502`, `PIA6820`, `IoComponent`, `Clock`); the adapter
   maps them to `component-{ram,rom,bus,cpu,pia,io,clock}`. `CPU` and `CPU6502` share one
-  value and both collapse to `component-cpu`. `InspectorView.getComponentColor` mirrors
+  value and both collapse to `component-cpu`. `BoardView`'s `typeColorClass` mirrors
   this map for runtime `node.type` → class lookups.
 - **`toggle-active` / `toggle-inactive` carry state, not just a hue:** use them when a
   control's colour should reflect a boolean ON/OFF (e.g. the Backspace and Cycle timing

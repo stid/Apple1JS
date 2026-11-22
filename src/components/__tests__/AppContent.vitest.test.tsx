@@ -12,9 +12,14 @@ vi.mock('../Info', () => ({
     default: () => <div data-testid="info-component">Info Component</div>,
 }));
 
-vi.mock('../InspectorView', () => ({
+vi.mock('../BoardView', () => ({
     __esModule: true,
-    default: () => <div data-testid="inspector-component">Inspector Component</div>,
+    default: () => <div data-testid="board-component">Board Component</div>,
+}));
+
+vi.mock('../PerformanceView', () => ({
+    __esModule: true,
+    default: () => <div data-testid="performance-component">Performance Component</div>,
 }));
 
 vi.mock('../DebuggerLayout', () => ({
@@ -396,13 +401,13 @@ describe('AppContent', () => {
             const hiddenInput = document.querySelector(
                 'input[aria-label="Hidden input for keyboard focus"]',
             ) as HTMLInputElement;
-            const inspectorTab = getByText('Inspector');
+            const boardTab = getByText('Board');
 
             // Mock focus method
             const focusSpy = vi.spyOn(hiddenInput, 'focus');
 
             act(() => {
-                fireEvent.click(inspectorTab);
+                fireEvent.click(boardTab);
             });
 
             expect(focusSpy).toHaveBeenCalled();
@@ -414,32 +419,33 @@ describe('AppContent', () => {
             const { getByRole } = render(<AppContent workerManager={mockWorkerManager} />);
 
             expect(getByRole('tab', { name: 'Info' })).toHaveAttribute('tabindex', '0');
-            expect(getByRole('tab', { name: 'Inspector' })).toHaveAttribute('tabindex', '-1');
+            expect(getByRole('tab', { name: 'Board' })).toHaveAttribute('tabindex', '-1');
             expect(getByRole('tab', { name: 'Debugger' })).toHaveAttribute('tabindex', '-1');
+            expect(getByRole('tab', { name: 'Performance' })).toHaveAttribute('tabindex', '-1');
         });
 
         it('moves between Views tabs with the arrow keys and keeps focus on the tab', () => {
             window.localStorage.clear(); // the selected tab is persisted; start from the default (Info)
             const { getByRole } = render(<AppContent workerManager={mockWorkerManager} />);
             const info = getByRole('tab', { name: 'Info' });
-            const inspector = getByRole('tab', { name: 'Inspector' });
-            const debuggerTab = getByRole('tab', { name: 'Debugger' });
+            const board = getByRole('tab', { name: 'Board' });
+            const lastTab = getByRole('tab', { name: 'Performance' });
 
             act(() => {
                 info.focus();
                 fireEvent.keyDown(info, { key: 'ArrowRight' });
             });
-            expect(inspector).toHaveAttribute('aria-selected', 'true');
-            expect(inspector).toHaveFocus(); // not handed to the CRT's hidden input
+            expect(board).toHaveAttribute('aria-selected', 'true');
+            expect(board).toHaveFocus(); // not handed to the CRT's hidden input
 
             act(() => {
-                fireEvent.keyDown(inspector, { key: 'End' });
+                fireEvent.keyDown(board, { key: 'End' });
             });
-            expect(debuggerTab).toHaveAttribute('aria-selected', 'true');
-            expect(debuggerTab).toHaveFocus();
+            expect(lastTab).toHaveAttribute('aria-selected', 'true');
+            expect(lastTab).toHaveFocus();
 
             act(() => {
-                fireEvent.keyDown(debuggerTab, { key: 'ArrowRight' }); // wraps
+                fireEvent.keyDown(lastTab, { key: 'ArrowRight' }); // wraps
             });
             expect(info).toHaveAttribute('aria-selected', 'true');
             expect(info).toHaveFocus();
@@ -447,7 +453,7 @@ describe('AppContent', () => {
             act(() => {
                 fireEvent.keyDown(info, { key: 'ArrowLeft' }); // wraps back
             });
-            expect(debuggerTab).toHaveFocus();
+            expect(lastTab).toHaveFocus();
         });
 
         it('should handle onChange events properly (controlled input)', () => {
