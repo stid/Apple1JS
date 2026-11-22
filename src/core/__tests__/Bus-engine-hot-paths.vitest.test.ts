@@ -4,8 +4,9 @@ import type { BusSpaceType, IoAddressable } from '../types/bus';
 import { Formatters } from '../../utils/formatters';
 
 /**
- * A device that answers a read with its own tag in the high nibble and the
- * decoded offset's low nibble, and records every access it is handed.
+ * A device that answers a read with its own tag above bit 16 and the whole
+ * decoded offset below it, so a read identifies both the device and the exact
+ * offset it was handed. It also records every access.
  */
 function probe(tag: number) {
     const reads: number[] = [];
@@ -13,7 +14,7 @@ function probe(tag: number) {
     const component: IoAddressable = {
         read: (offset) => {
             reads.push(offset);
-            return (tag << 4) | (offset & 0x0f);
+            return tag * 0x10000 + offset;
         },
         write: (offset, value) => {
             writes.push([offset, value]);
@@ -97,9 +98,9 @@ describe('Bus address decoding', () => {
             bus.read(address);
         }
 
-        expect(bus.read(0x0005)).toBe(0x15);
-        expect(bus.read(0x1085)).toBe(0x35);
-        expect(bus.read(0x2011)).toBe(0x41);
+        expect(bus.read(0x0005)).toBe(0x10005);
+        expect(bus.read(0x1085)).toBe(0x30005);
+        expect(bus.read(0x2011)).toBe(0x40001);
         expect(bus.read(0x2014)).toBe(0xff);
     });
 });

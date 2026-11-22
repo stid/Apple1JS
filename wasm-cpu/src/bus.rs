@@ -92,6 +92,9 @@ impl Bus {
             }
             let (start, end) = (mapping.start as usize, mapping.end as usize);
             self.mem[start..=end].fill(0);
+            // Withdraw the whole region first, so installing a smaller size
+            // after a larger one leaves nothing writable above it.
+            self.pages[start >> 8..=end >> 8].fill(PageKind::Fixed);
             // The part of this region that lies below `size`, in pages.
             let installed_end = (end + 1).min(size) >> 8;
             if installed_end > start >> 8 {
@@ -253,6 +256,21 @@ mod tests {
         assert_eq!(bus.read(0x0FFF), 0x11);
         assert_eq!(bus.read(0xE000), 0x00);
         assert_eq!(bus.get_ram_len(), 0x1000);
+    }
+
+    #[test]
+    fn test_installing_a_smaller_ram_withdraws_the_pages_above_it() {
+        let mut bus = bus_with_ram();
+        bus.write(0xE000, 0x22);
+
+        bus.set_ram(0x1000).unwrap(); // bank 1 only, after a full install
+
+        assert_eq!(bus.read(0xE000), 0x00);
+        bus.write(0xE000, 0x33);
+        assert_eq!(bus.read(0xE000), 0x00);
+        // Bank 1 is still RAM.
+        bus.write(0x0FFF, 0x11);
+        assert_eq!(bus.read(0x0FFF), 0x11);
     }
 
     #[test]

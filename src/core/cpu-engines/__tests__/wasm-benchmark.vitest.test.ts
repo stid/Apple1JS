@@ -6,9 +6,10 @@
  *
  *   BENCH=1 npx vitest run src/core/cpu-engines/__tests__/wasm-benchmark.vitest.test.ts
  *
- * It measures real instructions/sec and cycles/sec for each engine by driving
- * performBulkSteps directly (no Clock, no React, no worker) and reading actual
- * executed counts from each engine's metrics. This is the ground-truth anchor
+ * It measures cycles/sec and instructions/sec for each engine by driving
+ * performBulkSteps directly (no Clock, no React, no worker) and reading the
+ * counts from each engine's metrics. Cycles are exact on both engines; the
+ * instruction count is exact on WASM and an estimate (cycles / 3) on JS. This is the ground-truth anchor
  * for the WASM performance work -- it isolates raw engine speed from the
  * clock-driving and metric-display layers.
  */
@@ -115,6 +116,8 @@ interface BenchResult {
     requestedCycles: number;
     actualCycles: number;
     actualInstructions: number;
+    /** The JS engine does not count instructions; it reports cycles / 3. */
+    instructionsEstimated: boolean;
     cyclesPerSec: number;
     instructionsPerSec: number;
 }
@@ -148,6 +151,7 @@ function runBench(label: string, engine: ICPUEngine, workload: Workload): BenchR
         requestedCycles,
         actualCycles,
         actualInstructions,
+        instructionsEstimated: engine.engineType === 'JS',
         cyclesPerSec: actualCycles / seconds,
         instructionsPerSec: actualInstructions / seconds,
     };
@@ -163,7 +167,7 @@ function report(r: BenchResult): void {
     console.log(
         `[bench] ${r.label.padEnd(18)} ` +
             `cycles/s=${fmt(r.cyclesPerSec).padStart(13)} (${(r.cyclesPerSec / 1e6).toFixed(2)} MHz)  ` +
-            `instr/s=${fmt(r.instructionsPerSec).padStart(13)}  ` +
+            `instr/s${r.instructionsEstimated ? ' (est. cycles/3)' : ''}=${fmt(r.instructionsPerSec).padStart(13)}  ` +
             `requested=${fmt(r.requestedCycles)} actual=${fmt(r.actualCycles)} ` +
             `(${completion.toFixed(1)}% of requested)`,
     );
