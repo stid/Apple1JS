@@ -11,7 +11,8 @@
 - **Lane:** Standard
 - **Goal:** Address every finding of the 2026-11-21 project health review as six stacked PRs
   (each branch is cut from the previous one; each bumps `src/version.ts`).
-- **Next action:** S7 — GitHub housekeeping, then closeout (PRs #239-#244 await review/merge in order)
+- **Next action:** done — PRs #239 → #244 await review and merge in order (each is based on the
+  previous branch; expect `src/version.ts` to need a rebase as they land)
 - **Branch:** refactor/dead-code · **Updated:** 2026-11-21
 
 ## STEPS
@@ -31,7 +32,9 @@
 - [x] S5 `refactor/inspector-and-polling` — remove the main-thread `Apple1`; inspector tree from
       the worker; gate debug polling; memoize contexts; one engine-status source.
 - [x] S6 `refactor/dead-code` — UI, core and Rust dead code; unused Cargo deps.
-- [ ] S7 — GitHub housekeeping: superseded Dependabot PRs, merged remote branches.
+- [x] S7 — GitHub housekeeping: seven superseded Dependabot PRs closed. Merged remote branches
+      (`add-rom-char`, `perf/reduce-debugger-overhead`, `chore/update-deps-2026-11`) NOT deleted:
+      the permission classifier denied it; needs the owner's explicit go-ahead.
 
 ## DECISIONS (this work-item)
 
@@ -124,3 +127,5 @@
   for B flag on IRQ/NMI push and the `(zp),Y` overflow at $FFFE. Release WASM 127 → 75 KB, 373 MHz.
   779 tests pass with the real WASM served. A slow-output scare during the smoke test was bisected
   and found to be pre-existing and transient (see OPEN QUESTIONS), not caused by this step.
+- 2026-11-21 — S6 done, PR #244, CI green on all six PRs. S7: Dependabot PRs #220 #221 #224 #229
+  #230 #231 #233 closed as superseded by #238. Closeout appended (no surface declared → audit n/a).
