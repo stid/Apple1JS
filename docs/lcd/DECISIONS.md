@@ -16,8 +16,10 @@
   The WASM engine resolves RAM and ROM inside Rust; only `$D000–$DFFF` reaches the JS `Bus`. Both
   buses are also used by the debugger (memory viewer, state sync), which must not count.
 - **Decision:** Each engine increments `counts[address >> 8]` in the one function its CPU reads
-  through and the one it writes through (512 slots: reads, then writes). Reset clears the
-  counters. Pages are folded into parts outside the hot path, and the totals ride on the machine
+  through and the one it writes through (512 slots: reads, then writes). The counters are 32-bit
+  and wrap on both engines (a `Float64Array` cost the JS engine 6.9% headless, a `Uint32Array`
+  1.7%); consumers compare two samples and treat a count that went down as a restart. Reset
+  clears the counters. Pages are folded into parts outside the hot path, and the totals ride on the machine
   tree the Board already polls. Nothing on the bus path calls into the engine (D-015).
 - **Alternatives rejected:** Counting inside the bus — the debugger shares it, so viewing memory
   would register as activity. Per-part counters in the hot path — the two engines model the memory

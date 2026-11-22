@@ -186,14 +186,10 @@ impl WasmSystem {
     }
 
     /// Bus accesses made by the CPU since reset, per 256-byte page: 512 counts,
-    /// reads of page `p` at index `p` and writes at `256 + p`. Arrives in
-    /// JavaScript as a Float64Array (exact for integers up to 2^53).
-    pub fn get_page_activity(&self) -> Box<[f64]> {
-        self.cpu
-            .get_page_activity()
-            .iter()
-            .map(|&count| count as f64)
-            .collect()
+    /// reads of page `p` at index `p` and writes at `256 + p`. 32-bit, wrapping.
+    /// Arrives in JavaScript as a Uint32Array (a copy).
+    pub fn get_page_activity(&self) -> Box<[u32]> {
+        Box::new(*self.cpu.get_page_activity())
     }
 
     // ============ CPU Debugging Methods ============
@@ -364,12 +360,12 @@ mod tests {
     ];
 
     /// Non-zero (slot, count) pairs: slot = page for reads, 256 + page for writes.
-    fn non_zero_activity(system: &WasmSystem) -> Vec<(usize, f64)> {
+    fn non_zero_activity(system: &WasmSystem) -> Vec<(usize, u32)> {
         system
             .get_page_activity()
             .iter()
             .enumerate()
-            .filter(|(_, &count)| count != 0.0)
+            .filter(|(_, &count)| count != 0)
             .map(|(slot, &count)| (slot, count))
             .collect()
     }
@@ -386,14 +382,14 @@ mod tests {
         assert_eq!(
             non_zero_activity(&system),
             vec![
-                (0x01, 1.0),        // PLA
-                (0x03, 19.0),       // every program byte fetched once
-                (0xD0, 1.0),        // LDA $D011
-                (0xE0, 1.0),        // LDA $E000
-                (0xFF, 1.0),        // LDA $FF00
-                (256 + 0x01, 1.0),  // PHA
-                (256 + 0xD0, 1.0),  // STA $D012
-                (256 + 0xE0, 1.0),  // STA $E000
+                (0x01, 1),        // PLA
+                (0x03, 19),       // every program byte fetched once
+                (0xD0, 1),        // LDA $D011
+                (0xE0, 1),        // LDA $E000
+                (0xFF, 1),        // LDA $FF00
+                (256 + 0x01, 1),  // PHA
+                (256 + 0xD0, 1),  // STA $D012
+                (256 + 0xE0, 1),  // STA $E000
             ]
         );
     }
@@ -408,6 +404,17 @@ mod tests {
         system.reset();
 
         assert_eq!(non_zero_activity(&system), vec![]);
+    }
+
+    // AC-1: the counters are 32-bit and wrap instead of trapping
+    #[test]
+    fn ac_1_page_activity_wraps_at_32_bits() {
+        let mut system = system_with_program(&[0xEA]); // NOP at $0300
+        system.cpu.page_activity[0x03] = u32::MAX;
+
+        system.step();
+
+        assert_eq!(system.get_page_activity()[0x03], 0);
     }
 
     // AC-3: debugger memory access is not counted

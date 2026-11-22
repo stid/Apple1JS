@@ -35,12 +35,19 @@ note in the JOURNAL that the Rust bus would need a separate non-counting path.
 helper; the Rust reset reads the bus directly. Rather than align the two reset sequences, both
 clear the counters as the last step of reset, so "counts from reset" start at zero on each.
 
-**Read-out.** `ICPUEngine` gains `getPageActivity(): Float64Array` (length 512). `JSEngine`
+**Read-out.** `ICPUEngine` gains `getPageActivity(): Uint32Array` (length 512). `JSEngine`
 returns a copy of the CPU's array, `WasmEngine` calls a new `WasmSystem.get_page_activity()` that
-returns `Box<[f64]>` (wasm-bindgen copies it into a `Float64Array`; the type involves no `JsValue`,
+returns `Box<[u32]>` (wasm-bindgen copies it into a `Uint32Array`; the type involves no `JsValue`,
 so the native `cargo test` can call it), and `DualEngine` delegates to the active engine.
 `Apple1.getInspectable()` sums the pages of each bus mapping and adds one top-level field to the
-tree: `activity: { instructions, parts: { <nodeId>: { reads, writes } } }`. The tree is fetched by
+tree: `activity: { sampledAt, accesses, parts: { <nodeId>: { reads, writes } } }`.
+
+_Refined during the build:_ the first version used 64-bit counts read out as a `Float64Array`
+and an `instructions` field. The float array cost the JS engine 6.9% headless, over the AC-11
+tripwire; a `Uint32Array` costs 1.7%. The counters are therefore 32-bit and wrap on both engines,
+and the Board treats a total that went down as "no rate" (the AC-9 path). `instructions` became
+`accesses` (the sum of all pages), which needs no second engine call, and `sampledAt` (worker
+clock) lets the Board compute rates without timing its own renders. The tree is fetched by
 a Comlink call, which the single-threaded worker runs between clock chunks, never from inside a
 bus access (rule 7, D-015).
 
@@ -54,8 +61,8 @@ view does not parse ids.
 Rejected alternatives are listed under "Risks & rejected alternatives".
 
 **Recon:** no new dependency. One fact checked through Context7 (wasm-bindgen guide, "Boxed number
-slices"): `Box<[f64]>` is a supported return type and arrives in JS as a `Float64Array`, copied
-out of linear memory.
+slices"): boxed number slices (`Box<[f64]>`, `Box<[u32]>`, …) are supported return types and
+arrive in JS as the matching typed array, copied out of linear memory.
 
 **Spec amendment (called out):** AC-1 said the counts equal the program's "bus cycles". Neither
 engine models the 6502's dummy cycles (an implied instruction is two cycles but one access), so
@@ -72,7 +79,7 @@ AC-1 now says "bus accesses the engine performs". Behaviour visible on the Board
 | `versioning.md` + CLAUDE.md rule 6                                 | yes      | `feat/` → minor: `4.53.0` → `4.54.0` in `src/version.ts`, in the first code commit. The project keeps the version in `src/version.ts`, which overrides the bundled manifest rule. |
 | `commits.md`                                                       | yes      | One conventional commit per red→green flip, pushed.                                                                                                                               |
 | `ac-convention.md` — EVAL                                          | no       | Deterministic counters checked by exact equality; no scored output. Matches the conventions' `eval: n/a`.                                                                         |
-| CLAUDE.md rule 2 (Context7 for WASM/Rust docs)                     | yes      | Used for the `Box<[f64]>` return type.                                                                                                                                            |
+| CLAUDE.md rule 2 (Context7 for WASM/Rust docs)                     | yes      | Used for the boxed-slice return type.                                                                                                                                              |
 | CLAUDE.md rule 3 + MAP invariant: dual-engine parity               | yes      | Same expected numbers asserted natively in Rust and in JS; a parity test compares the two arrays against real WASM (`yarn dev:vite` serving).                                     |
 | CLAUDE.md rule 7 + D-015: no engine call from a bus access         | yes      | Counting is an array increment inside the engine. The read-out happens in a worker message handler. A test runs a PIA read and write under the real WASM engine with counting on. |
 | CLAUDE.md rule 5: no `any`, no `console.log`, no hardcoded colours | yes      | Lit style uses existing tokens (`component-*`, `data-*`).                                                                                                                         |
@@ -117,17 +124,19 @@ Single non-`none` surface (RENDER), listed for the audit's lookup.
 
 ```ts
 // Engine read-out. Index p (0–255) = reads of page p; 256 + p = writes of page p.
-getPageActivity(): Float64Array; // length 512, a copy
+getPageActivity(): Uint32Array; // length 512, a copy; 32-bit, wrapping
 
 // On the machine tree root, data shape in worker-messages.ts
 interface BoardActivitySample {
-    instructions: number; // executed by the active engine since its last reset
+    sampledAt: number; // worker clock, ms
+    accesses: number; // every CPU bus access, mapped or not
     parts: Record<string, { reads: number; writes: number }>; // key = inspectable node id
 }
 ```
 
-Rust: `page_activity: [u64; 512]` on `CPU6502`; `WasmSystem::get_page_activity() -> Box<[f64]>`.
-`f64` holds integers exactly up to 2^53, about 285 years at 1 MHz.
+Rust: `page_activity: [u32; 512]` on `CPU6502`, incremented with `wrapping_add`;
+`WasmSystem::get_page_activity() -> Box<[u32]>`. A page wraps after 2^32 accesses, over an hour
+at 1 MHz.
 
 ## File structure
 

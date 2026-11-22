@@ -236,7 +236,7 @@ export class JSEngine implements ICPUEngine {
 
     // ============ Performance & Metrics ============
 
-    getPageActivity(): Float64Array {
+    getPageActivity(): Uint32Array {
         return this.cpu.pageActivity.slice();
     }
 

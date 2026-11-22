@@ -3,6 +3,7 @@
  */
 import { describe, test, expect, beforeEach } from 'vitest';
 import { JSEngine } from '../JSEngine';
+import CPU6502 from '../../cpu6502';
 import {
     PROGRAM,
     PROGRAM_START,
@@ -37,6 +38,18 @@ describe('page activity — JS engine', () => {
         engine.getPageActivity().fill(0);
 
         expect(describeActivity(engine.getPageActivity())).toEqual(describeActivity(expectedActivity()));
+    });
+
+    test('AC-1: the counters are 32-bit and wrap, like the WASM engine', () => {
+        const cpu = new CPU6502(makeAppleBus().bus);
+        cpu.pageActivity[0x03] = 0xffffffff;
+        cpu.pageActivity[256 + 0x03] = 0xffffffff;
+
+        cpu.read(0x0300);
+        cpu.write(0x0300, 0);
+
+        expect(engine.getPageActivity()).toBeInstanceOf(Uint32Array);
+        expect([cpu.pageActivity[0x03], cpu.pageActivity[256 + 0x03]]).toEqual([0, 0]);
     });
 
     test('AC-3: debugger reads, writes and program loads are not counted', () => {

@@ -104,6 +104,12 @@ describe('BoardView — live activity', () => {
         for (const id of dark) {
             expect(isLit(trace(container, id)), id).toBe(false);
         }
+
+        // Only parts whose activity is tracked carry a lamp: CPU, decoder and the four on the bus.
+        const lamps = [...container.querySelectorAll('[data-lamp]')].map((lamp) =>
+            lamp.closest('[role="button"]')?.getAttribute('aria-label'),
+        );
+        expect(lamps.sort()).toEqual(['74154', 'MC6820 PIA', 'MOS 6502', 'Monitor PROMs', 'RAM bank 1', 'RAM bank 2']);
     });
 
     it('AC-7 (RENDER): idle monitor lights CPU, PROMs and PIA and leaves the $E000 bank dark at zero; BASIC lights it', () => {

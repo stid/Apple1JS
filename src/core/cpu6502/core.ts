@@ -185,8 +185,13 @@ class CPU6502
      * `p` at index `p`, writes at `256 + p`. The Board turns these into per-part
      * activity. Debugger access goes straight to the bus and is not counted.
      * The WASM engine keeps the same array (wasm-cpu/src/cpu.rs).
+     *
+     * 32-bit and wrapping on both engines: an integer array costs the JS engine
+     * about 3% of its headless throughput where a Float64Array cost 7%. A page
+     * wraps after 2^32 accesses (over an hour at 1 MHz), so consumers compare
+     * two samples and treat a count that went down as a restart.
      */
-    readonly pageActivity = new Float64Array(512);
+    readonly pageActivity = new Uint32Array(512);
     profileData: Map<number, { count: number; cycles: number }> = new Map();
     enableProfiling: boolean = false;
 

@@ -53,7 +53,9 @@ pub struct CPU6502 {
     // Bus accesses made by the CPU, per 256-byte page: slot `page` counts reads,
     // slot `256 + page` counts writes. The Board turns these into per-part
     // activity. Debugger access goes straight to the bus and is not counted.
-    page_activity: [u64; PAGE_ACTIVITY_SLOTS],
+    // 32-bit and wrapping, like the JS engine's Uint32Array: consumers compare
+    // two samples and treat a count that went down as a restart.
+    pub(crate) page_activity: [u32; PAGE_ACTIVITY_SLOTS],
 }
 
 /// One read slot and one write slot per page of the 64K address space.
@@ -339,7 +341,8 @@ impl CPU6502 {
         let data = bus.read(address);
         self.last_addr = address;
         self.last_data = data;
-        self.page_activity[(address >> 8) as usize] += 1;
+        let reads = &mut self.page_activity[(address >> 8) as usize];
+        *reads = reads.wrapping_add(1);
         data
     }
 
@@ -347,12 +350,13 @@ impl CPU6502 {
     pub(crate) fn write_byte_to_bus(&mut self, bus: &mut crate::Bus, address: u16, value: u8) {
         self.last_addr = address;
         self.last_data = value;
-        self.page_activity[256 + (address >> 8) as usize] += 1;
+        let writes = &mut self.page_activity[256 + (address >> 8) as usize];
+        *writes = writes.wrapping_add(1);
         bus.write(address, value);
     }
 
     /// Per-page access counts since reset (see `page_activity`).
-    pub(crate) fn get_page_activity(&self) -> &[u64; PAGE_ACTIVITY_SLOTS] {
+    pub(crate) fn get_page_activity(&self) -> &[u32; PAGE_ACTIVITY_SLOTS] {
         &self.page_activity
     }
 

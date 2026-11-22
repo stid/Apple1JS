@@ -27,8 +27,8 @@ export const PROGRAM_INSTRUCTIONS = 8;
 const WRITES = 256;
 
 /** Page counts after PROGRAM: index = page for reads, 256 + page for writes. */
-export function expectedActivity(): Float64Array {
-    const expected = new Float64Array(512);
+export function expectedActivity(): Uint32Array {
+    const expected = new Uint32Array(512);
     expected[0x03] = PROGRAM.length; // every program byte is fetched once
     expected[0x01] = 1; // PLA
     expected[0xe0] = 1;
@@ -76,7 +76,7 @@ export function runProgram(engine: ICPUEngine): void {
 }
 
 /** Non-zero slots as `r03=19` / `wE0=1`, so a failure names the page. */
-export function describeActivity(activity: Float64Array): string[] {
+export function describeActivity(activity: Uint32Array): string[] {
     const out: string[] = [];
     activity.forEach((count, index) => {
         if (count !== 0) {

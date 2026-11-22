@@ -98,6 +98,14 @@ export function rateLabel(
         : 'R — · W —';
 }
 
+/** Whether the Board tracks activity for this part at all (and so draws its lamp). */
+export function tracksActivity(sample: BoardActivitySample | undefined, part: BoardPart): boolean {
+    if (!sample) {
+        return false;
+    }
+    return part.id === 'cpu' || part.id === 'decoder' || (part.nodeId !== undefined && part.nodeId in sample.parts);
+}
+
 /** Lit: the CPU while it runs, the decoder while any part answers, a part while it is accessed. */
 export function isPartActive(activity: BoardActivity | null, part: BoardPart): boolean {
     if (!activity) {

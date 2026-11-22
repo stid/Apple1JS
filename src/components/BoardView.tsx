@@ -20,6 +20,7 @@ import {
     isTraceActive,
     rateLabel,
     readActivitySample,
+    tracksActivity,
 } from './board/boardActivity';
 import type { BoardActivitySample } from '../apple1/types/worker-messages';
 
@@ -31,6 +32,8 @@ interface BoardViewProps {
 
 const DEFAULT_PART_ID = 'cpu';
 const LINE_HEIGHT = 16;
+/** Four lines (with the rate) have to fit between a chip's two pin rows. */
+const TIGHT_LINE_HEIGHT = 14;
 
 // Static literal class names so Tailwind's content scanner keeps them.
 const typeColorClass: Record<string, string> = {
@@ -64,7 +67,8 @@ const PartText: React.FC<{ part: BoardPart; dim?: boolean; rate?: string | undef
         { text: rate, className: 'fill-text-secondary' },
     ].filter((line): line is { text: string; className: string } => line.text !== undefined);
     const centerX = part.x + part.w / 2;
-    const firstBaseline = part.y + part.h / 2 - ((lines.length - 1) * LINE_HEIGHT) / 2 + 4;
+    const lineHeight = lines.length > 3 ? TIGHT_LINE_HEIGHT : LINE_HEIGHT;
+    const firstBaseline = part.y + part.h / 2 - ((lines.length - 1) * lineHeight) / 2 + 4;
 
     return (
         <>
@@ -72,7 +76,7 @@ const PartText: React.FC<{ part: BoardPart; dim?: boolean; rate?: string | undef
                 <text
                     key={index}
                     x={centerX}
-                    y={firstBaseline + index * LINE_HEIGHT}
+                    y={firstBaseline + index * lineHeight}
                     textAnchor="middle"
                     className={`font-mono text-2xs select-none ${line.className}`}
                 >
@@ -88,12 +92,14 @@ interface PartProps {
     selected: boolean;
     /** Accessed during the last sample interval. */
     active: boolean;
+    /** Activity is tracked for this part, so it carries a lamp. */
+    tracked: boolean;
     /** Read/write rate line, for parts on the address bus. */
     rate?: string | undefined;
     onSelect: (part: BoardPart) => void;
 }
 
-const InteractivePart: React.FC<PartProps> = ({ part, selected, active, rate, onSelect }) => {
+const InteractivePart: React.FC<PartProps> = ({ part, selected, active, tracked, rate, onSelect }) => {
     const pinY = [part.y + 1.5, part.y + part.h - 1.5];
     return (
         <g
@@ -139,12 +145,15 @@ const InteractivePart: React.FC<PartProps> = ({ part, selected, active, rate, on
                 }
             />
             {/* Activity lamp: a second cue besides the outline, and the only one on a selected part. */}
-            <circle
-                cx={part.x + part.w - 10}
-                cy={part.y + 11}
-                r={3}
-                className={active ? 'fill-semantic-success' : 'fill-surface-quaternary'}
-            />
+            {tracked && (
+                <circle
+                    data-lamp
+                    cx={part.x + part.w - 10}
+                    cy={part.y + 11}
+                    r={3}
+                    className={active ? 'fill-semantic-success' : 'fill-surface-quaternary'}
+                />
+            )}
             {part.kind === 'chip' &&
                 pinY.map((y) => (
                     <line
@@ -324,6 +333,7 @@ const BoardView: React.FC<BoardViewProps> = ({ root, workerManager }) => {
                             part={part}
                             selected={part.nodeId === selectedNodeId}
                             active={isPartActive(activity, part)}
+                            tracked={tracksActivity(sample, part)}
                             rate={rateLabel(sample, activity, part)}
                             onSelect={(next) => setSelectedPartId(next.id)}
                         />

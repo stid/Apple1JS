@@ -107,7 +107,9 @@ export interface ClockData {
 
 /**
  * Bus traffic since the active engine's last reset, carried on the root of the
- * machine tree. The Board compares two samples to get rates.
+ * machine tree. The Board compares two samples to get rates. The engine
+ * counters behind it are 32-bit and wrap, so a total can go down between two
+ * samples (as it does after a reset); the Board shows no rate for that sample.
  */
 export interface BoardActivitySample {
     /** Worker clock (performance.now()) when the sample was taken, in ms. */

@@ -369,7 +369,16 @@ React contexts manage UI-level state:
 - Several physical parts can map to one component (the terminal section is `video`)
 - Layout and the part → component mapping are data in `src/components/board/boardModel.ts`
 - Real-time state inspection for the selected component
-- No performance impact when closed
+- Live activity: each bus-addressed part (both RAM banks, the PROMs, the PIA) shows its read and
+  write rate and is lit with its traces while the CPU accesses it. Each CPU engine counts its own
+  bus accesses per 256-byte page in the one function its CPU reads and writes through
+  (`CPU6502.read`/`write`, `read_byte_from_bus`/`write_byte_to_bus` in Rust), so debugger reads
+  never count. `Apple1.getInspectable()` folds the pages into per-part totals (`activity` on the
+  tree root) and `src/components/board/boardActivity.ts` turns two samples into rates. The
+  counters are 32-bit and wrap; a total that goes down (wrap, reset, engine switch) shows no rate
+  for one sample. See `docs/lcd/DECISIONS.md` D-016.
+- No polling when closed. The access counters always run; their cost is in
+  `docs/active/wasm-performance.md`.
 
 ### Performance
 
