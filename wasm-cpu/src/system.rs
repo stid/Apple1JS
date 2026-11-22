@@ -185,6 +185,13 @@ impl WasmSystem {
         self.cpu.get_last_data()
     }
 
+    /// Bus accesses made by the CPU since reset, per 256-byte page: 512 counts,
+    /// reads of page `p` at index `p` and writes at `256 + p`. 32-bit, wrapping.
+    /// Arrives in JavaScript as a Uint32Array (a copy).
+    pub fn get_page_activity(&self) -> Box<[u32]> {
+        Box::new(*self.cpu.get_page_activity())
+    }
+
     // ============ CPU Debugging Methods ============
 
     /// Set program counter (for debugging)
@@ -336,6 +343,91 @@ mod tests {
         }
         system.cpu.pc = 0x0300;
         system
+    }
+
+    /// The board-activity program: touches both RAM banks, the I/O block and the
+    /// PROMs. The vitest fixture page-activity-board-activity.fixture.ts runs the
+    /// same bytes and asserts the same counts on the JS engine.
+    const ACTIVITY_PROGRAM: [u8; 19] = [
+        0xA9, 0x42, // LDA #$42
+        0x8D, 0x00, 0xE0, // STA $E000
+        0xAD, 0x00, 0xE0, // LDA $E000
+        0xAD, 0x11, 0xD0, // LDA $D011
+        0x8D, 0x12, 0xD0, // STA $D012
+        0xAD, 0x00, 0xFF, // LDA $FF00
+        0x48, // PHA
+        0x68, // PLA
+    ];
+
+    /// Non-zero (slot, count) pairs: slot = page for reads, 256 + page for writes.
+    fn non_zero_activity(system: &WasmSystem) -> Vec<(usize, u32)> {
+        system
+            .get_page_activity()
+            .iter()
+            .enumerate()
+            .filter(|(_, &count)| count != 0)
+            .map(|(slot, &count)| (slot, count))
+            .collect()
+    }
+
+    // AC-1: the CPU's reads and writes are counted per page
+    #[test]
+    fn ac_1_page_activity_counts_cpu_accesses_per_page() {
+        let mut system = system_with_program(&ACTIVITY_PROGRAM);
+        for _ in 0..8 {
+            system.step();
+        }
+
+        assert_eq!(system.get_page_activity().len(), 512);
+        assert_eq!(
+            non_zero_activity(&system),
+            vec![
+                (0x01, 1),        // PLA
+                (0x03, 19),       // every program byte fetched once
+                (0xD0, 1),        // LDA $D011
+                (0xE0, 1),        // LDA $E000
+                (0xFF, 1),        // LDA $FF00
+                (256 + 0x01, 1),  // PHA
+                (256 + 0xD0, 1),  // STA $D012
+                (256 + 0xE0, 1),  // STA $E000
+            ]
+        );
+    }
+
+    // AC-1: reset clears the counts
+    #[test]
+    fn ac_1_reset_clears_page_activity() {
+        let mut system = system_with_program(&ACTIVITY_PROGRAM);
+        for _ in 0..8 {
+            system.step();
+        }
+        system.reset();
+
+        assert_eq!(non_zero_activity(&system), vec![]);
+    }
+
+    // AC-1: the counters are 32-bit and wrap instead of trapping
+    #[test]
+    fn ac_1_page_activity_wraps_at_32_bits() {
+        let mut system = system_with_program(&[0xEA]); // NOP at $0300
+        system.cpu.page_activity[0x03] = u32::MAX;
+
+        system.step();
+
+        assert_eq!(system.get_page_activity()[0x03], 0);
+    }
+
+    // AC-3: debugger memory access is not counted
+    #[test]
+    fn ac_3_debug_memory_access_is_not_counted() {
+        // system_with_program writes the program through write_memory.
+        let mut system = system_with_program(&ACTIVITY_PROGRAM);
+        system.write_memory(0xE000, 0x55);
+        for address in [0x0000u16, 0x0300, 0xE000, 0xFF00] {
+            system.read_memory(address);
+        }
+
+        assert_eq!(non_zero_activity(&system), vec![]);
     }
 
     #[test]

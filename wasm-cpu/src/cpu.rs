@@ -49,7 +49,17 @@ pub struct CPU6502 {
     // Last bus access (for debugger HW_ADDR / HW_DATA parity with the JS engine)
     last_addr: u16,
     last_data: u8,
+
+    // Bus accesses made by the CPU, per 256-byte page: slot `page` counts reads,
+    // slot `256 + page` counts writes. The Board turns these into per-part
+    // activity. Debugger access goes straight to the bus and is not counted.
+    // 32-bit and wrapping, like the JS engine's Uint32Array: consumers compare
+    // two samples and treat a count that went down as a restart.
+    pub(crate) page_activity: [u32; PAGE_ACTIVITY_SLOTS],
 }
+
+/// One read slot and one write slot per page of the 64K address space.
+pub(crate) const PAGE_ACTIVITY_SLOTS: usize = 512;
 
 impl CPU6502 {
     /// Create a new CPU instance
@@ -74,6 +84,7 @@ impl CPU6502 {
             opcode_counts: [0; 256],
             last_addr: 0,
             last_data: 0,
+            page_activity: [0; PAGE_ACTIVITY_SLOTS],
         }
     }
 
@@ -96,6 +107,9 @@ impl CPU6502 {
         self.nmi_pending = false;
         self.cycles = 0;
         self.instructions = 0;
+        // Counts restart at reset. The JS engine clears them at the same point,
+        // so "since reset" means the same thing on both.
+        self.page_activity = [0; PAGE_ACTIVITY_SLOTS];
 
         console_log!("CPU reset (Bus-aware), PC = 0x{:04X}", self.pc);
     }
@@ -327,6 +341,8 @@ impl CPU6502 {
         let data = bus.read(address);
         self.last_addr = address;
         self.last_data = data;
+        let reads = &mut self.page_activity[(address >> 8) as usize];
+        *reads = reads.wrapping_add(1);
         data
     }
 
@@ -334,7 +350,14 @@ impl CPU6502 {
     pub(crate) fn write_byte_to_bus(&mut self, bus: &mut crate::Bus, address: u16, value: u8) {
         self.last_addr = address;
         self.last_data = value;
+        let writes = &mut self.page_activity[256 + (address >> 8) as usize];
+        *writes = writes.wrapping_add(1);
         bus.write(address, value);
+    }
+
+    /// Per-page access counts since reset (see `page_activity`).
+    pub(crate) fn get_page_activity(&self) -> &[u32; PAGE_ACTIVITY_SLOTS] {
+        &self.page_activity
     }
 
     /// Last bus-access address (for debugger HW_ADDR)

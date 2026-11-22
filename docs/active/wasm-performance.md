@@ -22,6 +22,24 @@ has not been confirmed.
 After the 2026-11 dead-code removal (only `WasmSystem` is exported to JS now) the release binary
 is ~75 KB and throughput is unchanged to slightly better: ~374 M cycles/s, 5.6× JS.
 
+### Cost of the bus-activity counters (2026-11-21, #247)
+
+Both engines count the CPU's bus accesses per 256-byte page for the Board's live activity (one
+array increment per access; `docs/lcd/DECISIONS.md` D-016). Measured against `master` with the
+headless benchmark, eight runs each, alternating the two checkouts so drift affects both alike:
+
+| Engine | Before (mean) | After (mean) | Change |
+| ------ | ------------: | -----------: | -----: |
+| JS     |    68.2 M c/s |   67.0 M c/s |  −1.7% |
+| WASM   |   381.0 M c/s |  363.0 M c/s |  −4.7% |
+
+Run-to-run spread is about ±3% on JS and ±2% on WASM, so the JS figure is within noise and the
+WASM figure is a real but small cost. The benchmark loop is close to the worst case: ten bus
+accesses in eleven cycles. The release binary grew from 75.0 KB to 79.1 KB.
+
+A first version used a `Float64Array` on the JS engine and cost it 6.9%. A `Uint32Array` brought
+that down to the figure above, which is why the counters are 32-bit and wrap on both engines.
+
 (Apple M-series, headless benchmark, RAM-only `LDA #/STA zp/LDA zp/JMP` loop = 11 cycles per 4
 instructions. Absolute numbers vary by machine; the **ratio** is the durable result.)
 
