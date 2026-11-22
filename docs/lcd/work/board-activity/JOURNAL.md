@@ -10,16 +10,18 @@
 - **Lane:** Deep
 - **Goal:** Board live activity (issue #247): each bus-addressed part shows its read/write rate
   and lights up with its traces, with identical counts on both CPU engines.
-- **Next action:** run `/lcd:tasks board-activity`.
+- **Next action:** run `/lcd:test-gen board-activity`, then the red-green loop from T1.
 - **Branch:** feat/board-activity · **Updated:** 2026-11-21 23:40
 
 ## STEPS
 
-- [x] S1 — triage, branch, investigation (where the WASM engine keeps memory)
-- [x] S2 — `spec.md` (approved by the owner 2026-11-21)
-- [x] S3 — `plan.md`
-- [ ] S4 — `tasks.md` ← next
-- [ ] S5 — failing tests, red-green, browser check, benchmark, audit
+- [x] S1 — triage, investigation, `spec.md` (approved), `plan.md`, `tasks.md`
+- [ ] T1–T3 — Rust: failing native tests, counters, rebuild bindings ← next
+- [ ] T4–T7 — JS counters, `getPageActivity` on the engines, parity vs real WASM
+- [ ] T8–T9 — `activity` on the machine tree
+- [ ] T10–T13 — Board: rates module, rate line, lit parts and traces
+- [ ] T14–T17 — version, browser check, benchmark (AC-11), docs
+- [ ] T-audit, T-final
 
 ## DECISIONS (this work-item)
 
@@ -66,4 +68,4 @@
 
 ## DEEP PIPELINE (Deep lane only)
 
-`spec.md ✅  plan.md ✅  tasks.md ⬜  tests ⬜  red-green ⬜  audit.md ⬜`
+`spec.md ✅  plan.md ✅  tasks.md ✅  tests ⬜  red-green ⬜  audit.md ⬜`
