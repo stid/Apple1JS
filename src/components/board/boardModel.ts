@@ -145,7 +145,7 @@ export const BOARD_PARTS: readonly BoardPart[] = [
         id: 'decoder',
         kind: 'chip',
         label: '74154',
-        detail: 'address decoder, modelled by Bus',
+        detail: 'address decoder · Bus',
         nodeId: 'bus',
         x: 480,
         y: 332,
