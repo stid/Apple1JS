@@ -467,7 +467,7 @@ describe('InspectorView component', () => {
                 fireEvent.click(toggleButton);
             });
             
-            expect(consoleError).toHaveBeenCalledWith('Failed to toggle CPU profiling:', expect.any(Error));
+            expect(consoleError).toHaveBeenCalledWith('[InspectorView] Failed to toggle CPU profiling: Error: Failed');
             
             // State should not change on error
             expect(screen.getByRole('button', { name: /Enable Profiling/i })).toBeInTheDocument();
