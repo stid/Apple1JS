@@ -6,7 +6,7 @@
 **Slug:** `board-activity`
 **Created:** 2026-11-21
 **Related issue:** #247 (follow-up of #246; #248 depends on this)
-**Status:** draft <!-- draft | approved | implemented | abandoned -->
+**Status:** approved <!-- draft | approved | implemented | abandoned -->
 
 ---
 
@@ -34,7 +34,8 @@ where the first engine could count it, so the two engines cannot even be compare
 **AC-1** (surfaces: none): Each bus-addressed part (RAM bank at `$0000`, RAM bank at `$E000`,
 monitor PROMs, PIA) keeps a running count of reads and a running count of writes made by the
 CPU. Given a known program run for a known number of instructions from reset, the counts equal
-the number of bus cycles that program addresses to each part.
+the number of bus accesses the engine performs on each part for that program. (Amended in
+planning: neither engine models the 6502's dummy cycles, so accesses can be fewer than cycles.)
 
 **AC-2** (surfaces: none): Given the same program and the same number of executed instructions
 from reset, both CPU engines report identical read and write counts for every part. This holds

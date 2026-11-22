@@ -6,9 +6,24 @@
 > one `superseded by D-NNN`. Work-item-local decisions live in that item's `JOURNAL.md`; mirror
 > here only the ones that outlive the work item.
 
-<!-- Next id: D-015 -->
+<!-- Next id: D-017 -->
 
 ---
+
+## D-016 · 2026-11-21 · Bus activity is counted at the CPU's access helper, per page
+
+- **Context:** The Board needs per-part read/write counts that are equal on both engines (#247).
+  The WASM engine resolves RAM and ROM inside Rust; only `$D000–$DFFF` reaches the JS `Bus`. Both
+  buses are also used by the debugger (memory viewer, state sync), which must not count.
+- **Decision:** Each engine increments `counts[address >> 8]` in the one function its CPU reads
+  through and the one it writes through (512 slots: reads, then writes). Reset clears the
+  counters. Pages are folded into parts outside the hot path, and the totals ride on the machine
+  tree the Board already polls. Nothing on the bus path calls into the engine (D-015).
+- **Alternatives rejected:** Counting inside the bus — the debugger shares it, so viewing memory
+  would register as activity. Per-part counters in the hot path — the two engines model the memory
+  map differently; a page index is the same expression in both.
+- **Scope:** project-wide (the stepped bus flow, #248, builds on the same hook)
+- **Status:** active
 
 ## D-015 · 2026-08-06 · Nothing on the bus path may call into the WASM engine
 
