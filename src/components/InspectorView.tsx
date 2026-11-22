@@ -329,15 +329,15 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             hwAddr: getDebugValueOrDefault(cpu.HW_ADDR, '$FFFE'),
             hwData: getDebugValueOrDefault(cpu.HW_DATA, '$00'),
             hwOpcode: getDebugValueOrDefault(cpu.HW_OPCODE, '$00'),
-            hwCycles: getDebugValueOrDefault(cpu.HW_CYCLES, '40,259,072'),
+            hwCycles: getDebugValueOrDefault(cpu.HW_CYCLES, '0'),
             irqLine: getDebugValueOrDefault(cpu.IRQ_LINE, 'INACTIVE'),
             nmiLine: getDebugValueOrDefault(cpu.NMI_LINE, 'INACTIVE'),
             irqPending: getDebugValueOrDefault(cpu.IRQ_PENDING, 'NO'),
             nmiPending: getDebugValueOrDefault(cpu.NMI_PENDING, 'NO'),
             execTmp: getDebugValueOrDefault(cpu.EXEC_TMP, '$00'),
             execAddr: getDebugValueOrDefault(cpu.EXEC_ADDR, '$0000'),
-            perfEnabled: getDebugValueOrDefault(cpu.PERF_ENABLED, 'YES'),
-            perfInstructions: getDebugValueOrDefault(cpu.PERF_INSTRUCTIONS, '4,297,966'),
+            perfEnabled: getDebugValueOrDefault(cpu.PERF_ENABLED, 'NO'),
+            perfInstructions: getDebugValueOrDefault(cpu.PERF_INSTRUCTIONS, '0'),
         };
     }, [debugInfo.cpu]);
 

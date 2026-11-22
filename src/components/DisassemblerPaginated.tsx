@@ -9,6 +9,7 @@ import { useEmulation } from '../contexts/EmulationContext';
 import { REFRESH_RATES } from '../constants/ui';
 import type { WorkerManager } from '../services/WorkerManager';
 import { loggingService } from '../services/LoggingService';
+import { isTypingInField } from '../utils/keyboard-focus';
 
 interface DisassemblerProps {
     workerManager: WorkerManager;
@@ -661,7 +662,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (document.activeElement?.tagName === 'INPUT') return;
+            if (isTypingInField()) return;
 
             // Step / Run-Pause (F10/F5) are owned by the global execution bar.
             // This view keeps only its own navigation shortcuts.

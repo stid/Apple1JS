@@ -455,6 +455,16 @@ describe('InspectorView component', () => {
             expect(screen.getByText(/Waiting for profiling data/)).toBeInTheDocument();
         });
 
+        it('does not show sample numbers for readings the worker has not sent', () => {
+            mockDebugInfo = { cpu: { REG_PC: '$FF00' } };
+
+            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+
+            expect(screen.getAllByText('HW_CYCLES:').length).toBeGreaterThanOrEqual(1);
+            expect(screen.queryByText('40,259,072')).not.toBeInTheDocument();
+            expect(screen.queryByText('4,297,966')).not.toBeInTheDocument();
+        });
+
         it('should handle profiling toggle errors gracefully', async () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
             (mockWorkerManager.setCpuProfiling as Mock).mockRejectedValueOnce(new Error('Failed'));

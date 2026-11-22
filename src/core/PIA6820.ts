@@ -172,6 +172,26 @@ class PIA6820 extends VersionedStatefulComponentBase<PIA6820State> implements II
     }
 
     /**
+     * What a read of this register would return, without performing it: the
+     * interrupt flags that a data-register read clears stay set. Used by the
+     * debugger so that looking at $D010 does not swallow a pending keypress.
+     */
+    peek(address: number): number {
+        switch (address) {
+            case REG_ORA_DDRA:
+                return this.cra & (1 << CR_DDR_ACCESS) ? this.readPortA() : this.ddra;
+            case REG_CRA:
+                return this.cra;
+            case REG_ORB_DDRB:
+                return this.crb & (1 << CR_DDR_ACCESS) ? this.readPortB() : this.ddrb;
+            case REG_CRB:
+                return this.crb;
+            default:
+                return 0;
+        }
+    }
+
+    /**
      * Read from PIA register
      */
     read(address: number): number {

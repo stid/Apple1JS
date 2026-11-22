@@ -398,7 +398,9 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             const paddedValue = editValue.padStart(2, '0');
             const value = parseInt(paddedValue, 16);
             // Send memory write to worker
-            workerManager.writeMemory(editingCell, value);
+            workerManager.writeMemory(editingCell, value).catch((error: unknown) => {
+                loggingService.error('MemoryViewerPaginated', `Failed to write memory: ${error}`);
+            });
         }
         setEditingCell(null);
         setEditValue('');

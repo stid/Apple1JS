@@ -20,7 +20,15 @@ import { JSEngine } from './JSEngine';
 import { WasmEngine } from './WasmEngine';
 import { isWasmSupported } from './wasm-loader';
 import { loggingService } from '../../services/LoggingService';
-import { RAM_BANK1_START, RAM_BANK1_END, RAM_BANK2_START, RAM_BANK2_END } from '../constants/memory';
+import {
+    RAM_BANK1_START,
+    RAM_BANK1_END,
+    RAM_BANK2_START,
+    RAM_BANK2_END,
+    IO_START,
+    IO_END,
+    isIoAddress,
+} from '../constants/memory';
 
 /**
  * Engine switch reason types
@@ -111,7 +119,14 @@ export class DualEngine implements ICPUEngine {
             promises.push(
                 this.wasmEngine.initialize().catch((error) => {
                     loggingService.error('DualEngine', `WASM initialization failed: ${error}`);
-                    // Don't throw, just disable WASM
+                    // Don't throw, just disable WASM. If it was the active engine
+                    // (the default), hand over to JS: leaving the dead engine
+                    // active meant the JS fallback never actually took over.
+                    if (this.activeEngine === this.wasmEngine) {
+                        this.activeEngine = this.jsEngine;
+                        this.activeEngineType = 'JS';
+                        loggingService.warn('DualEngine', 'Falling back to the JS engine');
+                    }
                     this.wasmEngine = null;
                 }),
             );
@@ -169,9 +184,12 @@ export class DualEngine implements ICPUEngine {
     }
 
     setRegisters(registers: Partial<CPURegisters>): void {
-        // Set registers in both engines
+        // Set registers in both engines (WASM only once it exists: before
+        // initialisation its setRegisters throws).
         this.jsEngine.setRegisters(registers);
-        this.wasmEngine?.setRegisters(registers);
+        if (this.wasmEngine?.isReady) {
+            this.wasmEngine.setRegisters(registers);
+        }
     }
 
     // ============ Memory Operations ============
@@ -181,10 +199,11 @@ export class DualEngine implements ICPUEngine {
     }
 
     write(address: number, value: number): void {
-        // Write to BOTH engines to keep them synchronized
-        // Each engine has its own RAM, so we must write to both
+        // RAM: write to BOTH engines, each has its own copy.
+        // I/O: both engines front the same devices on the JS Bus, so the write
+        // goes through one engine only or the device sees it twice.
         this.jsEngine.write(address, value);
-        if (this.wasmEngine?.isReady) {
+        if (this.wasmEngine?.isReady && !isIoAddress(address)) {
             this.wasmEngine.write(address, value);
         }
     }
@@ -194,7 +213,15 @@ export class DualEngine implements ICPUEngine {
     }
 
     writeRange(start: number, data: Uint8Array): void {
-        // Write to both engines to keep them synchronized
+        // A range touching the I/O block goes byte by byte through write(), which
+        // delivers device writes once. Plain RAM ranges go to both engines in bulk.
+        const end = start + data.length - 1;
+        if (data.length > 0 && start <= IO_END && end >= IO_START) {
+            for (let i = 0; i < data.length; i++) {
+                this.write(start + i, data[i]);
+            }
+            return;
+        }
         this.jsEngine.writeRange(start, data);
         if (this.wasmEngine?.isReady) {
             this.wasmEngine.writeRange(start, data);

@@ -84,8 +84,9 @@ export class WorkerState implements IWorkerState {
      */
     public async startEmulation(): Promise<void> {
         // The Apple1.startLoop() method now handles engine initialization
-        await this.apple1.startLoop();
+        // The promise settles only when the loop ends, so the flag is set first.
         this.isPaused = false;
+        await this.apple1.startLoop();
     }
 
     /**

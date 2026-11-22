@@ -11,8 +11,8 @@
 - **Lane:** Standard
 - **Goal:** Address every finding of the 2026-11-21 project health review as six stacked PRs
   (each branch is cut from the previous one; each bumps `src/version.ts`).
-- **Next action:** S4 — `fix/debugger-correctness` (cut from `fix/wasm-adc-decimal-overflow`)
-- **Branch:** fix/wasm-adc-decimal-overflow · **Updated:** 2026-11-21
+- **Next action:** S5 — `refactor/inspector-and-polling` (cut from `fix/debugger-correctness`)
+- **Branch:** fix/debugger-correctness · **Updated:** 2026-11-21
 
 ## STEPS
 
@@ -24,7 +24,7 @@
       frozen lockfile, single run per PR.
 - [x] S3 `fix/wasm-adc-decimal-overflow` — native stubs for the wasm-bindgen imports so CPU code
       runs under `cargo test`; failing ADC decimal V test; fix; parity suite vs real WASM.
-- [ ] S4 `fix/debugger-correctness` — tests first, on a real `Apple1` + `WorkerAPI`: resume on a
+- [x] S4 `fix/debugger-correctness` — tests first, on a real `Apple1` + `WorkerAPI`: resume on a
       breakpoint, double clock loop on load, clock tick exception, run-to-cursor transient
       breakpoint, WASM double I/O write, migrate-before-validate, awaited loadState, inspector
       placeholder values, disassembler key guard.
@@ -48,6 +48,11 @@
   (18 warnings today, most of them in code S6 deletes).
 - Coverage thresholds are floors just under measured values (all 64.7% lines, core 68%), not the
   old aspirational 90% that never ran.
+
+- Debugger reads go through `Bus.peek` (new, optional `IoAddressable.peek`); only the PIA
+  implements it. CPU reads still use `read`.
+- JS `performBulkSteps` budget check is `<` like Rust (was `<=`: one extra instruction per
+  batch, and one instruction executed before reset at construction).
 
 ## OPEN QUESTIONS
 
@@ -78,3 +83,10 @@
   S3: native host stand-ins in `lib.rs` → `cargo test` 12/3 fail becomes 15 pass; new decimal ADC
   test RED on V only, GREEN after moving the V computation into each branch (17 pass). Parity
   suite vs real WASM (`yarn dev:vite`): 28/28 incl. the new decimal ADC case. `cargo test` in CI.
+- 2026-11-21 — S3 done, PR #241. S4: 28 new tests in four `*-review-2026-11` files. Real
+  `WorkerState` tests were RED 8/9 against the old WorkerAPI (resume on breakpoint, run-to-cursor
+  leak, load-state loop) and exposed an unlisted bug: a failed WASM init left the dead WASM
+  engine active (no JS fallback). I/O single-write tests RED 4/4 against old engines. With
+  `yarn dev:vite` serving, the same worker tests pass on the real WASM engine (848 total).
+  Not done here, moved to S6: Rust B-flag on IRQ/NMI push, `(zp),Y` double read, reset cycle
+  counter parity, WASM state transfer gaps.

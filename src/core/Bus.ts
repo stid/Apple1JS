@@ -195,6 +195,20 @@ class Bus implements IInspectableComponent {
     }
 
     /**
+     * Read for inspection: same value as read(), but a device that reacts to
+     * being read (the PIA clears its interrupt flags) is left untouched.
+     */
+    peek(address: number): number {
+        const addrInstance = this.findInstanceWithAddress(address);
+        if (!addrInstance) {
+            return OPEN_BUS;
+        }
+        const offset = decodeOffset(addrInstance, address);
+        const { component } = addrInstance;
+        return component.peek ? component.peek(offset) : component.read(offset);
+    }
+
+    /**
      * Write a value to a specific address.
      * @param address - The memory address to write to.
      * @param value - The value to be written.

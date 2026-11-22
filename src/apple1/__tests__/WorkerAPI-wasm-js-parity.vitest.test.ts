@@ -23,7 +23,7 @@ function makeWorkerAPI(opts: {
             cpu: { toDebug: () => ({}) },
             pia: { toDebug: () => ({}) },
             bus: { read: () => 0x00, write: opts.busWrite, toDebug: () => ({}) },
-            clock: { toDebug: () => ({}) },
+            clock: { toDebug: () => ({}), onTickError: () => {} },
         },
         getDualEngine: () => opts.dualEngine,
     } as unknown as WorkerState;

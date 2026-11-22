@@ -21,7 +21,7 @@ function makeWorkerAPI(video: WebCRTVideo): WorkerAPI {
             cpu: { toDebug: () => ({}) },
             pia: { toDebug: () => ({}) },
             bus: { read: () => 0, toDebug: () => ({}) },
-            clock: { toDebug: () => ({}) },
+            clock: { toDebug: () => ({}), onTickError: () => {} },
         },
         getDualEngine: () => null,
     } as unknown as WorkerState;

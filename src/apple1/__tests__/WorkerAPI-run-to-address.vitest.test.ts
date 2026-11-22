@@ -52,6 +52,7 @@ function makeWorkerAPI(fake: ReturnType<typeof makeFakeEngine>, isPaused = true)
         apple1: {
             cpu: { PC: 0x0000, toDebug: () => ({}) },
             clock: {
+                onTickError: () => {},
                 pause: () => {},
                 resume: () => resumeCalls.push(1),
             },
@@ -122,7 +123,7 @@ describe('WorkerAPI.runToAddress', () => {
             isStepping: false,
             apple1: {
                 cpu: { PC: 0x0000, toDebug: () => ({}) },
-                clock: { pause: () => {}, resume: () => resumeCalls.push(1) },
+                clock: { pause: () => {}, resume: () => resumeCalls.push(1), onTickError: () => {} },
             },
             getDualEngine: () => null,
         };

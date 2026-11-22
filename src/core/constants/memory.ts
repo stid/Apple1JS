@@ -37,3 +37,8 @@ export const BYTE_MASK = 0xff;
 
 // Bus cache
 export const MAX_BUS_CACHE_SIZE = 256;
+// I/O block as decoded by the WASM bus: the PIA and its mirrors. The only region
+// where a write has a side effect on a device, so it must be performed once.
+export const IO_START = 0xd000;
+export const IO_END = 0xdfff;
+export const isIoAddress = (address: number): boolean => address >= IO_START && address <= IO_END;

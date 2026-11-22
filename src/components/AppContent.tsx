@@ -16,6 +16,8 @@ import type { EngineStatusData } from '../apple1/types/worker-messages';
 import { loggingService } from '../services/LoggingService';
 import { useUnmountSafe } from '../hooks/useUnmountSafe';
 import { useLocalStorageState } from '../hooks/useLocalStorageState';
+import { EMULATOR_KEYBOARD_ATTR } from '../utils/keyboard-focus';
+import type { EmulatorState } from '../apple1/types/emulator-state';
 
 type Props = {
     workerManager: WorkerManager;
@@ -216,15 +218,22 @@ const AppContentInner = ({
             const file = e.target.files && e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
+                // Reset input so selecting the same file again triggers change
+                e.target.value = '';
+                let state: EmulatorState;
                 try {
-                    const state = JSON.parse(event.target?.result as string);
-                    workerManager.loadState(state);
-                    // Reset input so selecting the same file again triggers change
-                    e.target.value = '';
-                    showToast('State loaded', 'success');
+                    state = JSON.parse(event.target?.result as string);
                 } catch {
                     showToast('Invalid state file.', 'error');
+                    return;
+                }
+                try {
+                    await workerManager.loadState(state);
+                    showToast('State loaded', 'success');
+                } catch (error) {
+                    loggingService.error('AppContent', `Failed to load state: ${error}`);
+                    showToast('Failed to load state.', 'error');
                 }
             };
             reader.readAsText(file);
@@ -382,6 +391,7 @@ const AppContentInner = ({
                     opacity: 0,
                 }}
                 tabIndex={0}
+                {...{ [EMULATOR_KEYBOARD_ATTR]: '' }}
                 aria-label="Hidden input for keyboard focus"
                 autoComplete="off"
                 autoCorrect="off"

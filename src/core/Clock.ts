@@ -21,7 +21,7 @@ import { baseInspectable } from './base/inspectable';
 /**
  * Clock state interface for serialization/deserialization
  */
-interface ClockState extends StateBase {
+export interface ClockState extends StateBase {
     /** Clock configuration */
     mhz: number;
     stepChunk: number;
@@ -69,6 +69,9 @@ class Clock extends VersionedStatefulComponentBase<ClockState> implements PubSub
     private startTime: number;
     private driftCompensation: number;
     private dynamicWaitTime: number;
+    /** Identifies the loop that currently owns the clock; older loops exit. */
+    private loopGeneration = 0;
+    private tickErrorHandlers: Array<(error: unknown) => void> = [];
 
     /** Current state schema version */
     private static readonly STATE_VERSION = '2.0';
@@ -170,6 +173,11 @@ class Clock extends VersionedStatefulComponentBase<ClockState> implements PubSub
 
     // Starts the main loop for the clock.
     async startLoop(): Promise<void> {
+        // One loop per clock. A second call (state load, repeated start) used to
+        // spawn another loop that ran forever alongside the first.
+        if (this.running) {
+            return;
+        }
         this.running = true;
         // Reset timing data when starting to ensure clean state
         this.resetTiming();
@@ -255,8 +263,11 @@ class Clock extends VersionedStatefulComponentBase<ClockState> implements PubSub
         this.startTime = performance.now();
         this.lastFrameTime = this.startTime;
         let frameCount = 0;
+        // stopLoop() + startLoop() in the same tick leaves `running` true by the
+        // time this loop wakes up; the generation tells it that it was replaced.
+        const generation = ++this.loopGeneration;
 
-        while (this.running) {
+        while (this.running && generation === this.loopGeneration) {
             if (this.paused) {
                 await wait(this.dynamicWaitTime);
                 continue;
@@ -285,10 +296,30 @@ class Clock extends VersionedStatefulComponentBase<ClockState> implements PubSub
                 this.updateDriftCompensation();
             }
 
-            this.notifySubscribers();
+            try {
+                this.notifySubscribers();
+            } catch (error) {
+                this.reportTickError(error);
+            }
 
             await wait(this.dynamicWaitTime);
         }
+    }
+
+    /** Register a handler for a failed tick (see {@link reportTickError}). */
+    onTickError(handler: (error: unknown) => void): void {
+        this.tickErrorHandlers.push(handler);
+    }
+
+    /**
+     * A subscriber threw during a tick (a CPU engine fault, a WASM trap). Pause
+     * instead of letting the rejection end the loop: a dead loop with
+     * `running === true` left the UI showing "running" over a frozen machine.
+     */
+    reportTickError(error: unknown): void {
+        this.pause();
+        ErrorHandler.handle(error instanceof Error ? error : new Error(String(error)));
+        this.tickErrorHandlers.forEach((handler) => handler(error));
     }
 
     // Reset timing data (useful after state restoration)

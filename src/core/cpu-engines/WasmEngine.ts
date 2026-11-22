@@ -18,7 +18,13 @@ import { installMemoryBridge, setBusForWasm } from './wasm-memory-bridge';
 import { loggingService } from '../../services/LoggingService';
 import { Formatters } from '../../utils/formatters';
 import ROM from '../ROM';
-import { RAM_BANK1_START, RAM_BANK1_END, RAM_BANK2_START, RAM_BANK2_END } from '../constants/memory';
+import {
+    RAM_BANK1_START,
+    RAM_BANK1_END,
+    RAM_BANK2_START,
+    RAM_BANK2_END,
+    isIoAddress,
+} from '../constants/memory';
 
 /**
  * WASM implementation of the CPU engine
@@ -511,11 +517,16 @@ export class WasmEngine implements ICPUEngine {
             return;
         }
 
-        // Write to WASM
+        // RAM lands in WASM memory; an I/O address is routed by the Rust bus back
+        // out to the JS Bus through the memory bridge.
         this.wasmSystem.write_memory(address, value);
 
-        // Also write to JS Bus for I/O compatibility (PIA, display, etc.)
-        this.bus.write(address, value);
+        // Mirror RAM into the JS Bus. Not for I/O: the bridge already delivered
+        // that write, and a second one would hit the device twice (a poke to
+        // $D012 printed the character twice).
+        if (!isIoAddress(address)) {
+            this.bus.write(address, value);
+        }
     }
 
     readRange(start: number, length: number): Uint8Array {
@@ -527,10 +538,13 @@ export class WasmEngine implements ICPUEngine {
             return data;
         }
 
-        // Read from WASM memory
+        // RAM/ROM come from WASM memory. I/O is peeked on the JS Bus instead:
+        // read_memory would route a real read through the bridge and clear the
+        // PIA flags the running program is waiting on.
         const data = new Uint8Array(length);
         for (let i = 0; i < length; i++) {
-            data[i] = this.wasmSystem.read_memory(start + i);
+            const address = start + i;
+            data[i] = isIoAddress(address) ? this.bus.peek(address) : this.wasmSystem.read_memory(address);
         }
         return data;
     }
@@ -543,10 +557,13 @@ export class WasmEngine implements ICPUEngine {
             return;
         }
 
-        // Write to both WASM and JS Bus
+        // WASM first, then mirror RAM into the JS Bus (I/O is delivered once, by
+        // the bridge; see write()).
         for (let i = 0; i < data.length; i++) {
             this.wasmSystem.write_memory(start + i, data[i]);
-            this.bus.write(start + i, data[i]);
+            if (!isIoAddress(start + i)) {
+                this.bus.write(start + i, data[i]);
+            }
         }
     }
 

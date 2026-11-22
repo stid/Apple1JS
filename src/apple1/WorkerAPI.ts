@@ -48,8 +48,51 @@ export class WorkerAPI implements IWorkerAPI {
         // JS-CPU-only hook, which is why WASM breakpoints never used to fire.
         this.workerState.getDualEngine()?.onBreakpointHit?.((address) => this.handleBreakpointHit(address));
 
+        // A tick that throws pauses the clock (see Clock.reportTickError); mirror
+        // that here so the UI stops showing "running" over a halted machine.
+        this.workerState.apple1.clock.onTickError(() => {
+            this.workerState.isPaused = true;
+            this.statusEvent.emit('paused');
+        });
+
         // Set up internal event subscriptions (including logging handler)
         this.setupInternalSubscriptions();
+    }
+
+    /**
+     * Both engines test for a breakpoint *before* executing, so resuming while
+     * parked on one would halt again without moving. Execute that one
+     * instruction as a deliberate step first.
+     */
+    private stepOffBreakpointUnderPC(): void {
+        const dualEngine = this.workerState.getDualEngine();
+        if (!dualEngine?.getRegisters) {
+            return;
+        }
+        if (!this.workerState.breakpoints.has(dualEngine.getRegisters().PC)) {
+            return;
+        }
+        this.workerState.isStepping = true;
+        try {
+            dualEngine.performSingleStep();
+        } finally {
+            this.workerState.isStepping = false;
+        }
+    }
+
+    /**
+     * Drop the pending run-to-cursor target together with its transient engine
+     * breakpoint (kept when the user also has a real breakpoint there).
+     */
+    private cancelRunToCursor(): void {
+        const target = this.workerState.runToCursorTarget;
+        if (target === null) {
+            return;
+        }
+        this.workerState.runToCursorTarget = null;
+        if (!this.workerState.breakpoints.has(target)) {
+            this.workerState.getDualEngine()?.clearBreakpoint(target);
+        }
     }
 
     /**
@@ -70,10 +113,7 @@ export class WorkerAPI implements IWorkerAPI {
         // also a real user breakpoint) and report completion rather than a hit.
         const target = this.workerState.runToCursorTarget;
         if (target !== null && address === target) {
-            this.workerState.runToCursorTarget = null;
-            if (!this.workerState.breakpoints.has(target)) {
-                this.workerState.getDualEngine()?.clearBreakpoint(target);
-            }
+            this.cancelRunToCursor();
             this.statusEvent.emit('paused');
             this.runToCursorEvent.emit(null);
             return;
@@ -142,6 +182,7 @@ export class WorkerAPI implements IWorkerAPI {
     }
 
     resumeEmulation(): void {
+        this.stepOffBreakpointUnderPC();
         this.workerState.apple1.clock.resume();
         this.workerState.isPaused = false;
 
@@ -203,11 +244,10 @@ export class WorkerAPI implements IWorkerAPI {
         const clonedState = JSON.parse(JSON.stringify(state));
         this.workerState.apple1.loadEmulatorState(clonedState);
 
-        // Reset clock timing data to prevent timing issues after state restore
+        // Reset clock timing data to prevent timing issues after state restore.
+        // The loop itself keeps running (the worker starts it once at boot);
+        // starting it again here used to leave an extra loop behind per load.
         this.workerState.apple1.clock.resetTiming();
-
-        // Always restart the main loop after loading state
-        this.workerState.apple1.startLoop();
 
         // Force video update after restore
         if (typeof this.workerState.video.forceUpdate === 'function') {
@@ -231,13 +271,21 @@ export class WorkerAPI implements IWorkerAPI {
 
     clearBreakpoint(address: number): number[] {
         this.workerState.breakpoints.delete(address);
-        this.workerState.getDualEngine()?.clearBreakpoint(address);
+        // A pending run-to-cursor to this address still needs the engine
+        // breakpoint; it is removed on arrival.
+        if (address !== this.workerState.runToCursorTarget) {
+            this.workerState.getDualEngine()?.clearBreakpoint(address);
+        }
         return Array.from(this.workerState.breakpoints);
     }
 
     clearAllBreakpoints(): void {
         this.workerState.breakpoints.clear();
         this.workerState.getDualEngine()?.clearAllBreakpoints();
+        if (this.workerState.runToCursorTarget !== null) {
+            this.workerState.runToCursorTarget = null;
+            this.runToCursorEvent.emit(null);
+        }
     }
 
     getBreakpoints(): number[] {
@@ -272,7 +320,9 @@ export class WorkerAPI implements IWorkerAPI {
             return;
         }
 
-        // Store the run-to-cursor target and notify listeners.
+        // Replace any earlier target (and its transient breakpoint), then store
+        // the new one and notify listeners.
+        this.cancelRunToCursor();
         this.workerState.runToCursorTarget = targetAddress;
         this.runToCursorEvent.emit(this.workerState.runToCursorTarget);
 
@@ -286,6 +336,7 @@ export class WorkerAPI implements IWorkerAPI {
 
         // Resume execution to run to the target.
         if (this.workerState.isPaused) {
+            this.stepOffBreakpointUnderPC();
             this.workerState.apple1.clock.resume();
             this.workerState.isPaused = false;
             this.statusEvent.emit('running');
