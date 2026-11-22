@@ -10,18 +10,19 @@
 - **Lane:** Deep
 - **Goal:** Board live activity (issue #247): each bus-addressed part shows its read/write rate
   and lights up with its traces, with identical counts on both CPU engines.
-- **Next action:** run `/lcd:test-gen board-activity`, then the red-green loop from T1.
-- **Branch:** feat/board-activity · **Updated:** 2026-11-21 23:40
+- **Next action:** open the PR (owner go-ahead pending). Everything else is done and pushed.
+- **Branch:** feat/board-activity · **Updated:** 2026-11-22 00:15
 
 ## STEPS
 
 - [x] S1 — triage, investigation, `spec.md` (approved), `plan.md`, `tasks.md`
-- [ ] T1–T3 — Rust: failing native tests, counters, rebuild bindings ← next
-- [ ] T4–T7 — JS counters, `getPageActivity` on the engines, parity vs real WASM
-- [ ] T8–T9 — `activity` on the machine tree
-- [ ] T10–T13 — Board: rates module, rate line, lit parts and traces
-- [ ] T14–T17 — version, browser check, benchmark (AC-11), docs
-- [ ] T-audit, T-final
+- [x] T1–T3 — Rust: native tests, counters, bindings rebuilt
+- [x] T4–T7 — JS counters, `getPageActivity` on the engines, parity vs real WASM
+- [x] T8–T9 — `activity` on the machine tree
+- [x] T10–T13 — Board: rates module, rate line, lit parts and traces
+- [x] T14–T17 — version 4.54.0, browser check, benchmark (AC-11), docs
+- [x] T-audit (PASS, first run), T-final (green)
+- [ ] open the PR ← next
 
 ## DECISIONS (this work-item)
 
@@ -30,6 +31,10 @@
 - Reset clears the counters in both engines (their reset sequences read the vector differently).
 - Read-out: `ICPUEngine.getPageActivity(): Float64Array` (512), folded into
   `activity: { instructions, parts }` on the machine tree root by `Apple1.getInspectable()`.
+- Counters are 32-bit and wrap on both engines (`Uint32Array` / `[u32; 512]`): a `Float64Array`
+  cost the JS engine 6.9% headless, over the AC-11 limit; `Uint32Array` costs 1.7% (WASM 4.7%).
+- Tree field is `activity: { sampledAt, accesses, parts }` (worker timestamp; `accesses` replaces
+  the planned `instructions`).
 - Spec AC-1 amended: "bus accesses the engine performs", not "bus cycles" (no dummy cycles in
   either engine).
 
@@ -66,6 +71,17 @@
   to the CPU's access helper (D-016). Context7: wasm-bindgen returns `Box<[f64]>` as a
   `Float64Array`. AC-1 amended (accesses, not cycles).
 
+- 2026-11-22 00:15 — Build done (commits 95f2a16, b0be636, c2819ae, 6bb4f27). Native Rust and
+  JS tests assert the same counts; parity vs real WASM passes, including a mixed RMW / indexed /
+  indirect / branch program (the plan's divergence risk did not occur). Browser check on both
+  engines (headless Chrome): idle prompt lights CPU, PROMs, PIA; typing touches RAM bank 1; BASIC
+  lights RAM bank 2; pause darkens everything; reset and engine switch show one "no rate" sample,
+  never a negative or a spike; keyboard and display work on WASM. Found on the way: before the
+  first Reset the machine sits in a BRK loop, visible as RAM bank 1 at 430k writes/s. Benchmark,
+  eight alternating runs vs master: JS −1.7%, WASM −4.7%. One console 404 during the check is the
+  browser's `/favicon.ico` request (likely; that URL 404s and is unrelated to this branch).
+  audit: PASS (first run).
+
 ## DEEP PIPELINE (Deep lane only)
 
-`spec.md ✅  plan.md ✅  tasks.md ✅  tests ⬜  red-green ⬜  audit.md ⬜`
+`spec.md ✅  plan.md ✅  tasks.md ✅  tests ✅  red-green ✅  audit.md ✅`
