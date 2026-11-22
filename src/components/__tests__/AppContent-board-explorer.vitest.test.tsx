@@ -1,7 +1,8 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { DEBUG_REFRESH_RATES } from '../../constants/ui';
 import { AppContent } from '../AppContent';
 import DebuggerLayout from '../DebuggerLayout';
 import { ToastProvider } from '../../contexts/ToastContext';
@@ -67,6 +68,35 @@ describe('Board and Performance tabs', () => {
 
         expect(await screen.findByTestId('board-view')).toHaveTextContent('apple1');
         expect(wm.getInspectableTree).toHaveBeenCalled();
+    });
+
+    it('keeps the machine tree fresh while the Board is open, and stops when it closes', async () => {
+        vi.useFakeTimers();
+        try {
+            const calls = () => vi.mocked(wm.getInspectableTree).mock.calls.length;
+            renderApp();
+            fireEvent.click(screen.getByRole('tab', { name: 'Board' }));
+            // Let the first fetch and the engine-status fetch settle.
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+            const opened = calls();
+            expect(opened).toBeGreaterThan(0);
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(DEBUG_REFRESH_RATES.BOARD * 2);
+            });
+            expect(calls()).toBe(opened + 2);
+
+            fireEvent.click(screen.getByRole('tab', { name: 'Info' }));
+            const closed = calls();
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(DEBUG_REFRESH_RATES.BOARD * 4);
+            });
+            expect(calls()).toBe(closed);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('AC-4 (RENDER): the Performance tab shows the performance view', () => {

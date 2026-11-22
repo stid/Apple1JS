@@ -202,7 +202,7 @@ appear in the debugger, NOT to the React presentation layer.
 - **Implement the contracts** when a class _is_ a piece of emulated hardware that:
   - owns persisted/serializable state that must survive save/load and needs
       versioned migration → `IVersionedStatefulComponent`, and/or
-  - exposes debug-inspectable state to the Inspector/architecture view →
+  - exposes debug-inspectable state to the Board view →
       `IInspectableComponent` (`getInspectable()`).
 - **Do NOT implement the contracts** on:
   - React components in `src/components/**`. They render the UI and _consume_ the
@@ -247,7 +247,7 @@ state or produce an inspectable node, so the contracts are **N/A** for every one
 | `EngineSwitcher`                                                                                  | Engine toggle control                                                   |        N/A (presentational)        |
 | `CRT`, `CRTCursor`, `CRTRow`, `CRTRowChar`, `CRTRowCharRom`, `CRTWorker`, `CharRomCanvasRenderer` | CRT render subtree                                                      | N/A (presentational/render helper) |
 | `DebuggerLayout`                                                                                  | Debugger layout; consumes `root: IInspectableComponent`                 |           N/A (consumer)           |
-| `InspectorView` / `InspectTree`                                                                   | Render the inspectable tree (calls `getInspectable()` on the core root) |  N/A (consumer, not implementer)   |
+| `BoardView` / `PerformanceView`                                                                   | Board over the inspectable tree from the worker; performance panels     |  N/A (consumer, not implementer)   |
 | `DisassemblerPaginated`                                                                           | Disassembly view                                                        |     N/A (view state via hooks)     |
 | `MemoryViewerPaginated`                                                                           | Memory view                                                             |     N/A (view state via hooks)     |
 | `StackViewer`                                                                                     | Stack view                                                              |        N/A (presentational)        |
@@ -363,12 +363,19 @@ React contexts manage UI-level state:
 - Stack viewer
 - Breakpoint management
 
-### Component Inspector
+### Board
 
-- Hierarchical view of all components
-- Real-time state inspection
-- Performance metrics
+- Stylised Apple 1 board; each emulated part selects the component behind it
+- Several physical parts can map to one component (the terminal section is `video`)
+- Layout and the part → component mapping are data in `src/components/board/boardModel.ts`
+- Real-time state inspection for the selected component
 - No performance impact when closed
+
+### Performance
+
+- Engine switcher and engine status
+- Host cost, throughput history and statistics
+- Instruction profiling
 
 ## Code Standards
 

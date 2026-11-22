@@ -243,10 +243,27 @@ const isScalar = (value: unknown): value is Scalar =>
 
 const IDENTITY_KEYS = new Set(['id', 'type', 'name', 'children', 'mapping']);
 
-const configOf = (node: InspectableData): Array<[string, Scalar]> =>
-    Object.entries(node).filter(
-        (entry): entry is [string, Scalar] => !IDENTITY_KEYS.has(entry[0]) && isScalar(entry[1]),
-    );
+const scalarsOf = (record: object | undefined): Array<[string, Scalar]> =>
+    Object.entries(record ?? {}).filter((entry): entry is [string, Scalar] => isScalar(entry[1]));
+
+/**
+ * A node's own values: its flat fields, then the scalars of `state` and `stats`.
+ * Some components repeat a value both flat and under `state`; it is listed once.
+ */
+const configOf = (node: InspectableData): Array<[string, Scalar]> => {
+    const fields = new Map<string, Scalar>();
+    const groups = [
+        scalarsOf(node).filter(([key]) => !IDENTITY_KEYS.has(key)),
+        scalarsOf(node.state),
+        scalarsOf(node.stats),
+    ];
+    for (const [key, value] of groups.flat()) {
+        if (!fields.has(key)) {
+            fields.set(key, value);
+        }
+    }
+    return [...fields];
+};
 
 /**
  * Find a node by id anywhere in the tree. The same id can appear twice (the Bus

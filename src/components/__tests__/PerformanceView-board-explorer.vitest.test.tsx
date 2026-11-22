@@ -43,7 +43,7 @@ describe('PerformanceView', () => {
         expect(screen.getByTestId('perf-metrics')).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Instruction profiling' })).toBeInTheDocument();
 
-        expect(await screen.findByRole('heading', { name: 'CPU engine' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Engine status' })).toBeInTheDocument();
         expect(screen.getByText('JS, WASM')).toBeInTheDocument();
         expect(screen.getByText('12.3ms')).toBeInTheDocument();
     });
@@ -114,7 +114,7 @@ describe('PerformanceView', () => {
     // Carried over from the Inspector (work-item wasm-js-parity).
     it('AC-2 (RENDER): profiling toggle enabled in WASM mode', async () => {
         renderView();
-        await screen.findByRole('heading', { name: 'CPU engine' });
+        await screen.findByRole('heading', { name: 'Engine status' });
 
         const toggle = screen.getByRole('button', { name: /profiling/i });
         expect(toggle).toBeEnabled();
@@ -123,7 +123,7 @@ describe('PerformanceView', () => {
 
     it('AC-5 (RENDER): no degradation banner in WASM mode', async () => {
         renderView();
-        await screen.findByRole('heading', { name: 'CPU engine' });
+        await screen.findByRole('heading', { name: 'Engine status' });
 
         expect(screen.queryByText(/WASM engine active/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/limited support/i)).not.toBeInTheDocument();

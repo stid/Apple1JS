@@ -73,7 +73,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ workerManager }) => {
 
                 {engineStatus && (
                     <section className="card">
-                        <h3 className="card-title mb-md">CPU engine</h3>
+                        <h3 className="card-title mb-md">Engine status</h3>
                         <div className="grid grid-cols-2 gap-x-lg gap-y-sm">
                             <RegisterRow label="Active Engine" value={engineStatus.currentEngine} type="status" />
                             <RegisterRow

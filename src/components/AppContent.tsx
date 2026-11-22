@@ -5,6 +5,7 @@ import PerformanceView from './PerformanceView';
 import DebuggerLayout from './DebuggerLayout';
 import CRTWorker from './CRTWorker';
 import { CONFIG } from '../config';
+import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import { designTokens } from '../styles/tokens';
 import Actions from './Actions';
 import { useDebuggerNavigation } from '../contexts/DebuggerNavigationContext';
@@ -83,26 +84,32 @@ const AppContentInner = ({
         }
     }, []);
 
-    // The Board describes the machine in the worker. Fetched when the tab
-    // opens (and again on an engine switch, which changes what is running), so
-    // the tree and its stats belong to the system that is actually executing.
+    // The Board describes the machine in the worker. Fetched when the tab opens
+    // (and again on an engine switch, which changes what is running), then kept
+    // fresh while the tab is on screen: the tree carries live state such as the
+    // PIA's registers, so a single snapshot would go stale.
     useEffect(() => {
         if (rightTab !== 'board') {
             return;
         }
         let cancelled = false;
-        workerManager
-            .getInspectableTree()
-            .then((tree) => {
-                if (!cancelled) {
-                    setMachineTree(tree);
-                }
-            })
-            .catch((error: unknown) => {
-                loggingService.error('AppContent', `Failed to get the machine structure: ${error}`);
-            });
+        const fetchTree = () => {
+            workerManager
+                .getInspectableTree()
+                .then((tree) => {
+                    if (!cancelled) {
+                        setMachineTree(tree);
+                    }
+                })
+                .catch((error: unknown) => {
+                    loggingService.error('AppContent', `Failed to get the machine structure: ${error}`);
+                });
+        };
+        fetchTree();
+        const timer = setInterval(fetchTree, DEBUG_REFRESH_RATES.BOARD);
         return () => {
             cancelled = true;
+            clearInterval(timer);
         };
     }, [workerManager, rightTab, engineStatus?.currentEngine]);
 

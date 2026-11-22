@@ -18,6 +18,9 @@ export const DEBUG_REFRESH_RATES = {
 
     /** Stack viewer */
     STACK_VIEW: REFRESH_RATES.NORMAL,
+
+    /** Machine tree behind the Board view */
+    BOARD: REFRESH_RATES.NORMAL,
 } as const;
 
 // Animation and UI effect timings

@@ -93,6 +93,21 @@ describe('boardModel', () => {
         expect(fields.some((field) => field.key.includes('PERF_DATA'))).toBe(false);
     });
 
+    it('lists the scalars of `state` and `stats`, without repeating a flat field of the same name', () => {
+        const node = {
+            id: 'bus',
+            type: 'Bus',
+            mappingCount: 4,
+            state: { mappingCount: 4, sorted: true },
+            stats: { cacheHits: 12 },
+        } as InspectableData;
+        expect(describeNode(node, noDebug)).toEqual([
+            { key: 'mappingCount', value: '4', kind: 'status' },
+            { key: 'sorted', value: 'true', kind: 'status' },
+            { key: 'cacheHits', value: '12', kind: 'status' },
+        ]);
+    });
+
     it('formats large numbers with separators', () => {
         const fields = describeNode(findNode(tree, 'clock') as InspectableData, noDebug);
         expect(fields).toContainEqual({ key: 'frequency', value: (1000000).toLocaleString(), kind: 'status' });
