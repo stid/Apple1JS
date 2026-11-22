@@ -12,7 +12,7 @@
   parts map to the inspectable tree, click to inspect) and add a Performance tab that gathers
   engine status, engine switcher, performance metrics and profiling. Phase 1 only: UI, no
   engine changes.
-- **Next action:** S6, run `/lcd:audit board-explorer`, then open the PR.
+- **Next action:** open the PR (owner go-ahead pending).
 - **Branch:** feat/board-explorer · **Updated:** 2026-11-21 21:10
 
 ## STEPS
@@ -23,7 +23,8 @@
 - [x] S4 — `PerformanceView` (engine status, switcher, metrics, profiling) with tests
 - [x] S5 — wire tabs in `AppContent`, drop the two cards from the Debugger overview, delete
       `InspectorView` and port its tests
-- [ ] S6 — docs, version bump (minor), gate, browser check, audit, PR ← next
+- [x] S6 — docs, version bump (minor), gate, browser check, audit
+- [ ] S7 — open the PR ← next
 
 ## DECISIONS (this work-item)
 
@@ -80,3 +81,4 @@ shows the engine switcher or the performance card.
   Performance (see mockup reply).
 - 2026-11-21 21:10 — S2–S5 done (commits 95939c8, d5c282c, e98d63c). Gate green: 96 files, 768 tests. Docs and version 4.53.0 updated.
 - 2026-11-21 21:40 — Browser check (headless Chrome via playwright-core, dev server on :3000): tabs, selection, group selection and Performance all work. Found and fixed: `state`/`stats` were not listed (terminal section looked empty), the tree was a stale snapshot (now polled), two cards titled "CPU engine" (status card renamed). A first guess that `video` needed an id alias was wrong; the wrapper already delegates.
+- 2026-11-21 21:50 — audit: PASS (test-presence). AC-1..AC-4 each have a named RENDER test; gate green (98 files, 799 tests, parity suites run against served WASM).
