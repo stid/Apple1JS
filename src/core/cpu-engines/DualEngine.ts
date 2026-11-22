@@ -20,6 +20,7 @@ import { JSEngine } from './JSEngine';
 import { WasmEngine } from './WasmEngine';
 import { isWasmSupported } from './wasm-loader';
 import { loggingService } from '../../services/LoggingService';
+import { Formatters } from '../../utils/formatters';
 import {
     RAM_BANK1_START,
     RAM_BANK1_END,
@@ -51,6 +52,12 @@ export class DualEngine implements ICPUEngine {
     // Both engine instances
     private jsEngine: JSEngine;
     private wasmEngine: WasmEngine | null = null;
+
+    // Stack pointer the current run started from. Reset does not initialise S and
+    // the Woz Monitor never sets it, so stack depth is only knowable relative to
+    // this: S right after reset, raised if S is later seen above it (a program
+    // that sets its own stack). Null until the first reset or snapshot.
+    private stackBase: number | null = null;
 
     // Event listeners
     private switchListeners: Set<EngineSwitchListener> = new Set();
@@ -154,6 +161,7 @@ export class DualEngine implements ICPUEngine {
         // Reset both engines to keep them in sync
         this.jsEngine.reset();
         this.wasmEngine?.reset();
+        this.stackBase = DualEngine.stackPointerOf(this.activeDebug());
     }
 
     halt(): void {
@@ -553,7 +561,29 @@ export class DualEngine implements ICPUEngine {
      * WASM engine when it is active instead of the dormant JS CPU.
      */
     toDebug(): { [key: string]: string | number | boolean | object } {
+        const debug = this.activeDebug();
+        const stackPointer = DualEngine.stackPointerOf(debug);
+        if (stackPointer === null) {
+            return debug;
+        }
+        if (this.stackBase === null || stackPointer > this.stackBase) {
+            this.stackBase = stackPointer;
+        }
+        return { ...debug, STACK_BASE: Formatters.hexByte(this.stackBase) };
+    }
+
+    private activeDebug(): { [key: string]: string | number | boolean | object } {
         return this.activeEngine.toDebug ? this.activeEngine.toDebug() : {};
+    }
+
+    /** S from a debug snapshot ("$0B"), or null when the engine has none yet. */
+    private static stackPointerOf(debug: { [key: string]: string | number | boolean | object }): number | null {
+        const raw = debug.REG_S;
+        if (typeof raw !== 'string') {
+            return null;
+        }
+        const parsed = parseInt(raw.replace('$', ''), 16);
+        return Number.isNaN(parsed) ? null : parsed;
     }
 
     cleanup(): void {

@@ -55,7 +55,7 @@ const AddressLink: React.FC<AddressLinkProps> = ({
     if (!showContextMenu) return;
     
     const menu = document.createElement('div');
-    menu.className = 'absolute bg-surface-primary border border-border-default rounded-md shadow-xl py-1 z-50 min-w-[180px]';
+    menu.className = 'absolute bg-surface-primary border border-border-secondary rounded-md shadow-xl py-1 z-50 min-w-[180px]';
     menu.style.left = `${e.pageX}px`;
     menu.style.top = `${e.pageY}px`;
     

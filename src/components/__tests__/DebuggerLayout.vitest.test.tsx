@@ -87,6 +87,27 @@ describe('DebuggerLayout', () => {
         expect(screen.getByTestId('stack-viewer')).toBeInTheDocument();
     });
 
+    it('exposes the view selector as pressed buttons in a labelled group, not ARIA tabs', () => {
+        renderWithProviders(
+            <DebuggerLayout
+                workerManager={mockWorkerManager}
+                memoryViewAddress={memoryViewAddress}
+                setMemoryViewAddress={setMemoryViewAddress}
+                disassemblerAddress={disassemblerAddress}
+                setDisassemblerAddress={setDisassemblerAddress}
+            />,
+        );
+
+        expect(screen.getByRole('group', { name: 'Debugger views' })).toBeInTheDocument();
+        expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Memory' })).toHaveAttribute('aria-pressed', 'false');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Memory' }));
+        expect(screen.getByRole('button', { name: 'Memory' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Overview' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
     it('switches between tabs', () => {
         renderWithProviders(
             <DebuggerLayout

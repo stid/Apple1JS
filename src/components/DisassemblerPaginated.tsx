@@ -525,13 +525,13 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
 
     // Render functions
     const renderTableHeader = () => (
-        <thead className="bg-surface-secondary">
-            <tr className="text-text-accent">
-                <th className="text-left px-xs py-1 border-b border-border-subtle w-8">BP</th>
-                <th className="text-left px-sm py-1 border-b border-border-subtle w-20">Address</th>
-                <th className="text-left px-sm py-1 border-b border-border-subtle w-28">Bytes</th>
-                <th className="text-left px-sm py-1 border-b border-border-subtle w-48">Instruction</th>
-                <th className="text-left px-sm py-1 border-b border-border-subtle">Info</th>
+        <thead>
+            <tr className="font-sans text-xs text-text-secondary">
+                <th className="text-left px-xs py-1 font-medium border-b border-border-subtle w-8">BP</th>
+                <th className="text-left px-sm py-1 font-medium border-b border-border-subtle w-20">Address</th>
+                <th className="text-left px-sm py-1 font-medium border-b border-border-subtle w-28">Bytes</th>
+                <th className="text-left px-sm py-1 font-medium border-b border-border-subtle w-48">Instruction</th>
+                <th className="text-left px-sm py-1 font-medium border-b border-border-subtle">Info</th>
             </tr>
         </thead>
     );
@@ -612,7 +612,9 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                             </span>
                         )}
                     </td>
-                    <td className="px-sm py-1 align-middle text-text-secondary text-xs">{getInstructionInfo(line)}</td>
+                    <td className="px-sm py-1 align-middle font-sans text-text-secondary text-xs">
+                        {getInstructionInfo(line)}
+                    </td>
                 </tr>
             );
         });
@@ -622,11 +624,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     // bar (ExecutionControlsCluster). This toolbar keeps only view navigation: →PC.
     const renderExtraControls = () => (
         <div className="flex items-center gap-xs">
-            <button
-                onClick={jumpToPC}
-                className="px-sm py-xxs text-xs font-medium rounded-sm transition-all bg-data-address/10 text-data-address hover:bg-data-address/20 border border-data-address/30"
-                title="Jump to PC (F8)"
-            >
+            <button onClick={jumpToPC} className="btn btn-secondary h-6 font-mono text-xs" title="Jump to PC (F8)">
                 →PC
             </button>
         </div>

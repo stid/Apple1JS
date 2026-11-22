@@ -1,20 +1,27 @@
 /**
- * Design tokens for Apple1JS emulator
- * Provides consistent design system values for typography, colors, spacing, and other design elements
+ * Design tokens for Apple1JS — the single source of truth for the UI palette,
+ * type, spacing and radii.
+ *
+ * Values follow the stid design system: Catppuccin Mocha surfaces, Peach accent,
+ * Geist + Geist Mono, a 4px grid and square-ish radii. Dark only. The CRT display
+ * keeps its own hand-tuned phosphor colours and is not driven by these tokens.
  */
 
 export const designTokens = {
-    // Typography scale - monospace for authentic terminal feel
     typography: {
         fontFamily: {
-            mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            // UI, labels, prose
+            sans: '"Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+            // Data: addresses, bytes, registers, code, keyboard keys
+            mono: '"Geist Mono Variable", "Geist Mono", "MesloLGS Nerd Font Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace',
         },
         fontSize: {
-            xs: '0.875rem', // 14px - Labels, metadata
-            sm: '1rem', // 16px - Body text, values
-            base: '1.125rem', // 18px - Main content
-            lg: '1.5rem', // 24px - Headers, important data
-            xl: '1.75rem', // 28px - Section titles
+            '2xs': '0.6875rem', // 11px - eyebrows, badges
+            xs: '0.75rem', // 12px - captions, metadata, dense controls
+            sm: '0.8125rem', // 13px - UI body and data tables
+            base: '0.9375rem', // 15px - card titles
+            lg: '1.25rem', // 20px - emphasised values
+            xl: '1.5625rem', // 25px - page-level headings
         },
         fontWeight: {
             normal: 400,
@@ -23,116 +30,92 @@ export const designTokens = {
             bold: 700,
         },
         lineHeight: {
-            tight: 1.25,
+            tight: 1.15,
             normal: 1.5,
             relaxed: 1.75,
         },
         letterSpacing: {
+            tight: '-0.015em', // headings
             normal: '0',
-            wide: '0.025em',
-            wider: '0.05em',
+            wide: '0.02em',
+            caps: '0.12em', // uppercase mono eyebrows
         },
     },
 
-    // Color system - Apple 1 inspired palette
     colors: {
         // Data type colors
-        address: '#34D399', // Green for memory addresses (matches CRT phosphor)
-        value: '#34D399', // Green for data values
-        flag: '#F59E0B', // Amber for CPU flags
-        status: '#8B5CF6', // Purple for status info
+        address: '#89b4fa', // Blue - memory addresses (the prompt-path colour)
+        value: '#a6e3a1', // Green - data values; echoes the CRT phosphor
+        flag: '#f9e2af', // Yellow - CPU flags
+        status: '#cba6f7', // Mauve - status info, mnemonics
 
-        // Hover variants for data type colors (brighter green)
         dataHover: {
-            address: '#6EE7B7',
-            value: '#6EE7B7',
+            address: '#b4befe', // Lavender
+            value: '#94e2d5', // Teal
         },
 
         // Semantic colors
-        success: '#10B981', // Green for success/active states
-        warning: '#F59E0B', // Amber for warnings
-        error: '#EF4444', // Red for errors
-        info: '#3B82F6', // Blue for informational
+        success: '#a6e3a1', // Green
+        warning: '#f9e2af', // Yellow
+        error: '#f38ba8', // Red
+        info: '#74c7ec', // Sapphire
 
-        // Toggle states — color encodes a stateful feature's ON/OFF, kept distinct
-        // from `success` (momentary actions) and `warning` (genuine alerts).
-        toggleActive: '#3B82F6', // Blue — feature enabled / active selection
-        toggleInactive: '#6B7280', // Neutral gray — feature disabled (matches neutral.500)
+        // Toggle states — a stateful feature's ON takes the accent, OFF goes neutral.
+        toggleActive: '#fab387', // Peach
+        toggleInactive: '#6c7086', // Overlay0
 
-        // Apple 1 phosphor green theme
+        // Apple 1 phosphor green (CRT-adjacent effects only)
         phosphor: {
-            primary: '#00FF00', // Bright green
-            secondary: '#00D000', // Medium green
-            dim: '#00A000', // Dark green
-            glow: '#00FF0030', // Green with transparency
+            primary: '#00FF00',
+            secondary: '#00D000',
+            dim: '#00A000',
+            glow: '#00FF0030',
         },
 
-        // Neutral grays
-        neutral: {
-            50: '#F9FAFB',
-            100: '#F3F4F6',
-            200: '#E5E7EB',
-            300: '#D1D5DB',
-            400: '#9CA3AF',
-            500: '#6B7280',
-            600: '#4B5563',
-            700: '#374151',
-            800: '#1F2937',
-            900: '#111827',
-            950: '#0F172A',
-        },
-
-        // Background colors (consumed via the legacy color() helper)
-        background: {
-            primary: '#000000', // Pure black
-            secondary: '#0F172A', // Very dark slate
-            surface: '#1E293B', // Dark slate
-            overlay: '#00000060', // Black with 60% opacity
-        },
-
-        // Surface colors (canonical Tailwind-facing names; surface.primary == background.surface)
+        // Surface ramp, deepest to most raised: sunken < secondary < base < primary < tertiary < quaternary
         surface: {
-            primary: '#1E293B', // Dark slate
-            secondary: '#0F172A', // Very dark slate
-            tertiary: '#334155', // Lighter slate
-            quaternary: '#475569', // Lightest slate
-            overlay: '#00000060', // Black with 60% opacity
-            hover: '#334155', // Hover lift over primary (== tertiary; semantic alias)
-            sunken: '#000000', // Recessed panel; used translucent via opacity modifiers (bg-surface-sunken/40)
+            base: '#1e1e2e', // Page background
+            primary: '#313244', // Cards, raised panels (surface0)
+            secondary: '#181825', // Toolbars, table headers, inputs (mantle)
+            tertiary: '#45475a', // Nested panels (surface1)
+            quaternary: '#585b70', // Active, pressed (surface2)
+            overlay: '#11111b99', // Scrim behind overlays (crust at 60%)
+            hover: '#45475a', // Hover lift over primary (== tertiary; semantic alias)
+            sunken: '#11111b', // Deepest wells: code blocks, the CRT bezel (crust)
         },
 
-        // Border colors
         border: {
-            primary: '#374151', // Gray-700
-            secondary: '#4B5563', // Gray-600
-            accent: '#10B981', // Green accent
-            subtle: '#1F2937', // Gray-800
+            primary: '#2a2a3c', // Hairline between base and cards
+            secondary: '#45475a', // Stronger line: buttons, inputs
+            accent: '#fab387', // Peach
+            subtle: '#2a2a3c', // Dividers inside a card (== primary; semantic alias)
         },
 
-        // Text colors
         text: {
-            primary: '#F3F4F6', // Light gray
-            secondary: '#9CA3AF', // Medium gray
-            tertiary: '#6B7280', // Darker gray (same as muted)
-            accent: '#10B981', // Green accent
-            muted: '#6B7280', // Darker gray
-            disabled: '#6B7280', // Disabled/inactive text (== neutral.500; semantic alias)
+            primary: '#cdd6f4', // Main copy
+            secondary: '#a6adc8', // Secondary copy, labels
+            tertiary: '#7f849c', // Metadata, captions
+            accent: '#fab387', // Peach - links, active tab, focus
+            accentHover: '#ffc9a3', // Lighter peach
+            onAccent: '#11111b', // Text on an accent or status fill
+            muted: '#7f849c', // == tertiary; semantic alias
+            disabled: '#6c7086', // Disabled, placeholders
         },
 
         // Component type colors for consistent mapping
         componentColors: {
-            RAM: '#3B82F6', // Blue (info color)
-            ROM: '#F59E0B', // Amber (warning color)
-            Bus: '#10B981', // Green (success color)
-            CPU: '#EF4444', // Red (error color)
-            CPU6502: '#EF4444', // Red (error color)
-            PIA6820: '#8B5CF6', // Purple (status color)
-            IoComponent: '#06B6D4', // Cyan
-            Clock: '#F97316', // Orange
+            RAM: '#89b4fa', // Blue
+            ROM: '#f9e2af', // Yellow
+            Bus: '#a6e3a1', // Green
+            CPU: '#f38ba8', // Red
+            CPU6502: '#f38ba8', // Red
+            PIA6820: '#cba6f7', // Mauve
+            IoComponent: '#94e2d5', // Teal
+            Clock: '#fab387', // Peach
         },
     },
 
-    // Spacing system - consistent spacing scale
+    // Spacing on a 4px grid
     spacing: {
         xxs: '0.125rem', // 2px
         xs: '0.25rem', // 4px
@@ -144,76 +127,23 @@ export const designTokens = {
         xxxl: '4rem', // 64px
     },
 
-    // Border radius
+    // Radii — square-ish, terminal not bubbly
     borderRadius: {
         none: '0',
-        sm: '0.125rem', // 2px
-        base: '0.25rem', // 4px
-        md: '0.375rem', // 6px
-        lg: '0.5rem', // 8px
-        xl: '0.75rem', // 12px
-        full: '9999px', // Full rounded
+        sm: '3px', // Inputs, badges, chips
+        md: '5px', // Buttons
+        lg: '8px', // Cards, panels
+        xl: '12px', // Large surfaces
+        full: '9999px', // Status dots, spinners only
     },
 
-    // Shadows
+    // Shadows — low, soft, cool-tinted. Surfaces are separated by borders, not shadow.
     boxShadow: {
-        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        green: '0 0 20px rgba(0, 255, 0, 0.3)', // Green glow effect
-    },
-
-    // Transitions
-    transition: {
-        fast: '100ms ease-in-out',
-        base: '150ms ease-in-out',
-        slow: '300ms ease-in-out',
-    },
-
-    // Component-specific tokens
-    components: {
-        // CRT display
-        crt: {
-            backgroundColor: '#0F172A',
-            borderColor: '#374151',
-            textColor: '#10B981',
-            glowColor: '#00FF0030',
-            scanlineOpacity: '0.1',
-        },
-
-        // Inspector panel
-        inspector: {
-            backgroundColor: '#1E293B',
-            borderColor: '#374151',
-            sectionSpacing: '1.5rem',
-            itemSpacing: '0.5rem',
-        },
-
-        // Buttons
-        button: {
-            borderRadius: '9999px',
-            padding: '0.25rem 1rem',
-            fontSize: '1rem',
-            fontWeight: 500,
-            letterSpacing: '0.025em',
-            transition: '150ms ease-in-out',
-        },
-
-        // Metrics cards
-        metricCard: {
-            backgroundColor: '#00000040',
-            borderColor: '#374151',
-            borderRadius: '0.5rem',
-            padding: '0.75rem',
-            spacing: '0.25rem',
-        },
+        sm: '0 1px 2px rgba(17, 17, 27, 0.30)',
+        md: '0 2px 8px rgba(17, 17, 27, 0.35)',
+        lg: '0 8px 28px rgba(17, 17, 27, 0.45)',
     },
 } as const;
 
 // Type exports for TypeScript support
 export type DesignTokens = typeof designTokens;
-export type FontSize = keyof typeof designTokens.typography.fontSize;
-export type Color = keyof typeof designTokens.colors;
-export type Spacing = keyof typeof designTokens.spacing;

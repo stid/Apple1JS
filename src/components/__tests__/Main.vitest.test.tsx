@@ -24,12 +24,11 @@ describe('Main component', () => {
     it('should render with all required elements', () => {
         render(<Main workerManager={mockWorkerManager} />);
 
-        // Check header exists
         expect(screen.getByRole('banner')).toBeInTheDocument();
 
-        // Check title
-        expect(screen.getByText(/Apple 1 :: JS Emulator/)).toBeInTheDocument();
-        expect(screen.getByText('- by =stid=')).toBeInTheDocument();
+        // Wordmark, tagline, version
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('apple1js');
+        expect(screen.getByText(/apple-1 emulator/)).toBeInTheDocument();
         expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
 
         // Check App component is rendered
@@ -42,38 +41,36 @@ describe('Main component', () => {
 
         // Check root div has correct layout classes
         const rootDiv = container.firstChild as HTMLElement;
-        expect(rootDiv).toHaveClass('w-full', 'h-screen', 'flex', 'flex-col', 'overflow-hidden');
+        // Fixed to the viewport from lg up; below that the page scrolls.
+        expect(rootDiv).toHaveClass('w-full', 'min-h-screen', 'lg:h-screen', 'flex', 'flex-col', 'lg:overflow-hidden');
 
-        // Check header layout classes (token-backed surface + border)
+        // Header sits on the sunken toolbar surface with a hairline below
         const header = screen.getByRole('banner');
-        expect(header).toHaveClass(
-            'shrink-0',
-            'w-full',
-            'bg-surface-primary',
-            'border-b',
-            'border-border-primary',
-        );
+        expect(header).toHaveClass('shrink-0', 'w-full', 'bg-surface-secondary', 'border-b', 'border-border-primary');
 
         // Check content container
         const contentDiv = rootDiv.children[1] as HTMLElement;
-        expect(contentDiv).toHaveClass('flex-1', 'flex', 'overflow-hidden', 'min-h-0');
+        expect(contentDiv).toHaveClass('flex-1', 'flex', 'lg:overflow-hidden', 'min-h-0');
     });
 
-    it('should display version from version.ts', () => {
+    it('should display version from version.ts as a badge', () => {
         render(<Main workerManager={mockWorkerManager} />);
 
-        const versionElement = screen.getByText(`v${APP_VERSION}`);
-        expect(versionElement).toBeInTheDocument();
-        expect(versionElement).toHaveClass('text-xs', 'font-mono', 'text-text-muted');
+        expect(screen.getByText(`v${APP_VERSION}`)).toHaveClass('badge');
     });
 
-    it('should have proper title structure with different text styles', () => {
+    it('links the author credit to stid.me', () => {
         render(<Main workerManager={mockWorkerManager} />);
 
-        const titleElement = screen.getByRole('heading', { level: 1 });
-        expect(titleElement).toHaveClass('text-base', 'font-mono', 'font-medium', 'tracking-wide', 'text-text-accent');
+        expect(screen.getByRole('link', { name: 'stid' })).toHaveAttribute('href', 'https://stid.me');
+    });
 
-        const authorElement = screen.getByText('- by =stid=');
-        expect(authorElement).toHaveClass('text-text-secondary', 'font-normal');
+    it('links to the source repository', () => {
+        render(<Main workerManager={mockWorkerManager} />);
+
+        expect(screen.getByRole('link', { name: 'github' })).toHaveAttribute(
+            'href',
+            'https://github.com/stid/Apple1JS',
+        );
     });
 });

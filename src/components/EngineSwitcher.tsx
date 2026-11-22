@@ -40,54 +40,40 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
     const isWASMAvailable = engineStatus.availableEngines.includes('WASM');
 
     return (
-        <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
+        <div className="card">
             <div className="flex items-center justify-between mb-sm">
-                <h3 className="text-sm font-medium text-text-accent">CPU Engine</h3>
+                <h3 className="card-title">CPU engine</h3>
                 <div className="flex items-center gap-xs">
-                    <span className="text-xs text-text-secondary">Active:</span>
-                    <span
-                        className={`text-xs font-medium px-sm py-xxs rounded ${
-                            engineStatus.currentEngine === 'WASM'
-                                ? 'bg-success/20 text-success'
-                                : 'bg-data-value/20 text-data-value'
-                        }`}
-                    >
+                    <span className="text-xs text-text-secondary">Active</span>
+                    <span className="badge bg-toggle-active/15 text-toggle-active border-toggle-active/30">
                         {engineStatus.currentEngine}
                     </span>
                 </div>
             </div>
 
             {/* Engine Switch Buttons */}
-            <div className="flex gap-sm mb-sm">
-                <button
-                    onClick={() => handleEngineSwitch('JS')}
-                    disabled={isSwitching || isJSActive}
-                    className={`px-md py-xs text-xs font-medium rounded transition-all ${
-                        isJSActive
-                            ? 'bg-data-value/20 text-data-value border border-data-value/30 cursor-default'
-                            : isSwitching
-                              ? 'bg-surface-secondary text-text-disabled cursor-not-allowed border border-border-subtle'
-                              : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary border border-border-primary'
-                    }`}
-                    title="JavaScript Engine (Better debugging)"
-                >
-                    JS Engine
-                </button>
+            <div className="flex items-center gap-sm mb-sm">
+                <div className="segmented">
+                    <button
+                        onClick={() => handleEngineSwitch('JS')}
+                        disabled={isSwitching || isJSActive}
+                        aria-pressed={isJSActive}
+                        className="segment"
+                        title="JavaScript Engine (Better debugging)"
+                    >
+                        JS Engine
+                    </button>
 
-                <button
-                    onClick={() => handleEngineSwitch('WASM')}
-                    disabled={isSwitching || !isJSActive || !isWASMAvailable}
-                    className={`px-md py-xs text-xs font-medium rounded transition-all ${
-                        !isJSActive
-                            ? 'bg-success/20 text-success border border-success/30 cursor-default'
-                            : isSwitching || !isWASMAvailable
-                              ? 'bg-surface-secondary text-text-disabled cursor-not-allowed border border-border-subtle'
-                              : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary border border-border-primary'
-                    }`}
-                    title={isWASMAvailable ? 'WASM Engine (5-10x faster)' : 'WASM Engine not available'}
-                >
-                    WASM Engine
-                </button>
+                    <button
+                        onClick={() => handleEngineSwitch('WASM')}
+                        disabled={isSwitching || !isJSActive || !isWASMAvailable}
+                        aria-pressed={!isJSActive}
+                        className="segment"
+                        title={isWASMAvailable ? 'WASM Engine (5-10x faster)' : 'WASM Engine not available'}
+                    >
+                        WASM Engine
+                    </button>
+                </div>
 
                 {isSwitching && (
                     <span className="flex items-center gap-xs text-xs text-text-secondary">
@@ -100,12 +86,12 @@ const EngineSwitcher: React.FC<EngineSwitcherProps> = ({ workerManager }) => {
             {/* Engine Statistics */}
             <div className="text-xs text-text-secondary space-y-xs">
                 <div className="flex justify-between">
-                    <span>Switch Count:</span>
+                    <span>Switch count</span>
                     <span className="font-mono">{engineStatus.switchCount}</span>
                 </div>
                 {engineStatus.lastSwitchTime > 0 && (
                     <div className="flex justify-between">
-                        <span>Last Switch Time:</span>
+                        <span>Last switch time</span>
                         <span className="font-mono">{engineStatus.lastSwitchTime.toFixed(1)}ms</span>
                     </div>
                 )}

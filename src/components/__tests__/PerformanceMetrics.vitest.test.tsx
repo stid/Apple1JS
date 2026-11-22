@@ -65,7 +65,7 @@ describe('PerformanceMetrics', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Performance Metrics')).toBeInTheDocument();
+                expect(screen.getByText('Performance')).toBeInTheDocument();
             });
         });
 
@@ -73,7 +73,7 @@ describe('PerformanceMetrics', () => {
             render(<PerformanceMetrics workerManager={mockWorkerManager as WorkerManager} updateInterval={999999} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Active Engine:')).toBeInTheDocument();
+                expect(screen.getByText('Active engine')).toBeInTheDocument();
                 expect(screen.getByText('JS')).toBeInTheDocument();
             });
         });
@@ -82,7 +82,7 @@ describe('PerformanceMetrics', () => {
             render(<PerformanceMetrics workerManager={mockWorkerManager as WorkerManager} updateInterval={999999} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Current Performance')).toBeInTheDocument();
+                expect(screen.getByText('Current performance')).toBeInTheDocument();
                 // Should show formatted IPS (450K) for the active JS engine
                 expect(screen.getByText(/450.*K.*IPS/)).toBeInTheDocument();
             });
@@ -109,7 +109,7 @@ describe('PerformanceMetrics', () => {
             render(<PerformanceMetrics workerManager={mockWorkerManager as WorkerManager} updateInterval={999999} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Current Performance')).toBeInTheDocument();
+                expect(screen.getByText('Current performance')).toBeInTheDocument();
                 // Should show formatted IPS (2.30M) for active WASM engine (appears twice in UI)
                 const ipsElements = screen.getAllByText(/2\.30M/);
                 expect(ipsElements.length).toBeGreaterThan(0);
@@ -147,25 +147,25 @@ describe('PerformanceMetrics', () => {
             render(<PerformanceMetrics workerManager={mockWorkerManager as WorkerManager} updateInterval={999999} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Show Details')).toBeInTheDocument();
+                expect(screen.getByText('Show details')).toBeInTheDocument();
             });
 
             // Initially details should not be visible
             expect(screen.queryByText('Statistics')).not.toBeInTheDocument();
 
             // Click to show details
-            fireEvent.click(screen.getByText('Show Details'));
+            fireEvent.click(screen.getByText('Show details'));
 
             await waitFor(() => {
-                expect(screen.getByText('Hide Details')).toBeInTheDocument();
+                expect(screen.getByText('Hide details')).toBeInTheDocument();
                 expect(screen.getByText('Statistics')).toBeInTheDocument();
             });
 
             // Click to hide details
-            fireEvent.click(screen.getByText('Hide Details'));
+            fireEvent.click(screen.getByText('Hide details'));
 
             await waitFor(() => {
-                expect(screen.getByText('Show Details')).toBeInTheDocument();
+                expect(screen.getByText('Show details')).toBeInTheDocument();
                 expect(screen.queryByText('Statistics')).not.toBeInTheDocument();
             });
         });
@@ -209,7 +209,7 @@ describe('PerformanceMetrics', () => {
             render(<PerformanceMetrics workerManager={mockWorkerManager as WorkerManager} updateInterval={999999} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Current Performance')).toBeInTheDocument();
+                expect(screen.getByText('Current performance')).toBeInTheDocument();
                 expect(screen.getByText('JS')).toBeInTheDocument();
                 // No WASM-specific content should be shown
                 expect(screen.queryByText('WASM')).not.toBeInTheDocument();
@@ -223,7 +223,7 @@ describe('PerformanceMetrics', () => {
 
             await waitFor(() => {
                 const activeIndicator = screen.getByText('WASM');
-                expect(activeIndicator.className).toContain('bg-success');
+                expect(activeIndicator).toHaveClass('badge', 'text-toggle-active');
             });
         });
     });

@@ -45,8 +45,8 @@ describe('ErrorBoundary', () => {
 
         fireEvent.click(screen.getByText('Throw Error'));
 
-        expect(screen.getByText('Oops! Something went wrong')).toBeInTheDocument();
-        expect(screen.getByText('Please try refreshing the page.')).toBeInTheDocument();
+        expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+        expect(screen.getByText('Reload the page to restart the emulator.')).toBeInTheDocument();
     });
 
     test('logs error to console when componentDidCatch is called', () => {

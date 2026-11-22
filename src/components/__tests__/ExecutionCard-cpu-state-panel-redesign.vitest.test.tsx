@@ -12,7 +12,7 @@ describe('ExecutionCard (cpu-state-panel-redesign)', () => {
         renderCard({ HW_OPCODE: '$38', PERF_INSTRUCTIONS: '14,056', IRQ_LINE: 'INACTIVE', NMI_LINE: 'INACTIVE' });
 
         expect(screen.getByText('Execution')).toBeInTheDocument();
-        expect(screen.getByText('Last Opcode')).toBeInTheDocument();
+        expect(screen.getByText('Last opcode')).toBeInTheDocument();
         expect(screen.getByText('Instructions')).toBeInTheDocument();
         expect(screen.getByText('IRQ Line')).toBeInTheDocument();
         expect(screen.getByText('NMI Line')).toBeInTheDocument();

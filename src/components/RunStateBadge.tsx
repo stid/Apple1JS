@@ -18,9 +18,9 @@ interface RunStateBadgeProps {
  * (AC-3). Content is a pure function of the props (AC-11).
  */
 const PRESENTATION: Record<ExecutionState, { label: string; glyph: string; classes: string }> = {
-    running: { label: 'RUNNING', glyph: '▶', classes: 'bg-success/20 text-success' },
-    paused: { label: 'PAUSED', glyph: '⏸', classes: 'bg-info/20 text-info' },
-    stepping: { label: 'STEPPING', glyph: '⇥', classes: 'bg-data-value/20 text-data-value' },
+    running: { label: 'RUNNING', glyph: '▶', classes: 'bg-success/15 text-success border-success/60' },
+    paused: { label: 'PAUSED', glyph: '⏸', classes: 'bg-info/15 text-info border-info/60' },
+    stepping: { label: 'STEPPING', glyph: '⇥', classes: 'bg-data-value/15 text-data-value border-data-value/60' },
 };
 
 const RunStateBadge: React.FC<RunStateBadgeProps> = ({ executionState, currentPC, className = '' }) => {
@@ -33,7 +33,7 @@ const RunStateBadge: React.FC<RunStateBadgeProps> = ({ executionState, currentPC
             role="status"
             aria-live="polite"
             aria-label={showAddress ? `${label} at ${address}` : label}
-            className={`inline-flex items-center gap-xs text-xs font-medium px-sm py-xxs rounded-sm ${classes} ${className}`}
+            className={`badge h-7 ${classes} ${className}`}
         >
             <span aria-hidden="true">{glyph}</span>
             <span>{label}</span>

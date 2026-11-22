@@ -120,7 +120,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
     const renderPerformanceBar = (value: number | undefined, max: number, color: string): React.ReactElement => {
         const percentage = value && max > 0 ? (value / max) * 100 : 0;
         return (
-            <div className="w-full bg-surface-secondary rounded-xs h-2 overflow-hidden">
+            <div className="w-full bg-surface-secondary rounded-full h-1.5 overflow-hidden">
                 <div className={`h-full transition-all duration-300 ${color}`} style={{ width: `${percentage}%` }} />
             </div>
         );
@@ -157,30 +157,21 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
     const currentMemory = activeMetrics?.memoryUsage || 0;
 
     return (
-        <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
+        <div className="card">
             <div className="flex items-center justify-between mb-sm">
-                <h3 className="text-sm font-medium text-text-accent">Performance Metrics</h3>
-                <button
-                    onClick={() => setShowDetails(!showDetails)}
-                    className="text-xs text-text-secondary hover:text-text-primary"
-                >
-                    {showDetails ? 'Hide Details' : 'Show Details'}
+                <h3 className="card-title">Performance</h3>
+                <button onClick={() => setShowDetails(!showDetails)} className="btn btn-ghost h-6 text-xs">
+                    {showDetails ? 'Hide details' : 'Show details'}
                 </button>
             </div>
 
-            {/* Current Performance Summary */}
+            {/* Current performance Summary */}
             <div className="space-y-sm">
                 {/* Active Engine Performance */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-xs">
-                        <span className="text-xs text-text-secondary">Active Engine:</span>
-                        <span
-                            className={`text-xs font-medium px-sm py-xxs rounded ${
-                                currentEngine === 'WASM'
-                                    ? 'bg-success/20 text-success'
-                                    : 'bg-data-value/20 text-data-value'
-                            }`}
-                        >
+                        <span className="text-xs text-text-secondary">Active engine</span>
+                        <span className="badge bg-toggle-active/15 text-toggle-active border-toggle-active/30">
                             {currentEngine}
                         </span>
                     </div>
@@ -191,7 +182,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
                 <div>
                     <div className="flex justify-between items-center mb-xs">
                         <span className={`text-xs ${currentEngine === 'WASM' ? 'text-success' : 'text-data-value'}`}>
-                            Current Performance
+                            Current performance
                         </span>
                         <span className="text-xs font-mono text-text-secondary">
                             {formatIPS(currentIPS)} ({formatPercent(currentIPS, maxIPS)}%)
@@ -224,7 +215,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
                     {/* Performance History Sparklines */}
                     {history.length > 1 && (
                         <div>
-                            <h4 className="text-xs font-medium text-text-accent mb-sm">Performance History</h4>
+                            <h4 className="eyebrow mb-sm">Performance History</h4>
                             <div>
                                 <div
                                     className={`text-xs mb-xs ${currentEngine === 'WASM' ? 'text-success' : 'text-data-value'}`}
@@ -242,7 +233,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ workerManager, 
 
                     {/* Detailed Statistics */}
                     <div>
-                        <h4 className="text-xs font-medium text-text-accent mb-sm">Statistics</h4>
+                        <h4 className="eyebrow mb-sm">Statistics</h4>
                         <div className="grid grid-cols-2 gap-sm text-xs">
                             {/* Instructions Executed */}
                             <span className="text-text-secondary">Instructions:</span>

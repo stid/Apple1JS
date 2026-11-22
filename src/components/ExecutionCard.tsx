@@ -26,11 +26,11 @@ const ExecutionCardComponent: React.FC<ExecutionCardProps> = ({ debugInfo }) => 
     const cpu = debugInfo.cpu;
 
     return (
-        <div className="bg-surface-primary rounded-lg p-md border border-border-primary">
-            <h3 className="text-base font-semibold tracking-wide text-text-accent mb-sm">Execution</h3>
+        <div className="card">
+            <h3 className="card-title mb-sm">Execution</h3>
             <div className="divide-y divide-border-subtle">
                 <div className="flex items-center justify-between py-sm">
-                    <span className="text-xs text-text-secondary">Last Opcode</span>
+                    <span className="text-xs text-text-secondary">Last opcode</span>
                     <span className="font-mono text-sm font-semibold text-data-value">
                         {getDebugValueOrDefault(cpu?.HW_OPCODE, '$00')}
                     </span>

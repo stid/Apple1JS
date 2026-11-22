@@ -124,7 +124,7 @@ const MemoryRow = memo<MemoryRowProps>(
                             onBlur={onCellEditComplete}
                             onKeyDown={onKeyDown}
                             onFocus={(e) => e.target.select()}
-                            className="w-6 text-center bg-info text-black font-mono text-xs rounded-sm"
+                            className="w-6 text-center bg-info text-text-on-accent font-mono text-xs rounded-sm"
                             autoFocus
                         />
                     ) : (
@@ -474,32 +474,24 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
     return (
         <div
             ref={containerRef}
-            className="h-full flex flex-col bg-surface-primary rounded-lg border border-border-primary"
+            className="h-full flex flex-col bg-surface-secondary rounded-lg border border-border-primary overflow-hidden"
         >
             {/* Controls */}
             <div className="flex items-center gap-sm p-sm border-b border-border-subtle">
-                <label className="text-xs text-text-secondary">Address:</label>
+                <label className="eyebrow">Addr</label>
                 <input
                     type="text"
                     value={addressInput}
                     onChange={handleAddressChange}
                     onKeyDown={handleAddressSubmit}
-                    className="w-20 px-2 py-1 text-xs font-mono bg-surface-sunken/40 border border-border-primary rounded-sm text-data-address focus:border-border-accent focus:outline-hidden"
+                    className="field w-20 text-data-address"
                     placeholder="0000"
                 />
                 <div className="flex gap-xs">
-                    <button
-                        onClick={navigateUp}
-                        className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
-                        title="Previous page (↑)"
-                    >
+                    <button onClick={navigateUp} className="btn btn-secondary w-7 px-0" title="Previous page (↑)">
                         ↑
                     </button>
-                    <button
-                        onClick={navigateDown}
-                        className="px-2 py-1 text-xs bg-surface-secondary border border-border-primary rounded-sm hover:bg-surface-hover"
-                        title="Next page (↓)"
-                    >
+                    <button onClick={navigateDown} className="btn btn-secondary w-7 px-0" title="Next page (↓)">
                         ↓
                     </button>
                 </div>
@@ -507,13 +499,13 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                     ${Formatters.hex(currentAddress, 4)} - $
                     {Formatters.hex(Math.min(0xffff, currentAddress + size - 1), 4)}
                 </div>
-                <div className="text-xs text-text-muted">↑↓: Navigate • {effectiveRows} rows</div>
+                <div className="text-xs text-text-muted">↑↓ navigate · {effectiveRows} rows</div>
             </div>
 
             {/* Memory Table - No scroll, fixed height based on visible rows */}
-            <div ref={contentRef} className="flex-1 bg-surface-sunken/20 overflow-hidden">
+            <div ref={contentRef} className="flex-1 overflow-hidden">
                 <table className="w-full">
-                    <thead className="bg-surface-primary border-b border-border-primary">
+                    <thead className="border-b border-border-primary">
                         <tr>
                             <th className="px-2 py-1 text-left text-xs text-text-secondary font-normal whitespace-nowrap">
                                 Addr

@@ -1,106 +1,70 @@
-const StartInstructions = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">🚀</span>
-            FIRST START / RESET
-        </h3>
-        <p className="text-text-primary text-sm">
-            Press{' '}
-            <span className="font-mono bg-surface-sunken/40 px-sm py-1 rounded-sm text-data-value border border-border-subtle">
-                TAB
-            </span>
-        </p>
+import type { ReactNode } from 'react';
+
+type SectionProps = {
+    /** Mono eyebrow, read like a code comment. */
+    eyebrow: string;
+    title: string;
+    children: ReactNode;
+};
+
+const Section = ({ eyebrow, title, children }: SectionProps) => (
+    <section className="card flex flex-col gap-sm">
+        <div className="flex flex-col gap-xxs">
+            <span className="eyebrow">{`// ${eyebrow}`}</span>
+            <h3 className="card-title">{title}</h3>
+        </div>
+        {children}
     </section>
 );
 
-const TestProgram = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">🧪</span>
-            TEST PROGRAM
-        </h3>
-        <pre className="bg-surface-sunken/40 text-data-value rounded-sm p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0
-0
-R`}</pre>
-    </section>
+// Text typed at the Apple 1 keyboard, exactly as entered.
+const Listing = ({ children }: { children: string }) => (
+    <pre className="well text-data-value p-sm text-sm leading-relaxed whitespace-pre overflow-x-auto">{children}</pre>
 );
 
-const BasicProgram = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">💻</span>
-            BASIC
-        </h3>
-        <pre className="bg-surface-sunken/40 text-data-value rounded-sm p-sm text-xs font-mono leading-relaxed whitespace-pre border border-border-subtle">{`E000R
-10 PRINT "HELLO WORLD!"
-20 GOTO 10
-RUN`}</pre>
-    </section>
-);
-
-const AnniversaryInfo = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">🎉</span>
-            APPLE 30th ANNIVERSARY
-        </h3>
-        <pre className="bg-surface-sunken/40 text-data-value rounded-sm p-sm text-xs font-mono inline-block whitespace-pre border border-border-subtle">{`280R`}</pre>
-    </section>
-);
-
-const MemoryAddresses = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">🔍</span>
-            LIST MEMORY ADDRESS
-        </h3>
-        <pre className="bg-surface-sunken/40 text-data-address rounded-sm p-sm text-xs font-mono inline-block whitespace-pre border border-border-subtle">{`0.FF`}</pre>
-    </section>
-);
-
-const ManualLink = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">📖</span>
-            APPLE-1 OPERATION MANUAL
-        </h3>
-        <a
-            href="http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf"
-            className="text-data-address underline hover:text-text-accent break-all text-sm transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            http://apple1.chez.com/Apple1project/Docs/pdf/AppleI_Manual.pdf
-        </a>
-    </section>
-);
-
-const GitHubLink = () => (
-    <section className="bg-surface-primary rounded-lg p-md border border-border-primary mb-sm">
-        <h3 className="text-sm font-medium text-text-accent mb-sm flex items-center">
-            <span className="mr-2">🔗</span>
-            GITHUB
-        </h3>
-        <a
-            href="https://github.com/stid/Apple1JS"
-            className="text-data-address underline hover:text-text-accent break-all text-sm transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            https://github.com/stid/Apple1JS
-        </a>
-    </section>
+const ExternalLink = ({ href }: { href: string }) => (
+    <a href={href} className="font-mono text-sm break-all" target="_blank" rel="noopener noreferrer">
+        {href}
+    </a>
 );
 
 const Info = () => (
-    <aside className="w-full ml-auto mr-0 flex flex-col space-y-md overflow-auto">
-        <StartInstructions />
-        <TestProgram />
-        <BasicProgram />
-        <AnniversaryInfo />
-        <MemoryAddresses />
-        <ManualLink />
-        <GitHubLink />
+    <aside className="w-full grid grid-cols-1 xl:grid-cols-2 gap-md content-start overflow-auto">
+        <Section eyebrow="start" title="First start / reset">
+            <p className="text-text-secondary">
+                Press <kbd className="well text-text-primary text-xs px-sm py-xxs">TAB</kbd> to reset the machine and
+                get the <span className="font-mono text-data-value">\</span> prompt.
+            </p>
+        </Section>
+
+        <Section eyebrow="wozmon" title="Test program">
+            <Listing>{`0:A9 0 AA 20 EF FF E8 8A 4C 2 0
+0
+R`}</Listing>
+        </Section>
+
+        <Section eyebrow="basic" title="BASIC">
+            <Listing>{`E000R
+10 PRINT "HELLO WORLD!"
+20 GOTO 10
+RUN`}</Listing>
+        </Section>
+
+        <Section eyebrow="demo" title="Apple 30th anniversary">
+            <Listing>{`280R`}</Listing>
+        </Section>
+
+        <Section eyebrow="wozmon" title="List memory address">
+            <Listing>{`0.FF`}</Listing>
+        </Section>
+
+        <Section eyebrow="docs" title="Apple-1 operation manual">
+            <ExternalLink href="https://archive.org/details/Apple-1_Operation_Manual_1976_Apple_a" />
+        </Section>
+
+        <Section eyebrow="source" title="GitHub">
+            <ExternalLink href="https://github.com/stid/Apple1JS" />
+        </Section>
     </aside>
 );
 

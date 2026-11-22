@@ -18,7 +18,7 @@ describe('CpuStateCard (cpu-state-panel-redesign)', () => {
     it('renders the title and the A/X/Y/SP register rail with values', () => {
         renderCard({ REG_A: '$85', REG_X: '$F2', REG_Y: '$B6', REG_S: '$AD', REG_PC: '$CC40' });
 
-        expect(screen.getByText('CPU State')).toBeInTheDocument();
+        expect(screen.getByText('CPU state')).toBeInTheDocument();
         // Rail labels
         ['A', 'X', 'Y', 'SP'].forEach((label) => expect(screen.getByText(label)).toBeInTheDocument());
         // Rail values
