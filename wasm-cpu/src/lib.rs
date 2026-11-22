@@ -5,7 +5,7 @@
  * optimized for WebAssembly execution.
  */
 
-// RAM, ROM and CPU6502 are the names of the parts, not acronyms to re-case.
+// ROM and CPU6502 are the names of the parts, not acronyms to re-case.
 #![allow(clippy::upper_case_acronyms)]
 
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,6 @@ mod instructions_bus_impl; // Full Bus-aware instruction implementations
 mod instructions_with_bus; // Helper methods for Bus-aware instructions
 mod opcodes; // Shared opcode constant table
 mod opcodes_with_bus; // Bus-aware opcode dispatch
-mod ram;
 mod rom;
 mod system;
 
@@ -27,7 +26,6 @@ mod system;
 // strip) what is unused, which a `#[wasm_bindgen]` export hides from it.
 pub(crate) use bus::Bus;
 pub(crate) use cpu::CPU6502;
-pub(crate) use ram::RAM;
 pub(crate) use rom::ROM;
 pub use system::WasmSystem;
 

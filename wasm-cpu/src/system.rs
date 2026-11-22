@@ -6,7 +6,7 @@
  * providing 5-10x performance improvement.
  */
 
-use crate::{console_log, Bus, CPUState, Metrics, CPU6502, RAM, ROM};
+use crate::{console_log, Bus, CPUState, Metrics, CPU6502, ROM};
 use wasm_bindgen::prelude::*;
 
 /// Complete emulator system containing all hardware components
@@ -50,9 +50,6 @@ impl WasmSystem {
             rom_data.len()
         );
 
-        // Create RAM (full 64KB for Apple 1)
-        let ram = RAM::new(ram_size);
-        console_log!("Created RAM: {} bytes", ram_size);
 
         // Create and flash ROM (256 bytes for WOZ Monitor)
         let mut rom = ROM::new(0x100); // 256 bytes
@@ -60,8 +57,9 @@ impl WasmSystem {
         console_log!("Flashed ROM: {} bytes", rom.get_size());
 
         // Connect components to bus
-        self.bus.set_ram(ram);
-        self.bus.set_rom(rom);
+        self.bus.set_ram(ram_size).map_err(|e| JsValue::from_str(&e))?;
+        console_log!("Installed RAM: {} bytes", ram_size);
+        self.bus.set_rom(&rom);
 
         // Reset CPU to start from reset vector
         self.reset();

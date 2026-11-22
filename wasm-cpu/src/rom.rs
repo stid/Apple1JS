@@ -27,17 +27,11 @@ impl ROM {
         }
     }
     
-    /// Read a byte from ROM
-    pub fn read(&self, address: u16) -> u8 {
-        let addr = address as usize;
-        if addr < self.size {
-            self.data[addr]
-        } else {
-            // Out of bounds reads return 0xFF (uninitialized)
-            0xFF
-        }
+    /// The whole ROM image; bytes never flashed hold 0xFF.
+    pub fn bytes(&self) -> &[u8] {
+        &self.data
     }
-    
+
     /// Flash ROM with data (write-once operation)
     /// Data format: [low_addr, high_addr, ...bytes]
     pub fn flash(&mut self, data: Vec<u8>) -> Result<(), JsValue> {
@@ -90,7 +84,7 @@ mod tests {
         let rom = ROM::new(0x100);
         assert_eq!(rom.get_size(), 0x100);
         // Uninitialized ROM reads as 0xFF
-        assert_eq!(rom.read(0), 0xFF);
+        assert_eq!(rom.bytes()[0], 0xFF);
     }
     
     #[test]
@@ -103,10 +97,10 @@ mod tests {
         
         rom.flash(flash_data).unwrap();
         
-        assert_eq!(rom.read(0), 0xAA);
-        assert_eq!(rom.read(1), 0xBB);
-        assert_eq!(rom.read(2), 0xCC);
-        assert_eq!(rom.read(3), 0xDD);
+        assert_eq!(rom.bytes()[0], 0xAA);
+        assert_eq!(rom.bytes()[1], 0xBB);
+        assert_eq!(rom.bytes()[2], 0xCC);
+        assert_eq!(rom.bytes()[3], 0xDD);
     }
     
     #[test]
@@ -118,9 +112,9 @@ mod tests {
         rom.flash(flash_data).unwrap();
         
         // Verify data
-        assert_eq!(rom.read(0), 0x12);
-        assert_eq!(rom.read(1), 0x34);
-        assert_eq!(rom.read(2), 0x56);
+        assert_eq!(rom.bytes()[0], 0x12);
+        assert_eq!(rom.bytes()[1], 0x34);
+        assert_eq!(rom.bytes()[2], 0x56);
         
         // ROM doesn't have a write method (read-only after flash)
     }
