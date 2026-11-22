@@ -128,6 +128,18 @@ describe('BoardView', () => {
         expect(part('Clock')).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('gives a selected part a keyboard focus indicator of its own', () => {
+        renderBoard();
+
+        // The group hides the browser outline, so each state needs a focus-visible style.
+        const focusStyled = (name: string) =>
+            [...part(name).querySelectorAll('rect')].some((rect) =>
+                (rect.getAttribute('class') ?? '').includes('group-focus-visible:'),
+            );
+        expect(focusStyled('MOS 6502')).toBe(true); // selected
+        expect(focusStyled('MC6820 PIA')).toBe(true); // not selected
+    });
+
     it('says so when the running machine has no such component', () => {
         renderBoard({ id: 'apple1', type: 'Apple1', children: [] } as InspectableData);
 

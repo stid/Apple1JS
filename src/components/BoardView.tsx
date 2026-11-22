@@ -97,6 +97,7 @@ const InteractivePart: React.FC<PartProps> = ({ part, selected, onSelect }) => {
                 }
             }}
         >
+            {/* Selection is a soft halo; keyboard focus on a selected part turns it solid. */}
             {selected && (
                 <rect
                     x={part.x - 3}
@@ -104,7 +105,7 @@ const InteractivePart: React.FC<PartProps> = ({ part, selected, onSelect }) => {
                     width={part.w + 6}
                     height={part.h + 6}
                     rx={5}
-                    className="fill-none stroke-text-accent opacity-25"
+                    className="fill-none stroke-text-accent opacity-25 group-focus-visible:opacity-100"
                     strokeWidth={4}
                 />
             )}
