@@ -637,6 +637,11 @@ export class WasmEngine implements ICPUEngine {
         this.metricsTracker.reset();
     }
 
+    getPageActivity(): Float64Array {
+        // wasm-bindgen copies the counts out of WASM memory into a new array.
+        return this.wasmSystem ? this.wasmSystem.get_page_activity() : new Float64Array(512);
+    }
+
     getMemoryUsage(): number {
         if (!this.wasmSystem) {
             return 0;

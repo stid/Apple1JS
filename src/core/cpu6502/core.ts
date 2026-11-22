@@ -179,6 +179,14 @@ class CPU6502
 
     // Performance monitoring (optional)
     instructionCount: number = 0;
+
+    /**
+     * Bus accesses made by the CPU since reset, per 256-byte page: reads of page
+     * `p` at index `p`, writes at `256 + p`. The Board turns these into per-part
+     * activity. Debugger access goes straight to the bus and is not counted.
+     * The WASM engine keeps the same array (wasm-cpu/src/cpu.rs).
+     */
+    readonly pageActivity = new Float64Array(512);
     profileData: Map<number, { count: number; cycles: number }> = new Map();
     enableProfiling: boolean = false;
 
@@ -240,6 +248,10 @@ class CPU6502
         this.pendingNmi = 0;
 
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
+
+        // Counts restart at reset, after the vector fetch above. The WASM engine
+        // clears them at the same point, so "since reset" means the same on both.
+        this.pageActivity.fill(0);
     }
 
     /**
@@ -403,6 +415,7 @@ class CPU6502
     read(address: number): number {
         this.address = address;
         this.data = this.bus.read(address);
+        this.pageActivity[address >> 8]++;
 
         // Track bus access for cycle-accurate timing
         if (this.cycleAccurateMode) {
@@ -420,6 +433,7 @@ class CPU6502
         this.address = address;
         this.data = value;
         this.bus.write(address, value);
+        this.pageActivity[256 + (address >> 8)]++;
 
         // Track bus access for cycle-accurate timing
         if (this.cycleAccurateMode) {

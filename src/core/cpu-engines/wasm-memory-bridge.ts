@@ -1,11 +1,12 @@
 /**
  * WASM Memory Bridge
  *
- * Provides memory access functions for WASM CPU to use JavaScript Bus
- * as the single source of truth for all memory operations.
+ * The functions the WASM CPU calls to reach devices that live in JavaScript.
+ * The WASM engine keeps RAM and ROM to itself (wasm-cpu/src/bus.rs); only the
+ * I/O block, $D000-$DFFF, comes through here to the JavaScript Bus.
  *
- * This eliminates the dual-memory problem by having WASM call back
- * to JavaScript for every memory access.
+ * Nothing reached from here may call back into the engine: see CLAUDE.md
+ * rule 7 and docs/lcd/DECISIONS.md D-015.
  */
 
 import type Bus from '../Bus';
@@ -20,7 +21,7 @@ let currentBus: Bus | null = null;
 export const wasmMemoryBridge = {
     /**
      * Read a byte from the Bus
-     * Called by WASM for every memory read
+     * Called by WASM for a read in the I/O block
      */
     readByte(address: number): number {
         if (!currentBus) {
@@ -32,7 +33,7 @@ export const wasmMemoryBridge = {
 
     /**
      * Write a byte to the Bus
-     * Called by WASM for every memory write
+     * Called by WASM for a write in the I/O block
      */
     writeByte(address: number, value: number): void {
         if (!currentBus) {

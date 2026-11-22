@@ -282,6 +282,10 @@ export class DualEngine implements ICPUEngine {
 
     // ============ Performance & Metrics ============
 
+    getPageActivity(): Float64Array {
+        return this.activeEngine.getPageActivity();
+    }
+
     getMetrics(): EngineMetrics {
         // Get fresh metrics from the active engine
         const metrics = this.activeEngine.getMetrics();

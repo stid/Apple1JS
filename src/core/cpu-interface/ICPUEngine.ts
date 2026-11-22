@@ -254,6 +254,13 @@ export interface ICPUEngine {
     getMetrics(): EngineMetrics;
 
     /**
+     * Bus accesses made by the CPU since reset, per 256-byte page.
+     * @returns A copy of 512 counts: reads of page `p` at index `p`, writes at
+     *          `256 + p`. Debugger access (read/write/readRange/…) is not counted.
+     */
+    getPageActivity(): Float64Array;
+
+    /**
      * Reset performance metrics
      */
     resetMetrics(): void;
