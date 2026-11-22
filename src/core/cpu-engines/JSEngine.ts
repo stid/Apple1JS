@@ -146,9 +146,10 @@ export class JSEngine implements ICPUEngine {
     }
 
     readRange(start: number, length: number): Uint8Array {
+        // Inspection path (debugger views, state save): no device side effects.
         const data = new Uint8Array(length);
         for (let i = 0; i < length; i++) {
-            data[i] = this.bus.read(start + i);
+            data[i] = this.bus.peek(start + i);
         }
         return data;
     }

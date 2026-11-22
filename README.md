@@ -37,8 +37,8 @@ You can access the emulator in your browser at `localhost:3000`.
 
 ### Testing & Quality
 
-- `yarn test` - Run Jest tests (includes pretest: lint + type-check)
-- `yarn test:ci` - CI test runner with Jest JUnit reporter
+- `yarn test` - Run Vitest tests (includes pretest: lint + type-check)
+- `yarn test:ci` - CI test runner (lint, type-check, Vitest with JUnit reporter)
 - `yarn lint` - ESLint for TypeScript/React files
 - `yarn lint:fix` - Auto-fix linting issues
 - `yarn type-check` - TypeScript compilation check

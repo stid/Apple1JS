@@ -133,10 +133,9 @@ class CPU6502
         this.pendingNmi =
             typeof finalState.pendingNmi === 'boolean' ? (finalState.pendingNmi ? 1 : 0) : finalState.pendingNmi;
         // Load cycle-accurate timing state (optional, for backward compatibility)
-        this.cycleAccurateMode = finalState.cycleAccurateMode ?? true;
+        this.cycleAccurateMode = finalState.cycleAccurateMode ?? false;
         this.currentInstructionCycles = finalState.currentInstructionCycles ?? 0;
 
-        // Note: markStateClean is optional from state dirty tracking mixin
     }
 
     getInspectable(): InspectableData {
@@ -241,7 +240,6 @@ class CPU6502
         this.pendingNmi = 0;
 
         this.PC = (this.read(0xfffd) << 8) | this.read(0xfffc);
-        // Note: markStateClean is optional from state dirty tracking mixin
     }
 
     /**
@@ -317,7 +315,7 @@ class CPU6502
         // Migration from version 1.0 or 2.0 to 3.0
         if (fromVersion === '1.0' || fromVersion === '2.0') {
             // Add new fields with defaults
-            migratedState.cycleAccurateMode = migratedState.cycleAccurateMode ?? true;
+            migratedState.cycleAccurateMode = migratedState.cycleAccurateMode ?? false;
             migratedState.currentInstructionCycles = migratedState.currentInstructionCycles ?? 0;
             migratedState.version = CPU6502.STATE_VERSION;
         }
@@ -390,7 +388,9 @@ class CPU6502
 
     performBulkSteps(steps: number): void {
         let currentCycleCount = 0;
-        while (currentCycleCount <= steps) {
+        // `<`, as in the WASM engine: a budget of N cycles is spent once N have
+        // run. `<=` executed one instruction on a zero budget.
+        while (currentCycleCount < steps) {
             const cyclesExecuted = this.performSingleStep();
             // If no cycles were executed (execution hook returned false), stop
             if (cyclesExecuted === 0) {

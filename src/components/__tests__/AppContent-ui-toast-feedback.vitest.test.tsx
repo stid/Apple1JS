@@ -98,6 +98,18 @@ describe('AppContent toast feedback', () => {
         expect(alertSpy).not.toHaveBeenCalled();
     });
 
+    // review-2026-11: the worker rejecting a (well-formed) state must not be
+    // reported as success. The load used to be fired without awaiting it.
+    it('load rejected by the worker shows an error toast, not "State loaded"', async () => {
+        vi.mocked(wm.loadState).mockRejectedValueOnce(new Error('Invalid CPU state'));
+        renderApp(wm);
+        const input = document.querySelector('input[aria-label="Load state from file"]') as HTMLInputElement;
+        const file = new File(['{"valid":true}'], 'state.json', { type: 'application/json' });
+        fireEvent.change(input, { target: { files: [file] } });
+        expect(await screen.findByText(/failed to load state/i)).toBeInTheDocument();
+        expect(screen.queryByText(/^State loaded$/)).not.toBeInTheDocument();
+    });
+
     // AC-5 (RENDER): a successful engine switch surfaces a confirmation naming the engine.
     it('AC-5 (RENDER): engine switch success shows a toast naming the engine', async () => {
         renderApp(wm);

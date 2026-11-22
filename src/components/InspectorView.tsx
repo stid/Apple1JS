@@ -1,43 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { IInspectableComponent } from '../core/types/components';
+import React, { useState, useEffect } from 'react';
 import { OPCODES } from '../constants/opcodes';
 import { MetricCard } from './MetricCard';
 import { RegisterRow } from './RegisterRow';
 import { getDebugValueOrDefault } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from '../contexts/WorkerDataContext';
-import type { EngineStatusData } from '../apple1/types/worker-messages';
 
 import type { InspectableData } from '../core/types/components';
+import { loggingService } from '../services/LoggingService';
+import { useEngineStatus } from '../hooks/useEngineStatus';
 
 interface InspectorViewProps {
-    root: IInspectableComponent;
+    /** Structure of the running machine, as returned by the worker. */
+    root: InspectableData;
     workerManager?: WorkerManager;
 }
 
 const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) => {
-    const { debugInfo } = useWorkerData();
+    const { debugInfo, setDebuggerActive, refreshDebugInfo } = useWorkerData();
     const [profilingEnabled, setProfilingEnabled] = useState<boolean>(false);
     const [profilingPending, setProfilingPending] = useState<boolean>(false);
-    const [engineStatus, setEngineStatus] = useState<EngineStatusData | null>(null);
+    const { status: engineStatus } = useEngineStatus(workerManager);
 
-    // Fetch engine status periodically
-    const fetchEngineStatus = useCallback(async () => {
-        if (workerManager) {
-            try {
-                const status = await workerManager.getEngineStatus();
-                setEngineStatus(status);
-            } catch {
-                // Silently ignore - engine status is optional
-            }
-        }
-    }, [workerManager]);
-
+    // Debug info is polled only while a view that shows it is on screen.
     useEffect(() => {
-        fetchEngineStatus();
-        const interval = setInterval(fetchEngineStatus, 2000);
-        return () => clearInterval(interval);
-    }, [fetchEngineStatus]);
+        setDebuggerActive(true);
+        return () => setDebuggerActive(false);
+    }, [setDebuggerActive]);
 
     // Helper function to translate hex opcode to human-readable mnemonic
     const getOpcodeMnemonic = (opcodeHex: string): string => {
@@ -60,12 +49,11 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             await workerManager.setCpuProfiling(newProfilingState);
             setProfilingEnabled(newProfilingState);
 
-            // Force a debug info refresh to get updated profiling state
-            if (workerManager.getDebugInfo) {
-                await workerManager.getDebugInfo();
-            }
+            // Pull the new profiling state into the shared debug info now
+            // rather than waiting for the next poll.
+            await refreshDebugInfo();
         } catch (error) {
-            console.error('Failed to toggle CPU profiling:', error);
+            loggingService.error('InspectorView', `Failed to toggle CPU profiling: ${error}`);
             // Revert state on error
             setProfilingEnabled(!newProfilingState);
         } finally {
@@ -93,9 +81,7 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
         return Array.isArray((node as Record<string, unknown>).children);
     }
 
-    // Use getInspectable() for architecture view
-    const archRoot: InspectableData =
-        typeof root.getInspectable === 'function' ? root.getInspectable() : (root as unknown as InspectableData);
+    const archRoot: InspectableData = root;
 
     // Helper function to get debug data for a component based on its type and id
     const getDebugDataForComponent = (node: InspectableData): Record<string, string | number | boolean> => {
@@ -328,15 +314,15 @@ const InspectorView: React.FC<InspectorViewProps> = ({ root, workerManager }) =>
             hwAddr: getDebugValueOrDefault(cpu.HW_ADDR, '$FFFE'),
             hwData: getDebugValueOrDefault(cpu.HW_DATA, '$00'),
             hwOpcode: getDebugValueOrDefault(cpu.HW_OPCODE, '$00'),
-            hwCycles: getDebugValueOrDefault(cpu.HW_CYCLES, '40,259,072'),
+            hwCycles: getDebugValueOrDefault(cpu.HW_CYCLES, '0'),
             irqLine: getDebugValueOrDefault(cpu.IRQ_LINE, 'INACTIVE'),
             nmiLine: getDebugValueOrDefault(cpu.NMI_LINE, 'INACTIVE'),
             irqPending: getDebugValueOrDefault(cpu.IRQ_PENDING, 'NO'),
             nmiPending: getDebugValueOrDefault(cpu.NMI_PENDING, 'NO'),
             execTmp: getDebugValueOrDefault(cpu.EXEC_TMP, '$00'),
             execAddr: getDebugValueOrDefault(cpu.EXEC_ADDR, '$0000'),
-            perfEnabled: getDebugValueOrDefault(cpu.PERF_ENABLED, 'YES'),
-            perfInstructions: getDebugValueOrDefault(cpu.PERF_INSTRUCTIONS, '4,297,966'),
+            perfEnabled: getDebugValueOrDefault(cpu.PERF_ENABLED, 'NO'),
+            perfInstructions: getDebugValueOrDefault(cpu.PERF_INSTRUCTIONS, '0'),
         };
     }, [debugInfo.cpu]);
 

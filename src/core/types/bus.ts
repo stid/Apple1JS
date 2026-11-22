@@ -7,6 +7,12 @@
  */
 export interface IoAddressable {
     read(address: number): number;
+    /**
+     * Read without the side effects a real bus read would have (debugger and
+     * memory-viewer access). Only devices whose reads change state need it;
+     * the bus falls back to read() when absent.
+     */
+    peek?(address: number): number;
     write(address: number, value: number): void;
     flash?(data: Array<number>): void; // Optional - only needed for ROM/RAM
 }

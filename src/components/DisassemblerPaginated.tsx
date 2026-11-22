@@ -6,8 +6,9 @@ import CompactCpuRegisters from './CompactCpuRegisters';
 import AddressLink from './AddressLink';
 import { Formatters } from '../utils/formatters';
 import { useEmulation } from '../contexts/EmulationContext';
-import { REFRESH_RATES } from '../constants/ui';
 import type { WorkerManager } from '../services/WorkerManager';
+import { loggingService } from '../services/LoggingService';
+import { isTypingInField } from '../utils/keyboard-focus';
 
 interface DisassemblerProps {
     workerManager: WorkerManager;
@@ -304,7 +305,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                         }
                     }
                 } catch (error) {
-                    console.error('Failed to fetch memory:', error);
+                    loggingService.error('DisassemblerPaginated', `Failed to fetch memory: ${error}`);
                 }
                 return;
             }
@@ -320,7 +321,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                     setLines(disassembly.slice(0, targetRows));
                 }
             } catch (error) {
-                console.error('Failed to fetch memory:', error);
+                loggingService.error('DisassemblerPaginated', `Failed to fetch memory: ${error}`);
             }
         },
         [workerManager, disassembleMemory, actualVisibleRows],
@@ -389,19 +390,6 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
         };
     }, [workerManager]);
 
-    // Request debug info periodically when paused
-    useEffect(() => {
-        if (!isPaused) return;
-
-        const requestDebugInfo = async () => {
-            await workerManager.getDebugInfo();
-        };
-
-        requestDebugInfo();
-        const interval = setInterval(requestDebugInfo, REFRESH_RATES.FAST);
-        return () => clearInterval(interval);
-    }, [workerManager, isPaused]);
-
     // Navigation handlers
     const handleNavigateUp = useCallback(() => {
         if (lines.length === 0 || viewStartAddress === 0) return;
@@ -447,7 +435,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
                 }
             })
             .catch((error) => {
-                console.error('Failed to navigate up:', error);
+                loggingService.error('DisassemblerPaginated', `Failed to navigate up: ${error}`);
             });
     }, [viewStartAddress, actualVisibleRows, navigateTo, disassembleMemory, workerManager, lines.length]);
 
@@ -660,7 +648,7 @@ const DisassemblerPaginated: React.FC<DisassemblerProps> = ({
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (document.activeElement?.tagName === 'INPUT') return;
+            if (isTypingInField()) return;
 
             // Step / Run-Pause (F10/F5) are owned by the global execution bar.
             // This view keeps only its own navigation shortcuts.

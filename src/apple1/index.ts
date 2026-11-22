@@ -228,9 +228,6 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
         }
         return children;
     }
-    getCompositionTree(): IInspectableComponent {
-        return this;
-    }
     /**
      * Returns a serializable architecture view of the Apple1 and its children, suitable for inspectors.
      */
@@ -725,29 +722,6 @@ class Apple1 extends VersionedStatefulComponentBase<Apple1State> implements IIns
 
     // ============ Unified Memory Access ============
 
-    /**
-     * Get the current RAM (always returns JavaScript RAM)
-     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
-     */
-    getCurrentRAM(): RAM {
-        return this.ramBank1;
-    }
-
-    /**
-     * Get the current ROM (always returns JavaScript ROM)
-     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
-     */
-    getCurrentROM(): ROM {
-        return this.rom;
-    }
-
-    /**
-     * Get the current Bus (always returns JavaScript Bus)
-     * Note: Both JS and WASM engines use the JavaScript memory as source of truth
-     */
-    getCurrentBus(): Bus {
-        return this.bus;
-    }
 }
 
 export default Apple1;

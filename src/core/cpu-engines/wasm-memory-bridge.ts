@@ -83,10 +83,3 @@ export function installMemoryBridge(): void {
 
     loggingService.info('WasmMemoryBridge', 'Memory bridge installed on global object');
 }
-
-/**
- * Check if memory bridge is properly installed
- */
-export function isMemoryBridgeReady(): boolean {
-    return currentBus !== null && getGlobalScope().wasmMemoryBridge === wasmMemoryBridge;
-}

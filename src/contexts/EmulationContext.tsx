@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import { FilteredDebugData } from '../apple1/types/worker-messages';
 import { getNumericDebugValue } from '../utils/debug-helpers';
 import type { WorkerManager } from '../services/WorkerManager';
 import { useWorkerData } from './WorkerDataContext';
+import { loggingService } from '../services/LoggingService';
 
 export type ExecutionState = 'running' | 'paused' | 'stepping';
 
@@ -55,7 +56,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
     const [executionState, setExecutionState] = useState<ExecutionState>('running');
     const [currentPC, setCurrentPC] = useState(0);
     // Get debug info from WorkerDataContext
-    const { debugInfo, subscribeToDebugInfo, setDebuggerActive } = useWorkerData();
+    const { debugInfo, subscribeToDebugInfo } = useWorkerData();
     const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
 
     // Navigation event subscribers
@@ -67,7 +68,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             try {
                 callback(event);
             } catch (error) {
-                console.error('Navigation event callback error:', error);
+                loggingService.error('EmulationContext', `Navigation event callback error: ${error}`);
             }
         });
     }, []);
@@ -137,7 +138,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     }
                 }
             } catch (error) {
-                console.warn('Failed to get initial state:', error);
+                loggingService.warn('EmulationContext', `Failed to get initial state: ${error}`);
             }
         };
 
@@ -167,7 +168,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
-            console.error('Failed to pause emulation:', error);
+            loggingService.error('EmulationContext', `Failed to pause emulation: ${error}`);
         }
     }, [workerManager, emitNavigationEvent]);
 
@@ -175,7 +176,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         try {
             await workerManager.resumeEmulation();
         } catch (error) {
-            console.error('Failed to resume emulation:', error);
+            loggingService.error('EmulationContext', `Failed to resume emulation: ${error}`);
         }
     }, [workerManager]);
 
@@ -194,7 +195,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
-            console.error('Failed to step:', error);
+            loggingService.error('EmulationContext', `Failed to step: ${error}`);
         }
     }, [workerManager, emitNavigationEvent]);
 
@@ -215,7 +216,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                 // Debug info is now managed by WorkerDataContext
             }
         } catch (error) {
-            console.error('Failed to step over:', error);
+            loggingService.error('EmulationContext', `Failed to step over: ${error}`);
         }
     }, [workerManager, emitNavigationEvent]);
 
@@ -224,7 +225,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
             try {
                 await workerManager.runToAddress(address);
             } catch (error) {
-                console.error('Failed to run to address:', error);
+                loggingService.error('EmulationContext', `Failed to run to address: ${error}`);
             }
         },
         [workerManager],
@@ -245,7 +246,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     }
                 }
             } catch (error) {
-                console.error('Failed to toggle breakpoint:', error);
+                loggingService.error('EmulationContext', `Failed to toggle breakpoint: ${error}`);
             }
         },
         [workerManager, breakpoints],
@@ -273,7 +274,7 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
                     }
                 });
             } catch (error) {
-                console.warn('Failed to subscribe to debug info, will retry:', error);
+                loggingService.warn('EmulationContext', `Failed to subscribe to debug info, will retry: ${error}`);
                 // Retry after a short delay
                 if (mounted) {
                     setTimeout(trySubscribe, 100);
@@ -291,41 +292,53 @@ export const EmulationProvider: React.FC<EmulationProviderProps> = ({
         };
     }, [subscribeToDebugInfo]);
 
-    // Update debugger active state based on context
-    useEffect(() => {
-        // This context is typically used when debugger UI is visible
-        setDebuggerActive(true);
-        return () => {
-            setDebuggerActive(false);
-        };
-    }, [setDebuggerActive]);
-
     const clearAllBreakpoints = useCallback(async () => {
         try {
             await workerManager.clearAllBreakpoints();
             setBreakpoints(new Set());
         } catch (error) {
-            console.error('Failed to clear all breakpoints:', error);
+            loggingService.error('EmulationContext', `Failed to clear all breakpoints: ${error}`);
         }
     }, [workerManager]);
 
-    const value: EmulationContextType = {
-        isPaused,
-        executionState,
-        currentPC,
-        debugInfo,
-        breakpoints,
-        pause,
-        resume,
-        step,
-        stepOver,
-        runToAddress,
-        toggleBreakpoint,
-        clearAllBreakpoints,
-        subscribeToNavigationEvents,
-        ...(onBreakpointHit !== undefined && { onBreakpointHit }),
-        ...(onRunToCursorSet !== undefined && { onRunToCursorSet }),
-    };
+    // Memoized: this provider re-renders on every debug-info update, and a
+    // fresh object each time re-rendered every consumer with it.
+    const value: EmulationContextType = useMemo(
+        () => ({
+            isPaused,
+            executionState,
+            currentPC,
+            debugInfo,
+            breakpoints,
+            pause,
+            resume,
+            step,
+            stepOver,
+            runToAddress,
+            toggleBreakpoint,
+            clearAllBreakpoints,
+            subscribeToNavigationEvents,
+            ...(onBreakpointHit !== undefined && { onBreakpointHit }),
+            ...(onRunToCursorSet !== undefined && { onRunToCursorSet }),
+        }),
+        [
+            isPaused,
+            executionState,
+            currentPC,
+            debugInfo,
+            breakpoints,
+            pause,
+            resume,
+            step,
+            stepOver,
+            runToAddress,
+            toggleBreakpoint,
+            clearAllBreakpoints,
+            subscribeToNavigationEvents,
+            onBreakpointHit,
+            onRunToCursorSet,
+        ],
+    );
 
     return <EmulationContext.Provider value={value}>{children}</EmulationContext.Provider>;
 };

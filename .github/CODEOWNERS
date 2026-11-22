@@ -9,3 +9,6 @@
 # CI/CD, automation, and repo policy
 /.github/        @stid
 /SECURITY.md     @stid
+
+# Git hooks run on the maintainer machine at commit time
+/.husky/         @stid

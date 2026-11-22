@@ -3,7 +3,6 @@ import { describe, expect, beforeEach, vi } from 'vitest';
 import { createMockWorkerManager } from '../../test-support/mocks/WorkerManager.mock';
 import { render, screen, fireEvent } from '@testing-library/react';
 import DebuggerLayout from '../DebuggerLayout';
-import { IInspectableComponent } from '../../core/types/components';
 import { DebuggerNavigationProvider } from '../../contexts/DebuggerNavigationContext';
 import { WorkerDataProvider } from '../../contexts/WorkerDataContext';
 import type { WorkerManager } from '../../services/WorkerManager';
@@ -48,7 +47,6 @@ vi.mock('../StackViewer', () => ({
 
 describe('DebuggerLayout', () => {
     let mockWorkerManager: WorkerManager;
-    const mockRoot = {} as IInspectableComponent;
 
     let memoryViewAddress: number;
     let disassemblerAddress: number;
@@ -77,7 +75,6 @@ describe('DebuggerLayout', () => {
     it('renders overview by default', () => {
         renderWithProviders(
             <DebuggerLayout
-                root={mockRoot}
                 workerManager={mockWorkerManager}
                 memoryViewAddress={memoryViewAddress}
                 setMemoryViewAddress={setMemoryViewAddress}
@@ -93,7 +90,6 @@ describe('DebuggerLayout', () => {
     it('switches between tabs', () => {
         renderWithProviders(
             <DebuggerLayout
-                root={mockRoot}
                 workerManager={mockWorkerManager}
                 memoryViewAddress={memoryViewAddress}
                 setMemoryViewAddress={setMemoryViewAddress}
@@ -115,7 +111,6 @@ describe('DebuggerLayout', () => {
     it('maintains memory viewer address state when switching tabs', () => {
         const { rerender } = renderWithProviders(
             <DebuggerLayout
-                root={mockRoot}
                 workerManager={mockWorkerManager}
                 memoryViewAddress={memoryViewAddress}
                 setMemoryViewAddress={setMemoryViewAddress}
@@ -144,7 +139,6 @@ describe('DebuggerLayout', () => {
             <WorkerDataProvider workerManager={mockWorkerManager}>
                 <DebuggerNavigationProvider>
                     <DebuggerLayout
-                        root={mockRoot}
                         workerManager={mockWorkerManager}
                         memoryViewAddress={memoryViewAddress}
                         setMemoryViewAddress={setMemoryViewAddress}
@@ -168,7 +162,6 @@ describe('DebuggerLayout', () => {
     it('maintains disassembler address state when switching tabs', () => {
         const { rerender } = renderWithProviders(
             <DebuggerLayout
-                root={mockRoot}
                 workerManager={mockWorkerManager}
                 memoryViewAddress={memoryViewAddress}
                 setMemoryViewAddress={setMemoryViewAddress}
@@ -197,7 +190,6 @@ describe('DebuggerLayout', () => {
             <WorkerDataProvider workerManager={mockWorkerManager}>
                 <DebuggerNavigationProvider>
                     <DebuggerLayout
-                        root={mockRoot}
                         workerManager={mockWorkerManager}
                         memoryViewAddress={memoryViewAddress}
                         setMemoryViewAddress={setMemoryViewAddress}
@@ -221,7 +213,6 @@ describe('DebuggerLayout', () => {
     it('maintains separate address states for memory and disassembler', () => {
         const { rerender } = renderWithProviders(
             <DebuggerLayout
-                root={mockRoot}
                 workerManager={mockWorkerManager}
                 memoryViewAddress={memoryViewAddress}
                 setMemoryViewAddress={setMemoryViewAddress}
@@ -251,7 +242,6 @@ describe('DebuggerLayout', () => {
             <WorkerDataProvider workerManager={mockWorkerManager}>
                 <DebuggerNavigationProvider>
                     <DebuggerLayout
-                        root={mockRoot}
                         workerManager={mockWorkerManager}
                         memoryViewAddress={memoryViewAddress}
                         setMemoryViewAddress={setMemoryViewAddress}

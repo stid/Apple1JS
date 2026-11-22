@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { Formatters } from '../utils/formatters';
+import { isTypingInField } from '../utils/keyboard-focus';
 
 interface PaginatedTableViewProps {
     // Basic configuration
@@ -99,8 +100,8 @@ const PaginatedTableView: React.FC<PaginatedTableViewProps> = ({
     // Keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Don't handle if input is focused
-            if (document.activeElement?.tagName === 'INPUT') return;
+            // Don't handle while the user is editing a field
+            if (isTypingInField()) return;
 
             if (e.key === 'ArrowUp') {
                 e.preventDefault();

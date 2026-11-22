@@ -4,6 +4,7 @@ import { WorkerAPI } from './WorkerAPI';
 import type { VideoData } from './types/video';
 import type { IWorkerAPI } from './types/worker-api';
 import type { EmulatorState } from './types/emulator-state';
+import { loggingService } from '../services/LoggingService';
 
 /**
  * Comlink-based worker implementation for Apple1JS.
@@ -20,14 +21,6 @@ const workerState = new WorkerState();
 // Create the worker API instance
 const workerAPI = new WorkerAPI(workerState);
 
-// Export for backwards compatibility during migration
-export const video = workerState.video;
-export const keyboard = workerState.keyboard;
-
-// Clean up on worker termination
-globalThis.addEventListener('beforeunload', () => {
-    workerState.cleanup();
-});
 
 /**
  * Enhanced WorkerAPI with Comlink event handling
@@ -72,6 +65,7 @@ class ComlinkWorkerAPI implements IWorkerAPI {
 
     keyDown = (key: string) => this.api.keyDown(key);
     getDebugInfo = () => this.api.getDebugInfo();
+    getInspectableTree = () => this.api.getInspectableTree();
 
     // Event subscription methods - forward to underlying WorkerAPI
     // Note: Callbacks are already proxied by WorkerManager
@@ -91,7 +85,7 @@ class ComlinkWorkerAPI implements IWorkerAPI {
                 }
             });
         } catch (error) {
-            console.error('Error setting up video update subscription:', error);
+            loggingService.error('AppleWorker', `Error setting up video update subscription: ${error}`);
             throw error;
         }
     }

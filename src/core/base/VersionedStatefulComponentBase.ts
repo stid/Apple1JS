@@ -2,8 +2,8 @@
  * Base class for versioned, stateful emulated-hardware components.
  *
  * Every core component (RAM, ROM, Clock, PIA6820, Apple1) used to hand-roll the
- * identical `loadState` preamble: validate (optional) -> migrate if the stored
- * version differs -> apply. This template method fixes that invariant sequence
+ * identical `loadState` preamble: migrate if the stored version differs ->
+ * validate (optional) -> apply. This template method fixes that invariant sequence
  * once and defers only the component-specific application to {@link applyState},
  * so a fix to the validate/migrate guard lands in a single place.
  *
@@ -51,8 +51,16 @@ export abstract class VersionedStatefulComponentBase<
      * a state object, returning the state that should be applied.
      */
     protected prepareLoad(state: TState, opts: Required<StateOptions>): TState {
+        // Migrate first: validateState checks the *current* schema, so an older
+        // state missing fields that a migration adds would be rejected before the
+        // migration could run.
+        const current =
+            opts.migrate && state.version && state.version !== this.getStateVersion()
+                ? this.migrateState(state, state.version)
+                : state;
+
         if (opts.validate) {
-            const validation = this.validateState(state);
+            const validation = this.validateState(current);
             if (!validation.valid) {
                 throw new StateError(
                     `Invalid ${this.stateComponentName} state: ${validation.errors.join(', ')}`,
@@ -62,10 +70,6 @@ export abstract class VersionedStatefulComponentBase<
             }
         }
 
-        if (opts.migrate && state.version && state.version !== this.getStateVersion()) {
-            return this.migrateState(state, state.version);
-        }
-
-        return state;
+        return current;
     }
 }

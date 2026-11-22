@@ -81,7 +81,7 @@ function checkCargoToml() {
 const needsRebuild = checkWasmNeedsRebuild() || checkCargoToml();
 
 if (needsRebuild) {
-    console.log('\nRun "yarn wasm:build" to rebuild the WASM module');
+    console.log('\nRun "yarn wasm:build:release" to rebuild the WASM module');
     process.exit(1);
 } else {
     console.log('\n✓ WASM module is up to date');

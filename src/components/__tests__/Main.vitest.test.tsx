@@ -4,42 +4,25 @@ import type { WorkerManager } from '../../services/WorkerManager';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import Main from '../Main';
-import { IInspectableComponent } from '../../core/types/components';
 import { APP_VERSION } from '../../version';
 
 // Mock App component
 vi.mock('../App', () => ({
     __esModule: true,
-    default: ({
-        workerManager,
-        apple1Instance,
-    }: {
-        workerManager: WorkerManager;
-        apple1Instance: IInspectableComponent | null;
-    }) => (
-        <div data-testid="mocked-app">
-            App Component - WorkerManager: {workerManager ? 'yes' : 'no'}, Instance: {apple1Instance ? 'yes' : 'no'}
-        </div>
+    default: ({ workerManager }: { workerManager: WorkerManager }) => (
+        <div data-testid="mocked-app">App Component - WorkerManager: {workerManager ? 'yes' : 'no'}</div>
     ),
 }));
 
 describe('Main component', () => {
     let mockWorkerManager: WorkerManager;
-    let mockApple1Instance: IInspectableComponent;
 
     beforeEach(() => {
         mockWorkerManager = createMockWorkerManager();
-        mockApple1Instance = {
-            inspect: vi.fn().mockReturnValue({
-                name: 'Apple1',
-                state: {},
-                metadata: { type: 'system' },
-            }),
-        } as unknown as IInspectableComponent;
     });
 
     it('should render with all required elements', () => {
-        render(<Main workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
+        render(<Main workerManager={mockWorkerManager} />);
 
         // Check header exists
         expect(screen.getByRole('banner')).toBeInTheDocument();
@@ -51,19 +34,11 @@ describe('Main component', () => {
 
         // Check App component is rendered
         expect(screen.getByTestId('mocked-app')).toBeInTheDocument();
-        expect(screen.getByText(/App Component/)).toHaveTextContent(
-            'App Component - WorkerManager: yes, Instance: yes',
-        );
-    });
-
-    it('should render without apple1Instance', () => {
-        render(<Main workerManager={mockWorkerManager} apple1Instance={null} />);
-
-        expect(screen.getByTestId('mocked-app')).toHaveTextContent('App Component - WorkerManager: yes, Instance: no');
+        expect(screen.getByText(/App Component/)).toHaveTextContent('App Component - WorkerManager: yes');
     });
 
     it('should have correct layout structure', () => {
-        const { container } = render(<Main workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
+        const { container } = render(<Main workerManager={mockWorkerManager} />);
 
         // Check root div has correct layout classes
         const rootDiv = container.firstChild as HTMLElement;
@@ -84,19 +59,8 @@ describe('Main component', () => {
         expect(contentDiv).toHaveClass('flex-1', 'flex', 'overflow-hidden', 'min-h-0');
     });
 
-    it('should pass correct props to App component', () => {
-        const { rerender } = render(<Main workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
-
-        // Initial render with instance
-        expect(screen.getByTestId('mocked-app')).toHaveTextContent('WorkerManager: yes, Instance: yes');
-
-        // Rerender without instance
-        rerender(<Main workerManager={mockWorkerManager} apple1Instance={null} />);
-        expect(screen.getByTestId('mocked-app')).toHaveTextContent('WorkerManager: yes, Instance: no');
-    });
-
     it('should display version from version.ts', () => {
-        render(<Main workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
+        render(<Main workerManager={mockWorkerManager} />);
 
         const versionElement = screen.getByText(`v${APP_VERSION}`);
         expect(versionElement).toBeInTheDocument();
@@ -104,7 +68,7 @@ describe('Main component', () => {
     });
 
     it('should have proper title structure with different text styles', () => {
-        render(<Main workerManager={mockWorkerManager} apple1Instance={mockApple1Instance} />);
+        render(<Main workerManager={mockWorkerManager} />);
 
         const titleElement = screen.getByRole('heading', { level: 1 });
         expect(titleElement).toHaveClass('text-base', 'font-mono', 'font-medium', 'tracking-wide', 'text-text-accent');

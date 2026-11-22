@@ -2,9 +2,8 @@
  * 6502 CPU Core Implementation
  */
 
-use crate::{console_log, CPUState, Metrics};
+use crate::console_log;
 use std::collections::HashSet;
-use wasm_bindgen::prelude::*;
 
 /// Status register flags
 pub mod flags {
@@ -19,7 +18,6 @@ pub mod flags {
 }
 
 /// 6502 CPU implementation
-#[wasm_bindgen]
 pub struct CPU6502 {
     // Registers
     pub(crate) pc: u16,    // Program Counter
@@ -40,9 +38,6 @@ pub struct CPU6502 {
     pub(crate) cycles: u64,
     pub(crate) instructions: u64,
 
-    // Timing
-    last_step_start: f64,
-
     // Breakpoint support
     breakpoints: HashSet<u16>,
     breakpoint_hit: Option<u16>,
@@ -56,10 +51,8 @@ pub struct CPU6502 {
     last_data: u8,
 }
 
-#[wasm_bindgen]
 impl CPU6502 {
     /// Create a new CPU instance
-    #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         console_log!("Creating new WASM CPU6502 instance");
 
@@ -75,7 +68,6 @@ impl CPU6502 {
             nmi_pending: false,
             cycles: 0,
             instructions: 0,
-            last_step_start: 0.0,
             breakpoints: HashSet::new(),
             breakpoint_hit: None,
             profiling_enabled: false,
@@ -117,9 +109,6 @@ impl CPU6502 {
             return 0; // Signal breakpoint hit - no cycles consumed
         }
 
-        #[cfg(feature = "performance")]
-        let start = crate::now();
-
         let start_cycles = self.cycles;
 
         // Check for interrupts
@@ -144,106 +133,33 @@ impl CPU6502 {
 
         self.instructions += 1;
 
-        #[cfg(feature = "performance")]
-        {
-            self.last_step_start = crate::now() - start;
-        }
-
         (self.cycles - start_cycles) as u32
     }
 
     // ============ State Management ============
 
-    /// Save CPU state
-    pub fn save_state(&self) -> JsValue {
-        let state = CPUState {
-            pc: self.pc,
-            a: self.a,
-            x: self.x,
-            y: self.y,
-            s: self.s,
-            status: self.status,
-            cycles: self.cycles,
-            irq: self.irq,
-            nmi: self.nmi,
-        };
-
-        serde_wasm_bindgen::to_value(&state).unwrap()
-    }
-
-    /// Load CPU state
-    pub fn load_state(&mut self, state: &JsValue) {
-        let state: CPUState = serde_wasm_bindgen::from_value(state.clone()).unwrap();
-
-        self.pc = state.pc;
-        self.a = state.a;
-        self.x = state.x;
-        self.y = state.y;
-        self.s = state.s;
-        self.status = state.status;
-        self.cycles = state.cycles;
-        self.irq = state.irq;
-        self.nmi = state.nmi;
-    }
-
     // ============ Register Access ============
 
-    #[wasm_bindgen(getter)]
-    pub fn pc(&self) -> u16 {
-        self.pc
-    }
-
-    #[wasm_bindgen(setter)]
     pub fn set_pc(&mut self, value: u16) {
         self.pc = value;
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn a(&self) -> u8 {
-        self.a
-    }
-
-    #[wasm_bindgen(setter)]
     pub fn set_a(&mut self, value: u8) {
         self.a = value;
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn x(&self) -> u8 {
-        self.x
-    }
-
-    #[wasm_bindgen(setter)]
     pub fn set_x(&mut self, value: u8) {
         self.x = value;
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn y(&self) -> u8 {
-        self.y
-    }
-
-    #[wasm_bindgen(setter)]
     pub fn set_y(&mut self, value: u8) {
         self.y = value;
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn s(&self) -> u8 {
-        self.s
-    }
-
-    #[wasm_bindgen(setter)]
     pub fn set_s(&mut self, value: u8) {
         self.s = value;
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn status(&self) -> u8 {
-        self.status
-    }
-
-    #[wasm_bindgen(setter)]
     pub fn set_status(&mut self, value: u8) {
         self.status = value;
     }
@@ -302,58 +218,10 @@ impl CPU6502 {
 
     // ============ Memory Access ============
 
-    /// Read a byte from memory via JavaScript Bus
-    pub fn read_memory(&self, address: u16) -> u8 {
-        crate::bus_read(address)
-    }
-
-    /// Write a byte to memory via JavaScript Bus
-    pub fn write_memory(&mut self, address: u16, value: u8) {
-        crate::bus_write(address, value);
-    }
-
-    /// Read a range of memory via JavaScript Bus
-    pub fn read_memory_range(&self, start: u16, length: u16) -> Vec<u8> {
-        let mut result = Vec::with_capacity(length as usize);
-        for i in 0..length {
-            result.push(crate::bus_read(start.wrapping_add(i)));
-        }
-        result
-    }
-
-    /// Write a range of memory via JavaScript Bus
-    pub fn write_memory_range(&mut self, start: u16, data: &[u8]) {
-        for (i, &byte) in data.iter().enumerate() {
-            crate::bus_write(start.wrapping_add(i as u16), byte);
-        }
-    }
-
     // Note: memory_ptr removed as we no longer have internal memory
     // All memory access goes through JavaScript Bus
 
     // ============ Performance Metrics ============
-
-    /// Get performance metrics
-    pub fn get_metrics(&self) -> JsValue {
-        let metrics = Metrics {
-            cycles: self.cycles,
-            instructions: self.instructions,
-            average_ips: if self.cycles > 0 {
-                (self.instructions as f64 / self.cycles as f64) * 1_000_000.0
-            } else {
-                0.0
-            },
-            last_step_duration: self.last_step_start,
-        };
-
-        serde_wasm_bindgen::to_value(&metrics).unwrap()
-    }
-
-    /// Reset metrics
-    pub fn reset_metrics(&mut self) {
-        self.cycles = 0;
-        self.instructions = 0;
-    }
 
     // ============ Interrupt Handling ============
 
@@ -403,16 +271,6 @@ impl CPU6502 {
         self.breakpoint_hit = None;
     }
 
-    /// Check if an address has a breakpoint
-    pub fn has_breakpoint(&self, addr: u16) -> bool {
-        self.breakpoints.contains(&addr)
-    }
-
-    /// Get the number of breakpoints
-    pub fn breakpoint_count(&self) -> usize {
-        self.breakpoints.len()
-    }
-
     // ============ Profiling Support ============
 
     /// Enable or disable profiling
@@ -429,19 +287,9 @@ impl CPU6502 {
         self.profiling_enabled
     }
 
-    /// Get opcode execution count for a specific opcode
-    pub fn get_opcode_count(&self, opcode: u8) -> u64 {
-        self.opcode_counts[opcode as usize]
-    }
-
     /// Get total instruction count from profiling
     pub fn get_profiled_instruction_count(&self) -> u64 {
         self.opcode_counts.iter().sum()
-    }
-
-    /// Reset all profiling data
-    pub fn reset_profiling(&mut self) {
-        self.opcode_counts = [0; 256];
     }
 
     /// Get top N most executed opcodes as JSON-compatible data
@@ -457,7 +305,7 @@ impl CPU6502 {
             .collect();
 
         // Sort by count descending
-        pairs.sort_by(|a, b| b.1.cmp(&a.1));
+        pairs.sort_by_key(|pair| std::cmp::Reverse(pair.1));
 
         // Take top N and flatten to bytes: [op1, count1_low, count1_high, ...]
         // Using 9 bytes per entry: 1 for opcode + 8 for u64 count
@@ -523,7 +371,9 @@ impl CPU6502 {
     fn handle_irq_with_bus(&mut self, bus: &mut crate::Bus) {
         self.push_byte_to_bus(bus, (self.pc >> 8) as u8);
         self.push_byte_to_bus(bus, self.pc as u8);
-        self.push_byte_to_bus(bus, self.status | flags::UNUSED);
+        // B is not a real flag: a hardware interrupt pushes it clear (only BRK
+        // and PHP push it set), whatever PLP/RTI left in bit 4.
+        self.push_byte_to_bus(bus, (self.status | flags::UNUSED) & !flags::BREAK);
         self.set_flag(flags::INTERRUPT, true);
         self.pc = self.read_word_from_bus(bus, 0xFFFE);
         self.cycles += 7;
@@ -533,7 +383,9 @@ impl CPU6502 {
     fn handle_nmi_with_bus(&mut self, bus: &mut crate::Bus) {
         self.push_byte_to_bus(bus, (self.pc >> 8) as u8);
         self.push_byte_to_bus(bus, self.pc as u8);
-        self.push_byte_to_bus(bus, self.status | flags::UNUSED);
+        // B is not a real flag: a hardware interrupt pushes it clear (only BRK
+        // and PHP push it set), whatever PLP/RTI left in bit 4.
+        self.push_byte_to_bus(bus, (self.status | flags::UNUSED) & !flags::BREAK);
         self.set_flag(flags::INTERRUPT, true);
         self.pc = self.read_word_from_bus(bus, 0xFFFA);
         self.cycles += 7;
@@ -553,7 +405,6 @@ impl CPU6502 {
     }
 
     /// Pop byte from stack using internal Bus
-    #[allow(dead_code)]
     pub(crate) fn pop_byte_from_bus(&mut self, bus: &crate::Bus) -> u8 {
         self.s = self.s.wrapping_add(1);
         self.read_byte_from_bus(bus, 0x0100 | (self.s as u16))

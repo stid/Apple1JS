@@ -59,7 +59,7 @@ describe('InspectorView — WASM engine parity', () => {
         mockDebugInfo = {};
     });
 
-    const renderInspector = () => render(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+    const renderInspector = () => render(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
 
     it('AC-2 (RENDER): profiling toggle enabled in WASM mode', async () => {
         renderInspector();

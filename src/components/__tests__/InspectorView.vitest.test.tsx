@@ -6,7 +6,6 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen, act, fireEvent } from '../../test-utils/render';
 import InspectorView from '../InspectorView';
 import { IInspectableComponent } from '../../core/types/components';
-import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
 import { WorkerDataProvider } from '../../contexts/WorkerDataContext';
 
 // Mock the WorkerDataContext
@@ -79,7 +78,7 @@ describe('InspectorView component', () => {
     };
 
     it('should render architecture section', () => {
-        renderWithProviders(<InspectorView root={mockInspectable} />);
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} />);
         
         expect(screen.getByText('Apple1')).toBeInTheDocument();
         expect(screen.getByText('Test Apple1')).toBeInTheDocument();
@@ -87,7 +86,7 @@ describe('InspectorView component', () => {
     });
 
     it('should render child components in architecture tree', () => {
-        renderWithProviders(<InspectorView root={mockInspectable} />);
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} />);
         
         expect(screen.getByText('CPU')).toBeInTheDocument();
         expect(screen.getByText('Test CPU')).toBeInTheDocument();
@@ -96,7 +95,7 @@ describe('InspectorView component', () => {
     });
 
     it('should display config values in architecture tree', () => {
-        renderWithProviders(<InspectorView root={mockInspectable} />);
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} />);
         
         expect(screen.getByText('frequency:')).toBeInTheDocument();
         expect(screen.getByText('1,000,000')).toBeInTheDocument(); // Formatted with thousand separators
@@ -107,7 +106,7 @@ describe('InspectorView component', () => {
     });
 
     it('should show architecture data without special labels', () => {
-        renderWithProviders(<InspectorView root={mockInspectable} />);
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} />);
         
         // Should not have the removed labels
         expect(screen.queryByText('Architecture')).not.toBeInTheDocument();
@@ -121,7 +120,7 @@ describe('InspectorView component', () => {
     it('should set up interval to request debug info when worker is provided', () => {
         // InspectorView now uses WorkerDataContext which handles polling internally
         // This test is no longer applicable as the component doesn't directly poll
-        renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Just verify the component renders without errors
         expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
@@ -130,7 +129,7 @@ describe('InspectorView component', () => {
     it('should add event listener for worker messages', () => {
         // InspectorView now uses WorkerDataContext which handles worker messages internally
         // This test is no longer applicable
-        renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Just verify the component renders without errors
         expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
@@ -167,7 +166,7 @@ describe('InspectorView component', () => {
             }
         };
 
-        renderWithProviders(<InspectorView root={mockInspectableWithCPU} workerManager={mockWorkerManager} />);
+        renderWithProviders(<InspectorView root={mockInspectableWithCPU.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Check that CPU debug data is integrated into the architecture tree
         expect(screen.getAllByText('REG_PC:').length).toBeGreaterThanOrEqual(1);
@@ -181,22 +180,7 @@ describe('InspectorView component', () => {
     });
 
     it('should handle empty debug data gracefully', () => {
-        renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
-        
-        const worker = mockWorkerManager.getWorker();
-        const addEventListener = worker?.addEventListener as Mock;
-        const messageHandler = addEventListener?.mock.calls.find(call => call[0] === 'message')?.[1];
-        
-        if (messageHandler) {
-            act(() => {
-                messageHandler({
-                    data: {
-                        type: WORKER_MESSAGES.DEBUG_INFO,
-                        data: {}
-                    }
-                });
-            });
-        }
+        renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
 
         // Should still show architecture tree
         expect(screen.getByText('Architecture Tree')).toBeInTheDocument();
@@ -206,7 +190,7 @@ describe('InspectorView component', () => {
     it('should clean up intervals and event listeners on unmount', () => {
         // InspectorView now uses WorkerDataContext which handles cleanup internally
         // This test is no longer applicable
-        const { unmount } = renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+        const { unmount } = renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Just verify unmount doesn't throw errors
         expect(() => unmount()).not.toThrow();
@@ -224,7 +208,7 @@ describe('InspectorView component', () => {
             })
         };
 
-        renderWithProviders(<InspectorView root={mockInspectableWithoutName} />);
+        renderWithProviders(<InspectorView root={mockInspectableWithoutName.getInspectable()} />);
         
         expect(screen.getByText('(unnamed)')).toBeInTheDocument();
     });
@@ -241,7 +225,7 @@ describe('InspectorView component', () => {
             })
         };
 
-        renderWithProviders(<InspectorView root={mockInspectableWithoutConfig} />);
+        renderWithProviders(<InspectorView root={mockInspectableWithoutConfig.getInspectable()} />);
         
         // With the new card layout, components without config don't show extra fields
         expect(screen.getByText('Apple1')).toBeInTheDocument();
@@ -278,7 +262,7 @@ describe('InspectorView component', () => {
             })
         };
 
-        renderWithProviders(<InspectorView root={mockInspectableWithDuplicates} />);
+        renderWithProviders(<InspectorView root={mockInspectableWithDuplicates.getInspectable()} />);
         
         // The deduplication logic should prefer the component with more config fields
         expect(screen.getByText('CPU Advanced')).toBeInTheDocument();
@@ -320,7 +304,7 @@ describe('InspectorView component', () => {
             }
         };
 
-        renderWithProviders(<InspectorView root={mockInspectableWithCPU6502} workerManager={mockWorkerManager} />);
+        renderWithProviders(<InspectorView root={mockInspectableWithCPU6502.getInspectable()} workerManager={mockWorkerManager} />);
         
         // Check that CPU6502 debug data is integrated - now appears in both CPU Registers section and architecture tree
         expect(screen.getAllByText('REG_PC:').length).toBeGreaterThanOrEqual(1);
@@ -337,14 +321,14 @@ describe('InspectorView component', () => {
 
     describe('Profiling Feature', () => {
         it('should render profiling section with toggle button', () => {
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             expect(screen.getByText('CPU Performance Profiling')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /Enable Profiling/i })).toBeInTheDocument();
         });
 
         it('should toggle profiling when button is clicked', async () => {
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             const toggleButton = screen.getByRole('button', { name: /Enable Profiling/i });
             
@@ -364,7 +348,7 @@ describe('InspectorView component', () => {
             });
             (mockWorkerManager.setCpuProfiling as Mock).mockReturnValueOnce(slowPromise);
             
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             const toggleButton = screen.getByRole('button', { name: /Enable Profiling/i });
             
@@ -402,7 +386,7 @@ describe('InspectorView component', () => {
                 }
             };
             
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             // Button should show "Disable" since profiling is enabled in worker
             expect(screen.getByRole('button', { name: /Disable Profiling/i })).toBeInTheDocument();
@@ -428,7 +412,7 @@ describe('InspectorView component', () => {
                 }
             };
             
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             // Should show metrics
             expect(screen.getByText('123,456')).toBeInTheDocument(); // Instructions count
@@ -450,16 +434,26 @@ describe('InspectorView component', () => {
                 }
             };
             
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             expect(screen.getByText(/Waiting for profiling data/)).toBeInTheDocument();
+        });
+
+        it('does not show sample numbers for readings the worker has not sent', () => {
+            mockDebugInfo = { cpu: { REG_PC: '$FF00' } };
+
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
+
+            expect(screen.getAllByText('HW_CYCLES:').length).toBeGreaterThanOrEqual(1);
+            expect(screen.queryByText('40,259,072')).not.toBeInTheDocument();
+            expect(screen.queryByText('4,297,966')).not.toBeInTheDocument();
         });
 
         it('should handle profiling toggle errors gracefully', async () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
             (mockWorkerManager.setCpuProfiling as Mock).mockRejectedValueOnce(new Error('Failed'));
             
-            renderWithProviders(<InspectorView root={mockInspectable} workerManager={mockWorkerManager} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} workerManager={mockWorkerManager} />);
             
             const toggleButton = screen.getByRole('button', { name: /Enable Profiling/i });
             
@@ -467,7 +461,7 @@ describe('InspectorView component', () => {
                 fireEvent.click(toggleButton);
             });
             
-            expect(consoleError).toHaveBeenCalledWith('Failed to toggle CPU profiling:', expect.any(Error));
+            expect(consoleError).toHaveBeenCalledWith('[InspectorView] Failed to toggle CPU profiling: Error: Failed');
             
             // State should not change on error
             expect(screen.getByRole('button', { name: /Enable Profiling/i })).toBeInTheDocument();
@@ -476,7 +470,7 @@ describe('InspectorView component', () => {
         });
 
         it('should disable button when workerManager is not provided', () => {
-            renderWithProviders(<InspectorView root={mockInspectable} />);
+            renderWithProviders(<InspectorView root={mockInspectable.getInspectable()} />);
             
             const toggleButton = screen.getByRole('button', { name: /Enable Profiling/i });
             expect(toggleButton).toBeDisabled();

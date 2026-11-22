@@ -58,6 +58,7 @@ function makeWorkerAPI(fakeEngine: ReturnType<typeof makeFakeEngine>) {
         apple1: {
             cpu: { PC: 0x0000, toDebug: () => ({}) },
             clock: {
+                onTickError: () => {},
                 pause: () => pauseCalls.push(1),
                 resume: () => {},
             },

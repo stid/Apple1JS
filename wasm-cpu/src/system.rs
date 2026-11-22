@@ -20,6 +20,12 @@ pub struct WasmSystem {
     initialized: bool,
 }
 
+impl Default for WasmSystem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[wasm_bindgen]
 impl WasmSystem {
     /// Create a new WASM system
@@ -149,12 +155,6 @@ impl WasmSystem {
         serde_wasm_bindgen::to_value(&metrics).unwrap()
     }
 
-    /// Get memory pointer for zero-copy access from JavaScript
-    /// Returns pointer to RAM data
-    pub fn get_ram_ptr(&self) -> usize {
-        self.bus.get_ram_ptr()
-    }
-
     /// Get RAM size
     pub fn get_ram_size(&self) -> usize {
         self.bus.get_ram_len()
@@ -259,16 +259,6 @@ impl WasmSystem {
         self.cpu.clear_breakpoint_hit();
     }
 
-    /// Check if an address has a breakpoint
-    pub fn has_breakpoint(&self, addr: u16) -> bool {
-        self.cpu.has_breakpoint(addr)
-    }
-
-    /// Get the number of breakpoints
-    pub fn breakpoint_count(&self) -> usize {
-        self.cpu.breakpoint_count()
-    }
-
     // ============ Profiling Support ============
 
     /// Enable or disable profiling
@@ -281,19 +271,9 @@ impl WasmSystem {
         self.cpu.is_profiling_enabled()
     }
 
-    /// Get opcode execution count for a specific opcode
-    pub fn get_opcode_count(&self, opcode: u8) -> u64 {
-        self.cpu.get_opcode_count(opcode)
-    }
-
     /// Get total instruction count from profiling
     pub fn get_profiled_instruction_count(&self) -> u64 {
         self.cpu.get_profiled_instruction_count()
-    }
-
-    /// Reset all profiling data
-    pub fn reset_profiling(&mut self) {
-        self.cpu.reset_profiling();
     }
 
     /// Get top N most executed opcodes
@@ -304,10 +284,6 @@ impl WasmSystem {
 }
 
 // Internal implementation
-impl WasmSystem {
-    // No internal methods needed currently
-    // All functionality is exposed through the public API
-}
 
 #[cfg(test)]
 mod tests {
@@ -346,6 +322,133 @@ mod tests {
 
         // Test ROM read
         assert_eq!(system.read_memory(0xFF00), 0xEA); // NOP we flashed
+    }
+
+    /// Build a system with a 64KB RAM and a NOP-filled ROM, then place `program`
+    /// at $0300 and point PC at it.
+    fn system_with_program(program: &[u8]) -> WasmSystem {
+        let mut system = WasmSystem::new();
+        let mut rom_data = vec![0x00, 0xFF];
+        rom_data.extend_from_slice(&[0xEA; 256]);
+        system.initialize(0x10000, rom_data).unwrap();
+        for (i, byte) in program.iter().enumerate() {
+            system.write_memory(0x0300 + i as u16, *byte);
+        }
+        system.cpu.pc = 0x0300;
+        system
+    }
+
+    #[test]
+    fn test_adc_decimal_overflow_follows_adjusted_high_nibble() {
+        use crate::cpu::flags;
+
+        // NMOS 6502, D=1: $79 + $00 + C. The binary sum is $7A (no signed
+        // overflow), but the BCD-adjusted high nibble is 8, so the real chip
+        // (and the TypeScript reference engine) sets V along with N.
+        let mut system = system_with_program(&[0x69, 0x00]); // ADC #$00
+        system.cpu.a = 0x79;
+        system.cpu.status = flags::DECIMAL | flags::CARRY | flags::UNUSED;
+
+        assert_eq!(system.step(), 2);
+
+        assert_eq!(system.cpu.a, 0x80);
+        assert!(system.cpu.get_flag(flags::OVERFLOW), "V must be set");
+        assert!(system.cpu.get_flag(flags::NEGATIVE), "N must be set");
+        assert!(!system.cpu.get_flag(flags::CARRY), "C must be clear");
+        assert!(!system.cpu.get_flag(flags::ZERO), "Z must be clear");
+    }
+
+    #[test]
+    fn test_adc_binary_overflow_unchanged() {
+        use crate::cpu::flags;
+
+        // Guard for the binary path: $50 + $50 = $A0 overflows into the sign bit.
+        let mut system = system_with_program(&[0x69, 0x50]);
+        system.cpu.a = 0x50;
+        system.cpu.status = flags::UNUSED;
+
+        system.step();
+
+        assert_eq!(system.cpu.a, 0xA0);
+        assert!(system.cpu.get_flag(flags::OVERFLOW));
+        assert!(system.cpu.get_flag(flags::NEGATIVE));
+        assert!(!system.cpu.get_flag(flags::CARRY));
+    }
+
+    #[test]
+    fn test_irq_pushes_status_with_break_clear() {
+        use crate::cpu::flags;
+
+        // PLP/RTI store the popped byte as-is, so bit 4 can sit in the status
+        // register. It is not a real flag: an IRQ or NMI must push it clear,
+        // which is how a handler tells a hardware interrupt from BRK.
+        let mut system = system_with_program(&[0xEA]);
+        system.cpu.status = flags::BREAK | flags::UNUSED;
+        let stack_before = system.cpu.s;
+        system.trigger_irq();
+
+        system.step();
+
+        // PCH, PCL, then status: the third byte pushed.
+        let pushed = system.read_memory(0x0100 | stack_before.wrapping_sub(2) as u16);
+        assert_eq!(pushed & flags::BREAK, 0, "B must be clear on an IRQ push");
+        assert_eq!(pushed & flags::UNUSED, flags::UNUSED);
+    }
+
+    #[test]
+    fn test_nmi_pushes_status_with_break_clear() {
+        use crate::cpu::flags;
+
+        let mut system = system_with_program(&[0xEA]);
+        system.cpu.status = flags::BREAK | flags::UNUSED | flags::INTERRUPT;
+        let stack_before = system.cpu.s;
+        system.trigger_nmi();
+
+        system.step();
+
+        let pushed = system.read_memory(0x0100 | stack_before.wrapping_sub(2) as u16);
+        assert_eq!(pushed & flags::BREAK, 0, "B must be clear on an NMI push");
+    }
+
+    #[test]
+    fn test_lda_izy_cycles_with_and_without_page_cross() {
+        // LDA ($10),Y: 5 cycles, 6 when adding Y crosses a page.
+        let mut system = system_with_program(&[0xB1, 0x10, 0xB1, 0x10]);
+        system.write_memory(0x0010, 0xF0); // pointer -> $02F0
+        system.write_memory(0x0011, 0x02);
+        system.write_memory(0x02F5, 0x11);
+        system.write_memory(0x0310, 0x22);
+
+        system.cpu.y = 0x05; // $02F5, same page
+        assert_eq!(system.step(), 5);
+        assert_eq!(system.cpu.a, 0x11);
+
+        system.cpu.y = 0x20; // $0310, crosses into page 3
+        assert_eq!(system.step(), 6);
+        assert_eq!(system.cpu.a, 0x22);
+    }
+
+    #[test]
+    fn test_lda_izy_at_the_top_of_memory_does_not_overflow() {
+        // Opcode at $FFFE, operand at $FFFF: PC wraps to $0000 after the fetch.
+        // The page-cross check used to recompute the operand address as PC - 1,
+        // which overflows there (a panic in a debug build).
+        let mut system = WasmSystem::new();
+        let mut rom_data = vec![0x00, 0xFF];
+        let mut rom = [0xEAu8; 256];
+        rom[0xFE] = 0xB1; // LDA ($10),Y
+        rom[0xFF] = 0x10;
+        rom_data.extend_from_slice(&rom);
+        system.initialize(0x10000, rom_data).unwrap();
+        system.write_memory(0x0010, 0x00);
+        system.write_memory(0x0011, 0x02);
+        system.write_memory(0x0203, 0x5A);
+        system.cpu.pc = 0xFFFE;
+        system.cpu.y = 0x03;
+
+        assert_eq!(system.step(), 5);
+        assert_eq!(system.cpu.a, 0x5A);
+        assert_eq!(system.cpu.pc, 0x0000);
     }
 
     // NOTE: last_addr/last_data tracking (get_last_addr/get_last_data) is

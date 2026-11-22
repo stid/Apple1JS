@@ -162,7 +162,7 @@ impl CPU6502 {
         let addr = self.get_izy_addr_bus(bus);
         self.a = self.read_byte_from_bus(bus, addr);
         self.update_nz(self.a);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;
@@ -619,7 +619,7 @@ impl CPU6502 {
         let addr = self.get_izy_addr_bus(bus);
         let value = self.read_byte_from_bus(bus, addr);
         self.compare_bus(self.a, value);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;
@@ -759,7 +759,7 @@ impl CPU6502 {
         let addr = self.get_izy_addr_bus(bus);
         let value = self.read_byte_from_bus(bus, addr);
         self.adc_bus(value);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;
@@ -843,7 +843,7 @@ impl CPU6502 {
         let addr = self.get_izy_addr_bus(bus);
         let value = self.read_byte_from_bus(bus, addr);
         self.sbc_bus(value);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;
@@ -937,7 +937,7 @@ impl CPU6502 {
         let value = self.read_byte_from_bus(bus, addr);
         self.a &= value;
         self.update_nz(self.a);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;
@@ -1029,7 +1029,7 @@ impl CPU6502 {
         let value = self.read_byte_from_bus(bus, addr);
         self.a |= value;
         self.update_nz(self.a);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;
@@ -1121,7 +1121,7 @@ impl CPU6502 {
         let value = self.read_byte_from_bus(bus, addr);
         self.a ^= value;
         self.update_nz(self.a);
-        if self.check_izy_page_cross_bus(bus) {
+        if Self::page_cross(addr.wrapping_sub(self.y as u16), addr) != 0 {
             self.cycles += 6;
         } else {
             self.cycles += 5;

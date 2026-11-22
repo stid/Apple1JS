@@ -64,25 +64,23 @@ tool, not a product surface.
 - **Never commit to `master`** — always a feature branch (`feat/ fix/ refactor/ docs/ test/ chore/`).
 - **Dual-engine parity** — JS and WASM engines must stay feature-equal; test **both** for every
   engine change. The JS engine is the reference oracle / fallback.
-  _Where that verification happens:_ in a **browser**, not CI. Native `cargo test` panics on the
-  `CPU6502::new()` / `WasmSystem::initialize()` path (wasm-bindgen imports), so `yarn wasm:test`
-  covers only the pure `bus.rs`/`ram.rs`/`rom.rs` components; the Node parity suites `skipIf` and
-  skip in CI. A Rust core change gets `cargo check` + a skipped parity test — the real check is
+  _Where that verification happens:_ Rust CPU logic runs under native `cargo test`
+  (`yarn wasm:test`, in CI) through the native host stand-ins in `wasm-cpu/src/lib.rs`. JS↔WASM
+  parity is proven locally: the Node parity suites `skipIf` and skip in CI. A Rust core change gets `cargo check` + a skipped parity test — the real check is
   manual. See `docs/active/cpu_test_guidelines.md`.
 - **No `any`** (strict mode), **no `console.log`** (use `LoggingService`), **no hardcoded colors**
   (design tokens — except the CRT display).
 - **Bump `src/version.ts`** before every PR (single source of truth; patch/minor/major per branch prefix).
 - **Stateful/inspectable contracts** (`IVersionedStatefulComponent`, `IInspectableComponent`) are
   scoped to the **core/IO layer**, not React presentational components.
-- **WASM build is speed-first** (`opt-level = 3`, ~155 KB); don't restore the abandoned size-first
+- **WASM build is speed-first** (`opt-level = 3`, ~75KB); don't restore the abandoned size-first
   (<100 KB) target without approval.
 - **markdownlint is per-file only** — `npx markdownlint-cli2 --fix "<file.md>"` on the files you
   actually edited. **Never** the repo-wide `yarn lint:md:fix`: it corrupts the machine block in
   `.claude/rules/lcd-conventions.md` and reflows nested lists (prettier wants 4-space, MD007 wants
   2-space). md-lint is not in CI, so the breakage is silent — this rule protects the LCD artifacts
   themselves.
-- **WASM core behavior is verified in a real browser** — don't add native Rust tests on the
-  CPU/`WasmSystem` path. The emulator's continuous worker/rAF loop means the page never reaches
+- **Browser verification of the running app** — the emulator's continuous worker/rAF loop means the page never reaches
   `document_idle`, so idle-gated screenshot/page-text tooling times out; drive and inspect via
   in-page JS, and sample transient UI (toasts) inside a **single** in-page async loop.
 

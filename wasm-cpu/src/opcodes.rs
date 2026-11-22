@@ -7,11 +7,9 @@
 
 /// Opcode definitions.
 ///
-/// A complete reference table of 6502 opcode bytes. The Bus-aware dispatch
-/// implements the documented (and a subset of the undocumented) opcodes; the
-/// remaining illegal-opcode constants are kept for completeness, hence the
-/// module-wide dead_code allowance.
-#[allow(dead_code)]
+/// The complete table of 6502 opcode bytes, documented and undocumented; the
+/// Bus-aware dispatch matches on every one of them.
+#[allow(clippy::module_inception)]
 pub mod opcodes {
     // System
     pub const BRK: u8 = 0x00;

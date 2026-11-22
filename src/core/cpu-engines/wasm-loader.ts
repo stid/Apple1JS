@@ -171,35 +171,6 @@ export function isWasmSupported(): boolean {
 }
 
 /**
- * Get initialization status
- */
-export function getWasmStatus(): {
-    isSupported: boolean;
-    isInitialized: boolean;
-    isInitializing: boolean;
-    hasError: boolean;
-    errorMessage?: string;
-} {
-    return {
-        isSupported: isWasmSupported(),
-        isInitialized: moduleState.isInitialized,
-        isInitializing: moduleState.isInitializing,
-        hasError: !!moduleState.initError,
-        ...(moduleState.initError && { errorMessage: moduleState.initError.message }),
-    };
-}
-
-/**
- * Reset the module state (mainly for testing)
- */
-export function resetWasmModule(): void {
-    moduleState.isInitialized = false;
-    moduleState.isInitializing = false;
-    delete moduleState.initError;
-    delete moduleState.module;
-}
-
-/**
  * Get the WasmSystem class after module is loaded
  */
 export function getWasmSystemClass(): typeof import('../../wasm/apple1_cpu_wasm').WasmSystem | null {

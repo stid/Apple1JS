@@ -6,6 +6,7 @@ import { Formatters } from '../utils/formatters';
 import { DEBUG_REFRESH_RATES } from '../constants/ui';
 import { WorkerManager } from '../services/WorkerManager';
 import { useUnmountSafe } from '../hooks/useUnmountSafe';
+import { loggingService } from '../services/LoggingService';
 
 interface MemoryViewerProps {
     workerManager: WorkerManager;
@@ -195,7 +196,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                     setMemoryMap(mapData.regions);
                 }
             } catch (error) {
-                console.error('Error fetching memory map:', error);
+                loggingService.error('MemoryViewerPaginated', `Error fetching memory map: ${error}`);
             }
         };
 
@@ -306,7 +307,7 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
                     });
                 }
             } catch (error) {
-                console.error('Error reading memory:', error);
+                loggingService.error('MemoryViewerPaginated', `Error reading memory: ${error}`);
             }
         };
 
@@ -397,7 +398,9 @@ const MemoryViewerPaginated: React.FC<MemoryViewerProps> = ({
             const paddedValue = editValue.padStart(2, '0');
             const value = parseInt(paddedValue, 16);
             // Send memory write to worker
-            workerManager.writeMemory(editingCell, value);
+            workerManager.writeMemory(editingCell, value).catch((error: unknown) => {
+                loggingService.error('MemoryViewerPaginated', `Failed to write memory: ${error}`);
+            });
         }
         setEditingCell(null);
         setEditValue('');

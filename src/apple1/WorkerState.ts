@@ -27,7 +27,6 @@ export class WorkerState implements IWorkerState {
 
     // Debugger state
     public debuggerActive: boolean;
-    public debugUpdateInterval: number | null;
 
     constructor() {
         // Initialize video and keyboard
@@ -48,35 +47,6 @@ export class WorkerState implements IWorkerState {
         this.isPaused = false;
         this.isStepping = false;
         this.debuggerActive = false;
-        this.debugUpdateInterval = null;
-
-        // Set up video subscription
-        this.setupVideoSubscription();
-    }
-
-    /**
-     * Set up video update subscription
-     */
-    private setupVideoSubscription(): void {
-        // Video updates are handled directly in WorkerAPI
-        // This is kept for compatibility
-    }
-
-    /**
-     * Update debugger state and manage debug update interval
-     */
-    public updateDebuggerState(active: boolean): void {
-        this.debuggerActive = active;
-
-        if (active && !this.debugUpdateInterval) {
-            // Debug updates are now handled by polling from main thread
-            // Keep interval for compatibility but don't send postMessage
-            this.debugUpdateInterval = 1; // Just a placeholder
-        } else if (!active && this.debugUpdateInterval) {
-            // Stop sending debug updates
-            clearInterval(this.debugUpdateInterval);
-            this.debugUpdateInterval = null;
-        }
     }
 
     /**
@@ -84,18 +54,9 @@ export class WorkerState implements IWorkerState {
      */
     public async startEmulation(): Promise<void> {
         // The Apple1.startLoop() method now handles engine initialization
-        await this.apple1.startLoop();
+        // The promise settles only when the loop ends, so the flag is set first.
         this.isPaused = false;
-    }
-
-    /**
-     * Clean up resources
-     */
-    public cleanup(): void {
-        if (this.debugUpdateInterval) {
-            clearInterval(this.debugUpdateInterval);
-            this.debugUpdateInterval = null;
-        }
+        await this.apple1.startLoop();
     }
 
     /**

@@ -17,23 +17,18 @@ export const RAM_BANK2_SIZE = RAM_BANK2_END - RAM_BANK2_START + 1;
 
 export const ROM_START = 0xff00;
 export const ROM_END = 0xffff;
-export const ROM_SIZE = ROM_END - ROM_START + 1;
 
 // PIA (Peripheral Interface Adapter) addresses
 export const PIA_START = 0xd010;
 export const PIA_END = 0xd013;
-export const PIA_SIZE = PIA_END - PIA_START + 1;
-
-// PIA register offsets
-export const PIA_ORA_DDRA = 0x0; // $D010
-export const PIA_CRA = 0x1;      // $D011
-export const PIA_ORB_DDRB = 0x2; // $D012
-export const PIA_CRB = 0x3;      // $D013
 
 // Memory value constraints
 export const MIN_BYTE_VALUE = 0;
 export const MAX_BYTE_VALUE = 255;
 export const BYTE_MASK = 0xff;
 
-// Bus cache
-export const MAX_BUS_CACHE_SIZE = 256;
+// I/O block as decoded by the WASM bus: the PIA and its mirrors. The only region
+// where a write has a side effect on a device, so it must be performed once.
+export const IO_START = 0xd000;
+export const IO_END = 0xdfff;
+export const isIoAddress = (address: number): boolean => address >= IO_START && address <= IO_END;

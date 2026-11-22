@@ -16,18 +16,5 @@ export type {
 
 export { WEB_VIDEO_BUFFER_ROW } from './video';
 
-// Export all worker message types
-export {
-    WORKER_MESSAGES,
-    isWorkerMessage,
-} from './worker-messages';
-
-export type {
-    WorkerMessage,
-    StateMessage,
-    DebugData,
-    LogMessageData,
-    MemoryRangeRequest,
-    MemoryRangeData,
-    MessageDataTypes,
-} from './worker-messages';
+// Worker data shapes
+export type { DebugData } from './worker-messages';

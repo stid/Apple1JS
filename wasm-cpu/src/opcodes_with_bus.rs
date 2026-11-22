@@ -8,24 +8,6 @@
 use crate::CPU6502;
 use crate::Bus;
 
-/// Macro to generate instruction wrappers that use internal Bus
-macro_rules! bus_instruction {
-    // Load instructions (read operation)
-    (load, $self:ident, $bus:ident, $reg:ident, $addr_expr:expr, $base_cycles:expr) => {{
-        let addr = $addr_expr;
-        $self.$reg = $self.read_byte_from_bus($bus, addr);
-        $self.update_nz($self.$reg);
-        $self.cycles += $base_cycles;
-    }};
-
-    // Store instructions (write operation)
-    (store, $self:ident, $bus:ident, $reg:expr, $addr_expr:expr, $base_cycles:expr) => {{
-        let addr = $addr_expr;
-        $self.write_byte_to_bus($bus, addr, $reg);
-        $self.cycles += $base_cycles;
-    }};
-}
-
 impl CPU6502 {
     /// Main instruction dispatch with internal Bus
     /// This eliminates WASM→JS boundary crossings for all memory access
@@ -225,13 +207,6 @@ impl CPU6502 {
             opcodes::ROR_ZPX => self.ror_zpx_bus(bus),
             opcodes::ROR_ABS => self.ror_abs_bus(bus),
             opcodes::ROR_ABSX => self.ror_absx_bus(bus),
-
-            // ========== Illegal/Undocumented Opcodes ==========
-            // (Partial support - commonly used ones)
-            // TODO: Implement Bus-aware versions of illegal opcodes
-
-
-            // For unimplemented opcodes, use NOP behavior
 
             // ===== Undocumented instructions (parity with the TypeScript engine, D-013) =====
             // SLO

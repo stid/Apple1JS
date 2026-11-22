@@ -6,6 +6,7 @@ import type {
     EngineStatusData,
     EngineComparisonData
 } from './worker-messages';
+import type { InspectableData } from '../../core/types/components';
 
 /**
  * CPU Engine performance metrics
@@ -213,6 +214,12 @@ export interface IWorkerAPI {
      * @returns Debug data for CPU, PIA, Bus, and Clock
      */
     getDebugInfo(): FilteredDebugData;
+
+    /**
+     * Structure of the running machine (components, address ranges, stats) as
+     * plain data for the Inspector.
+     */
+    getInspectableTree(): InspectableData;
     
     // ========== Event Subscriptions ==========
     // These will use Comlink.proxy for callbacks
@@ -265,5 +272,4 @@ export interface IWorkerState {
     isPaused: boolean;
     isStepping: boolean;
     debuggerActive: boolean;
-    debugUpdateInterval: number | null;
 }

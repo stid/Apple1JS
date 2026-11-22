@@ -1,5 +1,4 @@
 import * as Comlink from 'comlink';
-import { WORKER_MESSAGES, WorkerMessage } from '../apple1/types/worker-messages';
 import type { IWorkerAPI } from '../apple1/types/worker-api';
 import type { EmulatorState } from '../apple1/types/emulator-state';
 import type { VideoData } from '../apple1/types/video';
@@ -9,24 +8,16 @@ import type {
     EngineStatusData,
     EngineComparisonData,
 } from '../apple1/types/worker-messages';
-// CONFIG no longer needed since Comlink is the only implementation
+import { loggingService } from './LoggingService';
+import type { InspectableData } from '../core/types/components';
 
 /**
- * WorkerManager provides a unified interface for worker communication
- * that can switch between the legacy postMessage approach and the new
- * Comlink-based implementation based on a feature flag.
- *
- * This enables a gradual migration and easy rollback if needed.
+ * WorkerManager owns the emulator worker and exposes its API (Comlink) to the
+ * UI as promise-returning methods.
  */
 export class WorkerManager {
     private worker: Worker | null = null;
     private comlinkAPI: Comlink.Remote<IWorkerAPI> | null = null;
-    // useComlink field removed - always using Comlink now
-    private messageHandlers: Map<WORKER_MESSAGES, (data: unknown) => void> = new Map();
-
-    constructor() {
-        console.log('WorkerManager: Using Comlink mode');
-    }
 
     /**
      * Initialize the worker with the appropriate implementation
@@ -42,37 +33,7 @@ export class WorkerManager {
         // Wrap the worker with Comlink
         this.comlinkAPI = Comlink.wrap<IWorkerAPI>(this.worker);
 
-        // Set up message handler for backward compatibility
-        // Note: All events now go through Comlink, this is kept for potential future use
-        this.worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
-            const handler = this.messageHandlers.get(e.data.type);
-            if (handler && 'data' in e.data) {
-                handler(e.data.data);
-            }
-        };
-
         return this.worker;
-    }
-
-    /**
-     * Get the raw worker instance (for compatibility)
-     */
-    getWorker(): Worker | null {
-        return this.worker;
-    }
-
-    /**
-     * Register a message handler
-     */
-    onMessage(type: WORKER_MESSAGES, handler: (data: unknown) => void): void {
-        this.messageHandlers.set(type, handler);
-    }
-
-    /**
-     * Remove a message handler
-     */
-    offMessage(type: WORKER_MESSAGES): void {
-        this.messageHandlers.delete(type);
     }
 
     /**
@@ -151,6 +112,10 @@ export class WorkerManager {
         await this.call((api) => api.writeMemory(address, value));
     }
 
+    async getInspectableTree(): Promise<InspectableData> {
+        return this.callOrThrow((api) => api.getInspectableTree());
+    }
+
     async getDebugInfo(): Promise<FilteredDebugData | void> {
         return this.call((api) => api.getDebugInfo());
     }
@@ -204,14 +169,12 @@ export class WorkerManager {
     async onVideoUpdate(callback: (data: VideoData) => void): Promise<(() => void) | void> {
         if (this.comlinkAPI) {
             try {
-                console.log('WorkerManager: Setting up video update subscription');
                 // Proxy the callback for cross-boundary communication
                 const proxiedCallback = Comlink.proxy(callback);
                 const unsubscribe = await this.comlinkAPI.onVideoUpdate(proxiedCallback);
-                console.log('WorkerManager: Video update subscription successful');
                 return unsubscribe;
             } catch (error) {
-                console.error('WorkerManager: Error setting up video update subscription:', error);
+                loggingService.error('WorkerManager', `Error setting up video update subscription: ${error}`);
                 throw error;
             }
         }
@@ -261,7 +224,6 @@ export class WorkerManager {
             this.worker = null;
             this.comlinkAPI = null;
         }
-        this.messageHandlers.clear();
     }
 }
 

@@ -18,11 +18,13 @@ jobs:
               uses: actions/setup-node@v7
               with:
                   node-version-file: '.nvmrc'
+                  cache: yarn
 
             - name: Setup Rust
               uses: dtolnay/rust-toolchain@stable
               with:
                   targets: wasm32-unknown-unknown
+                  components: clippy
 
             - name: Cache Rust dependencies
               uses: actions/cache@v6
@@ -50,15 +52,32 @@ jobs:
                   wasm-pack --version
 
             - name: Build WASM module
+              # Release, not --dev: build what `yarn dev` and production ship, so a
+              # wasm-opt or release-profile breakage fails here instead of on deploy.
               run: |
                   cd wasm-cpu
-                  wasm-pack build --dev --target web --out-dir ../src/wasm
+                  wasm-pack build --release --target web --out-dir ../src/wasm
+
+            - name: Rust tests
+              # Native: the CPU core runs against stand-ins for the JS imports.
+              run: cd wasm-cpu && cargo test
+
+            - name: Rust lint
+              run: cd wasm-cpu && cargo clippy --all-targets --target wasm32-unknown-unknown -- -D warnings
 
             - name: Install JS dependencies
-              run: yarn install
+              run: yarn install --frozen-lockfile
 
             - name: Run tests
               run: yarn test:ci
+
+            - name: Coverage thresholds
+              run: yarn test:coverage
+
+            - name: Production build
+              # tsc already ran in test:ci; this exercises the bundler (Rolldown,
+              # terser, Tailwind), which the test gate never touches.
+              run: yarn vite:build
 
             - name: Tests ✅
               if: ${{ success() }}

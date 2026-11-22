@@ -2,7 +2,6 @@ import { vi } from 'vitest';
 import type { WorkerManager } from '../../services/WorkerManager';
 import type { EmulatorState } from '../../apple1/types/emulator-state';
 import type { DebugData, MemoryMapData, EngineStatusData } from '../../apple1/types/worker-messages';
-import { WORKER_MESSAGES } from '../../apple1/types/worker-messages';
 
 /**
  * Creates a mock WorkerManager instance for testing
@@ -24,15 +23,10 @@ export function createMockWorkerManager(): WorkerManager {
         // Private fields
         worker: mockWorker,
         comlinkAPI: null,
-        messageHandlers: new Map(),
         
         // Initialization
         initializeWorker: vi.fn().mockResolvedValue(mockWorker),
-        getWorker: vi.fn().mockReturnValue(mockWorker),
         
-        // Message handling
-        onMessage: vi.fn(),
-        offMessage: vi.fn(),
         
         // Emulation Control
         pauseEmulation: vi.fn().mockResolvedValue(undefined),
@@ -61,6 +55,7 @@ export function createMockWorkerManager(): WorkerManager {
         // Memory Operations
         readMemoryRange: vi.fn().mockResolvedValue(new Array(256).fill(0)),
         writeMemory: vi.fn().mockResolvedValue(undefined),
+        getInspectableTree: vi.fn().mockResolvedValue({ id: 'apple1', type: 'Apple1', name: 'Apple 1', children: [] }),
         getDebugInfo: vi.fn().mockResolvedValue({ 
             CPU: {
                 pc: 0x0000, 
@@ -137,19 +132,4 @@ export function createMinimalMockWorkerManager(): Partial<WorkerManager> {
         onVideoUpdate: vi.fn().mockResolvedValue(() => {}),
         terminate: vi.fn()
     };
-}
-
-/**
- * Helper to simulate worker messages in tests
- */
-export function simulateWorkerMessage(
-    workerManager: WorkerManager,
-    type: WORKER_MESSAGES,
-    data: unknown
-): void {
-    const handlers = (workerManager as unknown as { messageHandlers: Map<WORKER_MESSAGES, (data: unknown) => void> }).messageHandlers;
-    const handler = handlers.get(type);
-    if (handler) {
-        handler(data);
-    }
 }

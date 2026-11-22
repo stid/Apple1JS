@@ -6,3 +6,5 @@
 2026-08-06 · hw-accuracy · closeout · Deep · audit: PASS (first run) · re-routes: 0 · red-green iters: 2 (Tier 1) · interventions: 1
 2026-09-03 · wasm-cycle-double-count · 2 signals · Standard · hard:no · risk:no
 2026-09-03 · wasm-cycle-double-count · closeout · Standard · audit: n/a (engine-internal, no surface) · re-routes: 0 · interventions: 0
+2026-11-21 · review-2026-11 · 5 signals · Standard · hard:no · risk:yes
+2026-11-21 · review-2026-11 · closeout · Standard · audit: n/a (six PRs, each verified by its own tests + browser check) · re-routes: 0 · interventions: 1 (auto-mode denied remote branch deletion)

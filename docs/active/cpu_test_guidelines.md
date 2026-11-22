@@ -107,13 +107,13 @@ a failure instead of silent green.
 
 ### 🧬 WASM core: where tests can and can't run
 
-The Rust/WASM 6502 core cannot be exercised by `cargo test` or Node vitest:
+Where each kind of test runs:
 
-- **Native `cargo test`** (`yarn wasm:test`): `CPU6502::new()` / `WasmSystem::initialize()`
-  call wasm-bindgen imports (`console_log!`, …) that panic on non-wasm targets. Only the pure
-  component tests (`bus.rs`, `ram.rs`, `rom.rs`) run natively — the `system.rs` / CPU-execution
-  tests fail on `master` too. **Don't add native Rust tests on the CPU/`WasmSystem` path; they
-  cannot pass.**
+- **Native `cargo test`** (`yarn wasm:test`, runs in CI): CPU and `WasmSystem` logic. The
+  wasm-bindgen imports in `lib.rs` are replaced by native stand-ins outside `wasm32` (logging is
+  a no-op, the I/O block reads 0 and ignores writes). Use the `system_with_program` helper in
+  `system.rs` and assert on `system.cpu.*` fields; methods returning `JsValue`
+  (`get_cpu_state`, `get_metrics`) still panic natively.
 - **Node vitest**: the wasm-pack "web" build loads via `fetch()`, absent in Node, so the
   engine-parity suites are `describe.skipIf(!wasmRuntimeAvailable)` and **skip in CI**.
   **But they will run locally if something serves the build**: start `yarn dev:vite` in another
